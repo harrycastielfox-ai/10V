@@ -206,37 +206,21 @@ describe("getInquiryRegistrationChecks", () => {
     expect(withFaccao.find((c) => c.id === "nome-faccao")?.complete).toBe(false);
   });
 
-  it("requires processo da medida protetiva only when medida protetiva is yes", () => {
-    const withMedida = getInquiryRegistrationChecks(baseInquiry({ medidaProtetiva: "sim" }));
-    expect(withMedida.find((c) => c.id === "processo-medida")?.complete).toBe(false);
+  it("não inclui mais controles removidos de relatório e medida protetiva", () => {
+    const checks = getInquiryRegistrationChecks(
+      baseInquiry({ medidaProtetiva: "sim", relatorioStatus: "enviado" }),
+    );
+    expect(checks.some((c) => c.id === "processo-medida")).toBe(false);
+    expect(checks.some((c) => c.id === "data-relatorio")).toBe(false);
+    expect(checks.some((c) => c.id === "data-envio-relatorio")).toBe(false);
   });
 
-  it("requires data do relatório once relatório leaves pendente", () => {
-    const relatado = getInquiryRegistrationChecks(baseInquiry({ relatorioStatus: "relatado" }));
-    expect(relatado.find((c) => c.id === "data-relatorio")?.complete).toBe(false);
-  });
-
-  it("requires data de envio and correct date order once relatório is enviado", () => {
-    const semData = getInquiryRegistrationChecks(baseInquiry({ relatorioStatus: "enviado" }));
-    expect(semData.find((c) => c.id === "data-envio-relatorio")?.complete).toBe(false);
-
-    const ordemInvalida = getInquiryRegistrationChecks(
-      baseInquiry({
-        relatorioStatus: "enviado",
-        dataRelatorio: "2026-02-10",
-        dataEnvioRelatorio: "2026-02-01",
-      }),
+  it("acompanha resumo do fato e cidade no novo cadastro", () => {
+    const checks = getInquiryRegistrationChecks(
+      baseInquiry({ resumoFato: "", cidade: "", distrito: "" }),
     );
-    expect(ordemInvalida.find((c) => c.id === "ordem-datas-relatorio")?.complete).toBe(false);
-
-    const ordemValida = getInquiryRegistrationChecks(
-      baseInquiry({
-        relatorioStatus: "enviado",
-        dataRelatorio: "2026-02-01",
-        dataEnvioRelatorio: "2026-02-10",
-      }),
-    );
-    expect(ordemValida.find((c) => c.id === "ordem-datas-relatorio")?.complete).toBe(true);
+    expect(checks.find((c) => c.id === "resumo-fato")?.complete).toBe(false);
+    expect(checks.find((c) => c.id === "cidade")?.complete).toBe(false);
   });
 });
 

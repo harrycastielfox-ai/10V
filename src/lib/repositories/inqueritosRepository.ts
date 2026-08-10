@@ -17,13 +17,18 @@ export type InqueritoRecord = {
   prioridade: string | null;
   prioridade_operacional: string | null;
   situacao: string | null;
+  status_tag_id?: string | null;
   status_diligencias: string | null;
   data_fato: string | null;
   data_instauracao: string | null;
   prazo: string | null;
+  prazo_dias?: number | null;
+  prazo_data_final?: string | null;
+  prazo_manual?: boolean;
   dias_decorridos: string | null;
   bairro: string | null;
   distrito: string | null;
+  cidade?: string | null;
   vitima: string | null;
   investigado: string | null;
   reu_preso: string | null;
@@ -51,6 +56,7 @@ export type InqueritoRecord = {
   diligencias_pendentes: string | null;
   delegado_responsavel: string | null;
   motivacao: string | null;
+  resumo_fato?: string | null;
   observacoes: string | null;
   created_at: string | null;
   updated_at: string | null;

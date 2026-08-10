@@ -20,7 +20,7 @@ type SipiPrintSheetProps = {
   documentSubtitle: string;
   identifierLabel: string;
   identifier: string;
-  variant?: "default" | "vehicle" | "term" | "summary";
+  variant?: "default" | "inquiry" | "vehicle" | "term" | "summary";
   summary?: SipiPrintField[];
   sections: SipiPrintSection[];
 };

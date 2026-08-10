@@ -17,6 +17,11 @@ import {
   type InqueritoPessoaRecord,
   type InqueritoRecord,
 } from "@/lib/repositories/inqueritosRepository";
+import {
+  listInqueritoStatusHistory,
+  listProceduralTags,
+} from "@/lib/repositories/proceduralTagsRepository";
+import type { ProceduralStatusHistory, ProceduralTag } from "@/lib/proceduralTags";
 import { getCurrentProfile } from "@/lib/auth";
 import { isMobileViewport } from "@/lib/mobileExperience";
 import {
@@ -77,11 +82,13 @@ type InqueritoDetalheUI = {
   dataFato: string;
   dataInstauracao: string;
   prazo: string;
+  prazoDias: string;
   diasDecorridos: string;
   ultimaEdicao: string;
   delegadoResponsavel: string;
   bairro: string;
   distrito: string;
+  cidade: string;
   vitima: string;
   investigado: string;
   autoriaDeterminada: string;
@@ -102,6 +109,7 @@ type InqueritoDetalheUI = {
   medidaProtetiva: string;
   numeroProcessoMedida: string;
   motivacao: string;
+  resumoFato: string;
   observacoes: string;
   diligenciasPendentes: string;
   representacoesLegais: string;
@@ -317,12 +325,14 @@ function normalizeInqueritoForDetail(caso: InqueritoRecord): InqueritoDetalheUI 
     gravidade: pickCaseCategory(raw),
     dataFato: pick(raw, "data_fato", "dataFato"),
     dataInstauracao: pick(raw, "data_instauracao", "dataInstauracao"),
-    prazo: formatPrazoDisplay(pick(raw, "prazo")),
+    prazo: formatPrazoDisplay(pick(raw, "prazo_data_final", "prazo")),
+    prazoDias: pick(raw, "prazo_dias"),
     diasDecorridos: formatElapsedDuration(pick(raw, "dias_decorridos", "diasDecorridos")),
     ultimaEdicao: pick(raw, "updated_at", "updatedAt", "ultima_edicao", "ultimaEdicao"),
     delegadoResponsavel: pick(raw, "delegado_responsavel", "delegadoResponsavel"),
     bairro: pick(raw, "bairro", "bairroDistrito"),
     distrito: pick(raw, "distrito"),
+    cidade: pick(raw, "cidade", "distrito"),
     vitima: pick(raw, "vitima"),
     investigado: pick(raw, "investigado", "suspeito", "autor_investigado", "autorInvestigado"),
     autoriaDeterminada: pick(raw, "autoria_determinada", "autoriaDeterminada"),
@@ -347,6 +357,7 @@ function normalizeInqueritoForDetail(caso: InqueritoRecord): InqueritoDetalheUI 
     ),
     numeroProcessoMedida: pick(raw, "numero_processo_medida", "numeroProcessoMedida"),
     motivacao: pick(raw, "motivacao"),
+    resumoFato: pick(raw, "resumo_fato", "motivacao"),
     observacoes: pick(raw, "observacoes"),
     diligenciasPendentes: pick(raw, "diligencias_pendentes", "diligenciasPendentes"),
     representacoesLegais: pick(raw, "representacoes_legais", "representacoesLegais"),
@@ -374,22 +385,27 @@ function InqueritoDetalhes() {
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [restricted, setRestricted] = useState(false);
+  const [statusHistory, setStatusHistory] = useState<ProceduralStatusHistory[]>([]);
+  const [statusTags, setStatusTags] = useState<ProceduralTag[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
         setErro("");
         setPessoasLoadWarning(false);
-        const [currentProfile, inquerito, pessoasResult] = await Promise.all([
-          getCurrentProfile(),
-          getInqueritoById(caseId),
-          listInqueritoPessoas(caseId)
-            .then((pessoasSalvas) => ({ pessoasSalvas, failed: false }))
-            .catch((peopleError: unknown) => {
-              console.warn("[inqueritos:detalhe] pessoas adicionais indisponiveis", peopleError);
-              return { pessoasSalvas: [], failed: true };
-            }),
-        ]);
+        const [currentProfile, inquerito, pessoasResult, historyResult, tagsResult] =
+          await Promise.all([
+            getCurrentProfile(),
+            getInqueritoById(caseId),
+            listInqueritoPessoas(caseId)
+              .then((pessoasSalvas) => ({ pessoasSalvas, failed: false }))
+              .catch((peopleError: unknown) => {
+                console.warn("[inqueritos:detalhe] pessoas adicionais indisponiveis", peopleError);
+                return { pessoasSalvas: [], failed: true };
+              }),
+            listInqueritoStatusHistory(caseId).catch(() => []),
+            listProceduralTags(["inquerito_status"]).catch(() => []),
+          ]);
         setProfile(currentProfile);
         if (!inquerito) {
           setRestricted(false);
@@ -410,6 +426,8 @@ function InqueritoDetalhes() {
         setCaso(inquerito);
         setPessoas(pessoasResult.pessoasSalvas);
         setPessoasLoadWarning(pessoasResult.failed);
+        setStatusHistory(historyResult);
+        setStatusTags(tagsResult);
       } catch (error) {
         const message =
           typeof error === "object" &&
@@ -418,7 +436,7 @@ function InqueritoDetalhes() {
           typeof error.message === "string"
             ? error.message
             : "Erro desconhecido";
-        setErro(`Falha ao carregar detalhe do inquérito (${message})`);
+        setErro(`Falha ao carregar detalhe do procedimento (${message})`);
       } finally {
         setLoading(false);
       }
@@ -426,6 +444,10 @@ function InqueritoDetalhes() {
   }, [caseId, location.pathname]);
 
   const detalhe = useMemo(() => (caso ? normalizeInqueritoForDetail(caso) : null), [caso]);
+  const statusTagNames = useMemo(
+    () => new Map(statusTags.map((tag) => [tag.id, tag.name])),
+    [statusTags],
+  );
   const registrationChecks = useMemo(() => {
     if (!caso) return [];
     const raw = caso as unknown as Record<string, unknown>;
@@ -451,6 +473,7 @@ function InqueritoDetalhes() {
       dataInstauracao: String(raw.data_instauracao ?? ""),
       prazo: String(raw.prazo ?? ""),
       tipificacao: String(raw.tipificacao ?? ""),
+      resumoFato: String(raw.resumo_fato ?? ""),
       gravidade: String(raw.categoria_criminal ?? raw.gravidade ?? ""),
       vitima: String(raw.vitima ?? ""),
       investigado: String(raw.investigado ?? ""),
@@ -458,6 +481,7 @@ function InqueritoDetalhes() {
       reuPreso: String(raw.reu_preso ?? raw.reu_preso_normalizado ?? ""),
       bairro: String(raw.bairro ?? ""),
       distrito: String(raw.distrito ?? ""),
+      cidade: String(raw.cidade ?? raw.distrito ?? ""),
       delegado: String(raw.delegado_responsavel ?? ""),
       equipe: String(raw.equipe_responsavel ?? raw.equipe ?? ""),
       escrivao: String(raw.escrivao ?? ""),
@@ -505,7 +529,7 @@ function InqueritoDetalhes() {
         <div className="space-y-4">
           <h1 className="text-xl font-bold">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground">
-            Você não tem permissão para visualizar este inquérito.
+            Você não tem permissão para visualizar este procedimento.
           </p>
           <Link to="/inqueritos" className="px-4 py-2 border border-border rounded-lg inline-block">
             Voltar
@@ -517,9 +541,9 @@ function InqueritoDetalhes() {
     return (
       <AppLayout>
         <div className="space-y-4">
-          <h1 className="text-xl font-bold">Inquérito não encontrado ou removido</h1>
+          <h1 className="text-xl font-bold">Procedimento não encontrado ou removido</h1>
           <p className="text-sm text-muted-foreground">
-            Este inquérito não está mais disponível para visualização.
+            Este procedimento não está mais disponível para visualização.
           </p>
           <Link to="/inqueritos" className="px-4 py-2 border border-border rounded-lg inline-block">
             Voltar
@@ -567,11 +591,11 @@ function InqueritoDetalhes() {
           : "";
       if (code === "42501") {
         setDeleteError(
-          "Sem permissão para excluir este inquérito. Verifique a policy de UPDATE/DELETE (soft delete) no Supabase.",
+          "Sem permissão para excluir este procedimento. Verifique a policy de UPDATE/DELETE (soft delete) no Supabase.",
         );
       } else {
         setDeleteError(
-          `Falha ao excluir inquérito (${message}${code ? ` | code: ${code}` : ""}${details ? ` | details: ${details}` : ""}${hint ? ` | hint: ${hint}` : ""})`,
+          `Falha ao excluir procedimento (${message}${code ? ` | code: ${code}` : ""}${details ? ` | details: ${details}` : ""}${hint ? ` | hint: ${hint}` : ""})`,
         );
       }
     } finally {
@@ -581,12 +605,7 @@ function InqueritoDetalhes() {
 
   const prazoSummary = getPrazoSummary(detalhe.prazo);
   const pendingChecks = registrationChecks.filter((item) => !item.complete);
-  const headerIdentifier =
-    detalhe.numeroPpe !== FALLBACK
-      ? detalhe.numeroPpe
-      : detalhe.numeroBo !== FALLBACK
-        ? `B.O. ${detalhe.numeroBo}`
-        : "sem identificação";
+  const headerIdentifier = detalhe.numeroPpe !== FALLBACK ? detalhe.numeroPpe : "sem identificação";
   const peopleRows: Array<[string, string]> =
     pessoas.length > 0
       ? pessoas.map((pessoa) => [
@@ -611,26 +630,24 @@ function InqueritoDetalhes() {
   ].some(hasPrintableFieldValue);
   const printSections: SipiPrintSection[] = [
     {
-      title: "Resumo do fato",
-      wide: true,
-      narrative: true,
+      title: "Identificação do procedimento",
       fields: [
-        { label: "Tipificação", value: detalhe.tipificacao, wide: true },
-        { label: "Motivação", value: detalhe.motivacao, wide: true },
+        { label: "Nº PPE", value: detalhe.numeroPpe },
+        { label: "Origem do registro", value: detalhe.origemRegistro },
+        { label: "Tipo de procedimento", value: detalhe.tipo },
+        { label: "Status", value: detalhe.situacao },
+        { label: "Tipificações", value: detalhe.tipificacao, wide: true },
+        { label: "Data do fato", value: formatDateValue(detalhe.dataFato) },
+        { label: "Data de instauração", value: formatDateValue(detalhe.dataInstauracao) },
+        { label: "Prazo em dias", value: detalhe.prazoDias },
+        { label: "Data limite", value: prazoSummary.detail },
       ],
     },
     {
-      title: "Dados gerais",
-      fields: [
-        { label: "Nº físico", value: detalhe.numeroFisico },
-        { label: "Nº do B.O.", value: detalhe.numeroBo },
-        { label: "Data do fato", value: formatDateValue(detalhe.dataFato) },
-        { label: "Data de instauração", value: formatDateValue(detalhe.dataInstauracao) },
-        { label: "Data limite", value: prazoSummary.detail },
-        { label: "Tempo decorrido", value: detalhe.diasDecorridos },
-        { label: "Elucidação", value: detalhe.elucidado },
-        { label: "Data da elucidação", value: formatDateValue(detalhe.dataElucidacao) },
-      ],
+      title: "Resumo do fato",
+      wide: true,
+      narrative: true,
+      fields: [{ label: "Registro", value: detalhe.resumoFato, wide: true }],
     },
     {
       title: "Pessoas envolvidas",
@@ -641,41 +658,22 @@ function InqueritoDetalhes() {
       ],
     },
     {
-      title: "Dados operacionais",
+      title: "Localização e controle",
       fields: [
         { label: "Bairro", value: detalhe.bairro },
-        { label: "Distrito", value: detalhe.distrito },
-        { label: "Equipe", value: detalhe.equipe },
-        { label: "Escrivão", value: detalhe.escrivao },
-        { label: "Delegado responsável", value: detalhe.delegadoResponsavel },
-        { label: "Última atualização", value: formatDateTime(detalhe.ultimaEdicao) },
-      ],
-    },
-    {
-      title: "Controle do cadastro",
-      fields: [
-        { label: "Origem do registro", value: detalhe.origemRegistro },
+        { label: "Cidade", value: detalhe.cidade },
         { label: "Visibilidade", value: detalhe.visibilidade },
         { label: "Cadastrado em", value: formatDateTime(detalhe.dataCadastro) },
-        { label: "Prioridade operacional", value: detalhe.prioridade },
-        { label: "Motivo da prioridade", value: detalhe.prioridadeMotivo, wide: true },
-      ],
-    },
-    {
-      title: "Relatório e jurídico",
-      fields: [
-        { label: "Status do relatório", value: detalhe.relatorioStatus },
-        { label: "Relatório enviado", value: detalhe.relatorioEnviado },
-        { label: "Data do relatório", value: formatDateValue(detalhe.dataRelatorio) },
-        { label: "Data de envio", value: formatDateValue(detalhe.dataEnvioRelatorio) },
-        { label: "Medida protetiva", value: detalhe.medidaProtetiva },
-        { label: "Nº do processo da medida", value: detalhe.numeroProcessoMedida },
-        { label: "Representações vinculadas", value: detalhe.representacoesLegais },
+        { label: "Última atualização", value: formatDateTime(detalhe.ultimaEdicao) },
       ],
     },
     {
       title: "Classificação complementar",
       fields: [
+        { label: "Prioridade operacional", value: detalhe.prioridade },
+        { label: "Motivo da prioridade", value: detalhe.prioridadeMotivo, wide: true },
+        { label: "Elucidação", value: detalhe.elucidado },
+        { label: "Data da elucidação", value: formatDateValue(detalhe.dataElucidacao) },
         { label: "Houve arma de fogo", value: detalhe.houveArmaFogo },
         { label: "Arma utilizada", value: detalhe.armaUtilizada },
         { label: "Vinculado à facção", value: detalhe.vinculadoFaccao },
@@ -683,16 +681,19 @@ function InqueritoDetalhes() {
       ],
     },
     {
-      title: "Diligências pendentes",
+      title: "Observações e diligências",
       wide: true,
       narrative: true,
-      fields: [{ label: "Registro", value: detalhe.diligenciasPendentes, wide: true }],
-    },
-    {
-      title: "Observações",
-      wide: true,
-      narrative: true,
-      fields: [{ label: "Registro", value: detalhe.observacoes, wide: true }],
+      fields: [
+        {
+          label: "Registro",
+          value:
+            detalhe.diligenciasPendentes !== FALLBACK
+              ? detalhe.diligenciasPendentes
+              : detalhe.observacoes,
+          wide: true,
+        },
+      ],
     },
   ];
 
@@ -700,22 +701,17 @@ function InqueritoDetalhes() {
     <AppLayout>
       <div className="sipi-print-document mx-auto w-full max-w-[1480px] space-y-4 px-1 lg:px-2">
         <SipiPrintSheet
-          documentTitle="Ficha de Inquérito Policial"
+          variant="inquiry"
+          documentTitle="Ficha de Procedimento Policial"
           documentSubtitle="Conferência, acompanhamento e arquivamento operacional"
           identifierLabel={detalhe.numeroPpe !== FALLBACK ? "PPE" : "Identificação"}
           identifier={headerIdentifier}
           summary={[
             { label: "Situação", value: detalhe.situacao },
-            { label: "Categoria", value: detalhe.gravidade },
             { label: "Procedimento", value: detalhe.tipo },
-            { label: "Diligências", value: detalhe.statusDiligencias },
-            {
-              label: "Relatório",
-              value:
-                detalhe.relatorioStatus !== FALLBACK
-                  ? detalhe.relatorioStatus
-                  : detalhe.relatorioEnviado,
-            },
+            { label: "Origem", value: detalhe.origemRegistro },
+            { label: "Cidade", value: detalhe.cidade },
+            { label: "Prazo", value: prazoSummary.detail },
           ]}
           sections={printSections}
         />
@@ -725,7 +721,7 @@ function InqueritoDetalhes() {
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <Link
                 to="/inqueritos"
-                aria-label="Voltar para inquéritos"
+                aria-label="Voltar para procedimentos"
                 className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 text-xs font-bold text-primary transition-colors hover:border-primary/45 hover:bg-primary/10"
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar
@@ -734,7 +730,7 @@ function InqueritoDetalhes() {
               <div className="min-w-0">
                 <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
                   <span className="text-sm font-extrabold text-muted-foreground sm:text-base">
-                    Inquérito N°:
+                    Procedimento N°:
                   </span>
                   <h1 className="truncate font-mono text-base font-black tracking-tight text-foreground sm:text-lg">
                     {headerIdentifier}
@@ -768,15 +764,23 @@ function InqueritoDetalhes() {
               <Printer className="h-4 w-4" /> Gerar PDF
             </button>
             {canEditCases(profile) ? (
-              <button
-                type="button"
-                onClick={() =>
-                  navigate({ to: "/inqueritos/$caseId/editar", params: { caseId: caso.id } })
-                }
-                className="hidden h-10 items-center gap-2 rounded-md bg-primary px-4 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex"
-              >
-                <Pencil className="h-4 w-4" /> Editar
-              </button>
+              <>
+                <a
+                  href={`/nova-representacao?inqueritoId=${encodeURIComponent(caso.id)}&ppe=${encodeURIComponent(detalhe.numeroPpe === FALLBACK ? "" : detalhe.numeroPpe)}`}
+                  className="hidden h-10 items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-4 text-xs font-bold text-primary transition-colors hover:bg-primary/15 md:inline-flex"
+                >
+                  <Gavel className="h-4 w-4" /> Nova movimentação
+                </a>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate({ to: "/inqueritos/$caseId/editar", params: { caseId: caso.id } })
+                  }
+                  className="hidden h-10 items-center gap-2 rounded-md bg-primary px-4 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex"
+                >
+                  <Pencil className="h-4 w-4" /> Editar
+                </button>
+              </>
             ) : null}
             {canDeleteCases(profile) ? (
               <details className="group relative hidden md:block">
@@ -797,7 +801,8 @@ function InqueritoDetalhes() {
                     disabled={deleting}
                     className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
                   >
-                    <Trash2 className="h-4 w-4" /> {deleting ? "Excluindo..." : "Excluir inquérito"}
+                    <Trash2 className="h-4 w-4" />{" "}
+                    {deleting ? "Excluindo..." : "Excluir procedimento"}
                   </button>
                 </div>
               </details>
@@ -832,18 +837,14 @@ function InqueritoDetalhes() {
           />
           <OperationalMetric
             icon={<FolderOpen className="h-5 w-5" />}
-            label="Diligências"
-            value={displayValue(detalhe.statusDiligencias)}
+            label="Origem"
+            value={displayValue(detalhe.origemRegistro)}
             tone="violet"
           />
           <OperationalMetric
             icon={<FileSearch className="h-5 w-5" />}
-            label="Relatório"
-            value={
-              hasPrintableFieldValue(detalhe.relatorioEnviado)
-                ? detalhe.relatorioEnviado
-                : "Não informado"
-            }
+            label="Cidade"
+            value={displayValue(detalhe.cidade)}
             tone="slate"
           />
         </section>
@@ -861,9 +862,9 @@ function InqueritoDetalhes() {
                 <p
                   className={`max-w-5xl break-words text-sm font-medium leading-7 text-foreground ${showFullClassification ? "" : "max-h-[5.25rem] overflow-hidden"}`}
                 >
-                  {renderCrimeCode(detalhe.tipificacao)}
+                  {detalhe.resumoFato}
                 </p>
-                {detalhe.tipificacao.length > 180 ? (
+                {detalhe.resumoFato.length > 180 ? (
                   <button
                     type="button"
                     onClick={() => setShowFullClassification((current) => !current)}
@@ -873,12 +874,14 @@ function InqueritoDetalhes() {
                   </button>
                 ) : null}
               </div>
-              {hasPrintableFieldValue(detalhe.motivacao) ? (
+              {hasPrintableFieldValue(detalhe.tipificacao) ? (
                 <div className="mt-4 border-t border-border/55 pt-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                    Motivação
+                    Tipificações
                   </p>
-                  <p className="mt-1 text-sm text-foreground">{detalhe.motivacao}</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {renderCrimeCode(detalhe.tipificacao)}
+                  </p>
                 </div>
               ) : null}
             </DetailSection>
@@ -936,26 +939,19 @@ function InqueritoDetalhes() {
                     : "Mostrar tudo"}
                 </button>
               </div>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3">
                 <TextPanel
-                  label="Diligências pendentes"
-                  value={detalhe.diligenciasPendentes}
+                  label="Observações e diligências"
+                  value={
+                    detalhe.diligenciasPendentes !== FALLBACK
+                      ? detalhe.diligenciasPendentes
+                      : detalhe.observacoes
+                  }
                   expanded={expandedNarratives.diligencias}
                   onToggle={() =>
                     setExpandedNarratives((current) => ({
                       ...current,
                       diligencias: !current.diligencias,
-                    }))
-                  }
-                />
-                <TextPanel
-                  label="Observações"
-                  value={detalhe.observacoes}
-                  expanded={expandedNarratives.observacoes}
-                  onToggle={() =>
-                    setExpandedNarratives((current) => ({
-                      ...current,
-                      observacoes: !current.observacoes,
                     }))
                   }
                 />
@@ -968,29 +964,13 @@ function InqueritoDetalhes() {
               <DetailRows
                 compact
                 items={[
-                  ["Nº físico", detalhe.numeroFisico],
-                  ["Nº BO", detalhe.numeroBo],
+                  ["Nº PPE", detalhe.numeroPpe],
+                  ["Origem do registro", detalhe.origemRegistro],
                   ["Categoria", detalhe.gravidade],
                   ["Tipo de procedimento", detalhe.tipo],
                   ["Bairro", detalhe.bairro],
-                  ["Distrito", detalhe.distrito],
-                  ["Equipe", detalhe.equipe],
-                  ["Escrivão", detalhe.escrivao],
-                  ["Delegado responsável", detalhe.delegadoResponsavel],
+                  ["Cidade", detalhe.cidade],
                   ["Elucidação", detalhe.elucidado],
-                ]}
-              />
-            </DetailSection>
-
-            <DetailSection title="Judicial e relatório" icon={<Gavel className="h-4 w-4" />}>
-              <DetailRows
-                compact
-                items={[
-                  ["Relatório enviado", detalhe.relatorioEnviado],
-                  ["Data do envio", formatDateValue(detalhe.dataEnvioRelatorio)],
-                  ["Medida protetiva", detalhe.medidaProtetiva],
-                  ["Nº processo da medida", detalhe.numeroProcessoMedida],
-                  ["Representações", detalhe.representacoesLegais],
                 ]}
               />
             </DetailSection>
@@ -1013,6 +993,37 @@ function InqueritoDetalhes() {
             ) : null}
 
             <DetailSection
+              title="Histórico de status"
+              icon={<CalendarClock className="h-4 w-4" />}
+              className="sipi-print-hidden"
+            >
+              {statusHistory.length > 0 ? (
+                <div className="space-y-2">
+                  {statusHistory.slice(0, 8).map((event) => (
+                    <div
+                      key={event.id}
+                      className="rounded-lg border border-border/60 bg-background/45 px-3 py-2"
+                    >
+                      <p className="text-xs font-semibold text-foreground">
+                        {event.previous_status_tag_id
+                          ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
+                          : ""}
+                        {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
+                      </p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {formatDateTime(event.changed_at)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  O histórico será formado automaticamente nas próximas mudanças de status.
+                </p>
+              )}
+            </DetailSection>
+
+            <DetailSection
               title="Atalhos"
               icon={<Link2 className="h-4 w-4" />}
               className="sipi-print-hidden"
@@ -1026,7 +1037,7 @@ function InqueritoDetalhes() {
                 <ShortcutLink
                   to="/representacoes"
                   icon={<Scale className="h-4 w-4" />}
-                  label="Ver representações"
+                  label="Ver movimentações processuais"
                 />
               </div>
             </DetailSection>
@@ -1035,9 +1046,9 @@ function InqueritoDetalhes() {
         {showDeleteModal && canDeleteCases(profile) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 max-md:hidden">
             <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl">
-              <h2 className="text-lg font-bold text-foreground">Excluir inquérito</h2>
+              <h2 className="text-lg font-bold text-foreground">Excluir procedimento</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Deseja remover este inquérito? Esta ação utiliza exclusão lógica e poderá ser
+                Deseja remover este procedimento? Esta ação utiliza exclusão lógica e poderá ser
                 auditada no sistema.
               </p>
               <div className="mt-5 flex justify-end gap-2">

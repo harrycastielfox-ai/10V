@@ -17,6 +17,7 @@ import {
   Phone,
   Shield,
   ShieldAlert,
+  ShieldCheck,
   UserCog,
   X,
 } from "lucide-react";
@@ -87,6 +88,13 @@ function AdminUserProfilePage() {
   const [accessContextState, setAccessContextState] = useState<
     "idle" | "loading" | "ready" | "unavailable" | "forbidden" | "error"
   >("idle");
+  const [sigiloAccess, setSigiloAccess] = useState(false);
+  const [sigiloAccessLoading, setSigiloAccessLoading] = useState(false);
+  const [sigiloAccessSaving, setSigiloAccessSaving] = useState(false);
+  const [sigiloAccessFeedback, setSigiloAccessFeedback] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +187,35 @@ function AdminUserProfilePage() {
       }
       setLoadingUser(false);
     })();
+    return () => {
+      cancelled = true;
+    };
+  }, [hasAccess, userId]);
+
+  useEffect(() => {
+    if (!hasAccess) return;
+    let cancelled = false;
+
+    void (async () => {
+      setSigiloAccessLoading(true);
+      setSigiloAccessFeedback(null);
+      const { data, error } = await supabase.rpc("admin_get_user_sigilo_access", {
+        p_target_user_id: userId,
+      });
+      if (cancelled) return;
+
+      if (error) {
+        setSigiloAccess(false);
+        setSigiloAccessFeedback({
+          kind: "error",
+          message: "Não foi possível consultar a permissão individual de sigilo.",
+        });
+      } else {
+        setSigiloAccess(data === true);
+      }
+      setSigiloAccessLoading(false);
+    })();
+
     return () => {
       cancelled = true;
     };
@@ -319,20 +356,20 @@ function AdminUserProfilePage() {
     if (error) {
       const code = String(error.code ?? "");
       const normalizedMessage = String(error.message ?? "").toLowerCase();
-      const unavailable =
-        code === "PGRST202" ||
-        normalizedMessage.includes("function") ||
-        normalizedMessage.includes("rpc");
       const forbidden =
         code === "42501" ||
         normalizedMessage.includes("permission") ||
         normalizedMessage.includes("access_denied");
+      const unavailable =
+        code === "PGRST202" ||
+        normalizedMessage.includes("could not find the function") ||
+        normalizedMessage.includes("schema cache");
       setInstitutionalFunctionFeedback({
         kind: "error",
-        message: unavailable
-          ? "A função administrativa ainda não está disponível no Supabase."
-          : forbidden
-            ? "Seu perfil não tem permissão para alterar esta função."
+        message: forbidden
+          ? "Seu perfil não tem permissão para alterar esta função."
+          : unavailable
+            ? "A função administrativa ainda não está disponível no Supabase."
             : "Não foi possível salvar a função institucional.",
       });
       setSavingInstitutionalFunction(false);
@@ -354,6 +391,41 @@ function AdminUserProfilePage() {
       message: "Função institucional atualizada com sucesso.",
     });
     setSavingInstitutionalFunction(false);
+  };
+
+  const toggleSigiloAccess = async () => {
+    if (!targetUser || sigiloAccessLoading || sigiloAccessSaving) return;
+
+    const nextValue = !sigiloAccess;
+    setSigiloAccessSaving(true);
+    setSigiloAccessFeedback(null);
+    const { data, error } = await supabase.rpc("admin_update_user_sigilo_access", {
+      p_target_user_id: targetUser.id,
+      p_enabled: nextValue,
+    });
+
+    if (error) {
+      const code = String(error.code ?? "");
+      const normalizedMessage = String(error.message ?? "").toLowerCase();
+      setSigiloAccessFeedback({
+        kind: "error",
+        message:
+          code === "42501" || normalizedMessage.includes("access_denied")
+            ? "Somente Admin ou Delegado autorizado pode alterar esta permissão."
+            : "Não foi possível atualizar a permissão de sigilo.",
+      });
+      setSigiloAccessSaving(false);
+      return;
+    }
+
+    setSigiloAccess(data === true);
+    setSigiloAccessFeedback({
+      kind: "success",
+      message: nextValue
+        ? "Acesso individual a casos sigilosos ativado."
+        : "Acesso individual a casos sigilosos desativado.",
+    });
+    setSigiloAccessSaving(false);
   };
 
   if (checkingAccess) {
@@ -492,6 +564,15 @@ function AdminUserProfilePage() {
               <InfoCard icon={Clock3} label="Atualizado em" value={updatedAt} />
             ) : null}
           </section>
+
+          <SigiloAccessCard
+            enabled={sigiloAccess}
+            loading={sigiloAccessLoading}
+            saving={sigiloAccessSaving}
+            canEdit={canEditInstitutionalFunction}
+            feedback={sigiloAccessFeedback}
+            onToggle={() => void toggleSigiloAccess()}
+          />
 
           <AccessContextSection context={accessContext} state={accessContextState} />
 
@@ -794,6 +875,102 @@ function InstitutionalFunctionCard({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function SigiloAccessCard({
+  enabled,
+  loading,
+  saving,
+  canEdit,
+  feedback,
+  onToggle,
+}: {
+  enabled: boolean;
+  loading: boolean;
+  saving: boolean;
+  canEdit: boolean;
+  feedback: { kind: "success" | "error"; message: string } | null;
+  onToggle: () => void;
+}) {
+  const active = enabled && !loading;
+
+  return (
+    <section
+      className={`rounded-2xl border p-5 transition-colors ${
+        active
+          ? "border-emerald-400/35 bg-emerald-400/[0.06]"
+          : "border-rose-400/30 bg-rose-400/[0.05]"
+      }`}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
+            className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border ${
+              active
+                ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-300"
+                : "border-rose-400/35 bg-rose-400/10 text-rose-300"
+            }`}
+          >
+            {active ? <ShieldCheck className="h-5 w-5" /> : <ShieldAlert className="h-5 w-5" />}
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Permissão individual de segurança
+            </p>
+            <h2 className="mt-1 text-base font-semibold text-foreground">
+              Acessar casos sigilosos
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Permite visualizar procedimentos e movimentações sigilosas. Esta autorização independe
+              do cargo do usuário.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
+          <span
+            className={`rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${
+              active
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                : "border-rose-400/40 bg-rose-400/10 text-rose-300"
+            }`}
+          >
+            {loading ? "Consultando" : active ? "Ligado" : "Desligado"}
+          </span>
+          {canEdit ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={active}
+              aria-label="Permitir acesso a casos sigilosos"
+              onClick={onToggle}
+              disabled={loading || saving}
+              className={`relative h-8 w-14 rounded-full border transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                active
+                  ? "border-emerald-400/60 bg-emerald-400/25"
+                  : "border-rose-400/50 bg-rose-400/15"
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-5 w-5 rounded-full shadow transition-all ${
+                  active ? "left-7 bg-emerald-300" : "left-1 bg-rose-300"
+                }`}
+              />
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {feedback ? (
+        <p
+          className={`mt-3 text-xs ${feedback.kind === "success" ? "text-emerald-300" : "text-rose-300"}`}
+          role="status"
+        >
+          {feedback.message}
+        </p>
+      ) : null}
+    </section>
   );
 }
 

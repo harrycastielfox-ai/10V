@@ -6,11 +6,11 @@ import {
   Package,
   ArrowRight,
   CalendarDays,
+  ClipboardList,
   Construction,
-  Database,
   Shield,
   LogOut,
-  Route as RouteIcon,
+  Phone,
 } from "lucide-react";
 import { getCurrentProfile, getProfileAvatarPublicUrl, getSession, logout } from "@/lib/auth";
 import { canViewAgenda, canViewLocalizacao, isAuthorized, type UserProfile } from "@/lib/authz";
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/modulos")({
   component: ModulosPage,
 });
 
-type ModuloTone = "success" | "info" | "warning" | "operational";
+type ModuloTone = "success" | "info" | "warning" | "report";
 
 interface Modulo {
   id: string;
@@ -50,6 +50,16 @@ const MODULOS: Modulo[] = [
     tone: "success",
     to: "/",
     disponivel: true,
+  },
+  {
+    id: "boletim-ocorrencia",
+    titulo: "BOLETIM DE OCORRÊNCIA",
+    hint: "Registro de ocorrências",
+    descricao:
+      "Lavratura e consulta de boletins de ocorrência, com histórico do fato, envolvidos e encaminhamentos.",
+    icon: ClipboardList,
+    tone: "report",
+    disponivel: false,
   },
   {
     id: "veiculos",
@@ -88,20 +98,10 @@ const MODULOS: Modulo[] = [
     hint: "Diligências e rotas",
     descricao:
       "Apoio a diligências externas com cadastro de pessoas, endereços, rotas, chegada ao local, fotos e Street View.",
-    icon: RouteIcon,
-    tone: "operational",
+    icon: Phone,
+    tone: "info",
     to: "/localizacao",
     disponivel: true,
-  },
-  {
-    id: "extracao-dados",
-    titulo: "EXTRAÇÃO DE DADOS",
-    hint: "Relatórios e exportações",
-    descricao:
-      "Geração de relatórios operacionais, planilhas consolidadas e extrações para conferência institucional.",
-    icon: Database,
-    tone: "info",
-    disponivel: false,
   },
 ];
 
@@ -276,42 +276,42 @@ const TONE_STYLES: Record<
     ring: "hover:border-warning/50 hover:shadow-warning/10",
     chip: "bg-warning/15 text-warning border-warning/30",
   },
-  operational: {
-    iconBg: "bg-cyan-500/10",
-    iconBorder: "border-cyan-400/20",
-    iconText: "text-cyan-300/85",
+  report: {
+    iconBg: "bg-indigo-500/12",
+    iconBorder: "border-indigo-400/25",
+    iconText: "text-indigo-300/90",
     ring: "",
-    chip: "bg-cyan-500/10 text-cyan-100/80 border-cyan-300/20",
+    chip: "bg-indigo-500/12 text-indigo-100/85 border-indigo-300/25",
   },
 };
 
 function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel: () => void }) {
   const Icon = modulo.icon;
   const styles = TONE_STYLES[modulo.tone];
-  const isOperationalLocation = modulo.id === "localizacao-operacional";
+  const isBoletim = modulo.id === "boletim-ocorrencia";
   const cardContent = (
     <div
       className={`group relative h-full overflow-hidden rounded-xl border p-6 flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${styles.ring} ${
-        isOperationalLocation
-          ? "operational-module-card border-border bg-card shadow-[0_0_16px_rgba(34,211,238,0.025),inset_0_1px_0_rgba(255,255,255,0.025)] group-hover:border-cyan-400/45 group-focus-visible:border-cyan-400/45 group-hover:bg-cyan-950/10 group-focus-visible:bg-cyan-950/10 group-hover:shadow-[0_0_24px_rgba(34,211,238,0.18),0_0_44px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.05)] group-focus-visible:shadow-[0_0_24px_rgba(34,211,238,0.18),0_0_44px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.05)]"
+        isBoletim
+          ? "border-border bg-card shadow-[0_0_16px_rgba(129,140,248,0.03),inset_0_1px_0_rgba(255,255,255,0.025)] group-hover:border-indigo-400/45 group-focus-visible:border-indigo-400/45 group-hover:shadow-[0_0_24px_rgba(129,140,248,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] group-focus-visible:shadow-[0_0_24px_rgba(129,140,248,0.16),inset_0_1px_0_rgba(255,255,255,0.05)]"
           : "border-border bg-card"
       } ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}
     >
-      {isOperationalLocation && <OperationalMapBackdrop />}
+      {isBoletim && <BoletimBackdrop />}
 
       <div className="relative z-10 flex h-full flex-col">
         <div className="flex items-start justify-between gap-3 mb-5">
           <div
             className={`h-14 w-14 rounded-xl border ${styles.iconBg} ${styles.iconBorder} flex items-center justify-center ${
-              isOperationalLocation
-                ? "transition-all duration-200 group-hover:border-cyan-300/40 group-focus-visible:border-cyan-300/40 group-hover:bg-cyan-400/15 group-focus-visible:bg-cyan-400/15 group-hover:shadow-[0_0_14px_rgba(34,211,238,0.16)] group-focus-visible:shadow-[0_0_14px_rgba(34,211,238,0.16)]"
+              isBoletim
+                ? "transition-all duration-200 group-hover:border-indigo-300/40 group-focus-visible:border-indigo-300/40 group-hover:bg-indigo-400/15 group-focus-visible:bg-indigo-400/15 group-hover:shadow-[0_0_14px_rgba(129,140,248,0.16)] group-focus-visible:shadow-[0_0_14px_rgba(129,140,248,0.16)]"
                 : ""
             }`}
           >
             <Icon
               className={`h-7 w-7 ${styles.iconText} ${
-                isOperationalLocation
-                  ? "transition-all duration-200 group-hover:text-cyan-200 group-focus-visible:text-cyan-200 group-hover:drop-shadow-[0_0_8px_rgba(34,211,238,0.28)] group-focus-visible:drop-shadow-[0_0_8px_rgba(34,211,238,0.28)]"
+                isBoletim
+                  ? "transition-all duration-200 group-hover:text-indigo-200 group-focus-visible:text-indigo-200 group-hover:drop-shadow-[0_0_8px_rgba(129,140,248,0.28)] group-focus-visible:drop-shadow-[0_0_8px_rgba(129,140,248,0.28)]"
                   : ""
               }`}
             />
@@ -324,9 +324,7 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
         </div>
         <h3 className="text-lg font-bold tracking-wide text-foreground mb-2">{modulo.titulo}</h3>
         <p className="text-sm text-muted-foreground leading-relaxed flex-1">{modulo.descricao}</p>
-        <div
-          className={`mt-6 pt-4 border-t flex items-center justify-between ${isOperationalLocation ? "border-border" : "border-border"}`}
-        >
+        <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
           <span className="text-xs font-semibold tracking-wider uppercase text-muted-foreground group-hover:text-foreground transition-colors">
             {modulo.disponivel ? "Acessar módulo" : "Em desenvolvimento"}
           </span>
@@ -334,8 +332,8 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
             className={`h-4 w-4 ${styles.iconText} transition-all ${
               modulo.disponivel ? "group-hover:translate-x-1" : "opacity-60"
             } ${
-              isOperationalLocation
-                ? "group-hover:text-cyan-200 group-focus-visible:text-cyan-200 group-hover:drop-shadow-[0_0_6px_rgba(34,211,238,0.24)] group-focus-visible:drop-shadow-[0_0_6px_rgba(34,211,238,0.24)]"
+              isBoletim
+                ? "group-hover:text-indigo-200 group-focus-visible:text-indigo-200 group-hover:drop-shadow-[0_0_6px_rgba(129,140,248,0.24)] group-focus-visible:drop-shadow-[0_0_6px_rgba(129,140,248,0.24)]"
                 : ""
             }`}
           />
@@ -361,38 +359,23 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
   );
 }
 
-function OperationalMapBackdrop() {
+function BoletimBackdrop() {
   return (
-    <div
-      className="operational-map-backdrop pointer-events-none absolute inset-0"
-      aria-hidden="true"
-    >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(34,211,238,0.035),transparent_34%),radial-gradient(circle_at_88%_78%,rgba(16,185,129,0.03),transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.30),rgba(8,47,73,0.035)_48%,rgba(2,6,23,0.70))] opacity-90 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_16%,rgba(129,140,248,0.05),transparent_38%),radial-gradient(circle_at_12%_88%,rgba(99,102,241,0.035),transparent_34%),linear-gradient(135deg,rgba(2,6,23,0.28),rgba(30,27,75,0.05)_52%,rgba(2,6,23,0.66))] opacity-90 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
       <svg
-        className="absolute inset-0 h-full w-full opacity-35 transition-opacity duration-200 group-hover:opacity-50 group-focus-visible:opacity-50"
+        className="absolute inset-0 h-full w-full opacity-40 transition-opacity duration-200 group-hover:opacity-60 group-focus-visible:opacity-60"
         viewBox="0 0 420 260"
         preserveAspectRatio="none"
         role="presentation"
       >
         <defs>
-          <filter id="operational-route-glow" x="-60%" y="-60%" width="220%" height="220%">
-            <feGaussianBlur stdDeviation="2.2" result="blur" />
+          <filter id="boletim-stamp-glow" x="-70%" y="-70%" width="240%" height="240%">
+            <feGaussianBlur stdDeviation="2.6" result="blur" />
             <feColorMatrix
               in="blur"
               type="matrix"
-              values="0 0 0 0 0.13 0 0 0 0 0.83 0 0 0 0 0.93 0 0 0 0.42 0"
-            />
-            <feMerge>
-              <feMergeNode />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id="operational-destination-glow" x="-90%" y="-90%" width="280%" height="280%">
-            <feGaussianBlur stdDeviation="3.2" result="blur" />
-            <feColorMatrix
-              in="blur"
-              type="matrix"
-              values="0 0 0 0 0.06 0 0 0 0 0.73 0 0 0 0 0.62 0 0 0 0.36 0"
+              values="0 0 0 0 0.51 0 0 0 0 0.55 0 0 0 0 0.97 0 0 0 0.40 0"
             />
             <feMerge>
               <feMergeNode />
@@ -401,62 +384,88 @@ function OperationalMapBackdrop() {
           </filter>
         </defs>
 
-        <g fill="none" stroke="rgba(34,211,238,0.025)" strokeLinecap="round" strokeWidth="1">
-          <path d="M-20 62 C44 46 92 57 151 28 S260 14 330 36 S410 52 445 22" />
-          <path d="M-8 150 C46 126 72 138 113 102 S191 58 246 74 S335 99 430 82" />
-          <path d="M34 258 C75 205 103 188 142 166 S222 133 281 113 S366 82 440 128" />
-          <path d="M60 -14 C83 38 86 84 74 137 S60 214 83 284" />
-          <path d="M165 -18 C174 48 167 100 151 146 S125 219 136 281" />
-          <path d="M251 -16 C249 42 260 78 286 111 S329 177 319 278" />
-          <path d="M346 -10 C331 47 326 92 353 133 S391 201 372 286" />
-          <path d="M10 95 L78 88 L134 117 L197 104 L258 139 L333 121 L423 166" />
-          <path d="M16 204 L92 194 L154 220 L227 201 L290 221 L408 206" />
-          <path d="M104 4 L126 62 L191 91 L229 156 L292 184 L326 253" />
-          <path d="M303 4 L276 45 L291 87 L260 132 L284 172 L257 241" />
-        </g>
-
-        <g fill="none" stroke="rgba(45,212,191,0.014)" strokeLinecap="round" strokeWidth="4">
-          <path d="M182 252 L220 219 L260 214 L289 184 L326 179 L361 154 L386 123" />
-          <path d="M248 4 L281 34 L316 47 L348 76 L382 90 L426 119" />
-        </g>
-
-        <path
-          d="M215 235 L254 211 L287 214 L312 181 L345 170 L362 142 L385 132 L374 101 L337 88 L309 72"
-          fill="none"
-          stroke="rgba(34,211,238,0.09)"
-          className="transition-all duration-200 group-hover:stroke-[rgba(34,211,238,0.18)] group-focus-visible:stroke-[rgba(34,211,238,0.18)]"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="3"
-          filter="url(#operational-route-glow)"
-        />
-        <path
-          d="M215 235 L254 211 L287 214 L312 181 L345 170 L362 142 L385 132 L374 101 L337 88 L309 72"
-          fill="none"
-          stroke="rgba(16,185,129,0.055)"
-          className="transition-all duration-200 group-hover:stroke-[rgba(16,185,129,0.12)] group-focus-visible:stroke-[rgba(16,185,129,0.12)]"
-          strokeDasharray="7 8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.2"
+        {/* folha de trás, sugerindo pilha de registros */}
+        <rect
+          x="212"
+          y="52"
+          width="140"
+          height="188"
+          rx="6"
+          transform="rotate(-13 282 146)"
+          fill="rgba(99,102,241,0.012)"
+          stroke="rgba(129,140,248,0.045)"
+          strokeWidth="1"
         />
 
-        <g fill="rgba(34,211,238,0.12)" filter="url(#operational-route-glow)">
-          <circle cx="254" cy="211" r="3" />
-          <circle cx="287" cy="214" r="2.6" />
-          <circle cx="312" cy="181" r="3.4" />
-          <circle cx="345" cy="170" r="2.8" />
-          <circle cx="362" cy="142" r="3.2" />
-          <circle cx="374" cy="101" r="3.1" />
-          <circle cx="337" cy="88" r="2.6" />
-        </g>
-        <g filter="url(#operational-destination-glow)">
-          <circle cx="309" cy="72" r="8" fill="rgba(20,184,166,0.045)" />
-          <circle cx="309" cy="72" r="4.5" fill="rgba(34,211,238,0.14)" />
-          <circle cx="309" cy="72" r="2.2" fill="rgba(240,253,250,0.24)" />
+        {/* folha do boletim, levemente inclinada */}
+        <g transform="rotate(-7 300 130)">
+          <rect
+            x="238"
+            y="26"
+            width="150"
+            height="200"
+            rx="6"
+            fill="rgba(129,140,248,0.022)"
+            stroke="rgba(129,140,248,0.09)"
+            strokeWidth="1"
+            className="transition-all duration-200 group-hover:stroke-[rgba(129,140,248,0.18)] group-focus-visible:stroke-[rgba(129,140,248,0.18)]"
+          />
+          {/* cabeçalho */}
+          <rect x="256" y="44" width="58" height="6" rx="3" fill="rgba(165,180,252,0.13)" />
+          <rect x="256" y="56" width="94" height="4" rx="2" fill="rgba(148,163,184,0.07)" />
+          <line x1="256" y1="70" x2="370" y2="70" stroke="rgba(129,140,248,0.08)" strokeWidth="1" />
+          {/* linhas do relato */}
+          <g fill="rgba(148,163,184,0.06)">
+            <rect x="256" y="82" width="114" height="4" rx="2" />
+            <rect x="256" y="94" width="100" height="4" rx="2" />
+            <rect x="256" y="106" width="110" height="4" rx="2" />
+            <rect x="256" y="118" width="78" height="4" rx="2" />
+            <rect x="256" y="136" width="114" height="4" rx="2" />
+            <rect x="256" y="148" width="92" height="4" rx="2" />
+            <rect x="256" y="160" width="106" height="4" rx="2" />
+            <rect x="256" y="172" width="64" height="4" rx="2" />
+          </g>
+          {/* linha de assinatura */}
+          <line
+            x1="256"
+            y1="204"
+            x2="332"
+            y2="204"
+            stroke="rgba(148,163,184,0.10)"
+            strokeWidth="1"
+          />
+          <path
+            d="M260 200 c8 -8 12 6 19 -2 s9 5 15 -3 s10 6 16 -1"
+            fill="none"
+            stroke="rgba(165,180,252,0.13)"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+          />
+          {/* carimbo */}
+          <g filter="url(#boletim-stamp-glow)">
+            <circle
+              cx="352"
+              cy="192"
+              r="19"
+              fill="none"
+              stroke="rgba(129,140,248,0.14)"
+              strokeWidth="2"
+              className="transition-all duration-200 group-hover:stroke-[rgba(129,140,248,0.26)] group-focus-visible:stroke-[rgba(129,140,248,0.26)]"
+            />
+            <circle
+              cx="352"
+              cy="192"
+              r="13"
+              fill="none"
+              stroke="rgba(165,180,252,0.10)"
+              strokeWidth="1"
+              strokeDasharray="3 3"
+            />
+            <rect x="343" y="189" width="18" height="3" rx="1.5" fill="rgba(165,180,252,0.14)" />
+          </g>
         </g>
       </svg>
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/88 via-slate-950/70 to-slate-950/46" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/86 via-slate-950/66 to-slate-950/40" />
       <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/5" />
     </div>
   );

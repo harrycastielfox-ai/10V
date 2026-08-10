@@ -495,6 +495,10 @@ export default function PessoasPage() {
           personId={selectedPersonId}
           onClose={() => setSelectedPersonId(null)}
           onEdit={openEditForm}
+          onDeleted={(personId) => {
+            setPeople((current) => current.filter((person) => person.id !== personId));
+            setMessage("Contato excluído.");
+          }}
         />
       ) : null}
 

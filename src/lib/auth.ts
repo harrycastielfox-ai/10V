@@ -9,6 +9,8 @@ import {
 export type CurrentUserProfile = UserProfile & { telefone: string | null };
 
 const PROFILE_SELECT =
+  "id,nome,email,login,avatar_path,telefone,funcao_institucional,cargo,status_autorizacao,can_access_sigiloso,created_at,updated_at";
+const PROFILE_SELECT_WITHOUT_SIGILO =
   "id,nome,email,login,avatar_path,telefone,funcao_institucional,cargo,status_autorizacao,created_at,updated_at";
 const LEGACY_PROFILE_SELECT =
   "id,nome,email,login,avatar_path,telefone,cargo,status_autorizacao,created_at,updated_at";
@@ -86,6 +88,12 @@ function isMissingInstitutionalFunctionColumn(error: unknown): boolean {
   return (code === "42703" || code === "PGRST204") && message.includes("funcao_institucional");
 }
 
+function isMissingSigiloAccessColumn(error: unknown): boolean {
+  const code = String((error as { code?: string } | undefined)?.code ?? "");
+  const message = String((error as { message?: string } | undefined)?.message ?? "").toLowerCase();
+  return (code === "42703" || code === "PGRST204") && message.includes("can_access_sigiloso");
+}
+
 function withAuthTimeout<T>(
   operation: PromiseLike<T>,
   code: string,
@@ -127,6 +135,19 @@ export async function getCurrentProfile(): Promise<CurrentUserProfile | null> {
     "PROFILE_FETCH_TIMEOUT",
     "Tempo limite ao carregar perfil.",
   );
+  if (error && isMissingSigiloAccessColumn(error)) {
+    const fallbackResult = await withAuthTimeout(
+      supabase
+        .from("profiles")
+        .select(PROFILE_SELECT_WITHOUT_SIGILO)
+        .eq("id", session.user.id)
+        .maybeSingle(),
+      "PROFILE_FETCH_TIMEOUT",
+      "Tempo limite ao carregar perfil.",
+    );
+    data = fallbackResult.data ? { ...fallbackResult.data, can_access_sigiloso: false } : null;
+    error = fallbackResult.error;
+  }
   if (error && isMissingInstitutionalFunctionColumn(error)) {
     const legacyResult = await withAuthTimeout(
       supabase
@@ -137,7 +158,9 @@ export async function getCurrentProfile(): Promise<CurrentUserProfile | null> {
       "PROFILE_FETCH_TIMEOUT",
       "Tempo limite ao carregar perfil.",
     );
-    data = legacyResult.data ? { ...legacyResult.data, funcao_institucional: null } : null;
+    data = legacyResult.data
+      ? { ...legacyResult.data, funcao_institucional: null, can_access_sigiloso: false }
+      : null;
     error = legacyResult.error;
   }
   if (error) {

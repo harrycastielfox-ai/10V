@@ -11,6 +11,7 @@ export type RepresentacaoRecord = {
   tipo: string | null;
   tipo_normalizado: string | null;
   data_representacao: string | null;
+  data_protocolo?: string | null;
   responsavel: string | null;
   vitima: string | null;
   investigado: string | null;
@@ -20,6 +21,7 @@ export type RepresentacaoRecord = {
   objetivo: string | null;
   diligencias_relacionadas: string | null;
   status: string | null;
+  status_tag_id?: string | null;
   data_envio_judiciario: string | null;
   data_decisao_judicial: string | null;
   vara_juizo: string | null;
@@ -38,6 +40,7 @@ export type RepresentacaoRecord = {
   pedido_sigiloso_normalizado: boolean | null;
   medida_protetiva_normalizada: boolean | null;
   observacoes_internas: string | null;
+  observacoes_movimentacao?: string | null;
   created_at: string | null;
   updated_at: string | null;
   deleted_at: string | null;

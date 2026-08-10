@@ -146,3 +146,40 @@ export function ehPassado(value: string) {
   const date = new Date(value);
   return !Number.isNaN(date.getTime()) && date.getTime() < Date.now();
 }
+
+function saudacaoAtual() {
+  const hora = new Date().getHours();
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+/** Texto padrão de intimação via WhatsApp — usado na marcação e na tela de detalhe. */
+export function montarMensagemIntimacao(pessoaNome: string, dataHoraIso: string) {
+  const dataFormatada = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(
+    new Date(dataHoraIso),
+  );
+  const horaFormatada = formatHora(dataHoraIso);
+  return (
+    `${saudacaoAtual()}, Sr.(a) ${pessoaNome}.\n\n` +
+    `Aqui é da Delegacia Territorial de Itabela/BA.\n` +
+    `https://maps.app.goo.gl/QSoqfQBpGimCc1ZZ8\n\n` +
+    `*Por determinação da Autoridade Policial, fica Vossa Senhoria intimado(a) a comparecer a esta unidade policial.*\n\n` +
+    `Comparecimento em *${dataFormatada}*, às *${horaFormatada}*.\n\n` +
+    `Favor trazer documento de identificação com foto.\n\n` +
+    `Solicitamos a confirmação do recebimento desta mensagem.`
+  );
+}
+
+/** Link de WhatsApp com a intimação já pronta. Null se não houver telefone válido. */
+export function montarLinkWhatsapp(
+  telefone: string | null | undefined,
+  pessoaNome: string,
+  dataHoraIso: string,
+) {
+  const digitos = (telefone ?? "").replace(/\D/g, "");
+  if (digitos.length < 10) return null;
+  const numero = digitos.length <= 11 ? `55${digitos}` : digitos;
+  const texto = montarMensagemIntimacao(pessoaNome, dataHoraIso);
+  return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
+}

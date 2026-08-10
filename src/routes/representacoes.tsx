@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { RepresentacaoQuickPreview } from "@/components/RecordQuickPreview";
 import {
+  TableColumnSettings,
+  useTableColumnPreferences,
+  type TableColumnDefinition,
+} from "@/components/TableColumnSettings";
+import {
   AlertTriangle,
   CalendarDays,
   ChevronLeft,
@@ -16,8 +21,6 @@ import {
   Scale,
   Search,
   ShieldCheck,
-  UserRound,
-  UsersRound,
 } from "lucide-react";
 import {
   listRepresentacoes,
@@ -47,6 +50,15 @@ const STATUS_FILTER_PENDENTES = "__status_pendentes__";
 const TIPO_FILTER_NAO_INFORMADO = "__tipo_nao_informado__";
 const TIPO_FILTER_MEDIDA_PROTETIVA = "__tipo_medida_protetiva__";
 const PAGE_SIZE = 25;
+const MOVEMENT_COLUMNS: readonly TableColumnDefinition[] = [
+  { id: "movimentacao", label: "Movimentação", defaultWidth: 340, required: true },
+  { id: "protocolo", label: "Protocolo", defaultWidth: 145 },
+  { id: "processo", label: "Processo / vara", defaultWidth: 250 },
+  { id: "status", label: "Status", defaultWidth: 135 },
+  { id: "prazo", label: "Prazo", defaultWidth: 160 },
+  { id: "prioridade", label: "Prioridade", defaultWidth: 130 },
+  { id: "acao", label: "Ação", defaultWidth: 44, required: true },
+];
 const isMedidaProtetivaAlias = (value: string) =>
   normalizeText(value).replace(/-/g, " ").includes("protetiv");
 
@@ -107,7 +119,9 @@ function getRepresentacaoState(r: RepresentacaoRecord) {
   );
   const pendingJudicial = buildOperationalStatus(r) === "Pendente judicial";
   const incomplete =
-    !normalizeText(r.tipo) || !normalizeText(r.vitima) || !normalizeText(r.investigado);
+    !normalizeText(r.tipo) ||
+    !normalizeText(r.status) ||
+    !normalizeText(r.data_protocolo ?? r.data_representacao);
   const daysToDue = due === null ? null : Math.ceil((due - now) / (1000 * 60 * 60 * 24));
   const isOverdue = !isCumprida && daysToDue !== null && daysToDue < 0;
   const isDueSoon = !isCumprida && daysToDue !== null && daysToDue >= 0 && daysToDue <= 7;
@@ -173,6 +187,10 @@ function Representacoes() {
   const [loading, setLoading] = useState(false);
   const [restricted, setRestricted] = useState(false);
   const [canOpenSigilosas, setCanOpenSigilosas] = useState(false);
+  const columnController = useTableColumnPreferences(
+    "sipi:movimentacoes:table-columns:v2",
+    MOVEMENT_COLUMNS,
+  );
 
   useEffect(() => {
     if (!isRepresentacoesIndex) return;
@@ -353,6 +371,17 @@ function Representacoes() {
     () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
     [currentPage, filtered],
   );
+  const visibleMovementColumns = columnController.visibleColumns;
+  const movementGridTemplate = visibleMovementColumns
+    .map((column) =>
+      column.id === "acao" ? `${column.width}px` : `minmax(${column.width}px, ${column.width}fr)`,
+    )
+    .join(" ");
+  const movementMinWidth = visibleMovementColumns.reduce((sum, column) => sum + column.width, 0);
+  const getMovementColumnStyle = (id: string) => {
+    const index = visibleMovementColumns.findIndex((column) => column.id === id);
+    return index < 0 ? ({ display: "none" } as const) : ({ order: index } as const);
+  };
 
   if (!isRepresentacoesIndex) return <Outlet />;
   if (restricted)
@@ -361,7 +390,7 @@ function Representacoes() {
         <div className="space-y-4">
           <h1 className="text-xl font-bold">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground">
-            Seu perfil não possui permissão para acessar Representações.
+            Seu perfil não possui permissão para acessar Movimentações Processuais.
           </p>
           <Link to="/modulos" className="px-4 py-2 border border-border rounded-lg inline-block">
             Voltar
@@ -433,7 +462,7 @@ function Representacoes() {
               <Scale className="h-5 w-5" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold">Representações Judiciais</h1>
+              <h1 className="text-2xl font-bold">Movimentações Processuais</h1>
               <p className="text-sm text-muted-foreground">
                 <span className="md:hidden">Consulta de medidas e pedidos judiciais</span>
                 <span className="hidden md:inline">Gestão de medidas e pedidos judiciais</span>
@@ -445,7 +474,7 @@ function Representacoes() {
             className="hidden h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_0_18px_rgba(52,211,153,0.12)] transition hover:bg-primary/90 md:inline-flex"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            Nova representação
+            Nova movimentação
           </Link>
         </header>
         {error && <p className="text-xs text-destructive">{error}</p>}
@@ -503,6 +532,7 @@ function Representacoes() {
               <Filter className="h-4 w-4" />
               Filtros
             </button>
+            <TableColumnSettings definitions={MOVEMENT_COLUMNS} controller={columnController} />
           </div>
           {showFilters && (
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -541,25 +571,29 @@ function Representacoes() {
             </div>
           )}
           <p className="mt-2 text-xs text-muted-foreground">
-            {filtered.length} de {representacoes.length} representações
+            {filtered.length} de {representacoes.length} movimentações
           </p>
         </section>
 
-        <section className="overflow-hidden rounded-lg border border-border/80 bg-card/35">
-          <div className="hidden grid-cols-[minmax(270px,2fr)_minmax(180px,1.35fr)_minmax(150px,1.1fr)_120px_150px_minmax(120px,0.8fr)_32px] items-center gap-4 border-b border-border/80 bg-muted/[0.08] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:grid">
-            <span>Representação</span>
-            <span>Interessado / alvo</span>
-            <span>Vara</span>
-            <span>Status</span>
-            <span>Prazo</span>
-            <span>Equipe</span>
-            <span aria-hidden="true" />
+        <section
+          className="overflow-x-auto rounded-lg border border-border/80 bg-card/35"
+          style={{ minWidth: Math.min(movementMinWidth, 1180) }}
+        >
+          <div
+            className="hidden items-center gap-0 border-b border-border/80 bg-muted/[0.08] text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground lg:grid"
+            style={{ gridTemplateColumns: movementGridTemplate, minWidth: movementMinWidth }}
+          >
+            {visibleMovementColumns.map((column) => (
+              <span key={column.id} className="px-4 py-2.5">
+                {column.id === "acao" ? "" : column.label}
+              </span>
+            ))}
           </div>
           {pagedRepresentacoes.map((r) => {
             const state = getRepresentacaoState(r);
             const isSigilosa = isRepresentacaoSigilosa(r) || state.isSigilosa;
             const canOpenThisRecord = !isSigilosa || canOpenSigilosas;
-            const blockedSigilosaTitle = "Representação sigilosa — acesso restrito";
+            const blockedSigilosaTitle = "Movimentação sigilosa — acesso restrito";
             const prazo = buildPrazoLabel(state);
             const dueDate = formatDate(r.data_vencimento);
             const statusLabel = isSigilosa
@@ -605,12 +639,12 @@ function Representacoes() {
                 tabIndex={canOpenThisRecord ? 0 : -1}
                 title={
                   canOpenThisRecord
-                    ? `Abrir representação ${r.numero_ppe || r.id}`
+                    ? `Abrir movimentação ${r.numero_ppe || r.id}`
                     : blockedSigilosaTitle
                 }
                 aria-label={
                   canOpenThisRecord
-                    ? `Abrir representação ${r.numero_ppe || r.id}`
+                    ? `Abrir movimentação ${r.numero_ppe || r.id}`
                     : blockedSigilosaTitle
                 }
                 onClick={() =>
@@ -625,12 +659,16 @@ function Representacoes() {
                     alert(blockedSigilosaTitle);
                   }
                 }}
-                className={`group grid min-h-[76px] grid-cols-1 gap-3 border-b border-l-[3px] border-b-border/70 px-4 py-3 text-left transition-colors last:border-b-0 lg:grid-cols-[minmax(270px,2fr)_minmax(180px,1.35fr)_minmax(150px,1.1fr)_120px_150px_minmax(120px,0.8fr)_32px] lg:items-center lg:gap-4 ${canOpenThisRecord ? "cursor-pointer hover:bg-accent/20" : "cursor-not-allowed opacity-75"} ${rowTone}`}
+                className={`group grid min-h-[76px] grid-cols-1 gap-3 border-b border-l-[3px] border-b-border/70 text-left transition-colors last:border-b-0 lg:items-center lg:gap-0 ${canOpenThisRecord ? "cursor-pointer hover:bg-accent/20" : "cursor-not-allowed opacity-75"} ${rowTone}`}
+                style={{ gridTemplateColumns: movementGridTemplate, minWidth: movementMinWidth }}
               >
-                <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className="flex min-w-0 items-start gap-3 px-4 py-3"
+                  style={getMovementColumnStyle("movimentacao")}
+                >
                   <FileText className="mt-0.5 h-5 w-5 shrink-0 text-current opacity-80" />
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-foreground">
+                    <p className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
                       PPE {r.numero_ppe || "—"} · {r.tipo || "Não informado"}
                     </p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -658,29 +696,36 @@ function Representacoes() {
                   </div>
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 px-4 py-3" style={getMovementColumnStyle("protocolo")}>
                   <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-muted-foreground lg:hidden">
-                    Interessado / alvo
+                    Protocolo
                   </span>
                   <p className="flex items-start gap-2 text-xs text-foreground/85">
-                    <UserRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="line-clamp-2">
-                      {r.investigado || r.vitima || "Não informado"}
+                    <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <span>
+                      {formatDate(r.data_protocolo ?? r.data_representacao) || "Não informado"}
                     </span>
                   </p>
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 px-4 py-3" style={getMovementColumnStyle("processo")}>
                   <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-muted-foreground lg:hidden">
-                    Vara
+                    Processo / vara
                   </span>
-                  <p className="flex items-start gap-2 text-xs text-foreground/85">
+                  <div className="flex items-start gap-2 text-xs text-foreground/85">
                     <Landmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="line-clamp-2">{r.vara_juizo || "Não informado"}</span>
-                  </p>
+                    <div className="min-w-0 leading-relaxed">
+                      <p className="truncate font-medium">
+                        {r.processo_judicial || "Não informado"}
+                      </p>
+                      {r.vara_juizo ? (
+                        <p className="truncate text-muted-foreground">{r.vara_juizo}</p>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
 
-                <div>
+                <div className="px-4 py-3" style={getMovementColumnStyle("status")}>
                   <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-muted-foreground lg:hidden">
                     Status
                   </span>
@@ -691,7 +736,7 @@ function Representacoes() {
                   </span>
                 </div>
 
-                <div>
+                <div className="px-4 py-3" style={getMovementColumnStyle("prazo")}>
                   <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-muted-foreground lg:hidden">
                     Prazo
                   </span>
@@ -708,17 +753,18 @@ function Representacoes() {
                   )}
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 px-4 py-3" style={getMovementColumnStyle("prioridade")}>
                   <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wide text-muted-foreground lg:hidden">
-                    Equipe
+                    Prioridade
                   </span>
-                  <p className="flex items-center gap-2 text-xs text-foreground/85">
-                    <UsersRound className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{r.equipe_responsavel || "Sem equipe"}</span>
-                  </p>
+                  <span className="inline-flex rounded border border-primary/25 bg-primary/10 px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-primary">
+                    {r.prioridade_operacional || "Normal"}
+                  </span>
                 </div>
 
-                <ChevronRight className="hidden h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 lg:block" />
+                <span className="hidden px-3 py-3 lg:block" style={getMovementColumnStyle("acao")}>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </span>
               </div>
             );
           })}
@@ -729,7 +775,7 @@ function Representacoes() {
           )}
           {loading && (
             <div className="p-10 text-center text-sm text-muted-foreground">
-              Carregando representações...
+              Carregando movimentações...
             </div>
           )}
           {!loading && filtered.length > 0 && (
@@ -737,7 +783,7 @@ function Representacoes() {
               <span>
                 Exibindo {(currentPage - 1) * PAGE_SIZE + 1}–
                 {Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length}{" "}
-                representações
+                movimentações
               </span>
               <div className="flex items-center gap-2">
                 <span className="mr-2 hidden sm:inline">{PAGE_SIZE} por página</span>

@@ -332,15 +332,6 @@ html[data-theme="black"] {
     background-color: var(--accent) !important;
   }
 
-  html[data-theme="light"] .operational-map-backdrop {
-    opacity: 0.08;
-  }
-
-  html[data-theme="light"] .operational-module-card:hover,
-  html[data-theme="light"] .operational-module-card:focus-visible {
-    background-color: var(--card) !important;
-  }
-
   html[data-theme="light"] body {
     background-image: linear-gradient(145deg, #eef2f5 0%, #f3f6f8 52%, #eaf0f4 100%);
     background-attachment: fixed;
@@ -1371,6 +1362,40 @@ html[data-theme="light"] .sipi-bairro-name {
     align-items: start !important;
     gap: 4mm !important;
     padding-bottom: 12mm !important;
+  }
+
+  /*
+   * A ficha policial possui pares de grupos curtos. Mantemos duas colunas para
+   * caber em uma folha A4, mas esticamos os cartões da mesma linha para que o
+   * grupo menor não deixe um vazio visual ao lado do maior.
+   */
+  .sipi-print-sheet-inquiry .sipi-print-sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    gap: 3mm !important;
+  }
+
+  .sipi-print-document .sipi-print-sheet-inquiry .sipi-print-section {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .sipi-print-document
+    .sipi-print-sheet-inquiry
+    .sipi-print-section:not(.sipi-print-section-flow)
+    dl {
+    flex: 1 1 auto !important;
+    grid-auto-rows: minmax(min-content, 1fr) !important;
+  }
+
+  .sipi-print-sheet-inquiry .sipi-print-section h2 {
+    padding-block: 2.4mm !important;
+  }
+
+  .sipi-print-sheet-inquiry .sipi-print-section dl > div {
+    padding-block: 2.5mm !important;
   }
 
   .sipi-print-sheet-vehicle .sipi-print-sections {

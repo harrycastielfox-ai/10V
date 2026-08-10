@@ -4,14 +4,26 @@ import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
+import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import {
   createInquerito,
   findInqueritosByPpe,
   replaceInqueritoPessoas,
   type InqueritoLinkOption,
 } from "@/lib/repositories/inqueritosRepository";
+import {
+  createProceduralTag,
+  listProceduralTags,
+  replaceInqueritoTags,
+} from "@/lib/repositories/proceduralTagsRepository";
+import { tagsByScope, type ProceduralTag } from "@/lib/proceduralTags";
 import { getCurrentProfile } from "@/lib/auth";
-import { canCreateCases, type UserProfile } from "@/lib/authz";
+import {
+  canCreateCases,
+  canManageProceduralTags,
+  canViewPrivateCases,
+  type UserProfile,
+} from "@/lib/authz";
 import { CASE_CATEGORY_OPTIONS, normalizeCaseCategory } from "@/lib/inqueritosPriority";
 import {
   OCCURRENCE_ORIGIN_OPTIONS,
@@ -42,6 +54,10 @@ function NovoCaso() {
   const [armaUtilizada, setArmaUtilizada] = useState("");
   const [ppe, setPpe] = useState("");
   const [tipificacao, setTipificacao] = useState("");
+  const [tagOptions, setTagOptions] = useState<ProceduralTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [statusTagId, setStatusTagId] = useState("");
+  const [resumoFato, setResumoFato] = useState("");
   const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([
     createInquiryPerson("vitima"),
     createInquiryPerson("autor_investigado"),
@@ -50,6 +66,8 @@ function NovoCaso() {
   const [numeroBo, setNumeroBo] = useState("");
   const [numeroFisico, setNumeroFisico] = useState("");
   const [prazo, setPrazo] = useState("");
+  const [prazoDias, setPrazoDias] = useState("");
+  const [prazoManual, setPrazoManual] = useState(false);
   const [dataFato, setDataFato] = useState("");
   const [dataInstauracao, setDataInstauracao] = useState("");
   const [tipo, setTipo] = useState("Inquérito Policial (IP)");
@@ -67,6 +85,7 @@ function NovoCaso() {
   const [escrivao, setEscrivao] = useState("");
   const [bairro, setBairro] = useState("");
   const [distrito, setDistrito] = useState("");
+  const [cidade, setCidade] = useState("Itabela");
   const [motivacao, setMotivacao] = useState("");
   const [vinculadoFaccao, setVinculadoFaccao] = useState("");
   const [nomeFaccao, setNomeFaccao] = useState("");
@@ -85,6 +104,8 @@ function NovoCaso() {
 
   const vitima = pessoas.find((pessoa) => pessoa.papel === "vitima")?.nome ?? "";
   const investigado = pessoas.find((pessoa) => pessoa.papel === "autor_investigado")?.nome ?? "";
+  const statusOptions = useMemo(() => tagsByScope(tagOptions, "inquerito_status"), [tagOptions]);
+  const tipificacaoOptions = useMemo(() => tagsByScope(tagOptions, "tipificacao"), [tagOptions]);
 
   useEffect(() => {
     let isMounted = true;
@@ -108,6 +129,37 @@ function NovoCaso() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    void listProceduralTags(["inquerito_status", "tipificacao", "inquerito_geral"])
+      .then((tags) => {
+        if (!active) return;
+        setTagOptions(tags);
+        setStatusTagId(
+          (current) =>
+            current ||
+            tags.find((tag) => tag.scope === "inquerito_status" && tag.slug === "instaurado")?.id ||
+            "",
+        );
+      })
+      .catch((error) => {
+        console.error("[novo-caso:tags]", error);
+        if (active) setErro("Não foi possível carregar o catálogo de status e tags.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (prazoManual || !dataInstauracao || !prazoDias) return;
+    const days = Number(prazoDias);
+    if (!Number.isInteger(days) || days < 0) return;
+    const dueDate = new Date(`${dataInstauracao}T12:00:00`);
+    dueDate.setDate(dueDate.getDate() + days);
+    setPrazo(dueDate.toISOString().slice(0, 10));
+  }, [dataInstauracao, prazoDias, prazoManual]);
 
   useEffect(() => {
     const normalizedPpe = ppe.trim();
@@ -151,6 +203,7 @@ function NovoCaso() {
         dataInstauracao,
         prazo,
         tipificacao,
+        resumoFato,
         gravidade,
         vitima,
         investigado,
@@ -158,6 +211,7 @@ function NovoCaso() {
         reuPreso,
         bairro,
         distrito,
+        cidade,
         delegado: delegadoResponsavel,
         equipe,
         escrivao,
@@ -200,10 +254,12 @@ function NovoCaso() {
       prazo,
       reuPreso,
       relatorioStatus,
+      resumoFato,
       situacao,
       statusDiligencias,
       tipificacao,
       tipo,
+      cidade,
       vinculadoFaccao,
       visibilidade,
       vitima,
@@ -249,6 +305,17 @@ function NovoCaso() {
     if (loading || !canCreateCases(profile)) return;
     setErro("");
     setFeedback("");
+    if (!statusTagId) {
+      setErro("Selecione o status do procedimento.");
+      return;
+    }
+    const selectedTipificacoes = tipificacaoOptions.filter((tag) =>
+      selectedTagIds.includes(tag.id),
+    );
+    if (selectedTipificacoes.length === 0) {
+      setErro("Adicione ao menos uma tipificação.");
+      return;
+    }
     if (blockingChecks.length > 0) {
       setErro(`Revise antes de salvar: ${blockingChecks.map((item) => item.label).join("; ")}.`);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -260,17 +327,21 @@ function NovoCaso() {
     const isCvli = normalizedCategory === "CVLI";
     const payload = {
       numero_ppe: ppe.trim() || null,
-      numero_bo: numeroBo.trim() || null,
-      numero_fisico: numeroFisico.trim() || null,
+      numero_bo: null,
+      numero_fisico: null,
       origem_registro: origemRegistro,
       visibilidade: visibilidade.trim() || null,
-      tipificacao: tipificacao.trim() || null,
+      tipificacao: selectedTipificacoes.map((tag) => tag.name).join("; "),
+      resumo_fato: resumoFato.trim() || null,
       vitima: vitima.trim() || null,
       investigado: investigado.trim() || null,
       autoria_determinada: autoria || null,
       reu_preso: reuPreso || null,
       reu_preso_normalizado: reuPreso ? isYesValue(reuPreso) : null,
       prazo: prazo || null,
+      prazo_dias: prazoDias.trim() ? Number(prazoDias) : null,
+      prazo_data_final: prazo || null,
+      prazo_manual: prazoManual,
       data_fato: dataFato || null,
       data_instauracao: dataInstauracao || null,
       tipo: tipo || null,
@@ -279,35 +350,44 @@ function NovoCaso() {
       prioridade_operacional: normalizePriority(prioridade),
       gravidade: normalizeCaseCategory(gravidade, "Outro"),
       categoria_criminal: normalizedCategory,
-      status_diligencias: statusDiligencias || null,
-      situacao: situacao || null,
+      status_diligencias: null,
+      status_tag_id: statusTagId,
+      situacao: statusOptions.find((tag) => tag.id === statusTagId)?.name || situacao || null,
       elucidado: elucidado || null,
       cvli_elucidado: isCvli && elucidado ? isYesValue(elucidado) : null,
       data_elucidacao: isCvli && isYesValue(elucidado) ? dataElucidacao || null : null,
       houve_arma_fogo: houveArmaDeFogo || null,
       arma_utilizada: armaUtilizada || null,
-      delegado_responsavel: delegadoResponsavel.trim() || null,
-      equipe: equipe.trim() || null,
-      equipe_responsavel: equipe.trim() || null,
-      escrivao: escrivao.trim() || null,
+      delegado_responsavel: null,
+      equipe: null,
+      equipe_responsavel: null,
+      escrivao: null,
       bairro: bairro.trim() || null,
-      distrito: distrito.trim() || null,
+      distrito: cidade.trim() || null,
+      cidade: cidade.trim() || null,
       motivacao: motivacao.trim() || null,
       faccao: vinculadoFaccao || null,
       nome_faccao: nomeFaccao.trim() || null,
       diligencias_pendentes: diligenciasPendentes.trim() || null,
-      observacoes: observacoes.trim() || null,
-      medida_protetiva: medidaProtetiva || null,
-      medida_protetiva_normalizada: medidaProtetiva ? isYesValue(medidaProtetiva) : null,
-      numero_processo_medida: numeroProcessoMedida.trim() || null,
-      relatorio_status: relatorioStatus,
-      relatorio_enviado: relatorioStatus === "enviado" ? "Sim" : "Não",
-      data_relatorio: relatorioStatus !== "pendente" ? dataRelatorio || null : null,
-      data_envio_relatorio: relatorioStatus === "enviado" ? dataEnvioRelatorio || null : null,
-      representacoes_legais: representacoesLegais.trim() || null,
+      observacoes: null,
+      medida_protetiva: null,
+      medida_protetiva_normalizada: null,
+      numero_processo_medida: null,
+      relatorio_status: null,
+      relatorio_enviado: null,
+      data_relatorio: null,
+      data_envio_relatorio: null,
+      representacoes_legais: null,
     };
     try {
       const created = await createInquerito(payload);
+      let tagsWarning = false;
+      try {
+        await replaceInqueritoTags(created.id, selectedTagIds);
+      } catch (tagsError) {
+        tagsWarning = true;
+        console.warn("[inqueritos:tags] Registro salvo sem vínculos de tags", tagsError);
+      }
       const pessoasPreenchidas = pessoas
         .filter((pessoa) => pessoa.nome.trim())
         .map((pessoa, ordem) => ({
@@ -329,9 +409,9 @@ function NovoCaso() {
         }
       }
       setFeedback(
-        pessoasWarning
-          ? "Inquérito salvo. As pessoas adicionais não puderam ser vinculadas agora."
-          : "Inquérito salvo com sucesso.",
+        pessoasWarning || tagsWarning
+          ? "Procedimento salvo, mas alguns vínculos complementares precisam ser conferidos."
+          : "Procedimento salvo com sucesso.",
       );
       navigate({ to: "/inqueritos/$caseId", params: { caseId: created.id } });
     } catch (error) {
@@ -363,7 +443,7 @@ function NovoCaso() {
         <div className="space-y-3">
           <h1 className="text-xl font-bold">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground">
-            Seu perfil não possui permissão para criar inquéritos.
+            Seu perfil não possui permissão para criar procedimentos policiais.
           </p>
         </div>
       </AppLayout>
@@ -372,8 +452,8 @@ function NovoCaso() {
   return (
     <AppLayout>
       <PageHeader
-        title="Novo Inquérito"
-        subtitle="Cadastre um novo inquérito policial"
+        title="Novo Procedimento Policial"
+        subtitle="Identificação, classificação e fluxo operacional"
         showActions={false}
       />
 
@@ -397,22 +477,9 @@ function NovoCaso() {
           {!checkingPpe && ppeMatches.length > 0 && (
             <InlineNotice tone="warning">
               Este PPE já aparece em {ppeMatches.length} ocorrência(s) ativa(s). O cadastro continua
-              permitido para procedimentos restaurados ou relacionados; confirme a origem do
-              registro antes de salvar.
+              permitido para procedimentos migrados; confirme a origem do registro antes de salvar.
             </InlineNotice>
           )}
-          <Field
-            label="Nº do B.O."
-            placeholder="Ex.: 2026.000001"
-            value={numeroBo}
-            onChange={(e) => setNumeroBo(e.target.value)}
-          />
-          <Field
-            label="Nº Físico"
-            placeholder="Ex.: 2026.001.0001"
-            value={numeroFisico}
-            onChange={(e) => setNumeroFisico(e.target.value)}
-          />
           <Select
             label="Tipo de Procedimento"
             value={tipo}
@@ -421,13 +488,10 @@ function NovoCaso() {
           />
           <Select
             label="Visibilidade"
-            options={["Público", "Privado"]}
+            options={canViewPrivateCases(profile) ? ["Público", "Privado"] : ["Público"]}
             value={visibilidade}
             onChange={setVisibilidade}
           />
-        </SectionCard>
-
-        <SectionCard title="Datas">
           <Field
             label="Data do Fato"
             type="date"
@@ -441,19 +505,47 @@ function NovoCaso() {
             onChange={(e) => setDataInstauracao(e.target.value)}
           />
           <Field
-            label="Prazo"
-            type="date"
-            value={prazo}
-            onChange={(e) => setPrazo(e.target.value)}
+            label="Prazo do procedimento (dias)"
+            type="number"
+            min={0}
+            max={3650}
+            value={prazoDias}
+            onChange={(e) => setPrazoDias(e.target.value)}
           />
+          <div>
+            <FormFieldLabel label="Data final calculada" />
+            <input
+              type="date"
+              value={prazo}
+              disabled={!prazoManual}
+              onChange={(event) => setPrazo(event.target.value)}
+              className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-70"
+            />
+            <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={prazoManual}
+                onChange={(event) => setPrazoManual(event.target.checked)}
+              />
+              Alterar a data final manualmente
+            </label>
+          </div>
         </SectionCard>
 
         <SectionCard title="Classificação do Caso">
-          <Field
-            label="Tipificação"
-            placeholder="Ex.: Homicídio Qualificado"
-            value={tipificacao}
-            onChange={(e) => setTipificacao(e.target.value)}
+          <ProceduralTagPicker
+            label="Tipificações"
+            hint="Adicione um ou mais crimes. Cada tipificação poderá ser usada em filtros e relatórios."
+            options={tipificacaoOptions}
+            value={selectedTagIds}
+            onChange={setSelectedTagIds}
+            onCreate={async (input) => {
+              const created = await createProceduralTag(input);
+              setTagOptions((current) => [...current, created]);
+              return created;
+            }}
+            createScope="tipificacao"
+            canCreate={canManageProceduralTags(profile)}
           />
           <Select
             label="Categoria do Caso"
@@ -461,21 +553,18 @@ function NovoCaso() {
             value={gravidade}
             onChange={setGravidade}
           />
-          <Select
-            label="Situação"
-            value={situacao}
-            onChange={setSituacao}
-            options={[
-              "Instaurado",
-              "Em Andamento",
-              "Para Relatar",
-              "Relatado",
-              "Aguardando Diligência",
-              "Aguardando Laudo Pericial",
-              "Requisição Ministerial/Judicial",
-              "Remetido",
-              "Arquivado",
-            ]}
+          <ProceduralStatusSelect
+            label="Status do procedimento"
+            options={statusOptions}
+            value={statusTagId}
+            onChange={setStatusTagId}
+          />
+          <TextArea
+            label="Resumo do Fato"
+            rows={5}
+            placeholder="Registre, de forma objetiva, o fato que originou o procedimento..."
+            value={resumoFato}
+            onChange={(event) => setResumoFato(event.target.value)}
           />
           <Select
             label="Elucidado"
@@ -525,34 +614,16 @@ function NovoCaso() {
 
         <SectionCard title="Dados Operacionais">
           <Field
-            label="Delegado Responsável"
-            placeholder="Del. Nome Completo"
-            value={delegadoResponsavel}
-            onChange={(e) => setDelegadoResponsavel(e.target.value)}
-          />
-          <Field
-            label="Equipe Responsável"
-            placeholder="Ex.: DHPP - Equipe Alpha"
-            value={equipe}
-            onChange={(e) => setEquipe(e.target.value)}
-          />
-          <Field
-            label="Escrivão"
-            placeholder="Nome completo"
-            value={escrivao}
-            onChange={(e) => setEscrivao(e.target.value)}
-          />
-          <Field
             label="Bairro"
             placeholder="Informe o bairro"
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}
           />
           <Field
-            label="Distrito"
-            placeholder="Ex.: 1º DP"
-            value={distrito}
-            onChange={(e) => setDistrito(e.target.value)}
+            label="Cidade"
+            placeholder="Informe a cidade"
+            value={cidade}
+            onChange={(e) => setCidade(e.target.value)}
           />
           <Field
             label="Motivação"
@@ -574,77 +645,12 @@ function NovoCaso() {
               onChange={(e) => setNomeFaccao(e.target.value)}
             />
           )}
-          <Select
-            label="Status de Diligências"
-            value={statusDiligencias}
-            onChange={setStatusDiligencias}
-            options={[
-              "Pendente",
-              "Em Andamento",
-              "Concluída",
-              "Aguardando Terceiros",
-              "Aguardando Aprovação/Revisão",
-            ]}
-          />
           <TextArea
-            label="Diligências Pendentes"
-            rows={4}
-            placeholder="Descreva as diligências pendentes..."
+            label="Observações e Diligências"
+            rows={6}
+            placeholder="Registre observações, diligências realizadas e providências pendentes..."
             value={diligenciasPendentes}
             onChange={(e) => setDiligenciasPendentes(e.target.value)}
-          />
-          <TextArea
-            label="Observações"
-            rows={5}
-            placeholder="Informações complementares..."
-            value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value)}
-          />
-        </SectionCard>
-
-        <SectionCard title="Relatório e Jurídico">
-          <Select
-            label="Medida Protetiva"
-            options={["Sim", "Não"]}
-            value={medidaProtetiva}
-            onChange={handleMedidaProtetivaChange}
-          />
-          {isYesValue(medidaProtetiva) && (
-            <Field
-              label="Nº Processo da Medida"
-              placeholder="0001234-55.2025.8.17.0001"
-              value={numeroProcessoMedida}
-              onChange={(e) => setNumeroProcessoMedida(e.target.value)}
-            />
-          )}
-          <OptionSelect
-            label="Situação do relatório"
-            options={REPORT_STATUS_OPTIONS}
-            value={relatorioStatus}
-            onChange={(value) => handleRelatorioStatusChange(value as ReportStatus)}
-          />
-          {relatorioStatus !== "pendente" && (
-            <Field
-              label="Data do relatório"
-              type="date"
-              value={dataRelatorio}
-              onChange={(e) => setDataRelatorio(e.target.value)}
-            />
-          )}
-          {relatorioStatus === "enviado" && (
-            <Field
-              label="Data de envio do relatório"
-              type="date"
-              value={dataEnvioRelatorio}
-              onChange={(e) => setDataEnvioRelatorio(e.target.value)}
-            />
-          )}
-          <Field
-            label="Representações Legais"
-            type="number"
-            placeholder="0"
-            value={representacoesLegais}
-            onChange={(e) => setRepresentacoesLegais(e.target.value)}
           />
         </SectionCard>
 
@@ -676,7 +682,7 @@ function NovoCaso() {
             disabled={loading}
             className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Salvando..." : "Cadastrar Inquérito"}
+            {loading ? "Salvando..." : "Cadastrar procedimento"}
           </button>
         </div>
       </form>

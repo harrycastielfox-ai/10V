@@ -34,25 +34,11 @@ import {
   formatDataHora,
   formatHora,
   inicioDoDia,
+  montarLinkWhatsapp,
   paraInputDateTime,
   somarDias,
 } from "../agendaConstants";
 import type { AgendaConflito, AgendamentoRecord, AgendamentoStatus } from "../agendaTypes";
-
-/** Link de WhatsApp com o texto da intimação já pronto. */
-function montarLinkWhatsapp(agendamento: AgendamentoRecord) {
-  const digitos = (agendamento.pessoa_telefone ?? "").replace(/\D/g, "");
-  if (digitos.length < 10) return null;
-  const numero = digitos.length <= 11 ? `55${digitos}` : digitos;
-  const texto =
-    `Bom dia. Aqui é da Delegacia Territorial de Itabela. ` +
-    `Sr(a). ${agendamento.pessoa_nome}, o(a) senhor(a) está sendo convidado(a) a comparecer ` +
-    `no dia ${formatDataHora(agendamento.data_hora)}` +
-    `${agendamento.local ? ` (${agendamento.local})` : ""}` +
-    `${agendamento.numero_bo ? `, referente ao B.O. ${agendamento.numero_bo}` : ""}. ` +
-    `Em caso de dúvida, responda esta mensagem.`;
-  return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
-}
 
 export default function AgendamentoDetalhePage() {
   const { agendamentoId } = useParams({ from: "/agenda/$agendamentoId" });
@@ -195,24 +181,6 @@ export default function AgendamentoDetalhePage() {
     }
   }
 
-  async function marcarIntimacaoEnviada() {
-    if (!podeGerenciar || !agendamento) return;
-    setSalvando(true);
-    setAviso("");
-    try {
-      const atualizado = await updateAgendamento(agendamento.id, {
-        intimacao_status: "enviada",
-        intimacao_via: agendamento.intimacao_via ?? "whatsapp",
-      });
-      setAgendamento(atualizado);
-      setAviso("Intimação marcada como enviada.");
-    } catch {
-      setAviso("Não foi possível registrar a intimação.");
-    } finally {
-      setSalvando(false);
-    }
-  }
-
   async function excluir() {
     if (!podeGerenciar || !agendamento) return;
     setExcluindo(true);
@@ -241,7 +209,11 @@ export default function AgendamentoDetalhePage() {
     );
   }
 
-  const linkWhatsapp = montarLinkWhatsapp(agendamento);
+  const linkWhatsapp = montarLinkWhatsapp(
+    agendamento.pessoa_telefone,
+    agendamento.pessoa_nome,
+    agendamento.data_hora,
+  );
   const encerrado = agendamento.status === "cancelado" || agendamento.status === "remarcado";
 
   return (
@@ -446,17 +418,6 @@ export default function AgendamentoDetalhePage() {
               >
                 <MessageCircle className="h-4 w-4" /> Intimar por WhatsApp
               </a>
-            ) : null}
-
-            {podeGerenciar && agendamento.intimacao_status === "pendente" && !encerrado ? (
-              <button
-                type="button"
-                disabled={salvando}
-                onClick={() => void marcarIntimacaoEnviada()}
-                className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-border px-3 text-[11px] font-semibold transition hover:border-info/40 hover:text-info disabled:opacity-50"
-              >
-                Marcar intimação como enviada
-              </button>
             ) : null}
           </article>
 

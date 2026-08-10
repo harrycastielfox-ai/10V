@@ -389,12 +389,22 @@ export async function createEndereco(payload: EnderecoPayload): Promise<Endereco
 }
 
 export async function softDeleteEndereco(id: string): Promise<void> {
-  const { error } = await supabase
+  const { data: userResult, error: userError } = await supabase.auth.getUser();
+  if (userError || !userResult.user?.id) {
+    throw new Error("Sessão expirada. Entre novamente para excluir o endereço.");
+  }
+
+  const { data, error } = await supabase
     .from("localizacao_enderecos")
-    .update({ deleted_at: new Date().toISOString() })
+    .update({ deleted_at: new Date().toISOString(), updated_by: userResult.user.id })
     .eq("id", id)
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
   if (error) fail("Falha ao excluir endereço", error);
+  if (!data) {
+    throw new Error("Endereço não encontrado ou sem permissão para exclusão.");
+  }
 }
 
 export async function confirmarBairroEndereco(
@@ -525,6 +535,25 @@ export async function listPessoas(search = ""): Promise<PessoaAlvoRecord[]> {
   const { data, error } = await query;
   if (error) fail("Falha ao listar pessoas", error);
   return (data ?? []) as unknown as PessoaAlvoRecord[];
+}
+
+export async function softDeletePessoa(id: string): Promise<void> {
+  const { data: userResult, error: userError } = await supabase.auth.getUser();
+  if (userError || !userResult.user?.id) {
+    throw new Error("Sessão expirada. Entre novamente para excluir o contato.");
+  }
+
+  const { data, error } = await supabase
+    .from("localizacao_pessoas")
+    .update({ deleted_at: new Date().toISOString(), updated_by: userResult.user.id })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+  if (error) fail("Falha ao excluir contato", error);
+  if (!data) {
+    throw new Error("Contato não encontrado ou sem permissão para exclusão.");
+  }
 }
 
 /** "telefone" não entra pelo chamador — é sempre derivado de telefones[0] aqui dentro. */
@@ -805,4 +834,17 @@ export async function listRotasSalvas(): Promise<RotaSalvaRecord[]> {
     ...row,
     paradas: Array.isArray(row.paradas) ? row.paradas : [],
   })) as RotaSalvaRecord[];
+}
+
+export async function deleteRotaSalva(id: string): Promise<void> {
+  const { data, error } = await supabase
+    .from("localizacao_rotas_salvas")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) fail("Falha ao excluir rota salva", error);
+  if (!data) {
+    throw new Error("Rota não encontrada ou sem permissão para exclusão.");
+  }
 }

@@ -1,7 +1,13 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstack-start-app",
-  "compatibility_date": "2025-09-24",
+  "name": "sipi-dt-itabela",
+  "compatibility_date": "2026-08-07",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "vars": {
+    "SHEET_SYNC_DOCUMENT_ID": "1YTA8z0kxnQCxCpV9uMzsjIzYJ-MZ_BEks6j_20L3tMU",
+    "SHEET_SYNC_BOOTSTRAP_INQUERITOS": "767:cb12aac131f5ad80b09eab25d9175c0adcf5c5788caba71a3c7fcd04d093d30e",
+    "SHEET_SYNC_BOOTSTRAP_REPRESENTACOES": "12:34f86de1b2b7e0714e9b9824883f0df2b7c477efdae9a05cd64c6a2a30fe70f5",
+    "SUPABASE_URL": "https://hgujtkwetvagngdgjstj.supabase.co",
+  },
 }

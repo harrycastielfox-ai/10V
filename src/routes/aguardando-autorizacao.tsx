@@ -10,13 +10,16 @@ export const Route = createFileRoute("/aguardando-autorizacao")({
   component: PendingAuthorizationPage,
 });
 
+/** De quanto em quanto tempo confere se já liberaram o acesso, sem exigir F5. */
+const INTERVALO_VERIFICACAO_MS = 10_000;
+
 function PendingAuthorizationPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
 
-    void (async () => {
+    async function verificar() {
       const session = await getSession();
       if (!session) {
         if (!cancelled) navigate({ to: "/login", replace: true });
@@ -47,10 +50,14 @@ function PendingAuthorizationPage() {
             replace: true,
           });
       }
-    })();
+    }
+
+    void verificar();
+    const intervalo = window.setInterval(() => void verificar(), INTERVALO_VERIFICACAO_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalo);
     };
   }, [navigate]);
 

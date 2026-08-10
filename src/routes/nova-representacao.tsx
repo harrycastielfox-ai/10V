@@ -11,6 +11,16 @@ import {
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
+import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
+import { getCurrentProfile } from "@/lib/auth";
+import { canManageProceduralTags, type UserProfile } from "@/lib/authz";
+import { canAccessSigilosa } from "@/lib/representacoesSigilo";
+import { tagsByScope, type ProceduralTag } from "@/lib/proceduralTags";
+import {
+  createProceduralTag,
+  listProceduralTags,
+  replaceMovimentacaoTags,
+} from "@/lib/repositories/proceduralTagsRepository";
 import {
   RepresentationPeopleEditor,
   type RepresentationPersonFormValue,
@@ -34,14 +44,14 @@ import {
 } from "@/lib/operationalContracts";
 
 export const Route = createFileRoute("/nova-representacao")({
-  head: () => ({ meta: [{ title: "Cadastrar Representação — SIPI" }] }),
+  head: () => ({ meta: [{ title: "Cadastrar Movimentação Processual — SIPI" }] }),
   component: NovaRepresentacao,
 });
 
 const INQUIRY_LINK_OPTIONS: readonly SelectOption[] = [
   { value: "", label: "A definir" },
-  { value: "sim", label: "Sim, possui inquérito vinculado" },
-  { value: "nao", label: "Não possui inquérito vinculado" },
+  { value: "sim", label: "Sim, possui procedimento vinculado" },
+  { value: "nao", label: "Não possui procedimento vinculado" },
 ];
 const normalizeText = (value?: string) =>
   (value ?? "")
@@ -69,6 +79,10 @@ function NovaRepresentacao() {
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [erro, setErro] = useState("");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [tagOptions, setTagOptions] = useState<ProceduralTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [statusTagId, setStatusTagId] = useState("");
 
   const [ppe, setPpe] = useState("");
   const [vinculoInquerito, setVinculoInquerito] = useState<"sim" | "nao" | "">("");
@@ -106,6 +120,50 @@ function NovaRepresentacao() {
   const [observacoesInternas, setObservacoesInternas] = useState("");
   const [equipeResponsavel, setEquipeResponsavel] = useState("");
   const [acompanhamentoEspecial, setAcompanhamentoEspecial] = useState("");
+
+  const typeTagOptions = useMemo(() => tagsByScope(tagOptions, "movimentacao_tipo"), [tagOptions]);
+  const priorityTagOptions = useMemo(() => tagsByScope(tagOptions, "prioridade"), [tagOptions]);
+  const statusTagOptions = useMemo(
+    () => tagsByScope(tagOptions, "movimentacao_status"),
+    [tagOptions],
+  );
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([
+      getCurrentProfile(),
+      listProceduralTags([
+        "movimentacao_tipo",
+        "movimentacao_status",
+        "prioridade",
+        "movimentacao_geral",
+      ]),
+    ])
+      .then(([currentProfile, tags]) => {
+        if (!active) return;
+        setProfile(currentProfile);
+        setTagOptions(tags);
+        const defaultStatus = tags.find(
+          (tag) => tag.scope === "movimentacao_status" && tag.slug === "em-analise",
+        );
+        if (defaultStatus) setStatusTagId(defaultStatus.id);
+      })
+      .catch((error) => {
+        console.warn("[movimentacoes:tags] Catálogo temporariamente indisponível", error);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const linkedInquiryId = params.get("inqueritoId")?.trim();
+    if (!linkedInquiryId) return;
+    setVinculoInquerito("sim");
+    setInqueritoId(linkedInquiryId);
+    setPpe(params.get("ppe")?.trim() ?? "");
+  }, []);
 
   const exibeCampoOutra = tipoRepresentacao === "Outra";
   const exibeDataEnvioEVara = useMemo(
@@ -158,7 +216,13 @@ function NovaRepresentacao() {
     setErro("");
     setFeedback("");
 
-    const tipoFinal = tipoRepresentacao === "Outra" ? tipoOutra : tipoRepresentacao;
+    const selectedTypes = typeTagOptions.filter((tag) => selectedTagIds.includes(tag.id));
+    if (!statusTagId || selectedTypes.length === 0) {
+      setErro("Selecione ao menos um tipo de protocolo e o status da movimentação.");
+      return;
+    }
+    const selectedPriorities = priorityTagOptions.filter((tag) => selectedTagIds.includes(tag.id));
+    const tipoFinal = selectedTypes.map((tag) => tag.name).join("; ");
     setLoading(true);
 
     try {
@@ -171,16 +235,18 @@ function NovaRepresentacao() {
         tipo: tipoFinal.trim() || null,
         tipo_normalizado: normalizeRepresentationType(tipoFinal),
         data_representacao: dataRepresentacao || null,
-        responsavel: responsavel.trim() || null,
-        vitima: vitima.trim() || null,
-        investigado: investigado.trim() || null,
-        autor_preso: autorPreso || null,
-        resumo_fatos: resumoFatos.trim() || null,
-        fundamentacao: fundamentacao.trim() || null,
-        objetivo: objetivo.trim() || null,
-        diligencias_relacionadas: diligenciasRelacionadas.trim() || null,
-        status: status || null,
-        data_envio_judiciario: dataEnvioJudiciario || null,
+        data_protocolo: dataRepresentacao || null,
+        responsavel: null,
+        vitima: null,
+        investigado: null,
+        autor_preso: null,
+        resumo_fatos: null,
+        fundamentacao: null,
+        objetivo: null,
+        diligencias_relacionadas: null,
+        status_tag_id: statusTagId,
+        status: statusTagOptions.find((tag) => tag.id === statusTagId)?.name || null,
+        data_envio_judiciario: null,
         data_decisao_judicial: dataDecisaoJudicial || null,
         vara_juizo: varaJuizo.trim() || null,
         prazo_concedido_dias: prazoConcedidoDias.trim() ? Number(prazoConcedidoDias) : null,
@@ -191,32 +257,28 @@ function NovaRepresentacao() {
         equipe_cumprimento: equipeCumprimento.trim() || null,
         resultado_cumprimento: resultadoCumprimento.trim() || null,
         observacoes_cumprimento: observacoesCumprimento.trim() || null,
-        prioridade_operacional: prioridadeOperacional
-          ? normalizePriority(prioridadeOperacional)
+        prioridade_operacional: selectedPriorities[0]
+          ? normalizePriority(selectedPriorities[0].name)
           : null,
-        equipe_responsavel: equipeResponsavel.trim() || null,
-        acompanhamento_especial: acompanhamentoEspecial ? acompanhamentoEspecial === "Sim" : null,
+        equipe_responsavel: null,
+        acompanhamento_especial: null,
         pedido_sigiloso: pedidoSigiloso || null,
         pedido_sigiloso_normalizado: pedidoSigiloso ? isYesValue(pedidoSigiloso) : null,
         medida_protetiva_normalizada: normalizeRepresentationType(tipoFinal) === "medida_protetiva",
-        observacoes_internas: observacoesInternas.trim() || null,
+        observacoes_internas: null,
+        observacoes_movimentacao: observacoesInternas.trim() || null,
       });
-      let pessoasWarning = false;
-      if (pessoasAdicionais.length > 0) {
-        try {
-          await replaceRepresentacaoPessoas(created.id, pessoasAdicionais);
-        } catch (pessoasError) {
-          pessoasWarning = true;
-          console.warn(
-            "[representacoes:pessoas] Registro principal salvo sem pessoas adicionais",
-            pessoasError,
-          );
-        }
+      let tagsWarning = false;
+      try {
+        await replaceMovimentacaoTags(created.id, selectedTagIds);
+      } catch (tagsError) {
+        tagsWarning = true;
+        console.warn("[movimentacoes:tags] Registro salvo sem vínculos de tags", tagsError);
       }
       setFeedback(
-        pessoasWarning
-          ? "Representação salva. As pessoas adicionais não puderam ser vinculadas agora."
-          : "Representação salva com sucesso.",
+        tagsWarning
+          ? "Movimentação salva, mas as tags precisam ser conferidas."
+          : "Movimentação processual salva com sucesso.",
       );
       navigate({ to: "/representacoes" });
     } catch (error) {
@@ -238,17 +300,17 @@ function NovaRepresentacao() {
   return (
     <AppLayout>
       <PageHeader
-        title="Cadastrar Representação"
-        subtitle="Registro de medida judicial vinculada a procedimento policial"
+        title="Cadastrar Movimentação Processual"
+        subtitle="Protocolo e tramitação vinculados a procedimento policial"
         showActions={false}
       />
       <form className="space-y-5 max-w-6xl pb-6" onSubmit={handleSubmit}>
         <SectionCard
           title="Identificação Judicial"
-          subtitle="Vinculação processual e dados principais da representação."
+          subtitle="Vinculação processual e dados principais da movimentação."
         >
           <OptionSelect
-            label="Possui inquérito vinculado?"
+            label="Possui procedimento vinculado?"
             options={INQUIRY_LINK_OPTIONS}
             value={vinculoInquerito}
             onChange={(value) => {
@@ -276,7 +338,7 @@ function NovaRepresentacao() {
             />
           )}
           {vinculoInquerito === "sim" && searchingInquerito && (
-            <InfoBox>Consultando inquéritos acessíveis com este PPE...</InfoBox>
+            <InfoBox>Consultando procedimentos acessíveis com este PPE...</InfoBox>
           )}
           {vinculoInquerito === "sim" &&
             !searchingInquerito &&
@@ -284,7 +346,7 @@ function NovaRepresentacao() {
             inqueritoMatches.length > 0 && (
               <div className="md:col-span-2 lg:col-span-3 rounded-lg border border-primary/25 bg-card/70 p-3">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
-                  Selecione o inquérito correto
+                  Selecione o procedimento correto
                 </p>
                 <div className="grid gap-2 md:grid-cols-2">
                   {inqueritoMatches.map((item) => (
@@ -312,7 +374,7 @@ function NovaRepresentacao() {
             )}
           {vinculoInquerito === "sim" && inqueritoId && (
             <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
-              <span>Vínculo formal confirmado com o inquérito selecionado.</span>
+              <span>Vínculo formal confirmado com o procedimento selecionado.</span>
               <button
                 type="button"
                 onClick={() => setInqueritoId(null)}
@@ -324,7 +386,7 @@ function NovaRepresentacao() {
           )}
           {vinculoInquerito === "nao" && (
             <TextArea
-              label="Justificativa para representação sem inquérito vinculado"
+              label="Justificativa para movimentação sem procedimento vinculado"
               placeholder="Ex.: medida autônoma, procedimento ainda não cadastrado ou vínculo pendente de confirmação."
               value={justificativaSemInquerito}
               onChange={(event) => setJustificativaSemInquerito(event.target.value)}
@@ -337,237 +399,85 @@ function NovaRepresentacao() {
             value={processo}
             onChange={(e) => setProcesso(e.target.value)}
           />
-          <Select
-            label="Tipo de Representação"
-            options={REPRESENTATION_TYPE_OPTIONS.map((option) => option.value)}
-            value={tipoRepresentacao}
-            onChange={setTipoRepresentacao}
+          <ProceduralTagPicker
+            label="Tipo do protocolo"
+            hint="Uma movimentação pode reunir mais de um protocolo."
+            options={typeTagOptions}
+            value={selectedTagIds}
+            onChange={setSelectedTagIds}
+            onCreate={async (input) => {
+              const created = await createProceduralTag(input);
+              setTagOptions((current) => [...current, created]);
+              return created;
+            }}
+            createScope="movimentacao_tipo"
+            canCreate={canManageProceduralTags(profile)}
           />
           <Field
-            label="Data da Representação"
+            label="Data do protocolo"
             type="date"
             value={dataRepresentacao}
             onChange={(e) => setDataRepresentacao(e.target.value)}
           />
-          <Field
-            label="Responsável pela Representação"
-            placeholder="Ex.: Del. Nome Completo"
-            value={responsavel}
-            onChange={(e) => setResponsavel(e.target.value)}
-          />
-          {exibeCampoOutra && (
-            <Field
-              label="Especificar representação"
-              placeholder="Descreva o tipo de representação"
-              value={tipoOutra}
-              onChange={(e) => setTipoOutra(e.target.value)}
-            />
-          )}
         </SectionCard>
 
         <SectionCard
           title="Tramitação Judicial"
           subtitle="Acompanhamento da fase judicial, decisão e cumprimento."
         >
-          <Select
-            label="Status da Representação"
-            options={REPRESENTATION_STATUS_OPTIONS}
-            value={status}
-            onChange={setStatus}
-          />
-          <OptionSelect
-            label="Situação do cumprimento"
-            options={COMPLIANCE_STATUS_OPTIONS}
-            value={cumprimentoStatus}
-            onChange={(value) => setCumprimentoStatus(value as ComplianceStatus)}
-          />
-          <InfoBox>{getStatusHint(status)}</InfoBox>
-          {exibeDataEnvioEVara && (
-            <Field
-              label="Data de envio ao Judiciário"
-              type="date"
-              value={dataEnvioJudiciario}
-              onChange={(e) => setDataEnvioJudiciario(e.target.value)}
-            />
-          )}
-          {exibeDataEnvioEVara && (
-            <Field
-              label="Vara / Juízo"
-              placeholder="Ex.: 2ª Vara Criminal"
-              value={varaJuizo}
-              onChange={(e) => setVaraJuizo(e.target.value)}
-            />
-          )}
-          {exibeDecisaoEPrazo && (
-            <Field
-              label="Data da decisão judicial"
-              type="date"
-              value={dataDecisaoJudicial}
-              onChange={(e) => setDataDecisaoJudicial(e.target.value)}
-            />
-          )}
-          {exibeDecisaoEPrazo && (
-            <Field
-              label="Prazo concedido (dias)"
-              type="number"
-              min={0}
-              value={prazoConcedidoDias}
-              onChange={(e) => setPrazoConcedidoDias(e.target.value)}
-            />
-          )}
-          {exibeDecisaoEPrazo && (
-            <Field
-              label="Data de vencimento"
-              type="date"
-              value={dataVencimento}
-              onChange={(e) => setDataVencimento(e.target.value)}
-            />
-          )}
-          {exibeDecisaoEObservacoes && (
-            <Field
-              label="Data da decisão judicial"
-              type="date"
-              value={dataDecisaoJudicial}
-              onChange={(e) => setDataDecisaoJudicial(e.target.value)}
-            />
-          )}
-          {exibeDecisaoEObservacoes && (
-            <TextArea
-              label="Observações da decisão"
-              placeholder="Observações sobre decisão, condicionantes e determinações judiciais..."
-              value={observacoesDecisao}
-              onChange={(e) => setObservacoesDecisao(e.target.value)}
-            />
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Pessoas Envolvidas"
-          subtitle="Partes relacionadas à medida representada."
-        >
-          <RepresentationPeopleEditor value={pessoasAdicionais} onChange={setPessoasAdicionais} />
-          <Field
-            label="Vítima"
-            placeholder="Nome completo da vítima"
-            value={vitima}
-            onChange={(e) => setVitima(e.target.value)}
+          <ProceduralStatusSelect
+            label="Status da movimentação"
+            options={statusTagOptions}
+            value={statusTagId}
+            onChange={setStatusTagId}
           />
           <Field
-            label="Investigado / Representado"
-            placeholder="Nome do investigado"
-            value={investigado}
-            onChange={(e) => setInvestigado(e.target.value)}
+            label="Vara / Juízo"
+            placeholder="Ex.: 2ª Vara Criminal"
+            value={varaJuizo}
+            onChange={(e) => setVaraJuizo(e.target.value)}
+          />
+          <Field
+            label="Data da decisão judicial"
+            type="date"
+            value={dataDecisaoJudicial}
+            onChange={(e) => setDataDecisaoJudicial(e.target.value)}
+          />
+          <Field
+            label="Prazo concedido (dias)"
+            type="number"
+            min={0}
+            value={prazoConcedidoDias}
+            onChange={(e) => setPrazoConcedidoDias(e.target.value)}
+          />
+          <Field
+            label="Data de vencimento"
+            type="date"
+            value={dataVencimento}
+            onChange={(e) => setDataVencimento(e.target.value)}
+          />
+          <ProceduralTagPicker
+            label="Prioridade"
+            hint="Classificação operacional para filtros e indicadores."
+            options={priorityTagOptions}
+            value={selectedTagIds}
+            onChange={setSelectedTagIds}
+            createScope="prioridade"
+            canCreate={false}
           />
           <Select
-            label="Autor preso?"
-            options={["Sim", "Não", "Não informado"]}
-            value={autorPreso}
-            onChange={setAutorPreso}
-          />
-        </SectionCard>
-
-        <SectionCard
-          title="Controle Interno"
-          subtitle="Priorização e acompanhamento interno da unidade."
-        >
-          <Select
-            label="Prioridade operacional"
-            options={["Normal", "Atenção", "Urgente"]}
-            value={prioridadeOperacional}
-            onChange={setPrioridadeOperacional}
-          />
-          <Select
-            label="Pedido sigiloso?"
-            options={["Sim", "Não"]}
+            label="Sigilo"
+            options={canAccessSigilosa(profile) ? ["Sim", "Não"] : ["Não"]}
             value={pedidoSigiloso}
             onChange={setPedidoSigiloso}
           />
-          <Field
-            label="Equipe responsável"
-            placeholder="Ex.: Equipe Alpha"
-            value={equipeResponsavel}
-            onChange={(e) => setEquipeResponsavel(e.target.value)}
-          />
-          <Select
-            label="Acompanhamento especial?"
-            options={["Sim", "Não"]}
-            value={acompanhamentoEspecial}
-            onChange={setAcompanhamentoEspecial}
-          />
           <TextArea
-            label="Observações internas"
-            placeholder="Anotações internas da unidade sobre o acompanhamento da representação..."
+            label="Observações"
+            placeholder="Registre decisões, providências e informações relevantes da tramitação..."
             value={observacoesInternas}
-            onChange={(e) => setObservacoesInternas(e.target.value)}
+            onChange={(event) => setObservacoesInternas(event.target.value)}
           />
         </SectionCard>
-
-        <SectionCard
-          title="Resumo e Fundamentação"
-          subtitle="Contexto fático e base técnico-jurídica da medida."
-        >
-          <TextArea
-            label="Resumo dos fatos"
-            placeholder="Descreva resumidamente os fatos que motivam a representação..."
-            value={resumoFatos}
-            onChange={(e) => setResumoFatos(e.target.value)}
-          />
-          <TextArea
-            label="Fundamentação da medida"
-            placeholder="Informe a base jurídica e os elementos de convicção..."
-            value={fundamentacao}
-            onChange={(e) => setFundamentacao(e.target.value)}
-          />
-          <TextArea
-            label="Objetivo da representação"
-            placeholder="Ex.: garantir produção de prova, preservar vítima, capturar investigado..."
-            value={objetivo}
-            onChange={(e) => setObjetivo(e.target.value)}
-          />
-          <TextArea
-            label="Diligências relacionadas"
-            placeholder="Liste diligências já realizadas e pendentes relacionadas ao pedido..."
-            value={diligenciasRelacionadas}
-            onChange={(e) => setDiligenciasRelacionadas(e.target.value)}
-          />
-        </SectionCard>
-
-        {exibeBlocoCumprimento && (
-          <SectionCard
-            title="Cumprimento da Medida"
-            subtitle="Registro operacional da execução da decisão."
-          >
-            <Field
-              label="Data do cumprimento"
-              type="date"
-              value={dataCumprimento}
-              onChange={(e) => setDataCumprimento(e.target.value)}
-            />
-            <Field
-              label="Equipe responsável pelo cumprimento"
-              placeholder="Ex.: Equipe Alpha"
-              value={equipeCumprimento}
-              onChange={(e) => setEquipeCumprimento(e.target.value)}
-            />
-            <OptionSelect
-              label="Resultado do cumprimento"
-              options={COMPLIANCE_RESULT_OPTIONS}
-              value={resultadoCumprimento}
-              onChange={setResultadoCumprimento}
-              hint={
-                resultadoCumprimento
-                  ? COMPLIANCE_RESULT_DESCRIPTIONS[resultadoCumprimento as ComplianceResult]
-                  : "Classifique o efeito efetivo da medida após a execução."
-              }
-            />
-            <TextArea
-              label="Observações do cumprimento"
-              placeholder="Detalhes operacionais adicionais..."
-              value={observacoesCumprimento}
-              onChange={(e) => setObservacoesCumprimento(e.target.value)}
-            />
-          </SectionCard>
-        )}
 
         {erro && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -592,7 +502,7 @@ function NovaRepresentacao() {
             disabled={loading}
             className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Salvando..." : "Salvar Representação"}
+            {loading ? "Salvando..." : "Salvar movimentação"}
           </button>
         </div>
       </form>

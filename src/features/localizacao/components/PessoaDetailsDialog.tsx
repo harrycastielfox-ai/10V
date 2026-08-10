@@ -8,6 +8,7 @@ import {
   Pencil,
   Phone,
   ShieldCheck,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { AbrirNoMapa } from "@/components/AbrirNoMapa";
 import {
   getPessoaDetalhes,
   getPessoaPhotoSignedUrl,
+  softDeletePessoa,
 } from "@/lib/repositories/localizacaoRepository";
 import { PESSOA_VINCULO_LABELS } from "../localizacaoConstants";
 import type { EnderecoRecord, PessoaDetalheRecord } from "../localizacaoTypes";
@@ -24,6 +26,7 @@ interface PessoaDetailsDialogProps {
   personId: string;
   onClose: () => void;
   onEdit: (person: PessoaDetalheRecord) => void;
+  onDeleted?: (personId: string) => void;
 }
 
 function present(value: string | null | undefined) {
@@ -83,10 +86,18 @@ function ProfilePhoto({ person }: { person: PessoaDetalheRecord }) {
   );
 }
 
-export function PessoaDetailsDialog({ personId, onClose, onEdit }: PessoaDetailsDialogProps) {
+export function PessoaDetailsDialog({
+  personId,
+  onClose,
+  onEdit,
+  onDeleted,
+}: PessoaDetailsDialogProps) {
   const [person, setPerson] = useState<PessoaDetalheRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +147,24 @@ export function PessoaDetailsDialog({ personId, onClose, onEdit }: PessoaDetails
     };
   }, [person]);
 
+  async function handleDeletePerson() {
+    if (!person) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await softDeletePessoa(person.id);
+      onDeleted?.(person.id);
+      onClose();
+    } catch (reason) {
+      console.error("[PessoaDetailsDialog] Falha ao excluir contato", reason);
+      setDeleteError(
+        reason instanceof Error ? reason.message : "Não foi possível excluir este contato.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div
       // Sem blur e com fundo mais claro de propósito: isso abre em cima do
@@ -173,6 +202,20 @@ export function PessoaDetailsDialog({ personId, onClose, onEdit }: PessoaDetails
                 <Pencil className="h-4 w-4" />
                 <span className="hidden sm:inline">Editar cadastro</span>
                 <span className="sm:hidden">Editar</span>
+              </button>
+            ) : null}
+            {person ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError("");
+                  setDeleteOpen(true);
+                }}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-destructive/35 bg-destructive/10 text-destructive transition hover:bg-destructive/20"
+                aria-label="Excluir contato"
+                title="Excluir contato"
+              >
+                <Trash2 className="h-4 w-4" />
               </button>
             ) : null}
             <button
@@ -377,6 +420,51 @@ export function PessoaDetailsDialog({ personId, onClose, onEdit }: PessoaDetails
           ) : null}
         </div>
       </section>
+      {deleteOpen && person ? (
+        <div className="fixed inset-0 z-[1120] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <section className="w-full max-w-md rounded-2xl border border-destructive/35 bg-card p-5 shadow-[0_0_50px_color-mix(in_oklab,var(--destructive)_16%,transparent)]">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+                <Trash2 className="h-5 w-5" />
+              </span>
+              <div>
+                <h3 className="text-lg font-black">Excluir contato</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  <strong className="text-foreground">{person.nome}</strong> vai sair da lista de
+                  pessoas/contatos e do mapa operacional. Endereços e rotas salvas permanecem
+                  preservados.
+                </p>
+              </div>
+            </div>
+
+            {deleteError ? (
+              <div className="mt-4 rounded-xl border border-destructive/35 bg-destructive/10 p-3 text-xs font-semibold leading-relaxed text-destructive">
+                {deleteError}
+              </div>
+            ) : null}
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleting}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-accent disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDeletePerson()}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition hover:brightness-110 disabled:opacity-60"
+              >
+                {deleting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                {deleting ? "Excluindo..." : "Excluir contato"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

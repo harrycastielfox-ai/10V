@@ -67,6 +67,7 @@ export default function EnderecosPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<EnderecoRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +173,7 @@ export default function EnderecosPage() {
     if (!deletingAddress) return;
     setDeleting(true);
     setMessage(null);
+    setDeleteError("");
     try {
       await softDeleteEndereco(deletingAddress.id);
       setAddresses((current) => current.filter((item) => item.id !== deletingAddress.id));
@@ -180,6 +182,9 @@ export default function EnderecosPage() {
     } catch (error) {
       console.error("[EnderecosPage] Falha ao excluir endereço", error);
       setMessage("Não foi possível excluir este endereço.");
+      setDeleteError(
+        error instanceof Error ? error.message : "Não foi possível excluir este endereço.",
+      );
     } finally {
       setDeleting(false);
     }
@@ -349,7 +354,10 @@ export default function EnderecosPage() {
               >
                 <button
                   type="button"
-                  onClick={() => setDeletingAddress(address)}
+                  onClick={() => {
+                    setDeleteError("");
+                    setDeletingAddress(address);
+                  }}
                   aria-label="Excluir este endereço"
                   title="Excluir este endereço"
                   className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-destructive/30 text-destructive/70 transition hover:border-destructive/60 hover:bg-destructive/10 hover:text-destructive"
@@ -712,6 +720,11 @@ export default function EnderecosPage() {
                 </p>
               </div>
             </div>
+            {deleteError ? (
+              <div className="mt-4 rounded-xl border border-destructive/35 bg-destructive/10 p-3 text-xs font-semibold leading-relaxed text-destructive">
+                {deleteError}
+              </div>
+            ) : null}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"

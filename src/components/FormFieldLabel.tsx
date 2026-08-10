@@ -93,38 +93,36 @@ type FormFieldLabelProps = {
 
 export function FormFieldLabel({ label, hint, className, uppercase = true }: FormFieldLabelProps) {
   const content = hint ?? FIELD_HINTS[label];
+  const labelText = uppercase ? label.toUpperCase() : label;
+  const labelClassName = cn(
+    "mb-2 inline-flex text-xs font-bold tracking-wider text-muted-foreground",
+    className,
+  );
+
+  if (!content) return <span className={labelClassName}>{labelText}</span>;
 
   return (
-    <span
-      className={cn(
-        "mb-2 inline-flex items-center gap-1 text-xs font-bold tracking-wider text-muted-foreground",
-        className,
-      )}
-    >
-      {uppercase ? label.toUpperCase() : label}
-      {content && (
-        <TooltipProvider delayDuration={120}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label={`Ajuda sobre ${label}`}
-                className="inline-flex size-3 shrink-0 cursor-help items-center justify-center text-[9px] font-black leading-none text-primary transition hover:drop-shadow-[0_0_4px_currentColor] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              >
-                ⓘ
-              </span>
-            </TooltipTrigger>
-            <TooltipContent
-              side="top"
-              sideOffset={7}
-              className="max-w-72 border border-primary/30 bg-popover px-3 py-2 text-[11px] font-medium leading-relaxed text-popover-foreground shadow-xl shadow-primary/10"
-            >
-              {content}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
-    </span>
+    <TooltipProvider delayDuration={120}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            tabIndex={0}
+            className={cn(
+              labelClassName,
+              "cursor-help rounded-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-border",
+            )}
+          >
+            {labelText}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent
+          side="top"
+          sideOffset={7}
+          className="max-w-72 border border-primary/30 bg-popover px-3 py-2 text-[11px] font-medium leading-relaxed text-popover-foreground shadow-xl shadow-primary/10"
+        >
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

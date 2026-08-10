@@ -1,5 +1,4 @@
 import type { RepresentacaoRecord } from "@/lib/repositories/representacoesRepository";
-import type { UserProfile } from "@/lib/authz";
 
 function normalizeText(value: unknown): string {
   return String(value ?? "")
@@ -18,20 +17,6 @@ function isTruthySigiloValue(value: unknown): boolean {
   );
 }
 
-function resolveProfileRole(profile: unknown): string {
-  if (!profile || typeof profile !== "object") return "";
-  const source = profile as Partial<UserProfile> & {
-    role?: string | null;
-    perfil?: string | null;
-    profile_role?: string | null;
-    user_role?: string | null;
-  };
-
-  return normalizeText(
-    source.cargo ?? source.role ?? source.perfil ?? source.profile_role ?? source.user_role ?? "",
-  );
-}
-
 export function isRepresentacaoSigilosa(
   representacao: Partial<RepresentacaoRecord> | null | undefined,
 ): boolean {
@@ -42,16 +27,12 @@ export function isRepresentacaoSigilosa(
 }
 
 export function canAccessSigilosa(profile: unknown): boolean {
-  const role = resolveProfileRole(profile);
-  if (!role) return false;
-
-  const allowedRoleAliases = [
-    "admin",
-    "administrador",
-    "delegado",
-    "atlas",
-    "atlas access",
-    "atlas_access",
-  ];
-  return allowedRoleAliases.some((allowed) => role === allowed || role.includes(allowed));
+  if (!profile || typeof profile !== "object") return false;
+  const source = profile as {
+    can_access_sigiloso?: boolean | null;
+    status_autorizacao?: string | null;
+  };
+  return (
+    source.can_access_sigiloso === true && normalizeText(source.status_autorizacao) === "autorizado"
+  );
 }

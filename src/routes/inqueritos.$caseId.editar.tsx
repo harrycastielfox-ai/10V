@@ -5,19 +5,34 @@ import {
   type ReactNode,
   type TextareaHTMLAttributes,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
+import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import {
   getInqueritoById,
   listInqueritoPessoas,
   replaceInqueritoPessoas,
   updateInquerito,
 } from "@/lib/repositories/inqueritosRepository";
+import {
+  createProceduralTag,
+  listInqueritoTagIds,
+  listProceduralTags,
+  replaceInqueritoTags,
+} from "@/lib/repositories/proceduralTagsRepository";
+import { tagsByScope, type ProceduralTag } from "@/lib/proceduralTags";
 import { getCurrentProfile } from "@/lib/auth";
-import { canEditCases, canOnlyViewPublicCases, type UserProfile } from "@/lib/authz";
+import {
+  canEditCases,
+  canManageProceduralTags,
+  canOnlyViewPublicCases,
+  canViewPrivateCases,
+  type UserProfile,
+} from "@/lib/authz";
 import { CASE_CATEGORY_OPTIONS, normalizeCaseCategory } from "@/lib/inqueritosPriority";
 import {
   OCCURRENCE_ORIGIN_OPTIONS,
@@ -79,6 +94,10 @@ function EditarInquerito() {
   const [numeroFisico, setNumeroFisico] = useState("");
   const [numeroBo, setNumeroBo] = useState("");
   const [tipificacao, setTipificacao] = useState("");
+  const [tagOptions, setTagOptions] = useState<ProceduralTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [statusTagId, setStatusTagId] = useState("");
+  const [resumoFato, setResumoFato] = useState("");
   const [gravidade, setGravidade] = useState("");
   const [tipo, setTipo] = useState("");
   const [origemRegistro, setOrigemRegistro] = useState<OccurrenceOrigin>("novo");
@@ -90,12 +109,15 @@ function EditarInquerito() {
   const [dataFato, setDataFato] = useState("");
   const [dataInstauracao, setDataInstauracao] = useState("");
   const [prazo, setPrazo] = useState("");
+  const [prazoDias, setPrazoDias] = useState("");
+  const [prazoManual, setPrazoManual] = useState(false);
   const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([]);
   const [reuPreso, setReuPreso] = useState("");
   const [houveArmaFogo, setHouveArmaFogo] = useState("");
   const [armaUtilizada, setArmaUtilizada] = useState("");
   const [bairro, setBairro] = useState("");
   const [distrito, setDistrito] = useState("");
+  const [cidade, setCidade] = useState("");
   const [motivacao, setMotivacao] = useState("");
   const [vinculadoFaccao, setVinculadoFaccao] = useState("");
   const [nomeFaccao, setNomeFaccao] = useState("");
@@ -115,6 +137,17 @@ function EditarInquerito() {
 
   const vitima = pessoas.find((pessoa) => pessoa.papel === "vitima")?.nome ?? "";
   const investigado = pessoas.find((pessoa) => pessoa.papel === "autor_investigado")?.nome ?? "";
+  const statusOptions = useMemo(() => tagsByScope(tagOptions, "inquerito_status"), [tagOptions]);
+  const tipificacaoOptions = useMemo(() => tagsByScope(tagOptions, "tipificacao"), [tagOptions]);
+
+  useEffect(() => {
+    if (prazoManual || !dataInstauracao || !prazoDias) return;
+    const days = Number(prazoDias);
+    if (!Number.isInteger(days) || days < 0) return;
+    const dueDate = new Date(`${dataInstauracao}T12:00:00`);
+    dueDate.setDate(dueDate.getDate() + days);
+    setPrazo(dueDate.toISOString().slice(0, 10));
+  }, [dataInstauracao, prazoDias, prazoManual]);
 
   useEffect(() => {
     let ativo = true;
@@ -123,16 +156,29 @@ function EditarInquerito() {
       setErro("");
       setNotFound(false);
       try {
-        const [currentProfile, inquerito, pessoasResult] = await Promise.all([
-          getCurrentProfile(),
-          getInqueritoById(caseId),
-          listInqueritoPessoas(caseId)
-            .then((pessoasSalvas) => ({ pessoasSalvas, failed: false }))
-            .catch((peopleError: unknown) => {
-              console.warn("[inqueritos:editar] pessoas adicionais indisponiveis", peopleError);
-              return { pessoasSalvas: [], failed: true };
-            }),
-        ]);
+        const [currentProfile, inquerito, pessoasResult, tagsResult, tagIdsResult] =
+          await Promise.all([
+            getCurrentProfile(),
+            getInqueritoById(caseId),
+            listInqueritoPessoas(caseId)
+              .then((pessoasSalvas) => ({ pessoasSalvas, failed: false }))
+              .catch((peopleError: unknown) => {
+                console.warn("[inqueritos:editar] pessoas adicionais indisponiveis", peopleError);
+                return { pessoasSalvas: [], failed: true };
+              }),
+            listProceduralTags(["inquerito_status", "tipificacao", "inquerito_geral"])
+              .then((tags) => ({ tags, failed: false }))
+              .catch((tagsError: unknown) => {
+                console.warn("[inqueritos:editar] catálogo de tags indisponível", tagsError);
+                return { tags: [], failed: true };
+              }),
+            listInqueritoTagIds(caseId)
+              .then((tagIds) => ({ tagIds, failed: false }))
+              .catch((tagsError: unknown) => {
+                console.warn("[inqueritos:editar] vínculos de tags indisponíveis", tagsError);
+                return { tagIds: [], failed: true };
+              }),
+          ]);
         setProfile(currentProfile);
         if (!canEditCases(currentProfile)) {
           setRestricted(true);
@@ -157,6 +203,19 @@ function EditarInquerito() {
         setNumeroFisico(inquerito.numero_fisico ?? "");
         setNumeroBo(inquerito.numero_bo ?? "");
         setTipificacao(inquerito.tipificacao ?? "");
+        setTagOptions(tagsResult.tags);
+        setSelectedTagIds(tagIdsResult.tagIds);
+        setStatusTagId(
+          inquerito.status_tag_id ??
+            tagsResult.tags.find(
+              (tag) =>
+                tag.scope === "inquerito_status" &&
+                tag.name.toLocaleLowerCase("pt-BR") ===
+                  (inquerito.situacao ?? "").toLocaleLowerCase("pt-BR"),
+            )?.id ??
+            "",
+        );
+        setResumoFato(inquerito.resumo_fato ?? "");
         setGravidade(normalizeCaseCategory(inquerito.gravidade, "Outro"));
         setTipo(
           procedureTypeLabel(
@@ -176,7 +235,9 @@ function EditarInquerito() {
         setDataElucidacao(toInputDate(inquerito.data_elucidacao));
         setDataFato(toInputDate(inquerito.data_fato));
         setDataInstauracao(toInputDate(inquerito.data_instauracao));
-        setPrazo(toInputDate(inquerito.prazo));
+        setPrazo(toInputDate(inquerito.prazo_data_final ?? inquerito.prazo));
+        setPrazoDias(inquerito.prazo_dias?.toString() ?? "");
+        setPrazoManual(Boolean(inquerito.prazo_manual || !inquerito.prazo_dias));
         setPessoasCarregadas(!pessoasResult.failed);
         const pessoasIniciais = pessoasResult.pessoasSalvas.map((pessoa) => ({
           id: pessoa.id,
@@ -199,13 +260,22 @@ function EditarInquerito() {
         setArmaUtilizada(inquerito.arma_utilizada ?? "");
         setBairro(inquerito.bairro ?? "");
         setDistrito(inquerito.distrito ?? "");
+        setCidade(inquerito.cidade ?? inquerito.distrito ?? "");
         setMotivacao(inquerito.motivacao ?? "");
         setVinculadoFaccao(inquerito.faccao ?? "");
         setNomeFaccao(inquerito.nome_faccao ?? "");
         setDelegadoResponsavel(inquerito.delegado_responsavel ?? "");
         setEquipe(inquerito.equipe ?? "");
         setEscrivao(inquerito.escrivao ?? "");
-        setDiligenciasPendentes(inquerito.diligencias_pendentes ?? "");
+        setDiligenciasPendentes(
+          [inquerito.diligencias_pendentes, inquerito.observacoes]
+            .map((value) => value?.trim())
+            .filter(
+              (value, index, values): value is string =>
+                Boolean(value) && values.indexOf(value) === index,
+            )
+            .join("\n\n"),
+        );
         setObservacoes(inquerito.observacoes ?? "");
         const savedReportStatus = String(inquerito.relatorio_status ?? "");
         setRelatorioStatus(
@@ -248,6 +318,17 @@ function EditarInquerito() {
     if (saving || !canEditCases(profile)) return;
     setErro("");
     setFeedback("");
+    if (!statusTagId) {
+      setErro("Selecione o status do procedimento.");
+      return;
+    }
+    const selectedTipificacoes = tipificacaoOptions.filter((tag) =>
+      selectedTagIds.includes(tag.id),
+    );
+    if (selectedTipificacoes.length === 0) {
+      setErro("Adicione ao menos uma tipificação.");
+      return;
+    }
     setSaving(true);
 
     try {
@@ -256,25 +337,27 @@ function EditarInquerito() {
       const isCvli = normalizedCategory === "CVLI";
       const payload = {
         numero_ppe: numeroPpe.trim() || null,
-        numero_fisico: numeroFisico.trim() || null,
-        numero_bo: numeroBo.trim() || null,
         origem_registro: origemRegistro,
         visibilidade: visibilidade.trim() || null,
-        tipificacao: tipificacao.trim() || null,
+        tipificacao: selectedTipificacoes.map((tag) => tag.name).join("; "),
+        resumo_fato: resumoFato.trim() || null,
         gravidade: normalizeCaseCategory(gravidade, "Outro"),
         tipo: tipo.trim() || null,
         tipo_procedimento_normalizado: normalizedType,
         prioridade: prioridade.trim() || null,
         prioridade_operacional: normalizePriority(prioridade),
         categoria_criminal: normalizedCategory,
-        situacao: situacao.trim() || null,
-        status_diligencias: statusDiligencias.trim() || null,
+        status_tag_id: statusTagId,
+        situacao: statusOptions.find((tag) => tag.id === statusTagId)?.name || situacao || null,
         elucidado: elucidado.trim() || null,
         cvli_elucidado: isCvli && elucidado ? isYesValue(elucidado) : null,
         data_elucidacao: isCvli && isYesValue(elucidado) ? dataElucidacao || null : null,
         data_fato: dataFato || null,
         data_instauracao: dataInstauracao || null,
         prazo: prazo || null,
+        prazo_dias: prazoDias.trim() ? Number(prazoDias) : null,
+        prazo_data_final: prazo || null,
+        prazo_manual: prazoManual,
         vitima: vitima.trim() || null,
         investigado: investigado.trim() || null,
         autoria_determinada: autoria.trim() || null,
@@ -283,27 +366,26 @@ function EditarInquerito() {
         houve_arma_fogo: houveArmaFogo.trim() || null,
         arma_utilizada: armaUtilizada.trim() || null,
         bairro: bairro.trim() || null,
-        distrito: distrito.trim() || null,
+        distrito: cidade.trim() || null,
+        cidade: cidade.trim() || null,
         motivacao: motivacao.trim() || null,
         faccao: vinculadoFaccao.trim() || null,
         nome_faccao: nomeFaccao.trim() || null,
-        delegado_responsavel: delegadoResponsavel.trim() || null,
-        equipe: equipe.trim() || null,
-        equipe_responsavel: equipe.trim() || null,
-        escrivao: escrivao.trim() || null,
         diligencias_pendentes: diligenciasPendentes.trim() || null,
-        observacoes: observacoes.trim() || null,
-        relatorio_status: relatorioStatus,
-        relatorio_enviado: relatorioStatus === "enviado" ? "Sim" : "Não",
-        data_relatorio: relatorioStatus !== "pendente" ? dataRelatorio || null : null,
-        data_envio_relatorio: relatorioStatus === "enviado" ? dataEnvioRelatorio || null : null,
-        medida_protetiva: medidaProtetiva.trim() || null,
-        medida_protetiva_normalizada: medidaProtetiva ? isYesValue(medidaProtetiva) : null,
-        numero_processo_medida: numeroProcessoMedida.trim() || null,
-        representacoes_legais: representacoesLegais.trim() || null,
+        observacoes: null,
       };
 
       await updateInquerito(caseId, payload);
+      let tagsWarning = false;
+      try {
+        await replaceInqueritoTags(caseId, selectedTagIds);
+      } catch (tagsError) {
+        tagsWarning = true;
+        console.warn(
+          "[inqueritos:tags] Dados principais atualizados sem vínculos de tags",
+          tagsError,
+        );
+      }
       let pessoasWarning = false;
       if (pessoasCarregadas) {
         try {
@@ -327,9 +409,9 @@ function EditarInquerito() {
         }
       }
       setFeedback(
-        pessoasWarning
-          ? "Inquérito atualizado. As pessoas adicionais não puderam ser atualizadas agora."
-          : "Inquérito atualizado com sucesso",
+        pessoasWarning || tagsWarning
+          ? "Procedimento atualizado, mas alguns vínculos complementares precisam ser conferidos."
+          : "Procedimento atualizado com sucesso.",
       );
       setTimeout(() => {
         navigate({ to: "/inqueritos/$caseId", params: { caseId } });
@@ -345,7 +427,7 @@ function EditarInquerito() {
     return (
       <AppLayout>
         <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-          Carregando dados do inquérito...
+          Carregando dados do procedimento...
         </div>
       </AppLayout>
     );
@@ -358,7 +440,7 @@ function EditarInquerito() {
             to="/inqueritos"
             className="text-xs border border-border rounded-md px-3 py-1.5 inline-block"
           >
-            ← Voltar para inquéritos
+            ← Voltar para procedimentos
           </Link>
           <p className="rounded-lg border border-warning/50 bg-warning/10 px-4 py-3 text-sm text-warning">
             Acesso restrito
@@ -380,7 +462,7 @@ function EditarInquerito() {
             ← Voltar aos detalhes
           </Link>
           <p className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            Inquérito não encontrado
+            Procedimento não encontrado
           </p>
         </div>
       </AppLayout>
@@ -397,7 +479,7 @@ function EditarInquerito() {
         >
           ← Voltar aos detalhes
         </Link>
-        <h1 className="text-2xl font-bold">Editar Inquérito</h1>
+        <h1 className="text-2xl font-bold">Editar Procedimento Policial</h1>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
           <SectionCard title="Identificação do Procedimento">
@@ -413,18 +495,6 @@ function EditarInquerito() {
               value={origemRegistro}
               onChange={(value) => setOrigemRegistro(value as OccurrenceOrigin)}
             />
-            <Field
-              label="Nº do B.O."
-              placeholder="Ex.: 2026.000001"
-              value={numeroBo}
-              onChange={(e) => setNumeroBo(e.target.value)}
-            />
-            <Field
-              label="Nº Físico"
-              placeholder="Ex.: 2026.001.0001"
-              value={numeroFisico}
-              onChange={(e) => setNumeroFisico(e.target.value)}
-            />
             <Select
               label="Tipo de Procedimento"
               value={tipo}
@@ -433,13 +503,10 @@ function EditarInquerito() {
             />
             <Select
               label="Visibilidade"
-              options={["Público", "Privado"]}
+              options={canViewPrivateCases(profile) ? ["Público", "Privado"] : ["Público"]}
               value={visibilidade}
               onChange={setVisibilidade}
             />
-          </SectionCard>
-
-          <SectionCard title="Datas">
             <Field
               label="Data do Fato"
               type="date"
@@ -453,19 +520,47 @@ function EditarInquerito() {
               onChange={(e) => setDataInstauracao(e.target.value)}
             />
             <Field
-              label="Prazo"
-              type="date"
-              value={prazo}
-              onChange={(e) => setPrazo(e.target.value)}
+              label="Prazo do procedimento (dias)"
+              type="number"
+              min={0}
+              max={3650}
+              value={prazoDias}
+              onChange={(event) => setPrazoDias(event.target.value)}
             />
+            <div>
+              <FormFieldLabel label="Data final calculada" />
+              <input
+                type="date"
+                value={prazo}
+                disabled={!prazoManual}
+                onChange={(event) => setPrazo(event.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-70"
+              />
+              <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={prazoManual}
+                  onChange={(event) => setPrazoManual(event.target.checked)}
+                />
+                Alterar a data final manualmente
+              </label>
+            </div>
           </SectionCard>
 
           <SectionCard title="Classificação do Caso">
-            <Field
-              label="Tipificação"
-              placeholder="Ex.: Homicídio Qualificado"
-              value={tipificacao}
-              onChange={(e) => setTipificacao(e.target.value)}
+            <ProceduralTagPicker
+              label="Tipificações"
+              hint="Adicione um ou mais crimes. Cada tipificação poderá ser usada em filtros e relatórios."
+              options={tipificacaoOptions}
+              value={selectedTagIds}
+              onChange={setSelectedTagIds}
+              onCreate={async (input) => {
+                const created = await createProceduralTag(input);
+                setTagOptions((current) => [...current, created]);
+                return created;
+              }}
+              createScope="tipificacao"
+              canCreate={canManageProceduralTags(profile)}
             />
             <Select
               label="Categoria do Caso"
@@ -473,21 +568,18 @@ function EditarInquerito() {
               onChange={setGravidade}
               options={[...CASE_CATEGORY_OPTIONS]}
             />
-            <Select
-              label="Situação"
-              value={situacao}
-              onChange={setSituacao}
-              options={[
-                "Instaurado",
-                "Em Andamento",
-                "Para Relatar",
-                "Relatado",
-                "Aguardando Diligência",
-                "Aguardando Laudo Pericial",
-                "Requisição Ministerial/Judicial",
-                "Remetido",
-                "Arquivado",
-              ]}
+            <ProceduralStatusSelect
+              label="Status do procedimento"
+              options={statusOptions}
+              value={statusTagId}
+              onChange={setStatusTagId}
+            />
+            <TextArea
+              label="Resumo do Fato"
+              rows={5}
+              placeholder="Registre, de forma objetiva, o fato que originou o procedimento..."
+              value={resumoFato}
+              onChange={(event) => setResumoFato(event.target.value)}
             />
             <Select
               label="Elucidado"
@@ -543,27 +635,8 @@ function EditarInquerito() {
           </SectionCard>
 
           <SectionCard title="Dados Operacionais">
-            <Field
-              label="Delegado Responsável"
-              value={delegadoResponsavel}
-              onChange={(e) => setDelegadoResponsavel(e.target.value)}
-            />
-            <Field
-              label="Equipe Responsável"
-              value={equipe}
-              onChange={(e) => setEquipe(e.target.value)}
-            />
-            <Field
-              label="Escrivão"
-              value={escrivao}
-              onChange={(e) => setEscrivao(e.target.value)}
-            />
             <Field label="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} />
-            <Field
-              label="Distrito"
-              value={distrito}
-              onChange={(e) => setDistrito(e.target.value)}
-            />
+            <Field label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
             <Field
               label="Motivação"
               value={motivacao}
@@ -580,73 +653,12 @@ function EditarInquerito() {
               value={nomeFaccao}
               onChange={(e) => setNomeFaccao(e.target.value)}
             />
-            <Select
-              label="Status de Diligências"
-              value={statusDiligencias}
-              onChange={setStatusDiligencias}
-              options={[
-                "Pendente",
-                "Em Andamento",
-                "Concluída",
-                "Aguardando Terceiros",
-                "Aguardando Aprovação/Revisão",
-              ]}
-            />
             <TextArea
-              label="Diligências Pendentes"
-              rows={4}
-              placeholder="Descreva as diligências pendentes..."
+              label="Observações e Diligências"
+              rows={6}
+              placeholder="Registre observações, diligências realizadas e providências pendentes..."
               value={diligenciasPendentes}
               onChange={(e) => setDiligenciasPendentes(e.target.value)}
-            />
-            <TextArea
-              label="Observações"
-              rows={5}
-              placeholder="Informações complementares..."
-              value={observacoes}
-              onChange={(e) => setObservacoes(e.target.value)}
-            />
-          </SectionCard>
-
-          <SectionCard title="Relatório e Jurídico">
-            <Select
-              label="Medida Protetiva"
-              value={medidaProtetiva}
-              onChange={setMedidaProtetiva}
-              options={["Sim", "Não"]}
-            />
-            <Field
-              label="Nº Processo da Medida"
-              value={numeroProcessoMedida}
-              onChange={(e) => setNumeroProcessoMedida(e.target.value)}
-            />
-            <OptionSelect
-              label="Situação do relatório"
-              options={REPORT_STATUS_OPTIONS}
-              value={relatorioStatus}
-              onChange={(value) => setRelatorioStatus(value as ReportStatus)}
-            />
-            {relatorioStatus !== "pendente" && (
-              <Field
-                label="Data do relatório"
-                type="date"
-                value={dataRelatorio}
-                onChange={(e) => setDataRelatorio(e.target.value)}
-              />
-            )}
-            {relatorioStatus === "enviado" && (
-              <Field
-                label="Data de envio do relatório"
-                type="date"
-                value={dataEnvioRelatorio}
-                onChange={(e) => setDataEnvioRelatorio(e.target.value)}
-              />
-            )}
-            <Field
-              label="Representações Legais"
-              type="number"
-              value={representacoesLegais}
-              onChange={(e) => setRepresentacoesLegais(e.target.value)}
             />
           </SectionCard>
 
@@ -664,7 +676,7 @@ function EditarInquerito() {
               )}
               {feedback && (
                 <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">
-                  Inquérito atualizado com sucesso
+                  {feedback}
                 </p>
               )}
             </div>
@@ -683,7 +695,7 @@ function EditarInquerito() {
               disabled={saving}
               className="px-5 py-2.5 rounded-lg text-sm font-semibold bg-primary text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? "Salvando..." : "Salvar alterações"}
+              {saving ? "Salvando..." : "Salvar procedimento"}
             </button>
           </div>
         </form>

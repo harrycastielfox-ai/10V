@@ -64,6 +64,16 @@ function AdminUsuariosPage() {
   const [feedbackByUser, setFeedbackByUser] = useState<
     Record<string, { kind: "success" | "error"; message: string }>
   >({});
+  const [sigiloAccessByUser, setSigiloAccessByUser] = useState<Record<string, boolean>>({});
+  const [sigiloLoadingByUser, setSigiloLoadingByUser] = useState<Record<string, boolean>>({});
+  const [sigiloSavingByUser, setSigiloSavingByUser] = useState<Record<string, boolean>>({});
+  const [sigiloFeedbackByUser, setSigiloFeedbackByUser] = useState<
+    Record<string, { kind: "success" | "error"; message: string }>
+  >({});
+
+  const canManageSigilo =
+    currentProfile?.status_autorizacao === "autorizado" &&
+    (currentProfile.cargo === "admin" || currentProfile.cargo === "delegado");
 
   const getSupabaseErrorMessage = (issue: unknown, fallback: string) => {
     const code =
@@ -144,6 +154,48 @@ function AdminUsuariosPage() {
           }
           return next;
         });
+
+        if (canManageSigilo) {
+          setSigiloLoadingByUser(
+            Object.fromEntries(normalizedUsers.map((user) => [user.id, true])),
+          );
+          const sigiloResults = await Promise.all(
+            normalizedUsers.map(async (user) => {
+              const result = await supabase.rpc("admin_get_user_sigilo_access", {
+                p_target_user_id: user.id,
+              });
+              return { userId: user.id, ...result };
+            }),
+          );
+          if (cancelled) return;
+
+          setSigiloAccessByUser(
+            Object.fromEntries(
+              sigiloResults.map((result) => [
+                result.userId,
+                result.error ? false : result.data === true,
+              ]),
+            ),
+          );
+          setSigiloFeedbackByUser(
+            Object.fromEntries(
+              sigiloResults
+                .filter((result) => result.error)
+                .map((result) => [
+                  result.userId,
+                  {
+                    kind: "error" as const,
+                    message: "Não foi possível consultar a permissão de sigilo.",
+                  },
+                ]),
+            ),
+          );
+          setSigiloLoadingByUser({});
+        } else {
+          setSigiloAccessByUser({});
+          setSigiloLoadingByUser({});
+          setSigiloFeedbackByUser({});
+        }
       } catch (fetchError) {
         console.error("[AdminUsuariosPage] Erro ao listar usuários", fetchError);
         if (!cancelled)
@@ -157,7 +209,7 @@ function AdminUsuariosPage() {
     return () => {
       cancelled = true;
     };
-  }, [hasAccess]);
+  }, [canManageSigilo, hasAccess]);
 
   const canEditTarget = (target: UserProfile, nextRole?: UserRole) =>
     canEditUserAccess(currentProfile, target, nextRole);
@@ -224,6 +276,53 @@ function AdminUsuariosPage() {
       [user.id]: { kind: "success", message: "Alterações salvas com sucesso." },
     }));
     setLoadingByUser((current) => ({ ...current, [user.id]: null }));
+  };
+
+  const toggleUserSigiloAccess = async (user: AdminUserProfile) => {
+    if (!canManageSigilo || sigiloLoadingByUser[user.id] || sigiloSavingByUser[user.id]) return;
+
+    const nextValue = !sigiloAccessByUser[user.id];
+    setSigiloSavingByUser((current) => ({ ...current, [user.id]: true }));
+    setSigiloFeedbackByUser((current) => {
+      const next = { ...current };
+      delete next[user.id];
+      return next;
+    });
+
+    const { data, error: updateError } = await supabase.rpc("admin_update_user_sigilo_access", {
+      p_target_user_id: user.id,
+      p_enabled: nextValue,
+    });
+
+    if (updateError) {
+      setSigiloFeedbackByUser((current) => ({
+        ...current,
+        [user.id]: {
+          kind: "error",
+          message: getSupabaseErrorMessage(
+            updateError,
+            "Não foi possível alterar o acesso a casos sigilosos",
+          ),
+        },
+      }));
+      setSigiloSavingByUser((current) => ({ ...current, [user.id]: false }));
+      return;
+    }
+
+    setSigiloAccessByUser((current) => ({
+      ...current,
+      [user.id]: data === true ? true : nextValue,
+    }));
+    setSigiloFeedbackByUser((current) => ({
+      ...current,
+      [user.id]: {
+        kind: "success",
+        message: nextValue
+          ? "Acesso individual a casos sigilosos ativado."
+          : "Acesso individual a casos sigilosos desativado.",
+      },
+    }));
+    setSigiloSavingByUser((current) => ({ ...current, [user.id]: false }));
   };
 
   const pendentes = useMemo(
@@ -355,6 +454,12 @@ function AdminUsuariosPage() {
           currentProfile={currentProfile}
           canEditTarget={canEditTarget}
           allowedRolesForRequester={allowedRolesForRequester}
+          canManageSigilo={canManageSigilo}
+          sigiloAccessByUser={sigiloAccessByUser}
+          sigiloLoadingByUser={sigiloLoadingByUser}
+          sigiloSavingByUser={sigiloSavingByUser}
+          sigiloFeedbackByUser={sigiloFeedbackByUser}
+          onToggleSigilo={toggleUserSigiloAccess}
         />
 
         <UsersSection
@@ -396,6 +501,12 @@ function AdminUsuariosPage() {
           currentProfile={currentProfile}
           canEditTarget={canEditTarget}
           allowedRolesForRequester={allowedRolesForRequester}
+          canManageSigilo={canManageSigilo}
+          sigiloAccessByUser={sigiloAccessByUser}
+          sigiloLoadingByUser={sigiloLoadingByUser}
+          sigiloSavingByUser={sigiloSavingByUser}
+          sigiloFeedbackByUser={sigiloFeedbackByUser}
+          onToggleSigilo={toggleUserSigiloAccess}
         />
       </div>
     </main>
@@ -454,6 +565,12 @@ function UsersSection({
   currentProfile,
   canEditTarget,
   allowedRolesForRequester,
+  canManageSigilo,
+  sigiloAccessByUser,
+  sigiloLoadingByUser,
+  sigiloSavingByUser,
+  sigiloFeedbackByUser,
+  onToggleSigilo,
 }: {
   title: string;
   description: string;
@@ -472,6 +589,12 @@ function UsersSection({
   currentProfile: UserProfile | null;
   canEditTarget: (user: UserProfile, nextRole?: UserRole) => boolean;
   allowedRolesForRequester: (user: UserProfile) => Array<{ value: UserRole; label: string }>;
+  canManageSigilo: boolean;
+  sigiloAccessByUser: Record<string, boolean>;
+  sigiloLoadingByUser: Record<string, boolean>;
+  sigiloSavingByUser: Record<string, boolean>;
+  sigiloFeedbackByUser: Record<string, { kind: "success" | "error"; message: string }>;
+  onToggleSigilo: (user: AdminUserProfile) => void;
 }) {
   return (
     <section className="rounded-2xl border border-primary/15 bg-card/70 p-5 shadow-[0_12px_36px_rgba(0,0,0,0.14)]">
@@ -517,6 +640,12 @@ function UsersSection({
                 onAuthorize={onAuthorize}
                 onBlock={onBlock}
                 onSave={onSave}
+                canManageSigilo={canManageSigilo}
+                sigiloEnabled={sigiloAccessByUser[user.id] === true}
+                sigiloLoading={sigiloLoadingByUser[user.id] === true}
+                sigiloSaving={sigiloSavingByUser[user.id] === true}
+                sigiloFeedback={sigiloFeedbackByUser[user.id]}
+                onToggleSigilo={onToggleSigilo}
               />
             );
           })}
@@ -541,6 +670,12 @@ function UserAdminCard({
   onAuthorize,
   onBlock,
   onSave,
+  canManageSigilo,
+  sigiloEnabled,
+  sigiloLoading,
+  sigiloSaving,
+  sigiloFeedback,
+  onToggleSigilo,
 }: {
   user: AdminUserProfile;
   mode: "pending" | "all";
@@ -556,11 +691,25 @@ function UserAdminCard({
   onAuthorize: (user: AdminUserProfile) => void;
   onBlock: (user: AdminUserProfile) => void;
   onSave: (user: AdminUserProfile) => void;
+  canManageSigilo: boolean;
+  sigiloEnabled: boolean;
+  sigiloLoading: boolean;
+  sigiloSaving: boolean;
+  sigiloFeedback?: { kind: "success" | "error"; message: string };
+  onToggleSigilo: (user: AdminUserProfile) => void;
 }) {
   return (
     <article className="rounded-2xl border border-primary/15 bg-background/65 p-4 transition hover:border-primary/30 hover:bg-background/85">
       <div className="grid gap-5 lg:grid-cols-[minmax(260px,1.2fr)_minmax(360px,1.6fr)_auto] lg:items-center">
-        <UserIdentity profile={user} />
+        <UserIdentity
+          profile={user}
+          canManageSigilo={canManageSigilo}
+          sigiloEnabled={sigiloEnabled}
+          sigiloLoading={sigiloLoading}
+          sigiloSaving={sigiloSaving}
+          sigiloFeedback={sigiloFeedback}
+          onToggleSigilo={() => onToggleSigilo(user)}
+        />
 
         <div className="grid gap-3 sm:grid-cols-2">
           <UserMeta
@@ -676,7 +825,23 @@ function UserAdminCard({
   );
 }
 
-function UserIdentity({ profile }: { profile: AdminUserProfile }) {
+function UserIdentity({
+  profile,
+  canManageSigilo,
+  sigiloEnabled,
+  sigiloLoading,
+  sigiloSaving,
+  sigiloFeedback,
+  onToggleSigilo,
+}: {
+  profile: AdminUserProfile;
+  canManageSigilo: boolean;
+  sigiloEnabled: boolean;
+  sigiloLoading: boolean;
+  sigiloSaving: boolean;
+  sigiloFeedback?: { kind: "success" | "error"; message: string };
+  onToggleSigilo: () => void;
+}) {
   const avatarUrl = getProfileAvatarPublicUrl(profile.avatar_path);
   const initial = (profile.nome?.trim().charAt(0) || "?").toUpperCase();
   return (
@@ -698,6 +863,49 @@ function UserIdentity({ profile }: { profile: AdminUserProfile }) {
           <Mail className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{profile.email}</span>
         </div>
+        {canManageSigilo ? (
+          <div className="mt-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={sigiloEnabled}
+              aria-label={`Acesso de ${profile.nome} a casos sigilosos`}
+              onClick={onToggleSigilo}
+              disabled={sigiloLoading || sigiloSaving}
+              className={`inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border px-2.5 text-[10px] font-bold uppercase tracking-[0.08em] transition disabled:cursor-wait disabled:opacity-60 ${
+                sigiloEnabled
+                  ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/15"
+                  : "border-rose-400/40 bg-rose-400/10 text-rose-300 hover:bg-rose-400/15"
+              }`}
+            >
+              <ShieldAlert className="h-3 w-3 shrink-0" />
+              <span>Sigilo</span>
+              <span
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                  sigiloEnabled ? "bg-emerald-400" : "bg-rose-400"
+                }`}
+              />
+              <span className="truncate">
+                {sigiloLoading
+                  ? "Carregando"
+                  : sigiloSaving
+                    ? "Salvando"
+                    : sigiloEnabled
+                      ? "Ligado"
+                      : "Desligado"}
+              </span>
+            </button>
+            {sigiloFeedback?.message ? (
+              <p
+                className={`mt-1 max-w-xs text-[10px] leading-4 ${
+                  sigiloFeedback.kind === "error" ? "text-destructive" : "text-emerald-400"
+                }`}
+              >
+                {sigiloFeedback.message}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

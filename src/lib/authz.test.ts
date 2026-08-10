@@ -35,6 +35,7 @@ function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
     funcao_institucional: null,
     cargo: "membro",
     status_autorizacao: "autorizado",
+    can_access_sigiloso: false,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -116,21 +117,37 @@ describe("canAssignProtectedInstitutionalFunction", () => {
 });
 
 describe("private case visibility", () => {
-  it("admin, delegado and atlas_access can view private cases", () => {
-    expect(canViewPrivateCases(makeProfile({ cargo: "admin" }))).toBe(true);
-    expect(canViewPrivateCases(makeProfile({ cargo: "delegado" }))).toBe(true);
-    expect(canViewPrivateCases(makeProfile({ cargo: "atlas_access" }))).toBe(true);
+  it("allows an authorized user only when the individual permission is enabled", () => {
+    expect(
+      canViewPrivateCases(
+        makeProfile({
+          cargo: "membro",
+          can_access_sigiloso: true,
+          status_autorizacao: "autorizado",
+        }),
+      ),
+    ).toBe(true);
   });
 
-  it("membro and sipi_access are restricted to public cases", () => {
-    expect(canViewPrivateCases(makeProfile({ cargo: "membro" }))).toBe(false);
-    expect(canOnlyViewPublicCases(makeProfile({ cargo: "membro" }))).toBe(true);
-    expect(canOnlyViewPublicCases(makeProfile({ cargo: "sipi_access" }))).toBe(true);
+  it("does not grant private access based on cargo", () => {
+    for (const cargo of ["membro", "sipi_access", "atlas_access", "delegado", "admin"] as const) {
+      const profile = makeProfile({ cargo, can_access_sigiloso: false });
+      expect(canViewPrivateCases(profile)).toBe(false);
+      expect(canOnlyViewPublicCases(profile)).toBe(true);
+    }
+  });
+
+  it("denies blocked users even when the individual permission is enabled", () => {
+    expect(
+      canViewPrivateCases(
+        makeProfile({ status_autorizacao: "bloqueado", can_access_sigiloso: true }),
+      ),
+    ).toBe(false);
   });
 
   it("canOnlyViewPublicCases is the exact negation of canViewPrivateCases", () => {
     for (const cargo of ["membro", "sipi_access", "atlas_access", "delegado", "admin"] as const) {
-      const profile = makeProfile({ cargo });
+      const profile = makeProfile({ cargo, can_access_sigiloso: cargo === "sipi_access" });
       expect(canOnlyViewPublicCases(profile)).toBe(!canViewPrivateCases(profile));
     }
   });

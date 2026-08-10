@@ -40,6 +40,7 @@ export interface UserProfile {
   funcao_institucional: InstitutionalFunction | null;
   cargo: UserRole;
   status_autorizacao: AuthorizationStatus;
+  can_access_sigiloso?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,11 +83,17 @@ export function canAssignProtectedUserRole(requester: Pick<UserProfile, "cargo">
   return requester?.cargo === "admin";
 }
 
-export function canViewPrivateCases(profile: Pick<UserProfile, "cargo"> | null): boolean {
-  return isAdmin(profile) || isDelegado(profile) || isAtlasAccess(profile);
+export function canViewPrivateCases(
+  profile: Pick<UserProfile, "status_autorizacao" | "can_access_sigiloso"> | null,
+): boolean {
+  return Boolean(
+    profile?.status_autorizacao === "autorizado" && profile.can_access_sigiloso === true,
+  );
 }
 
-export function canOnlyViewPublicCases(profile: Pick<UserProfile, "cargo"> | null): boolean {
+export function canOnlyViewPublicCases(
+  profile: Pick<UserProfile, "status_autorizacao" | "can_access_sigiloso"> | null,
+): boolean {
   return !canViewPrivateCases(profile);
 }
 
@@ -113,6 +120,14 @@ export function canManageCases(
   profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
 ): boolean {
   return canCreateCases(profile) || canEditCases(profile) || canDeleteCases(profile);
+}
+
+export function canManageProceduralTags(
+  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
+): boolean {
+  return Boolean(
+    profile && isAuthorized(profile) && (profile.cargo === "admin" || profile.cargo === "delegado"),
+  );
 }
 
 export function canViewRepresentacoes(

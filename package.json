@@ -7,8 +7,11 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "build:worker": "vite build && tsc --noEmit",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "deploy:worker": "pnpm run build:worker && wrangler deploy",
+    "cf-typegen": "wrangler types",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run"
@@ -52,9 +55,11 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "prettier": "^3.7.3",
+    "jiti": "^2.7.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.114.0"
   }
 }

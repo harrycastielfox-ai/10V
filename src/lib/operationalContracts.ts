@@ -38,7 +38,7 @@ export const PROCEDURE_TYPE_OPTIONS = [
   { value: "BOC", label: "Boletim de Ocorrência Circunstanciado (BOC)" },
   {
     value: "AAFAI",
-    label: "Auto de Apuração de Fato Aparentemente Infracional (AAFAI)",
+    label: "Auto de Apreensão em Flagrante de Ato Infracional (AAFAI)",
   },
   { value: "AIAI", label: "Ato de Investigação de Ato Infracional (AIAI)" },
   { value: "OUTROS", label: "Outro procedimento" },
@@ -48,9 +48,7 @@ export type ProcedureTypeCode = (typeof PROCEDURE_TYPE_OPTIONS)[number]["value"]
 
 export const OCCURRENCE_ORIGIN_OPTIONS = [
   { value: "novo", label: "Novo registro" },
-  { value: "restaurado", label: "Procedimento restaurado" },
-  { value: "relacionado", label: "Ocorrência relacionada" },
-  { value: "migrado", label: "Importado de controle anterior" },
+  { value: "migrado", label: "Procedimento migrado" },
 ] as const;
 
 export type OccurrenceOrigin = (typeof OCCURRENCE_ORIGIN_OPTIONS)[number]["value"];
@@ -99,6 +97,7 @@ export const REPRESENTATION_TYPE_OPTIONS = [
   { value: "Interceptação Telefônica", code: "interceptacao" },
   { value: "Quebra de Sigilo / Interceptação", code: "quebra_sigilo" },
   { value: "Representação", code: "representacao" },
+  { value: "Relatório Final", code: "relatorio_final" },
   { value: "Outra", code: "outros" },
 ] as const;
 
@@ -140,6 +139,7 @@ export type InquiryRegistrationInput = {
   dataInstauracao?: string;
   prazo?: string;
   tipificacao?: string;
+  resumoFato?: string;
   gravidade?: string;
   vitima?: string;
   investigado?: string;
@@ -147,6 +147,7 @@ export type InquiryRegistrationInput = {
   reuPreso?: string;
   bairro?: string;
   distrito?: string;
+  cidade?: string;
   delegado?: string;
   equipe?: string;
   escrivao?: string;
@@ -261,11 +262,7 @@ export function getInquiryRegistrationChecks(input: InquiryRegistrationInput): R
   const hasPeople = hasValue(input.vitima) || hasValue(input.investigado);
 
   const checks = [
-    check(
-      "identificacao",
-      "Informe o PPE ou o número do B.O.",
-      hasValue(input.ppe) || hasValue(input.numeroBo),
-    ),
+    check("identificacao", "Informe o número do PPE.", hasValue(input.ppe)),
     check("origem", "Defina a origem do registro", hasValue(input.origemRegistro)),
     check("visibilidade", "Defina a visibilidade do inquérito", hasValue(input.visibilidade)),
     check("tipo", "Defina o tipo de procedimento", hasValue(input.tipoProcedimento)),
@@ -274,6 +271,7 @@ export function getInquiryRegistrationChecks(input: InquiryRegistrationInput): R
     check("instauracao", "Informe a data de instauração", hasValue(input.dataInstauracao)),
     check("prazo", "Informe o prazo operacional", hasValue(input.prazo)),
     check("tipificacao", "Informe a tipificação", hasValue(input.tipificacao)),
+    check("resumo-fato", "Informe o resumo do fato", hasValue(input.resumoFato)),
     check(
       "categoria",
       "Classifique a categoria criminal",
@@ -283,14 +281,9 @@ export function getInquiryRegistrationChecks(input: InquiryRegistrationInput): R
     check("autoria", "Defina a autoria", hasValue(input.autoria)),
     check("reu-preso", "Informe se há réu preso", hasValue(input.reuPreso)),
     check("bairro", "Informe o bairro", hasValue(input.bairro)),
-    check("distrito", "Informe o distrito", hasValue(input.distrito)),
-    check("delegado", "Informe o delegado responsável", hasValue(input.delegado)),
-    check("equipe", "Informe a equipe responsável", hasValue(input.equipe)),
-    check("escrivao", "Informe o escrivão responsável", hasValue(input.escrivao)),
+    check("cidade", "Informe a cidade", hasValue(input.cidade) || hasValue(input.distrito)),
     check("arma-fogo", "Informe se houve arma de fogo", hasValue(input.houveArmaDeFogo)),
     check("faccao", "Informe se há vínculo com facção", hasValue(input.vinculadoFaccao)),
-    check("medida-protetiva", "Informe se há medida protetiva", hasValue(input.medidaProtetiva)),
-    check("diligencias", "Defina o status das diligências", hasValue(input.statusDiligencias)),
   ];
 
   if (isCvli && isYesValue(input.elucidado)) {
@@ -324,50 +317,6 @@ export function getInquiryRegistrationChecks(input: InquiryRegistrationInput): R
         true,
       ),
     );
-  }
-
-  if (isYesValue(input.medidaProtetiva)) {
-    checks.push(
-      check(
-        "processo-medida",
-        "Medida protetiva exige o número do processo",
-        hasValue(input.numeroProcessoMedida),
-        true,
-      ),
-    );
-  }
-
-  if (input.relatorioStatus !== "pendente") {
-    checks.push(
-      check(
-        "data-relatorio",
-        "Relatório produzido exige a data do relatório",
-        hasValue(input.dataRelatorio),
-        true,
-      ),
-    );
-  }
-
-  if (input.relatorioStatus === "enviado") {
-    checks.push(
-      check(
-        "data-envio-relatorio",
-        "Relatório enviado exige a data de envio",
-        hasValue(input.dataEnvioRelatorio),
-        true,
-      ),
-    );
-
-    if (hasValue(input.dataRelatorio) && hasValue(input.dataEnvioRelatorio)) {
-      checks.push(
-        check(
-          "ordem-datas-relatorio",
-          "A data de envio não pode ser anterior à data do relatório",
-          input.dataEnvioRelatorio! >= input.dataRelatorio!,
-          true,
-        ),
-      );
-    }
   }
 
   return checks;
@@ -583,6 +532,9 @@ export function normalizeRepresentationType(value: unknown): RepresentationTypeC
     return "quebra_sigilo";
   }
   if (normalized.includes("interceptacao")) return "interceptacao";
+  if (normalized.includes("relatorio") && normalized.includes("final")) {
+    return "relatorio_final";
+  }
   if (normalized.includes("representacao")) return "representacao";
   return "outros";
 }

@@ -24,8 +24,8 @@ import { AppearanceSwitcher } from "./AppearanceSwitcher";
 
 const baseItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Inquéritos", url: "/inqueritos", icon: FileText },
-  { title: "Representações", url: "/representacoes", icon: Gavel },
+  { title: "Procedimentos Policiais", url: "/inqueritos", icon: FileText },
+  { title: "Movimentações Processuais", url: "/representacoes", icon: Gavel },
   { title: "Estatísticas", url: "/estatisticas", icon: BarChart3 },
   { title: "Alertas", url: "/alertas", icon: Bell },
   { title: "Auditoria", url: "/auditoria", icon: ClipboardList },
@@ -90,11 +90,11 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
           title="Voltar aos módulos"
           className="sipi-brand-link group flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <div className="sipi-brand-mark flex h-14 w-14 items-center justify-center overflow-visible rounded-lg border border-primary/30 bg-primary/15 p-0.5 transition-colors group-hover:border-primary/55">
+          <div className="sipi-brand-mark flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-primary/30 bg-primary/15 p-1 transition-colors group-hover:border-primary/55">
             <img
               src="/sipi-logo.png"
               alt="Logo SIPI"
-              className="h-[145%] w-[145%] max-w-none shrink-0 object-contain"
+              className="h-[124%] w-[134%] shrink-0 object-contain"
             />
           </div>
           <div className="min-w-0 flex-1">
@@ -102,7 +102,7 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
               SIPI
             </div>
             <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              Inquéritos Policiais
+              Procedimentos Policiais
             </div>
           </div>
         </Link>

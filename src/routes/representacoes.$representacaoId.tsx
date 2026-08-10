@@ -6,21 +6,24 @@ import {
   useMatchRoute,
   useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { SipiPrintSheet, type SipiPrintSection } from "@/components/SipiPrintSheet";
 import {
   getRepresentacaoById,
-  listRepresentacaoPessoas,
   softDeleteRepresentacao,
-  type RepresentacaoPessoaRecord,
   type RepresentacaoRecord,
 } from "@/lib/repositories/representacoesRepository";
 import { getCurrentProfile } from "@/lib/auth";
 import { canViewRepresentacoes } from "@/lib/authz";
 import { isMobileViewport } from "@/lib/mobileExperience";
+import {
+  listMovimentacaoStatusHistory,
+  listProceduralTags,
+} from "@/lib/repositories/proceduralTagsRepository";
+import type { ProceduralStatusHistory, ProceduralTag } from "@/lib/proceduralTags";
 import { canAccessSigilosa, isRepresentacaoSigilosa } from "@/lib/representacoesSigilo";
-import { Scale, UserRound, BellRing, FileText, Gavel, ShieldCheck, Clock3 } from "lucide-react";
+import { Scale, BellRing, Gavel, ShieldCheck, Clock3 } from "lucide-react";
 
 export const Route = createFileRoute("/representacoes/$representacaoId")({
   component: DetalheRepresentacao,
@@ -34,15 +37,6 @@ function normalizeText(value?: string | null) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-}
-function getPessoaPapelLabel(papel: RepresentacaoPessoaRecord["papel"]) {
-  const labels: Record<RepresentacaoPessoaRecord["papel"], string> = {
-    vitima: "Vítima adicional",
-    investigado_representado: "Investigado / Representado adicional",
-    testemunha: "Testemunha",
-    outro: "Outro envolvido",
-  };
-  return labels[papel];
 }
 function getStatusAlias(status?: string | null) {
   const n = normalizeText(status);
@@ -200,18 +194,18 @@ function buildTimelineEvents(item: RepresentacaoRecord): TimelineEvent[] {
   if (item.created_at)
     addEvent({
       key: "created",
-      title: "Representação cadastrada",
-      description: "Registro inicial da representação no sistema.",
+      title: "Movimentação cadastrada",
+      description: "Registro inicial da movimentação processual no sistema.",
       date: item.created_at,
       tone: "neutral",
       icon: "◦",
     });
-  if (item.data_envio_judiciario)
+  if (item.data_protocolo ?? item.data_representacao)
     addEvent({
-      key: "sent-judiciary",
-      title: "Enviada ao Judiciário",
-      description: "Tramitação judicial iniciada.",
-      date: item.data_envio_judiciario,
+      key: "protocol",
+      title: "Protocolo registrado",
+      description: "Data única de protocolo da movimentação.",
+      date: item.data_protocolo ?? item.data_representacao ?? undefined,
       tone: "neutral",
       icon: "↗",
     });
@@ -326,10 +320,10 @@ function DetalheRepresentacao() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [error, setError] = useState("");
-  const [pessoasLoadWarning, setPessoasLoadWarning] = useState(false);
   const [restricted, setRestricted] = useState(false);
   const [sigiloRestricted, setSigiloRestricted] = useState(false);
-  const [pessoasAdicionais, setPessoasAdicionais] = useState<RepresentacaoPessoaRecord[]>([]);
+  const [statusHistory, setStatusHistory] = useState<ProceduralStatusHistory[]>([]);
+  const [statusTags, setStatusTags] = useState<ProceduralTag[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -337,7 +331,6 @@ function DetalheRepresentacao() {
     (async () => {
       setLoading(true);
       setError("");
-      setPessoasLoadWarning(false);
       setSigiloRestricted(false);
 
       const currentProfile = await getCurrentProfile();
@@ -349,17 +342,10 @@ function DetalheRepresentacao() {
       if (active) setRestricted(false);
 
       try {
-        const [data, pessoasResult] = await Promise.all([
+        const [data, historyResult, tagsResult] = await Promise.all([
           getRepresentacaoById(representacaoId),
-          listRepresentacaoPessoas(representacaoId)
-            .then((pessoas) => ({ pessoas, failed: false }))
-            .catch((peopleError: unknown) => {
-              console.warn(
-                "[representacoes:detalhe] pessoas adicionais indisponiveis",
-                peopleError,
-              );
-              return { pessoas: [], failed: true };
-            }),
+          listMovimentacaoStatusHistory(representacaoId).catch(() => []),
+          listProceduralTags(["movimentacao_status"]).catch(() => []),
         ]);
         if (!active) return;
         const isSigilosa = isRepresentacaoSigilosa(data);
@@ -371,17 +357,17 @@ function DetalheRepresentacao() {
         }
         setSigiloRestricted(false);
         setItem(data);
-        setPessoasAdicionais(pessoasResult.pessoas);
-        setPessoasLoadWarning(pessoasResult.failed);
+        setStatusHistory(historyResult);
+        setStatusTags(tagsResult);
       } catch (err: unknown) {
         if (!active) return;
         const maybeError = err as { code?: string; message?: string };
         if (maybeError?.code === "42501") {
           setError(
-            "Sem permissão para visualizar esta representação. Verifique a policy de SELECT da tabela public.representacoes.",
+            "Sem permissão para visualizar esta movimentação. Verifique a policy de SELECT da tabela public.representacoes.",
           );
         } else {
-          setError("Não foi possível carregar a representação agora.");
+          setError("Não foi possível carregar a movimentação agora.");
         }
       } finally {
         if (active) setLoading(false);
@@ -392,6 +378,11 @@ function DetalheRepresentacao() {
       active = false;
     };
   }, [representacaoId, location.pathname]);
+
+  const statusTagNames = useMemo(
+    () => new Map(statusTags.map((tag) => [tag.id, tag.name])),
+    [statusTags],
+  );
 
   if (isEditingRoute) return <Outlet />;
   if (restricted)
@@ -408,15 +399,15 @@ function DetalheRepresentacao() {
         </div>
       </AppLayout>
     );
-  if (loading) return <AppLayout>Carregando representação...</AppLayout>;
+  if (loading) return <AppLayout>Carregando movimentação...</AppLayout>;
   if (error) return <AppLayout>{error}</AppLayout>;
   if (sigiloRestricted)
     return (
       <AppLayout>
         <div className="space-y-4">
-          <h1 className="text-xl font-bold">Representação sigilosa</h1>
+          <h1 className="text-xl font-bold">Movimentação sigilosa</h1>
           <p className="text-sm text-muted-foreground">
-            Representação sigilosa. Acesso restrito a Delegado, Admin ou Atlas.
+            Movimentação sigilosa. O acesso depende de autorização individual ativada no perfil.
           </p>
           <Link
             to="/representacoes"
@@ -431,9 +422,9 @@ function DetalheRepresentacao() {
     return (
       <AppLayout>
         <div className="space-y-4">
-          <h1 className="text-xl font-bold">Representação não encontrada ou removida</h1>
+          <h1 className="text-xl font-bold">Movimentação não encontrada ou removida</h1>
           <p className="text-sm text-muted-foreground">
-            Esta representação não está mais disponível para visualização.
+            Esta movimentação não está mais disponível para visualização.
           </p>
           <Link
             to="/representacoes"
@@ -454,7 +445,7 @@ function DetalheRepresentacao() {
       setShowDeleteModal(false);
       navigate({ to: "/representacoes" });
     } catch {
-      alert("Não foi possível excluir a representação agora.");
+      alert("Não foi possível excluir a movimentação agora.");
     } finally {
       setIsDeleting(false);
     }
@@ -478,28 +469,14 @@ function DetalheRepresentacao() {
         items: [
           ["PPE vinculado / Procedimento relacionado", item.numero_ppe],
           ["Processo judicial", item.processo_judicial],
-          ["Tipo de Representação", item.tipo],
-          ["Data da Representação", item.data_representacao],
-          ["Responsável pela Representação", item.responsavel],
-        ],
-      },
-      {
-        title: "Pessoas Envolvidas",
-        items: [
-          ["Vítima", item.vitima],
-          ["Investigado / Representado", item.investigado],
-          ["Autor preso?", item.autor_preso],
-          ...pessoasAdicionais.map((person): [string, string] => [
-            getPessoaPapelLabel(person.papel),
-            person.observacao ? `${person.nome} — ${person.observacao}` : person.nome,
-          ]),
+          ["Tipo de protocolo", item.tipo],
+          ["Data do protocolo", item.data_protocolo ?? item.data_representacao],
         ],
       },
       {
         title: "Tramitação Judicial",
         items: [
           ["Status", item.status],
-          ["Data de envio ao Judiciário", item.data_envio_judiciario],
           ["Vara / Juízo", item.vara_juizo],
           [
             "Prazo concedido (dias)",
@@ -511,42 +488,28 @@ function DetalheRepresentacao() {
           ["Data da decisão judicial", item.data_decisao_judicial],
           ["Data de cumprimento", item.data_cumprimento],
           ["Situação do cumprimento", item.cumprimento_status],
-          ["Equipe de cumprimento", item.equipe_cumprimento],
           ["Resultado do cumprimento", item.resultado_cumprimento],
           ["Observações do cumprimento", item.observacoes_cumprimento],
           ["Observações da decisão", item.observacoes_decisao],
         ],
       },
       {
-        title: "Controle Interno",
+        title: "Classificação e observações",
         items: [
-          ["Prioridade operacional", item.prioridade_operacional],
-          ["Pedido sigiloso", item.pedido_sigiloso],
-          ["Equipe responsável", item.equipe_responsavel],
+          ["Prioridade", item.prioridade_operacional],
+          ["Sigilo", item.pedido_sigiloso],
           [
-            "Acompanhamento especial",
-            item.acompanhamento_especial == null
-              ? null
-              : item.acompanhamento_especial
-                ? "Sim"
-                : "Não",
+            "Observações",
+            item.observacoes_movimentacao ??
+              item.observacoes_decisao ??
+              item.observacoes_cumprimento,
           ],
-          ["Observações internas", item.observacoes_internas],
         ],
       },
     ];
-  const fundamentacaoCards: Array<[string, string | null | undefined]> = [
-    ["Resumo dos fatos", item.resumo_fatos],
-    ["Fundamentação da medida", item.fundamentacao],
-    ["Objetivo da representação", item.objetivo],
-    ["Diligências relacionadas", item.diligencias_relacionadas],
-  ];
   const visibleCardSections = cardSections
     .map((section) => ({ ...section, items: onlyPopulatedItems(section.items) }))
     .filter((section) => section.items.length > 0);
-  const visibleFundamentacaoCards = fundamentacaoCards.filter(([, value]) =>
-    hasPrintableRepresentacaoValue(value),
-  );
   const summaryItems: Array<[string, string]> = [];
   if (hasPrintableRepresentacaoValue(item.status)) {
     summaryItems.push(
@@ -560,13 +523,10 @@ function DetalheRepresentacao() {
   if (item.data_vencimento || item.data_cumprimento) {
     summaryItems.push(["Prazo", formatPrazoStatus(item)]);
   }
-  if (item.acompanhamento_especial != null) {
-    summaryItems.push(["Acomp. especial", item.acompanhamento_especial ? "Sim" : "Não"]);
-  }
   if (hasPrintableRepresentacaoValue(item.pedido_sigiloso)) {
     summaryItems.push(["Sigilosa", item.pedido_sigiloso!]);
   }
-  const hasOperationalAlerts = Boolean(item.data_vencimento || item.acompanhamento_especial);
+  const hasOperationalAlerts = Boolean(item.data_vencimento);
   const timelineEvents = buildTimelineEvents(item);
   const printSections: SipiPrintSection[] = [
     ...visibleCardSections.map((section) => ({
@@ -586,19 +546,13 @@ function DetalheRepresentacao() {
         },
       ],
     },
-    ...visibleFundamentacaoCards.map(([title, value]) => ({
-      title,
-      wide: true,
-      narrative: true,
-      fields: [{ label: "Registro", value, wide: true }],
-    })),
   ];
 
   return (
     <AppLayout>
       <div className="sipi-print-document mx-auto w-full max-w-[1480px] space-y-4 px-1 lg:px-2">
         <SipiPrintSheet
-          documentTitle="Ficha de Representação Judicial"
+          documentTitle="Ficha de Movimentação Processual"
           documentSubtitle="Conferência, tramitação e acompanhamento da medida"
           identifierLabel={item.numero_ppe ? "PPE" : "Processo"}
           identifier={item.numero_ppe || item.processo_judicial || "Sem identificação"}
@@ -609,7 +563,7 @@ function DetalheRepresentacao() {
             { label: "Prazo", value: item.data_vencimento ? formatPrazoStatus(item) : null },
             {
               label: "Sigilo",
-              value: isRepresentacaoSigilosa(item) ? "Representação sigilosa" : null,
+              value: isRepresentacaoSigilosa(item) ? "Movimentação sigilosa" : null,
             },
           ]}
           sections={printSections}
@@ -619,7 +573,9 @@ function DetalheRepresentacao() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold break-words text-zinc-100">
-                  {isRepresentacaoSigilosa(item) ? "Representação sigilosa" : "Representação"}
+                  {isRepresentacaoSigilosa(item)
+                    ? "Movimentação sigilosa"
+                    : "Movimentação Processual"}
                 </h1>
                 {isRepresentacaoSigilosa(item) ? (
                   <span className="inline-flex items-center rounded-full border border-amber-300/55 bg-amber-400/18 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-50 shadow-[0_0_0_1px_rgba(251,191,36,0.12)]">
@@ -630,7 +586,7 @@ function DetalheRepresentacao() {
               <p className="mt-1 text-sm break-words text-muted-foreground">
                 {subtitleParts.length > 0
                   ? subtitleParts.join(" • ")
-                  : "Detalhes da representação cadastrada"}
+                  : "Detalhes da movimentação processual cadastrada"}
               </p>
               {item.numero_ppe || item.processo_judicial ? (
                 <p className="sipi-print-hidden mt-2 text-sm break-words text-foreground">
@@ -669,13 +625,6 @@ function DetalheRepresentacao() {
           </div>
         </header>
 
-        {pessoasLoadWarning ? (
-          <div className="sipi-print-hidden rounded-lg border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-            Os dados da representacao foram carregados, mas as pessoas adicionais estao
-            temporariamente indisponiveis.
-          </div>
-        ) : null}
-
         {summaryItems.length > 0 ? (
           <section className="grid items-start gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             {summaryItems.map(([label, value]) => (
@@ -710,20 +659,14 @@ function DetalheRepresentacao() {
         <section className="grid items-start gap-4 xl:grid-cols-2">
           <div className="space-y-4 self-start">
             {visibleCardSections
-              .filter(
-                ({ title }) => title === "Identificação Judicial" || title === "Pessoas Envolvidas",
-              )
+              .filter(({ title }) => title === "Identificação Judicial")
               .map(({ title, items }) => (
                 <article
                   key={title}
                   className={`${hasPrintableRepresentacaoSection(items) ? "" : "sipi-print-empty-card "}${sectionCardClass}`}
                 >
                   <div className="flex items-center gap-2 pb-2">
-                    {title === "Identificação Judicial" ? (
-                      <Scale className="h-4 w-4 text-primary" />
-                    ) : (
-                      <UserRound className="h-4 w-4 text-primary" />
-                    )}
+                    <Scale className="h-4 w-4 text-primary" />
                     <h2 className={sectionTitleClass}>{title}</h2>
                   </div>
                   <div className="mb-3 h-px w-full bg-border/70" />
@@ -762,14 +705,6 @@ function DetalheRepresentacao() {
                       <p className="mt-1 text-sm text-foreground">{formatPrazoStatus(item)}</p>
                     </div>
                   ) : null}
-                  {item.acompanhamento_especial ? (
-                    <div className="rounded-lg border border-border/60 bg-background/30 px-3 py-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                        Sinalização
-                      </p>
-                      <p className="mt-1 text-sm text-foreground">Acompanhamento especial ativo.</p>
-                    </div>
-                  ) : null}
                 </div>
               </article>
             ) : null}
@@ -778,7 +713,8 @@ function DetalheRepresentacao() {
           <div className="space-y-4 self-start">
             {visibleCardSections
               .filter(
-                ({ title }) => title === "Tramitação Judicial" || title === "Controle Interno",
+                ({ title }) =>
+                  title === "Tramitação Judicial" || title === "Classificação e observações",
               )
               .map(({ title, items }) => (
                 <article
@@ -824,28 +760,36 @@ function DetalheRepresentacao() {
           </div>
         </section>
 
-        <section className="space-y-4">
-          {visibleFundamentacaoCards.map(([title, value]) => (
-            <article
-              key={title}
-              className={`${hasPrintableRepresentacaoValue(value) ? "" : "sipi-print-empty-card "}${sectionCardClass}`}
-            >
-              <div className="flex items-center gap-2 pb-2">
-                <FileText className="h-4 w-4 text-primary" />
-                <h2 className={sectionTitleClass}>{title}</h2>
-              </div>
-              <div className="mb-3 h-px w-full bg-border/70" />
-              <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border/60 bg-background/30 px-4 py-3">
-                <p
-                  className={`min-w-0 max-w-full overflow-hidden whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-sm leading-relaxed ${
-                    isEmptyValue(value) ? "text-zinc-500" : "text-zinc-100"
-                  }`}
+        <section className={`${sectionCardClass} sipi-print-hidden`}>
+          <div className="flex items-center gap-2 pb-2">
+            <Clock3 className="h-4 w-4 text-primary" />
+            <h2 className={sectionTitleClass}>Histórico de status</h2>
+          </div>
+          <div className="mb-3 h-px w-full bg-border/70" />
+          {statusHistory.length > 0 ? (
+            <div className="grid gap-2 md:grid-cols-2">
+              {statusHistory.slice(0, 8).map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-lg border border-border/60 bg-background/30 px-3 py-2.5"
                 >
-                  {withFallback(value)}
-                </p>
-              </div>
-            </article>
-          ))}
+                  <p className="text-xs font-semibold text-foreground">
+                    {event.previous_status_tag_id
+                      ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
+                      : ""}
+                    {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {formatDateBR(event.changed_at) ?? "Data não informada"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              O histórico será formado automaticamente nas próximas mudanças de status.
+            </p>
+          )}
         </section>
 
         <section className={sectionCardClass}>
@@ -900,9 +844,9 @@ function DetalheRepresentacao() {
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 max-md:hidden">
           <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl">
-            <h2 className="text-lg font-bold text-foreground">Excluir representação</h2>
+            <h2 className="text-lg font-bold text-foreground">Excluir movimentação</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Deseja remover esta representação? Esta ação poderá ser registrada em auditoria no
+              Deseja remover esta movimentação? Esta ação poderá ser registrada em auditoria no
               sistema final.
             </p>
             <div className="mt-5 flex justify-end gap-2">

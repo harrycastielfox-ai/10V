@@ -14,11 +14,14 @@ dist-ssr
 .vinxi
 .tanstack/**
 .nitro
+.env
+.env.*
+!.env.example
 *.local
 
 # Wrangler / Cloudflare
 .wrangler/
-.dev.vars
+.dev.vars*
 supabase/.temp/
 
 # Editor directories and files

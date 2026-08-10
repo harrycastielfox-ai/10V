@@ -250,13 +250,7 @@ export function InqueritoQuickPreview({
   const isPrisoner =
     record.reu_preso_normalizado === true ||
     ["sim", "preso", "reu preso"].includes(normalizeText(record.reu_preso));
-  const identifier = firstValue(record.numero_ppe, record.numero_fisico, record.codigo_interno);
-  const investigator = pickUnknown(
-    raw,
-    "investigador_responsavel",
-    "investigador",
-    "investigadorResponsavel",
-  );
+  const identifier = firstValue(record.numero_ppe, record.codigo_interno);
   const factSummary = pickUnknown(raw, "resumo_fato", "resumo_fatos", "resumoDoFato");
   const dueDate = firstValue(pickUnknown(raw, "data_limite", "dataLimite"), record.prazo);
   const linkedRepresentationsLabel =
@@ -275,29 +269,20 @@ export function InqueritoQuickPreview({
     { label: "Autor / investigado", value: displayValue(record.investigado) },
     { label: "Autoria", value: displayValue(record.autoria_determinada) },
     {
-      label: "Equipe",
-      value: firstValue(record.equipe_responsavel, record.equipe),
-    },
-    { label: "Delegado", value: displayValue(record.delegado_responsavel) },
-    { label: "Investigador", value: investigator },
-    { label: "Escrivão", value: displayValue(record.escrivao) },
-    {
-      label: "Bairro / localidade",
-      value: firstValue(record.bairro, record.distrito),
+      label: "Bairro / cidade",
+      value: firstValue(record.bairro, record.cidade, record.distrito),
     },
     { label: "Facção", value: firstValue(record.nome_faccao, record.faccao) },
-    { label: "Número do B.O.", value: displayValue(record.numero_bo) },
     {
       label: "Elucidado",
       value: formatBooleanText(record.cvli_elucidado ?? record.elucidado),
     },
-    { label: "Representações", value: linkedRepresentationsLabel },
+    { label: "Movimentações processuais", value: linkedRepresentationsLabel },
     {
-      label: "Diligências pendentes",
-      value: displayValue(record.diligencias_pendentes),
+      label: "Observações e diligências",
+      value: firstValue(record.diligencias_pendentes, record.observacoes),
     },
     { label: "Resumo do fato", value: factSummary },
-    { label: "Observações", value: displayValue(record.observacoes) },
   ]
     .filter((item) => item.value !== FALLBACK)
     .slice(0, 11);
@@ -310,7 +295,7 @@ export function InqueritoQuickPreview({
     <RecordQuickPreview
       open
       onOpenChange={(open) => !open && onClose()}
-      eyebrow="Visualização rápida · Inquérito"
+      eyebrow="Visualização rápida · Procedimento policial"
       identifier={identifier}
       title={displayValue(record.tipificacao)}
       badges={badges}
@@ -344,18 +329,17 @@ export function RepresentacaoQuickPreview({
   if (priority !== FALLBACK) badges.push({ label: priority, tone: priorityTone(priority) });
 
   const mainItems: SummaryItem[] = [
-    { label: "Investigado / representado", value: displayValue(record.investigado) },
-    { label: "Inquérito vinculado", value: displayValue(record.numero_ppe) },
+    { label: "Procedimento vinculado", value: displayValue(record.numero_ppe) },
     { label: "Número do processo", value: displayValue(record.processo_judicial) },
-    { label: "Delegado / responsável", value: displayValue(record.responsavel) },
-    { label: "Equipe", value: displayValue(record.equipe_responsavel) },
+    { label: "Data do protocolo", value: formatDate(record.data_protocolo) },
     { label: "Vara / juízo", value: displayValue(record.vara_juizo) },
-    { label: "Objetivo", value: displayValue(record.objetivo) },
-    { label: "Vítima", value: displayValue(record.vitima) },
-    { label: "Resumo dos fatos", value: displayValue(record.resumo_fatos) },
     { label: "Cumprimento", value: displayValue(record.cumprimento_status) },
     { label: "Resultado", value: displayValue(record.resultado_cumprimento) },
-    { label: "Observações", value: displayValue(record.observacoes_internas) },
+    {
+      label: "Observações",
+      value: firstValue(record.observacoes_movimentacao, record.observacoes_decisao),
+    },
+    { label: "Sigilo", value: displayValue(record.pedido_sigiloso) },
   ]
     .filter((item) => item.value !== FALLBACK)
     .slice(0, 11);
@@ -368,7 +352,7 @@ export function RepresentacaoQuickPreview({
     <RecordQuickPreview
       open
       onOpenChange={(open) => !open && onClose()}
-      eyebrow="Visualização rápida · Representação"
+      eyebrow="Visualização rápida · Movimentação processual"
       identifier={identifier}
       title={displayValue(record.tipo)}
       badges={badges}

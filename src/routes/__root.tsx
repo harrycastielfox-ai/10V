@@ -48,17 +48,7 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "SIPI — Sistema de Inquéritos Policiais" },
       { property: "og:description", content: "Painel operacional de inquéritos policiais." },
       { name: "twitter:description", content: "Painel operacional de inquéritos policiais." },
-      {
-        property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8a7d26eb-4951-4554-9c52-7f8f37724952/id-preview-dc7bbb6b--738dc869-a75d-44a7-a98f-0bbcb406b2b0.lovable.app-1777038039279.png",
-      },
-      {
-        name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8a7d26eb-4951-4554-9c52-7f8f37724952/id-preview-dc7bbb6b--738dc869-a75d-44a7-a98f-0bbcb406b2b0.lovable.app-1777038039279.png",
-      },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
       { property: "og:type", content: "website" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],

@@ -3,20 +3,16 @@ import {
   AlertTriangle,
   ArrowLeft,
   CalendarPlus,
-  Link2,
+  CheckCircle2,
   LoaderCircle,
+  MessageCircle,
   Save,
   ShieldAlert,
   Users,
-  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAppProfile } from "@/components/AppProfileContext";
 import { canManageAgenda } from "@/lib/authz";
-import {
-  searchInqueritosForLink,
-  type InqueritoLinkOption,
-} from "@/lib/repositories/inqueritosRepository";
 import {
   checarConflitos,
   createAgendamento,
@@ -32,6 +28,7 @@ import {
   QUALIFICACAO_LABELS,
   TIPO_ATENDIMENTO_LABELS,
   formatDataHora,
+  montarLinkWhatsapp,
   paraInputDateTime,
 } from "../agendaConstants";
 import type {
@@ -113,6 +110,19 @@ function estadoDeRegistro(registro: AgendamentoRecord): FormState {
   };
 }
 
+/**
+ * Reagendar quem faltou: repete quem é a pessoa e o fato, mas pede um horário
+ * novo — data antiga e intimação não fazem sentido carregar pra frente.
+ */
+function estadoDeReagendamento(registro: AgendamentoRecord): FormState {
+  return {
+    ...estadoDeRegistro(registro),
+    dataHora: proximoHorarioSugerido(),
+    intimacaoStatus: "pendente",
+    intimacaoVia: "",
+  };
+}
+
 function textoOuNulo(valor: string) {
   return valor.trim() || null;
 }
@@ -120,9 +130,11 @@ function textoOuNulo(valor: string) {
 export function AgendamentoFormPage({
   modo,
   agendamentoId,
+  remarcarDeId,
 }: {
   modo: Modo;
   agendamentoId?: string;
+  remarcarDeId?: string;
 }) {
   const navigate = useNavigate();
   const profile = useAppProfile();
@@ -134,12 +146,8 @@ export function AgendamentoFormPage({
   const [loading, setLoading] = useState(modo === "edit");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
-
-  const [buscaInquerito, setBuscaInquerito] = useState("");
-  const [inqueritos, setInqueritos] = useState<InqueritoLinkOption[]>([]);
-  const [inqueritoSelecionado, setInqueritoSelecionado] = useState<InqueritoLinkOption | null>(
-    null,
-  );
+  const [registroSalvo, setRegistroSalvo] = useState<AgendamentoRecord | null>(null);
+  const [origemReagendamento, setOrigemReagendamento] = useState<AgendamentoRecord | null>(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -164,6 +172,21 @@ export function AgendamentoFormPage({
   }, [modo, profile.id]);
 
   useEffect(() => {
+    if (modo !== "create" || !remarcarDeId) return;
+    let cancelado = false;
+    void getAgendamentoById(remarcarDeId)
+      .then((registro) => {
+        if (!registro || cancelado) return;
+        setOrigemReagendamento(registro);
+        setForm(estadoDeReagendamento(registro));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelado = true;
+    };
+  }, [modo, remarcarDeId]);
+
+  useEffect(() => {
     if (modo !== "edit" || !agendamentoId) return;
     let cancelado = false;
     void getAgendamentoById(agendamentoId)
@@ -181,25 +204,6 @@ export function AgendamentoFormPage({
       cancelado = true;
     };
   }, [modo, agendamentoId]);
-
-  useEffect(() => {
-    let cancelado = false;
-    if (buscaInquerito.trim().length < 2) {
-      setInqueritos([]);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      void searchInqueritosForLink(buscaInquerito, 8)
-        .then((itens) => {
-          if (!cancelado) setInqueritos(itens);
-        })
-        .catch(() => undefined);
-    }, 320);
-    return () => {
-      cancelado = true;
-      window.clearTimeout(timer);
-    };
-  }, [buscaInquerito]);
 
   // Conflitos: consulta enquanto digita, sem travar o formulário.
   useEffect(() => {
@@ -293,17 +297,22 @@ export function AgendamentoFormPage({
           ? await updateAgendamento(agendamentoId, payload)
           : await createAgendamento(payload);
 
-      await navigate({
-        to: "/agenda/$agendamentoId",
-        params: { agendamentoId: salvo.id },
-        replace: true,
-      });
+      setRegistroSalvo(salvo);
     } catch (falha) {
       console.error("[AgendamentoForm] Falha ao salvar", falha);
       setErro("Não foi possível salvar o agendamento. Revise os dados e tente novamente.");
     } finally {
       setSalvando(false);
     }
+  }
+
+  function fecharConfirmacao() {
+    if (!registroSalvo) return;
+    void navigate({
+      to: "/agenda/$agendamentoId",
+      params: { agendamentoId: registroSalvo.id },
+      replace: true,
+    });
   }
 
   if (!podeMarcar) {
@@ -351,6 +360,13 @@ export function AgendamentoFormPage({
       {erro ? (
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {erro}
+        </p>
+      ) : null}
+
+      {origemReagendamento ? (
+        <p className="rounded-xl border border-warning/35 bg-warning/10 p-3 text-sm text-warning">
+          Reagendando <strong>{origemReagendamento.pessoa_nome}</strong> — não compareceu em{" "}
+          {formatDataHora(origemReagendamento.data_hora)}. Escolha o novo horário abaixo.
         </p>
       ) : null}
 
@@ -539,64 +555,6 @@ export function AgendamentoFormPage({
               className={entradaClasse}
             />
           </Campo>
-
-          <div className="relative md:col-span-2">
-            <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">
-              Vincular a Inquérito do SIPI
-            </span>
-            {form.inqueritoId ? (
-              <div className="flex h-11 items-center justify-between rounded-xl border border-info/35 bg-info/10 px-3 text-sm">
-                <span className="flex min-w-0 items-center gap-2">
-                  <Link2 className="h-4 w-4 text-info" />
-                  <span className="truncate">
-                    {inqueritoSelecionado?.numero_ppe || form.inqueritoId}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    atualizar("inqueritoId", "");
-                    setInqueritoSelecionado(null);
-                  }}
-                  className="text-muted-foreground hover:text-destructive"
-                  aria-label="Remover vínculo"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <input
-                  value={buscaInquerito}
-                  onChange={(evento) => setBuscaInquerito(evento.target.value)}
-                  placeholder="Digite ao menos 2 caracteres do PPE"
-                  className={entradaClasse}
-                />
-                {inqueritos.length ? (
-                  <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-popover p-1 shadow-xl">
-                    {inqueritos.map((item) => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          atualizar("inqueritoId", item.id);
-                          setInqueritoSelecionado(item);
-                          setBuscaInquerito("");
-                          setInqueritos([]);
-                        }}
-                        className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-xs hover:bg-info/10"
-                      >
-                        <strong>{item.numero_ppe || "Sem PPE"}</strong>
-                        <span className="text-muted-foreground">
-                          {item.tipo_procedimento_normalizado || item.tipo || "Procedimento"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
         </Secao>
 
         <Secao titulo="4. INTIMAÇÃO E OBSERVAÇÕES" descricao="A pessoa já foi avisada? Por onde?">
@@ -662,6 +620,62 @@ export function AgendamentoFormPage({
           </button>
         </div>
       </form>
+
+      {registroSalvo ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-success/35 bg-card p-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                <CheckCircle2 className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold">Atendimento marcado</h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  <strong className="text-foreground">{registroSalvo.pessoa_nome}</strong> —{" "}
+                  {formatDataHora(registroSalvo.data_hora)}
+                </p>
+              </div>
+            </div>
+
+            {(() => {
+              const linkWhatsapp = montarLinkWhatsapp(
+                registroSalvo.pessoa_telefone,
+                registroSalvo.pessoa_nome,
+                registroSalvo.data_hora,
+              );
+              return (
+                <>
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    {linkWhatsapp
+                      ? "Quer enviar o chamado pelo WhatsApp agora?"
+                      : "Sem telefone cadastrado — não é possível enviar o chamado por WhatsApp."}
+                  </p>
+                  <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={fecharConfirmacao}
+                      className="rounded-lg border border-border px-4 py-2 text-sm font-semibold transition hover:bg-accent"
+                    >
+                      Fechar
+                    </button>
+                    {linkWhatsapp ? (
+                      <a
+                        href={linkWhatsapp}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={fecharConfirmacao}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-success/60 bg-success/10 px-4 py-2 text-sm font-semibold text-success transition hover:bg-success/20"
+                      >
+                        <MessageCircle className="h-4 w-4" /> Enviar chamado via WhatsApp
+                      </a>
+                    ) : null}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -2,6 +2,11 @@ import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/rea
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { InqueritoQuickPreview } from "@/components/RecordQuickPreview";
+import {
+  TableColumnSettings,
+  useTableColumnPreferences,
+  type TableColumnDefinition,
+} from "@/components/TableColumnSettings";
 import { Search, Filter, Plus } from "lucide-react";
 import { listInqueritos, type InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import {
@@ -45,6 +50,18 @@ const statusTone: Record<string, string> = {
 };
 const FALLBACK = "—";
 const EMPTY_FILTER = "__vazio__";
+const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
+  { id: "ppe", label: "Nº PPE", defaultWidth: 144, required: true },
+  { id: "prioridade", label: "Prioridade", defaultWidth: 104 },
+  { id: "tipificacao", label: "Tipificação", defaultWidth: 300 },
+  { id: "gravidade", label: "Gravidade", defaultWidth: 132 },
+  { id: "tipo", label: "Tipo", defaultWidth: 108 },
+  { id: "bairro", label: "Bairro", defaultWidth: 144 },
+  { id: "reu_preso", label: "Réu preso", defaultWidth: 112 },
+  { id: "status", label: "Status", defaultWidth: 164 },
+  { id: "prazo", label: "Prazo", defaultWidth: 128 },
+  { id: "acao", label: "Ação", defaultWidth: 88, required: true },
+];
 
 type InqueritoListRow = {
   source: InqueritoRecord;
@@ -400,11 +417,13 @@ function Inqueritos() {
   const [selectedInquerito, setSelectedInquerito] = useState<InqueritoRecord | null>(null);
   const [representacoes, setRepresentacoes] = useState<RepresentacaoRecord[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const columnController = useTableColumnPreferences(
+    "sipi:inqueritos:table-columns:v1",
+    INQUIRY_COLUMNS,
+  );
   const [situacaoFilter, setSituacaoFilter] = useState("todos");
   const [prioridadeFilter, setPrioridadeFilter] = useState("todos");
   const [gravidadeFilter, setGravidadeFilter] = useState("todos");
-  const [equipeFilter, setEquipeFilter] = useState("todos");
-  const [escrivaoFilter, setEscrivaoFilter] = useState("todos");
   const [tipoFilter, setTipoFilter] = useState("todos");
   const [prazoFilter, setPrazoFilter] = useState("todos");
   const [dataInicial, setDataInicial] = useState("");
@@ -441,7 +460,7 @@ function Inqueritos() {
         );
         setError("");
       } catch {
-        setError("Não foi possível carregar inquéritos agora.");
+        setError("Não foi possível carregar os procedimentos agora.");
       } finally {
         setLoading(false);
       }
@@ -464,8 +483,6 @@ function Inqueritos() {
     setSituacaoFilter("todos");
     setPrioridadeFilter("todos");
     setGravidadeFilter("todos");
-    setEquipeFilter("todos");
-    setEscrivaoFilter("todos");
     setTipoFilter("todos");
     setPrazoFilter("todos");
     setDataInicial("");
@@ -483,10 +500,6 @@ function Inqueritos() {
     assign("prioridade", setPrioridadeFilter);
     assign("situacao", setSituacaoFilter);
     assign("gravidade", setGravidadeFilter);
-    assign("equipe", setEquipeFilter);
-    const escrivaoParam = params.get("escrivao");
-    if (escrivaoParam?.trim())
-      setEscrivaoFilter(escrivaoParam === "__sem_escrivao" ? EMPTY_FILTER : escrivaoParam);
     const tipoParam = params.get("tipo");
     if (tipoParam?.trim()) setTipoFilter(getProcedureType(tipoParam) || tipoParam);
     const relatorio = normalizeText(params.get("relatorio") ?? "todos").replace(/-/g, "_");
@@ -582,14 +595,6 @@ function Inqueritos() {
     () => options(normalizedRows.map((r) => r.gravidade)),
     [normalizedRows],
   );
-  const equipeOptions = useMemo(
-    () => options(normalizedRows.map((r) => r.equipe)),
-    [normalizedRows],
-  );
-  const escrivaoOptions = useMemo(
-    () => options(normalizedRows.map((r) => r.escrivao)),
-    [normalizedRows],
-  );
   const tipoOptions = useMemo(
     () => options(normalizedRows.map((r) => r.tipoProcedimento)),
     [normalizedRows],
@@ -620,8 +625,6 @@ function Inqueritos() {
                 r.gravidade,
                 r.situacao,
                 r.statusDiligencias,
-                r.equipe,
-                r.escrivao,
                 r.prazo,
               ].some(isEmpty))
           )
@@ -655,20 +658,6 @@ function Inqueritos() {
           !(gravidadeFilter === EMPTY_FILTER
             ? isEmpty(r.gravidade)
             : normalizeText(r.gravidade) === normalizeText(gravidadeFilter))
-        )
-          return false;
-        if (
-          normalizeText(equipeFilter) !== "todos" &&
-          !(equipeFilter === EMPTY_FILTER
-            ? isEmpty(r.equipe)
-            : normalizeText(r.equipe) === normalizeText(equipeFilter))
-        )
-          return false;
-        if (
-          normalizeText(escrivaoFilter) !== "todos" &&
-          !(escrivaoFilter === EMPTY_FILTER
-            ? isEmpty(r.escrivao)
-            : normalizeText(r.escrivao) === normalizeText(escrivaoFilter))
         )
           return false;
         if (
@@ -719,8 +708,6 @@ function Inqueritos() {
       situacaoFilter,
       prioridadeFilter,
       gravidadeFilter,
-      equipeFilter,
-      escrivaoFilter,
       tipoFilter,
       prazoFilter,
       dataInicial,
@@ -744,8 +731,6 @@ function Inqueritos() {
       situacaoFilter,
       prioridadeFilter,
       gravidadeFilter,
-      equipeFilter,
-      escrivaoFilter,
       tipoFilter,
       prazoFilter,
       relatorioFilter,
@@ -760,6 +745,13 @@ function Inqueritos() {
     medidaProtetivaFilter ||
     diligenciasPendentesFilter,
   );
+  const visibleInquiryColumns = columnController.visibleColumns;
+  const tableGridTemplate = visibleInquiryColumns.map((column) => `${column.width}px`).join(" ");
+  const tableMinWidth = visibleInquiryColumns.reduce((sum, column) => sum + column.width, 0);
+  const getInquiryColumnStyle = (id: string) => {
+    const index = visibleInquiryColumns.findIndex((column) => column.id === id);
+    return index < 0 ? ({ display: "none" } as const) : ({ order: index } as const);
+  };
   if (!isInqueritosIndex) return <Outlet />;
 
   return (
@@ -767,7 +759,7 @@ function Inqueritos() {
       <div className="space-y-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.015)] lg:flex-row lg:items-center lg:justify-between lg:p-6">
           <div className="space-y-1.5">
-            <h1 className="text-3xl font-black tracking-tight">Inquéritos</h1>
+            <h1 className="text-3xl font-black tracking-tight">Procedimentos Policiais</h1>
             <p className="text-sm text-muted-foreground">
               {filtered.length} de {visibleRows.length} caso(s) encontrado(s)
             </p>
@@ -777,7 +769,7 @@ function Inqueritos() {
               className="hidden items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 md:inline-flex"
               onClick={() => navigate({ to: "/novo-caso" })}
             >
-              <Plus className="h-4 w-4" /> Novo Caso
+              <Plus className="h-4 w-4" /> Novo procedimento
             </button>
           ) : null}
         </header>
@@ -799,6 +791,7 @@ function Inqueritos() {
               <Filter className="h-4 w-4" />
               {showFilters ? "Ocultar filtros" : "Filtros"}
             </button>
+            <TableColumnSettings definitions={INQUIRY_COLUMNS} controller={columnController} />
           </div>
           {showFilters && (
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -836,32 +829,6 @@ function Inqueritos() {
                 <option value="todos">Gravidade: todas</option>
                 <option value={EMPTY_FILTER}>Gravidade: não informada</option>
                 {gravidadeOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={equipeFilter}
-                onChange={(e) => setEquipeFilter(e.target.value)}
-                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
-              >
-                <option value="todos">Equipe: todas</option>
-                <option value={EMPTY_FILTER}>Equipe: não informada</option>
-                {equipeOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={escrivaoFilter}
-                onChange={(e) => setEscrivaoFilter(e.target.value)}
-                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
-              >
-                <option value="todos">Escrivão: todos</option>
-                <option value={EMPTY_FILTER}>Escrivão: não informado</option>
-                {escrivaoOptions.map((v) => (
                   <option key={v} value={v}>
                     {v}
                   </option>
@@ -910,8 +877,6 @@ function Inqueritos() {
                     setSituacaoFilter("todos");
                     setPrioridadeFilter("todos");
                     setGravidadeFilter("todos");
-                    setEquipeFilter("todos");
-                    setEscrivaoFilter("todos");
                     setTipoFilter("todos");
                     setPrazoFilter("todos");
                     setDataInicial("");
@@ -938,38 +903,25 @@ function Inqueritos() {
         </section>
         {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="overflow-x-auto rounded-2xl border border-border/80 bg-card/90 shadow-[0_10px_40px_rgba(0,0,0,0.22)]">
-          <table className="w-full min-w-[1180px] table-fixed text-sm">
-            <colgroup>
-              <col className="w-[10%]" />
-              <col className="w-[7%]" />
-              <col className="w-[24%]" />
-              <col className="w-[10%]" />
-              <col className="w-[7.5%]" />
-              <col className="w-[10.5%]" />
-              <col className="w-[8%]" />
-              <col className="w-[11.5%]" />
-              <col className="w-[7%]" />
-              <col className="w-[5.5%]" />
-            </colgroup>
+          <table className="w-full table-fixed text-sm" style={{ minWidth: tableMinWidth }}>
             <thead className="bg-muted/25 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2.5 text-left font-bold align-middle">Nº PPE</th>
-                <th className="px-2.5 py-2.5 text-left font-bold align-middle">PRIOR.</th>
-                <th className="px-2.5 py-2.5 text-left font-bold align-middle">TIPIFICAÇÃO</th>
-                <th className="px-2 py-2.5 text-center font-bold align-middle">GRAVIDADE</th>
-                <th className="px-2 py-2.5 text-center font-bold align-middle">TIPO</th>
-                <th className="px-2.5 py-2.5 text-left font-bold align-middle">BAIRRO</th>
-                <th className="px-2.5 py-2.5 text-center font-bold align-middle">RÉU PRESO</th>
-                <th className="px-2.5 py-2.5 text-center font-bold align-middle">STATUS</th>
-                <th className="px-2.5 py-2.5 text-center font-bold align-middle">PRAZO</th>
-                <th className="px-3 py-2.5 text-center font-bold align-middle">AÇÃO</th>
+              <tr className="grid" style={{ gridTemplateColumns: tableGridTemplate }}>
+                {columnController.visibleColumns.map((column) => (
+                  <th key={column.id} className="px-3 py-2.5 text-left font-bold align-middle">
+                    {column.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
-                    Nenhum inquérito encontrado para os filtros informados.
+                <tr className="grid" style={{ gridTemplateColumns: tableGridTemplate }}>
+                  <td
+                    colSpan={columnController.visibleColumns.length}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                    style={{ gridColumn: "1 / -1" }}
+                  >
+                    Nenhum procedimento encontrado para os filtros informados.
                   </td>
                 </tr>
               )}
@@ -991,7 +943,7 @@ function Inqueritos() {
                     key={row.id}
                     role="button"
                     tabIndex={0}
-                    aria-label={`Visualizar resumo do inquérito ${numeroPpe}`}
+                    aria-label={`Visualizar resumo do procedimento ${numeroPpe}`}
                     onClick={() => setSelectedInquerito(row.source)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
@@ -999,9 +951,10 @@ function Inqueritos() {
                         setSelectedInquerito(row.source);
                       }
                     }}
-                    className="cursor-pointer border-t border-border/70 align-middle transition hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
+                    className="grid cursor-pointer border-t border-border/70 align-middle transition hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
+                    style={{ gridTemplateColumns: tableGridTemplate }}
                   >
-                    <td className="px-3 py-2.5 align-middle">
+                    <td className="px-3 py-2.5 align-middle" style={getInquiryColumnStyle("ppe")}>
                       <p
                         className="truncate font-mono text-[14px] font-bold leading-5 text-primary drop-shadow-[0_0_8px_rgba(34,197,94,0.16)]"
                         title={numeroPpe}
@@ -1009,7 +962,10 @@ function Inqueritos() {
                         {numeroPpe}
                       </p>
                     </td>
-                    <td className="px-2.5 py-2.5 align-middle">
+                    <td
+                      className="px-2.5 py-2.5 align-middle"
+                      style={getInquiryColumnStyle("prioridade")}
+                    >
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1022,7 +978,10 @@ function Inqueritos() {
                         {prioridadeOperacional}
                       </button>
                     </td>
-                    <td className="px-2.5 py-2.5 align-middle">
+                    <td
+                      className="px-2.5 py-2.5 align-middle"
+                      style={getInquiryColumnStyle("tipificacao")}
+                    >
                       <button
                         type="button"
                         className="block max-w-full truncate text-left text-[13px] font-semibold leading-5 text-foreground/95"
@@ -1031,7 +990,10 @@ function Inqueritos() {
                         {tipificacao}
                       </button>
                     </td>
-                    <td className="px-2 py-2.5 text-center align-middle">
+                    <td
+                      className="px-2 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("gravidade")}
+                    >
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1044,7 +1006,10 @@ function Inqueritos() {
                         {gravidade}
                       </button>
                     </td>
-                    <td className="px-2 py-2.5 text-center align-middle">
+                    <td
+                      className="px-2 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("tipo")}
+                    >
                       <span
                         className="mx-auto block max-w-full truncate text-center font-mono text-[12px] font-semibold text-foreground/90"
                         title={tipoProcedimento}
@@ -1052,7 +1017,10 @@ function Inqueritos() {
                         {tipoProcedimentoLabel}
                       </span>
                     </td>
-                    <td className="px-2.5 py-2.5 align-middle">
+                    <td
+                      className="px-2.5 py-2.5 align-middle"
+                      style={getInquiryColumnStyle("bairro")}
+                    >
                       <span
                         className="block w-full truncate text-left text-xs leading-5 text-muted-foreground"
                         title={bairro}
@@ -1060,7 +1028,10 @@ function Inqueritos() {
                         {bairro}
                       </span>
                     </td>
-                    <td className="px-2.5 py-2.5 text-center align-middle">
+                    <td
+                      className="px-2.5 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("reu_preso")}
+                    >
                       {reuPreso ? (
                         <span className="inline-flex min-h-6 items-center justify-center rounded border border-destructive/35 bg-destructive/15 px-2 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wide text-destructive">
                           SIM
@@ -1069,7 +1040,10 @@ function Inqueritos() {
                         <span className="text-xs text-muted-foreground">{FALLBACK}</span>
                       )}
                     </td>
-                    <td className="px-2.5 py-2.5 text-center align-middle">
+                    <td
+                      className="px-2.5 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("status")}
+                    >
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1084,7 +1058,10 @@ function Inqueritos() {
                         </span>
                       </button>
                     </td>
-                    <td className="px-2.5 py-2.5 text-right align-middle">
+                    <td
+                      className="px-2.5 py-2.5 text-right align-middle"
+                      style={getInquiryColumnStyle("prazo")}
+                    >
                       <button
                         type="button"
                         onClick={(event) => {
@@ -1097,7 +1074,10 @@ function Inqueritos() {
                         {prazoDisplay.text}
                       </button>
                     </td>
-                    <td className="px-3 py-2.5 text-center align-middle">
+                    <td
+                      className="px-3 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("acao")}
+                    >
                       <button
                         className="inline-flex min-h-8 items-center justify-center rounded-lg border border-info/40 bg-info/15 px-3 py-1.5 text-xs font-semibold text-info transition hover:bg-info/25 hover:text-info/90"
                         onClick={(event) => {

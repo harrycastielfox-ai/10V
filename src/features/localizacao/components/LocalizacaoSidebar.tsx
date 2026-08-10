@@ -34,11 +34,11 @@ export function LocalizacaoSidebar({ profile }: { profile: UserProfile }) {
           title="Voltar aos módulos"
           className="localizacao-sidebar-brand group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational"
         >
-          <span className="localizacao-sidebar-brand-icon flex h-12 w-12 shrink-0 items-center justify-center overflow-visible rounded-xl border border-operational/40 bg-operational/10 p-0.5 shadow-[0_0_22px_color-mix(in_oklab,var(--operational)_14%,transparent)]">
+          <span className="localizacao-sidebar-brand-icon flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-operational/40 bg-operational/10 p-1 shadow-[0_0_22px_color-mix(in_oklab,var(--operational)_14%,transparent)]">
             <img
               src="/sipi-badge.png"
               alt="Logo SIPI"
-              className="h-[140%] w-[140%] max-w-none object-contain"
+              className="h-[122%] w-[132%] object-contain"
             />
           </span>
           <span className="localizacao-sidebar-brand-copy min-w-0">

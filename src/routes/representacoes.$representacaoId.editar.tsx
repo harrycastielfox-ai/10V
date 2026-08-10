@@ -11,6 +11,7 @@ import {
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
+import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import {
   RepresentationPeopleEditor,
   type RepresentationPersonFormValue,
@@ -26,7 +27,15 @@ import {
   type InqueritoLinkOption,
 } from "@/lib/repositories/inqueritosRepository";
 import { getCurrentProfile } from "@/lib/auth";
-import { canEditRepresentacoes, type UserProfile } from "@/lib/authz";
+import { canEditRepresentacoes, canManageProceduralTags, type UserProfile } from "@/lib/authz";
+import { canAccessSigilosa } from "@/lib/representacoesSigilo";
+import { tagsByScope, type ProceduralTag } from "@/lib/proceduralTags";
+import {
+  createProceduralTag,
+  listMovimentacaoTagIds,
+  listProceduralTags,
+  replaceMovimentacaoTags,
+} from "@/lib/repositories/proceduralTagsRepository";
 import {
   COMPLIANCE_RESULT_DESCRIPTIONS,
   COMPLIANCE_RESULT_OPTIONS,
@@ -47,14 +56,14 @@ import {
 } from "@/lib/operationalContracts";
 
 export const Route = createFileRoute("/representacoes/$representacaoId/editar")({
-  head: () => ({ meta: [{ title: "Editar Representação — SIPI" }] }),
+  head: () => ({ meta: [{ title: "Editar Movimentação Processual — SIPI" }] }),
   component: EditarRepresentacao,
 });
 
 const INQUIRY_LINK_OPTIONS: readonly SelectOption[] = [
   { value: "", label: "A definir" },
-  { value: "sim", label: "Sim, possui inquérito vinculado" },
-  { value: "nao", label: "Não possui inquérito vinculado" },
+  { value: "sim", label: "Sim, possui procedimento vinculado" },
+  { value: "nao", label: "Não possui procedimento vinculado" },
 ];
 const normalizeText = (value?: string | null) =>
   (value ?? "")
@@ -79,6 +88,7 @@ const getStatusHint = (status?: string) => {
 function EditarRepresentacao() {
   const { representacaoId } = Route.useParams();
   const navigate = useNavigate();
+  const showLegacyFields = false;
 
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
@@ -87,6 +97,9 @@ function EditarRepresentacao() {
   const [naoEncontrada, setNaoEncontrada] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [restricted, setRestricted] = useState(false);
+  const [tagOptions, setTagOptions] = useState<ProceduralTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [statusTagId, setStatusTagId] = useState("");
 
   const [ppe, setPpe] = useState("");
   const [legacyPpeReference, setLegacyPpeReference] = useState("");
@@ -126,6 +139,13 @@ function EditarRepresentacao() {
   const [equipeResponsavel, setEquipeResponsavel] = useState("");
   const [acompanhamentoEspecial, setAcompanhamentoEspecial] = useState("");
 
+  const typeTagOptions = useMemo(() => tagsByScope(tagOptions, "movimentacao_tipo"), [tagOptions]);
+  const priorityTagOptions = useMemo(() => tagsByScope(tagOptions, "prioridade"), [tagOptions]);
+  const statusTagOptions = useMemo(
+    () => tagsByScope(tagOptions, "movimentacao_status"),
+    [tagOptions],
+  );
+
   const exibeCampoOutra = tipoRepresentacao === "Outra";
   const exibeDataEnvioEVara = useMemo(
     () => representationRequiresJudicialSubmission(status),
@@ -158,7 +178,7 @@ function EditarRepresentacao() {
         }
         setRestricted(false);
 
-        const [data, pessoasResult] = await Promise.all([
+        const [data, pessoasResult, tagsResult, tagIdsResult] = await Promise.all([
           getRepresentacaoById(representacaoId),
           listRepresentacaoPessoas(representacaoId)
             .then((pessoas) => ({ pessoas, failed: false }))
@@ -166,6 +186,13 @@ function EditarRepresentacao() {
               console.warn("[representacoes:editar] pessoas adicionais indisponiveis", error);
               return { pessoas: [], failed: true };
             }),
+          listProceduralTags([
+            "movimentacao_tipo",
+            "movimentacao_status",
+            "prioridade",
+            "movimentacao_geral",
+          ]),
+          listMovimentacaoTagIds(representacaoId),
         ]);
         if (!active) return;
 
@@ -193,13 +220,24 @@ function EditarRepresentacao() {
         setInqueritoId(data.inquerito_id ?? null);
         setJustificativaSemInquerito(data.justificativa_sem_inquerito ?? "");
         setProcesso(data.processo_judicial ?? "");
+        setTagOptions(tagsResult);
+        setSelectedTagIds(tagIdsResult);
+        setStatusTagId(
+          data.status_tag_id ??
+            tagsResult.find(
+              (tag) =>
+                tag.scope === "movimentacao_status" &&
+                normalizeText(tag.name) === normalizeText(data.status),
+            )?.id ??
+            "",
+        );
         setTipoRepresentacao(
           tipoNormalizado === "outros" && tipoAtual && normalizeText(tipoAtual) !== "outra"
             ? "Outra"
             : representationTypeLabel(tipoNormalizado),
         );
         setTipoOutra(tipoNormalizado === "outros" ? tipoAtual : "");
-        setDataRepresentacao(data.data_representacao ?? "");
+        setDataRepresentacao(data.data_protocolo ?? data.data_representacao ?? "");
         setResponsavel(data.responsavel ?? "");
         setVitima(data.vitima ?? "");
         setInvestigado(data.investigado ?? "");
@@ -244,7 +282,7 @@ function EditarRepresentacao() {
         setObservacoesCumprimento(data.observacoes_cumprimento ?? "");
         setPrioridadeOperacional(data.prioridade_operacional ?? "");
         setPedidoSigiloso(data.pedido_sigiloso ?? "");
-        setObservacoesInternas(data.observacoes_internas ?? "");
+        setObservacoesInternas(data.observacoes_movimentacao ?? data.observacoes_internas ?? "");
         setEquipeResponsavel(data.equipe_responsavel ?? "");
         setAcompanhamentoEspecial(
           data.acompanhamento_especial == null ? "" : data.acompanhamento_especial ? "Sim" : "Não",
@@ -304,9 +342,15 @@ function EditarRepresentacao() {
 
     setErro("");
 
-    const tipoFinal = tipoRepresentacao === "Outra" ? tipoOutra : tipoRepresentacao;
+    const selectedTypes = typeTagOptions.filter((tag) => selectedTagIds.includes(tag.id));
+    const selectedPriorities = priorityTagOptions.filter((tag) => selectedTagIds.includes(tag.id));
+    if (!statusTagId || selectedTypes.length === 0) {
+      setErro("Selecione ao menos um tipo de protocolo e o status da movimentação.");
+      return;
+    }
+    const tipoFinal = selectedTypes.map((tag) => tag.name).join("; ");
     if (!vinculoInquerito) {
-      setErro("Informe se a representação possui inquérito vinculado.");
+      setErro("Informe se a movimentação possui procedimento vinculado.");
       return;
     }
     const preservesLegacyPpe =
@@ -334,16 +378,9 @@ function EditarRepresentacao() {
         tipo: tipoFinal.trim() || null,
         tipo_normalizado: normalizeRepresentationType(tipoFinal),
         data_representacao: dataRepresentacao || null,
-        responsavel: responsavel.trim() || null,
-        vitima: vitima.trim() || null,
-        investigado: investigado.trim() || null,
-        autor_preso: autorPreso || null,
-        resumo_fatos: resumoFatos.trim() || null,
-        fundamentacao: fundamentacao.trim() || null,
-        objetivo: objetivo.trim() || null,
-        diligencias_relacionadas: diligenciasRelacionadas.trim() || null,
-        status: status || null,
-        data_envio_judiciario: dataEnvioJudiciario || null,
+        data_protocolo: dataRepresentacao || null,
+        status_tag_id: statusTagId,
+        status: statusTagOptions.find((tag) => tag.id === statusTagId)?.name || status || null,
         data_decisao_judicial: dataDecisaoJudicial || null,
         vara_juizo: varaJuizo.trim() || null,
         prazo_concedido_dias: prazoConcedidoDias.trim() ? Number(prazoConcedidoDias) : null,
@@ -354,26 +391,15 @@ function EditarRepresentacao() {
         equipe_cumprimento: equipeCumprimento.trim() || null,
         resultado_cumprimento: resultadoCumprimento.trim() || null,
         observacoes_cumprimento: observacoesCumprimento.trim() || null,
-        prioridade_operacional: prioridadeOperacional
-          ? normalizePriority(prioridadeOperacional)
+        prioridade_operacional: selectedPriorities[0]
+          ? normalizePriority(selectedPriorities[0].name)
           : null,
-        equipe_responsavel: equipeResponsavel.trim() || null,
-        acompanhamento_especial: acompanhamentoEspecial ? acompanhamentoEspecial === "Sim" : null,
         pedido_sigiloso: pedidoSigiloso || null,
         pedido_sigiloso_normalizado: pedidoSigiloso ? isYesValue(pedidoSigiloso) : null,
         medida_protetiva_normalizada: normalizeRepresentationType(tipoFinal) === "medida_protetiva",
-        observacoes_internas: observacoesInternas.trim() || null,
+        observacoes_movimentacao: observacoesInternas.trim() || null,
       });
-      if (pessoasCarregadas) {
-        try {
-          await replaceRepresentacaoPessoas(representacaoId, pessoasAdicionais);
-        } catch (pessoasError) {
-          console.warn(
-            "[representacoes:pessoas] Dados principais atualizados sem pessoas adicionais",
-            pessoasError,
-          );
-        }
-      }
+      await replaceMovimentacaoTags(representacaoId, selectedTagIds);
       await navigate({ to: "/representacoes/$representacaoId", params: { representacaoId } });
     } catch (error) {
       const err = error as {
@@ -412,14 +438,14 @@ function EditarRepresentacao() {
     }
   }
 
-  if (loadingInitial) return <AppLayout>Carregando representação...</AppLayout>;
+  if (loadingInitial) return <AppLayout>Carregando movimentação...</AppLayout>;
   if (restricted)
     return (
       <AppLayout>
         <div className="space-y-4">
           <h1 className="text-xl font-bold">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground">
-            Seu perfil não possui permissão para acessar Representações.
+            Seu perfil não possui permissão para acessar Movimentações Processuais.
           </p>
           <Link to="/modulos" className="px-4 py-2 border border-border rounded-lg inline-block">
             Voltar
@@ -427,22 +453,22 @@ function EditarRepresentacao() {
         </div>
       </AppLayout>
     );
-  if (naoEncontrada) return <AppLayout>Representação não encontrada.</AppLayout>;
+  if (naoEncontrada) return <AppLayout>Movimentação não encontrada.</AppLayout>;
 
   return (
     <AppLayout>
       <PageHeader
-        title="Editar Representação"
-        subtitle="Atualize os dados da medida judicial vinculada"
+        title="Editar Movimentação Processual"
+        subtitle="Atualize o protocolo e a tramitação judicial"
         showActions={false}
       />
       <form className="space-y-5 max-w-6xl pb-6" onSubmit={handleSubmit}>
         <SectionCard
           title="Identificação Judicial"
-          subtitle="Vinculação processual e dados principais da representação."
+          subtitle="Vinculação processual e dados principais da movimentação."
         >
           <OptionSelect
-            label="Possui inquérito vinculado?"
+            label="Possui procedimento vinculado?"
             options={INQUIRY_LINK_OPTIONS}
             value={vinculoInquerito}
             onChange={(value) => {
@@ -469,7 +495,7 @@ function EditarRepresentacao() {
             />
           )}
           {vinculoInquerito === "sim" && searchingInquerito && (
-            <InfoBox>Consultando inquéritos acessíveis com este PPE...</InfoBox>
+            <InfoBox>Consultando procedimentos acessíveis com este PPE...</InfoBox>
           )}
           {vinculoInquerito === "sim" &&
             !searchingInquerito &&
@@ -477,7 +503,7 @@ function EditarRepresentacao() {
             inqueritoMatches.length > 0 && (
               <div className="md:col-span-2 lg:col-span-3 rounded-lg border border-primary/25 bg-card/70 p-3">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">
-                  Selecione o inquérito correto
+                  Selecione o procedimento correto
                 </p>
                 <div className="grid gap-2 md:grid-cols-2">
                   {inqueritoMatches.map((item) => (
@@ -505,7 +531,7 @@ function EditarRepresentacao() {
             )}
           {vinculoInquerito === "sim" && inqueritoId && (
             <div className="md:col-span-2 lg:col-span-3 flex items-center justify-between gap-3 rounded-lg border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
-              <span>Vínculo formal confirmado com o inquérito selecionado.</span>
+              <span>Vínculo formal confirmado com o procedimento selecionado.</span>
               <button
                 type="button"
                 onClick={() => setInqueritoId(null)}
@@ -517,7 +543,7 @@ function EditarRepresentacao() {
           )}
           {vinculoInquerito === "nao" && (
             <TextArea
-              label="Justificativa para representação sem inquérito vinculado"
+              label="Justificativa para movimentação sem procedimento vinculado"
               placeholder="Ex.: medida autônoma, procedimento ainda não cadastrado ou vínculo pendente de confirmação."
               value={justificativaSemInquerito}
               onChange={(event) => setJustificativaSemInquerito(event.target.value)}
@@ -529,109 +555,99 @@ function EditarRepresentacao() {
             value={processo}
             onChange={(e) => setProcesso(e.target.value)}
           />
-          <Select
-            label="Tipo de Representação"
-            options={REPRESENTATION_TYPE_OPTIONS.map((option) => option.value)}
-            value={tipoRepresentacao}
-            onChange={setTipoRepresentacao}
+          <ProceduralTagPicker
+            label="Tipo do protocolo"
+            hint="Uma movimentação pode reunir mais de um protocolo."
+            options={typeTagOptions}
+            value={selectedTagIds}
+            onChange={setSelectedTagIds}
+            onCreate={async (input) => {
+              const created = await createProceduralTag(input);
+              setTagOptions((current) => [...current, created]);
+              return created;
+            }}
+            createScope="movimentacao_tipo"
+            canCreate={canManageProceduralTags(profile)}
           />
           <Field
-            label="Data da Representação"
+            label="Data do protocolo"
             type="date"
             value={dataRepresentacao}
             onChange={(e) => setDataRepresentacao(e.target.value)}
           />
-          <Field
-            label="Responsável pela Representação"
-            value={responsavel}
-            onChange={(e) => setResponsavel(e.target.value)}
-          />
-          {exibeCampoOutra && (
-            <Field
-              label="Especificar representação"
-              value={tipoOutra}
-              onChange={(e) => setTipoOutra(e.target.value)}
+        </SectionCard>
+
+        {showLegacyFields && (
+          <>
+            <SectionCard
+              title="Pessoas Envolvidas"
+              subtitle="Partes relacionadas à medida representada."
+            >
+              {pessoasCarregadas ? (
+                <RepresentationPeopleEditor
+                  value={pessoasAdicionais}
+                  onChange={setPessoasAdicionais}
+                />
+              ) : (
+                <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                  Os dados principais foram carregados, mas as pessoas adicionais estao
+                  temporariamente indisponiveis. Esta parte nao sera alterada ao salvar.
+                </div>
+              )}
+              <Field label="Vítima" value={vitima} onChange={(e) => setVitima(e.target.value)} />
+              <Field
+                label="Investigado / Representado"
+                value={investigado}
+                onChange={(e) => setInvestigado(e.target.value)}
+              />
+              <Select
+                label="Autor preso?"
+                options={["Sim", "Não", "Não informado"]}
+                value={autorPreso}
+                onChange={setAutorPreso}
+              />
+            </SectionCard>
+          </>
+        )}
+
+        {showLegacyFields && (
+          <SectionCard
+            title="Fundamentação e Finalidade"
+            subtitle="Contexto técnico-jurídico e finalidade da medida."
+          >
+            <TextArea
+              label="Resumo dos fatos"
+              value={resumoFatos}
+              onChange={(e) => setResumoFatos(e.target.value)}
             />
-          )}
-        </SectionCard>
-
-        <SectionCard
-          title="Pessoas Envolvidas"
-          subtitle="Partes relacionadas à medida representada."
-        >
-          {pessoasCarregadas ? (
-            <RepresentationPeopleEditor value={pessoasAdicionais} onChange={setPessoasAdicionais} />
-          ) : (
-            <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-              Os dados principais foram carregados, mas as pessoas adicionais estao temporariamente
-              indisponiveis. Esta parte nao sera alterada ao salvar.
-            </div>
-          )}
-          <Field label="Vítima" value={vitima} onChange={(e) => setVitima(e.target.value)} />
-          <Field
-            label="Investigado / Representado"
-            value={investigado}
-            onChange={(e) => setInvestigado(e.target.value)}
-          />
-          <Select
-            label="Autor preso?"
-            options={["Sim", "Não", "Não informado"]}
-            value={autorPreso}
-            onChange={setAutorPreso}
-          />
-        </SectionCard>
-
-        <SectionCard
-          title="Fundamentação e Finalidade"
-          subtitle="Contexto técnico-jurídico e finalidade da medida."
-        >
-          <TextArea
-            label="Resumo dos fatos"
-            value={resumoFatos}
-            onChange={(e) => setResumoFatos(e.target.value)}
-          />
-          <TextArea
-            label="Fundamentação da medida"
-            value={fundamentacao}
-            onChange={(e) => setFundamentacao(e.target.value)}
-          />
-          <TextArea
-            label="Objetivo da representação"
-            value={objetivo}
-            onChange={(e) => setObjetivo(e.target.value)}
-          />
-          <TextArea
-            label="Diligências relacionadas"
-            value={diligenciasRelacionadas}
-            onChange={(e) => setDiligenciasRelacionadas(e.target.value)}
-          />
-        </SectionCard>
+            <TextArea
+              label="Fundamentação da medida"
+              value={fundamentacao}
+              onChange={(e) => setFundamentacao(e.target.value)}
+            />
+            <TextArea
+              label="Objetivo da representação"
+              value={objetivo}
+              onChange={(e) => setObjetivo(e.target.value)}
+            />
+            <TextArea
+              label="Diligências relacionadas"
+              value={diligenciasRelacionadas}
+              onChange={(e) => setDiligenciasRelacionadas(e.target.value)}
+            />
+          </SectionCard>
+        )}
 
         <SectionCard
           title="Tramitação Judicial"
           subtitle="Acompanhamento da fase judicial, decisão e cumprimento."
         >
-          <Select
-            label="Status da Representação"
-            options={REPRESENTATION_STATUS_OPTIONS}
-            value={status}
-            onChange={setStatus}
+          <ProceduralStatusSelect
+            label="Status da movimentação"
+            options={statusTagOptions}
+            value={statusTagId}
+            onChange={setStatusTagId}
           />
-          <OptionSelect
-            label="Situação do cumprimento"
-            options={COMPLIANCE_STATUS_OPTIONS}
-            value={cumprimentoStatus}
-            onChange={(value) => setCumprimentoStatus(value as ComplianceStatus)}
-          />
-          <InfoBox>{getStatusHint(status)}</InfoBox>
-          {exibeDataEnvioEVara && (
-            <Field
-              label="Data de envio ao Judiciário"
-              type="date"
-              value={dataEnvioJudiciario}
-              onChange={(e) => setDataEnvioJudiciario(e.target.value)}
-            />
-          )}
           {exibeDataEnvioEVara && (
             <Field
               label="Vara / Juízo"
@@ -679,72 +695,58 @@ function EditarRepresentacao() {
               onChange={(e) => setObservacoesDecisao(e.target.value)}
             />
           )}
-        </SectionCard>
 
-        {exibeBlocoCumprimento && (
-          <SectionCard
-            title="Cumprimento da Medida"
-            subtitle="Registro operacional da execução da decisão."
-          >
-            <Field
-              label="Data do cumprimento"
-              type="date"
-              value={dataCumprimento}
-              onChange={(e) => setDataCumprimento(e.target.value)}
-            />
-            <Field
-              label="Equipe responsável pelo cumprimento"
-              value={equipeCumprimento}
-              onChange={(e) => setEquipeCumprimento(e.target.value)}
-            />
-            <OptionSelect
-              label="Resultado do cumprimento"
-              options={COMPLIANCE_RESULT_OPTIONS}
-              value={resultadoCumprimento}
-              onChange={setResultadoCumprimento}
-              hint={
-                resultadoCumprimento
-                  ? COMPLIANCE_RESULT_DESCRIPTIONS[resultadoCumprimento as ComplianceResult]
-                  : "Classifique o efeito efetivo da medida após a execução."
-              }
-            />
-            <TextArea
-              label="Observações do cumprimento"
-              value={observacoesCumprimento}
-              onChange={(e) => setObservacoesCumprimento(e.target.value)}
-            />
-          </SectionCard>
-        )}
+          {showLegacyFields && exibeBlocoCumprimento && (
+            <SectionCard
+              title="Cumprimento da Medida"
+              subtitle="Registro operacional da execução da decisão."
+            >
+              <Field
+                label="Data do cumprimento"
+                type="date"
+                value={dataCumprimento}
+                onChange={(e) => setDataCumprimento(e.target.value)}
+              />
+              <Field
+                label="Equipe responsável pelo cumprimento"
+                value={equipeCumprimento}
+                onChange={(e) => setEquipeCumprimento(e.target.value)}
+              />
+              <OptionSelect
+                label="Resultado do cumprimento"
+                options={COMPLIANCE_RESULT_OPTIONS}
+                value={resultadoCumprimento}
+                onChange={setResultadoCumprimento}
+                hint={
+                  resultadoCumprimento
+                    ? COMPLIANCE_RESULT_DESCRIPTIONS[resultadoCumprimento as ComplianceResult]
+                    : "Classifique o efeito efetivo da medida após a execução."
+                }
+              />
+              <TextArea
+                label="Observações do cumprimento"
+                value={observacoesCumprimento}
+                onChange={(e) => setObservacoesCumprimento(e.target.value)}
+              />
+            </SectionCard>
+          )}
 
-        <SectionCard
-          title="Controle Interno"
-          subtitle="Priorização e acompanhamento interno da unidade."
-        >
-          <Select
-            label="Prioridade operacional"
-            options={["Normal", "Atenção", "Urgente"]}
-            value={prioridadeOperacional}
-            onChange={setPrioridadeOperacional}
+          <ProceduralTagPicker
+            label="Prioridade"
+            options={priorityTagOptions}
+            value={selectedTagIds}
+            onChange={setSelectedTagIds}
+            createScope="prioridade"
+            canCreate={false}
           />
           <Select
             label="Pedido sigiloso?"
-            options={["Sim", "Não"]}
+            options={canAccessSigilosa(profile) ? ["Sim", "Não"] : ["Não"]}
             value={pedidoSigiloso}
             onChange={setPedidoSigiloso}
           />
-          <Field
-            label="Equipe responsável"
-            value={equipeResponsavel}
-            onChange={(e) => setEquipeResponsavel(e.target.value)}
-          />
-          <Select
-            label="Acompanhamento especial?"
-            options={["Sim", "Não"]}
-            value={acompanhamentoEspecial}
-            onChange={setAcompanhamentoEspecial}
-          />
           <TextArea
-            label="Observações internas"
+            label="Observações"
             value={observacoesInternas}
             onChange={(e) => setObservacoesInternas(e.target.value)}
           />

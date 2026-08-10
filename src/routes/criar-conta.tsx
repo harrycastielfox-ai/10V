@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, type DragEvent, type FormEvent } from "react";
+import { useRef, useState, type DragEvent, type FormEvent, type ReactNode } from "react";
 import {
   AlertCircle,
   BriefcaseBusiness,
@@ -21,6 +21,8 @@ import { PUBLIC_SIGNUP_INSTITUTIONAL_FUNCTIONS, type InstitutionalFunction } fro
 const MAX_AVATAR_MB = 2;
 const MAX_AVATAR_BYTES = MAX_AVATAR_MB * 1024 * 1024;
 const MAX_PHONE_DIGITS = 11;
+const MIN_PASSWORD_LENGTH = 8;
+const PASSWORD_EXAMPLE = "@SuaSenha123";
 const POST_SIGNUP_LOGIN_KEY = "sipi:post-signup-login";
 const TERMS_VERSION = "2026-07-13";
 const INSTITUTIONAL_FUNCTION_LABELS: Record<InstitutionalFunction, string> = {
@@ -85,6 +87,11 @@ function CreateAccountPage() {
       setError("Selecione sua função institucional.");
       return;
     }
+    const senhaInvalida = validatePassword(senha);
+    if (senhaInvalida) {
+      setError(senhaInvalida);
+      return;
+    }
     setLoading(true);
     try {
       const cleanLogin = login.trim().toLowerCase();
@@ -120,6 +127,11 @@ function CreateAccountPage() {
         setError(`A foto deve ter no máximo ${MAX_AVATAR_MB}MB.`);
       else if ((errorMessage || "").toLowerCase().includes("already registered"))
         setError("Este e-mail já está em uso.");
+      else if (
+        (err as { code?: string }).code === "weak_password" ||
+        (err as { name?: string }).name === "AuthWeakPasswordError"
+      )
+        setError(describeWeakPassword(err));
       else if ((errorMessage || "").toLowerCase().includes("database error saving new user"))
         setError(
           "Não foi possível concluir o cadastro. Verifique se o login ou e-mail já estão em uso.",
@@ -140,13 +152,11 @@ function CreateAccountPage() {
         className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-border bg-card/90 shadow-2xl shadow-black/35"
       >
         <header className="border-b border-border bg-gradient-to-b from-primary/8 to-transparent px-6 pb-5 pt-6 text-center sm:px-8">
-          <div className="mx-auto mb-3 flex h-[86px] w-[86px] items-center justify-center overflow-hidden rounded-xl border border-primary/25 bg-primary/10 p-2 shadow-[0_0_16px_rgba(34,197,94,0.16)]">
-            <img
-              src="/sipi-logo.png"
-              alt="Logo SIPI"
-              className="h-[96px] w-[96px] max-w-none scale-[1.28] object-contain"
-            />
-          </div>
+          <img
+            src="/sipi-logo.png"
+            alt="Logo SIPI"
+            className="mx-auto mb-3 block h-[96px] w-auto object-contain"
+          />
           <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary/80">
             <span className="h-px w-8 bg-primary/35" />
             Cadastro institucional
@@ -185,6 +195,14 @@ function CreateAccountPage() {
                   type="password"
                   icon={Lock}
                   autoComplete="new-password"
+                  helper={
+                    <>
+                      Use maiúsculas, minúsculas e números — mínimo de {MIN_PASSWORD_LENGTH}{" "}
+                      caracteres.{" "}
+                      <span className="font-semibold text-foreground">Ex.: {PASSWORD_EXAMPLE}</span>
+                    </>
+                  }
+                  helperTone="warning"
                 />
               </div>
             </div>
@@ -375,6 +393,7 @@ function Field({
   type = "text",
   required = true,
   helper,
+  helperTone = "muted",
   icon: Icon,
   autoComplete,
   inputMode,
@@ -385,7 +404,8 @@ function Field({
   onBlur?: () => void;
   type?: string;
   required?: boolean;
-  helper?: string;
+  helper?: ReactNode;
+  helperTone?: "muted" | "warning";
   icon?: typeof User;
   autoComplete?: string;
   inputMode?: "text" | "numeric" | "decimal" | "tel" | "search" | "email" | "url";
@@ -415,8 +435,40 @@ function Field({
           }
         />
       </div>
-      {helper ? <p className="text-xs text-muted-foreground">{helper}</p> : null}
+      {helper ? (
+        <p
+          className={
+            helperTone === "warning"
+              ? "text-xs font-medium text-destructive"
+              : "text-xs text-muted-foreground"
+          }
+        >
+          {helper}
+        </p>
+      ) : null}
     </div>
+  );
+}
+
+function validatePassword(value: string): string | null {
+  if (value.length < MIN_PASSWORD_LENGTH)
+    return `A senha precisa ter no mínimo ${MIN_PASSWORD_LENGTH} caracteres. Exemplo: ${PASSWORD_EXAMPLE}`;
+  if (!/[a-z]/.test(value))
+    return `A senha precisa ter ao menos uma letra minúscula. Exemplo: ${PASSWORD_EXAMPLE}`;
+  if (!/[A-Z]/.test(value))
+    return `A senha precisa ter ao menos uma letra maiúscula. Exemplo: ${PASSWORD_EXAMPLE}`;
+  if (!/\d/.test(value))
+    return `A senha precisa ter ao menos um número. Exemplo: ${PASSWORD_EXAMPLE}`;
+  return null;
+}
+
+function describeWeakPassword(err: unknown): string {
+  const reasons = (err as { reasons?: string[] } | null)?.reasons ?? [];
+  if (reasons.includes("pwned"))
+    return "Esta senha aparece em vazamentos públicos conhecidos. Escolha outra.";
+  return (
+    `A senha precisa ter no mínimo ${MIN_PASSWORD_LENGTH} caracteres, ` +
+    `com letra maiúscula, letra minúscula e número. Exemplo: ${PASSWORD_EXAMPLE}`
   );
 }
 

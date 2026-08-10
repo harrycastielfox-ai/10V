@@ -32,14 +32,15 @@ import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AgendaIndexRouteImport } from './routes/agenda.index'
 import { Route as AgendaAgendamentoIdRouteImport } from './routes/agenda.$agendamentoId'
 import { Route as AgendaCronogramaRouteImport } from './routes/agenda.cronograma'
+import { Route as AgendaHistoricoRouteImport } from './routes/agenda.historico'
 import { Route as AgendaNovoRouteImport } from './routes/agenda.novo'
 import { Route as AlertasModuloRouteImport } from './routes/alertas.$modulo'
+import { Route as ApiSheetSyncRouteImport } from './routes/api.sheet-sync'
 import { Route as InqueritosCaseIdRouteImport } from './routes/inqueritos.$caseId'
 import { Route as LocalizacaoIndexRouteImport } from './routes/localizacao.index'
 import { Route as LocalizacaoEnderecosRouteImport } from './routes/localizacao.enderecos'
 import { Route as LocalizacaoPessoasRouteImport } from './routes/localizacao.pessoas'
 import { Route as LocalizacaoRotasRouteImport } from './routes/localizacao.rotas'
-import { Route as MockupsLocalizacaoOperacionalRouteImport } from './routes/mockups.localizacao-operacional'
 import { Route as ObjetosIndexRouteImport } from './routes/objetos.index'
 import { Route as ObjetosObjectIdRouteImport } from './routes/objetos.$objectId'
 import { Route as ObjetosNovoRouteImport } from './routes/objetos.novo'
@@ -182,6 +183,11 @@ const AgendaCronogramaRoute = AgendaCronogramaRouteImport.update({
   path: '/cronograma',
   getParentRoute: () => AgendaRoute,
 } as any)
+const AgendaHistoricoRoute = AgendaHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AgendaRoute,
+} as any)
 const AgendaNovoRoute = AgendaNovoRouteImport.update({
   id: '/novo',
   path: '/novo',
@@ -191,6 +197,11 @@ const AlertasModuloRoute = AlertasModuloRouteImport.update({
   id: '/$modulo',
   path: '/$modulo',
   getParentRoute: () => AlertasRoute,
+} as any)
+const ApiSheetSyncRoute = ApiSheetSyncRouteImport.update({
+  id: '/api/sheet-sync',
+  path: '/api/sheet-sync',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const InqueritosCaseIdRoute = InqueritosCaseIdRouteImport.update({
   id: '/$caseId',
@@ -217,12 +228,6 @@ const LocalizacaoRotasRoute = LocalizacaoRotasRouteImport.update({
   path: '/rotas',
   getParentRoute: () => LocalizacaoRoute,
 } as any)
-const MockupsLocalizacaoOperacionalRoute =
-  MockupsLocalizacaoOperacionalRouteImport.update({
-    id: '/mockups/localizacao-operacional',
-    path: '/mockups/localizacao-operacional',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ObjetosIndexRoute = ObjetosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -380,13 +385,14 @@ export interface FileRoutesByFullPath {
   '/admin/usuarios': typeof AdminUsuariosRouteWithChildren
   '/agenda/$agendamentoId': typeof AgendaAgendamentoIdRoute
   '/agenda/cronograma': typeof AgendaCronogramaRoute
+  '/agenda/historico': typeof AgendaHistoricoRoute
   '/agenda/novo': typeof AgendaNovoRoute
   '/alertas/$modulo': typeof AlertasModuloRoute
+  '/api/sheet-sync': typeof ApiSheetSyncRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
   '/localizacao/enderecos': typeof LocalizacaoEnderecosRoute
   '/localizacao/pessoas': typeof LocalizacaoPessoasRoute
   '/localizacao/rotas': typeof LocalizacaoRotasRoute
-  '/mockups/localizacao-operacional': typeof MockupsLocalizacaoOperacionalRoute
   '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
@@ -435,13 +441,14 @@ export interface FileRoutesByTo {
   '/admin/usuarios': typeof AdminUsuariosRouteWithChildren
   '/agenda/$agendamentoId': typeof AgendaAgendamentoIdRoute
   '/agenda/cronograma': typeof AgendaCronogramaRoute
+  '/agenda/historico': typeof AgendaHistoricoRoute
   '/agenda/novo': typeof AgendaNovoRoute
   '/alertas/$modulo': typeof AlertasModuloRoute
+  '/api/sheet-sync': typeof ApiSheetSyncRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
   '/localizacao/enderecos': typeof LocalizacaoEnderecosRoute
   '/localizacao/pessoas': typeof LocalizacaoPessoasRoute
   '/localizacao/rotas': typeof LocalizacaoRotasRoute
-  '/mockups/localizacao-operacional': typeof MockupsLocalizacaoOperacionalRoute
   '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
@@ -495,13 +502,14 @@ export interface FileRoutesById {
   '/admin/usuarios': typeof AdminUsuariosRouteWithChildren
   '/agenda/$agendamentoId': typeof AgendaAgendamentoIdRoute
   '/agenda/cronograma': typeof AgendaCronogramaRoute
+  '/agenda/historico': typeof AgendaHistoricoRoute
   '/agenda/novo': typeof AgendaNovoRoute
   '/alertas/$modulo': typeof AlertasModuloRoute
+  '/api/sheet-sync': typeof ApiSheetSyncRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
   '/localizacao/enderecos': typeof LocalizacaoEnderecosRoute
   '/localizacao/pessoas': typeof LocalizacaoPessoasRoute
   '/localizacao/rotas': typeof LocalizacaoRotasRoute
-  '/mockups/localizacao-operacional': typeof MockupsLocalizacaoOperacionalRoute
   '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
@@ -556,13 +564,14 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/agenda/$agendamentoId'
     | '/agenda/cronograma'
+    | '/agenda/historico'
     | '/agenda/novo'
     | '/alertas/$modulo'
+    | '/api/sheet-sync'
     | '/inqueritos/$caseId'
     | '/localizacao/enderecos'
     | '/localizacao/pessoas'
     | '/localizacao/rotas'
-    | '/mockups/localizacao-operacional'
     | '/objetos/$objectId'
     | '/objetos/novo'
     | '/objetos/todos'
@@ -611,13 +620,14 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/agenda/$agendamentoId'
     | '/agenda/cronograma'
+    | '/agenda/historico'
     | '/agenda/novo'
     | '/alertas/$modulo'
+    | '/api/sheet-sync'
     | '/inqueritos/$caseId'
     | '/localizacao/enderecos'
     | '/localizacao/pessoas'
     | '/localizacao/rotas'
-    | '/mockups/localizacao-operacional'
     | '/objetos/$objectId'
     | '/objetos/novo'
     | '/objetos/todos'
@@ -670,13 +680,14 @@ export interface FileRouteTypes {
     | '/admin/usuarios'
     | '/agenda/$agendamentoId'
     | '/agenda/cronograma'
+    | '/agenda/historico'
     | '/agenda/novo'
     | '/alertas/$modulo'
+    | '/api/sheet-sync'
     | '/inqueritos/$caseId'
     | '/localizacao/enderecos'
     | '/localizacao/pessoas'
     | '/localizacao/rotas'
-    | '/mockups/localizacao-operacional'
     | '/objetos/$objectId'
     | '/objetos/novo'
     | '/objetos/todos'
@@ -728,7 +739,7 @@ export interface RootRouteChildren {
   RepresentacoesRoute: typeof RepresentacoesRouteWithChildren
   VeiculosRoute: typeof VeiculosRouteWithChildren
   AdminUsuariosRoute: typeof AdminUsuariosRouteWithChildren
-  MockupsLocalizacaoOperacionalRoute: typeof MockupsLocalizacaoOperacionalRoute
+  ApiSheetSyncRoute: typeof ApiSheetSyncRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -894,6 +905,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgendaCronogramaRouteImport
       parentRoute: typeof AgendaRoute
     }
+    '/agenda/historico': {
+      id: '/agenda/historico'
+      path: '/historico'
+      fullPath: '/agenda/historico'
+      preLoaderRoute: typeof AgendaHistoricoRouteImport
+      parentRoute: typeof AgendaRoute
+    }
     '/agenda/novo': {
       id: '/agenda/novo'
       path: '/novo'
@@ -907,6 +925,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/alertas/$modulo'
       preLoaderRoute: typeof AlertasModuloRouteImport
       parentRoute: typeof AlertasRoute
+    }
+    '/api/sheet-sync': {
+      id: '/api/sheet-sync'
+      path: '/api/sheet-sync'
+      fullPath: '/api/sheet-sync'
+      preLoaderRoute: typeof ApiSheetSyncRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/inqueritos/$caseId': {
       id: '/inqueritos/$caseId'
@@ -942,13 +967,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/localizacao/rotas'
       preLoaderRoute: typeof LocalizacaoRotasRouteImport
       parentRoute: typeof LocalizacaoRoute
-    }
-    '/mockups/localizacao-operacional': {
-      id: '/mockups/localizacao-operacional'
-      path: '/mockups/localizacao-operacional'
-      fullPath: '/mockups/localizacao-operacional'
-      preLoaderRoute: typeof MockupsLocalizacaoOperacionalRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/objetos/': {
       id: '/objetos/'
@@ -1138,6 +1156,7 @@ declare module '@tanstack/react-router' {
 interface AgendaRouteChildren {
   AgendaAgendamentoIdRoute: typeof AgendaAgendamentoIdRoute
   AgendaCronogramaRoute: typeof AgendaCronogramaRoute
+  AgendaHistoricoRoute: typeof AgendaHistoricoRoute
   AgendaNovoRoute: typeof AgendaNovoRoute
   AgendaIndexRoute: typeof AgendaIndexRoute
   AgendaEditarAgendamentoIdRoute: typeof AgendaEditarAgendamentoIdRoute
@@ -1146,6 +1165,7 @@ interface AgendaRouteChildren {
 const AgendaRouteChildren: AgendaRouteChildren = {
   AgendaAgendamentoIdRoute: AgendaAgendamentoIdRoute,
   AgendaCronogramaRoute: AgendaCronogramaRoute,
+  AgendaHistoricoRoute: AgendaHistoricoRoute,
   AgendaNovoRoute: AgendaNovoRoute,
   AgendaIndexRoute: AgendaIndexRoute,
   AgendaEditarAgendamentoIdRoute: AgendaEditarAgendamentoIdRoute,
@@ -1347,7 +1367,7 @@ const rootRouteChildren: RootRouteChildren = {
   RepresentacoesRoute: RepresentacoesRouteWithChildren,
   VeiculosRoute: VeiculosRouteWithChildren,
   AdminUsuariosRoute: AdminUsuariosRouteWithChildren,
-  MockupsLocalizacaoOperacionalRoute: MockupsLocalizacaoOperacionalRoute,
+  ApiSheetSyncRoute: ApiSheetSyncRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

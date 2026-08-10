@@ -31,21 +31,40 @@ describe("isRepresentacaoSigilosa", () => {
 });
 
 describe("canAccessSigilosa", () => {
-  it("denies access with no profile or no role", () => {
+  it("denies access with no profile or no individual permission", () => {
     expect(canAccessSigilosa(null)).toBe(false);
     expect(canAccessSigilosa({})).toBe(false);
   });
 
-  it("allows admin, delegado and atlas_access regardless of field name used", () => {
-    expect(canAccessSigilosa({ cargo: "admin" })).toBe(true);
-    expect(canAccessSigilosa({ cargo: "delegado" })).toBe(true);
-    expect(canAccessSigilosa({ cargo: "atlas_access" })).toBe(true);
-    expect(canAccessSigilosa({ role: "administrador" })).toBe(true);
-    expect(canAccessSigilosa({ perfil: "atlas access" })).toBe(true);
+  it("allows any authorized profile with the individual permission enabled", () => {
+    expect(
+      canAccessSigilosa({
+        cargo: "membro",
+        status_autorizacao: "autorizado",
+        can_access_sigiloso: true,
+      }),
+    ).toBe(true);
   });
 
-  it("denies membro and sipi_access", () => {
-    expect(canAccessSigilosa({ cargo: "membro" })).toBe(false);
-    expect(canAccessSigilosa({ cargo: "sipi_access" })).toBe(false);
+  it("does not grant sigilo merely because of the role", () => {
+    for (const cargo of ["admin", "delegado", "atlas_access"]) {
+      expect(
+        canAccessSigilosa({
+          cargo,
+          status_autorizacao: "autorizado",
+          can_access_sigiloso: false,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  it("denies a blocked profile even when its individual permission is enabled", () => {
+    expect(
+      canAccessSigilosa({
+        cargo: "admin",
+        status_autorizacao: "bloqueado",
+        can_access_sigiloso: true,
+      }),
+    ).toBe(false);
   });
 });
