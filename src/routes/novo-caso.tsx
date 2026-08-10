@@ -599,8 +599,8 @@ function NovoCaso() {
         <SectionCard title="Pessoas Envolvidas">
           <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
           <Select
-            label="Autoria Determinada ou Indeterminada"
-            options={["Determinada", "Indeterminada", "Desconhecida", "Sem Autoria"]}
+            label="Autoria"
+            options={["Determinada", "Desconhecida", "Sem Autoria"]}
             value={autoria}
             onChange={setAutoria}
           />

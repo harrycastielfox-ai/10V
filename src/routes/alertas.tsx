@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { classifyAuthorship } from "@/lib/authorship";
 import { PageHeader } from "@/components/PageHeader";
 import { AlertasModuloPanel } from "@/components/AlertasModuloPanel";
 import { isCvliElucidado, isCvliRecord } from "@/lib/cvliMetrics";
@@ -551,6 +552,15 @@ export function Alertas({ mode = "alertas" }: { mode?: "alertas" | "estatisticas
     ).length;
     const cvli = filteredInqueritos.filter(isCvli);
     const cvliElucidados = cvli.filter(isCvliElucidado).length;
+    const autoriaDeterminada = filteredInqueritos.filter(
+      (item) => classifyAuthorship(item.autoria_determinada) === "determinada",
+    ).length;
+    const autoriaDesconhecida = filteredInqueritos.filter(
+      (item) => classifyAuthorship(item.autoria_determinada) === "desconhecida",
+    ).length;
+    const semAutoria = filteredInqueritos.filter(
+      (item) => classifyAuthorship(item.autoria_determinada) === "sem_autoria",
+    ).length;
     const periodSearch = {
       ...(dataInicial ? { dataInicial } : {}),
       ...(dataFinal ? { dataFinal } : {}),
@@ -607,6 +617,24 @@ export function Alertas({ mode = "alertas" }: { mode?: "alertas" | "estatisticas
           to: "/inqueritos",
           search: { ...periodSearch, categoria: "cvli", elucidado: "sim" },
         },
+      },
+      {
+        label: "Autoria determinada",
+        value: autoriaDeterminada,
+        desc: "Procedimentos com autoria identificada",
+        target: { to: "/inqueritos", search: { ...periodSearch, autoria: "determinada" } },
+      },
+      {
+        label: "Autoria desconhecida",
+        value: autoriaDesconhecida,
+        desc: "Inclui registros antigos como indeterminados",
+        target: { to: "/inqueritos", search: { ...periodSearch, autoria: "desconhecida" } },
+      },
+      {
+        label: "Sem autoria",
+        value: semAutoria,
+        desc: "Procedimentos registrados sem autoria",
+        target: { to: "/inqueritos", search: { ...periodSearch, autoria: "sem_autoria" } },
       },
       {
         label: "Violência doméstica no período",

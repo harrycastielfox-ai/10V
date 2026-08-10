@@ -21,6 +21,7 @@ import {
   type UserProfile,
 } from "@/lib/authz";
 import { canAccessSigilosa, isRepresentacaoSigilosa } from "@/lib/representacoesSigilo";
+import { classifyAuthorship, getAuthorshipLabel } from "@/lib/authorship";
 import {
   calculateInqueritoOperationalPriority,
   isTruthyLike,
@@ -56,6 +57,8 @@ const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
   { id: "tipificacao", label: "Tipificação", defaultWidth: 376 },
   { id: "gravidade", label: "Gravidade", defaultWidth: 160, align: "center" },
   { id: "tipo", label: "Tipo", defaultWidth: 116, align: "center" },
+  { id: "data_fato", label: "Data do fato", defaultWidth: 124, align: "center" },
+  { id: "autoria", label: "Autoria", defaultWidth: 144, align: "center" },
   { id: "bairro", label: "Bairro", defaultWidth: 164 },
   { id: "reu_preso", label: "Réu preso", defaultWidth: 124, align: "center" },
   { id: "status", label: "Status", defaultWidth: 180, align: "center" },
@@ -85,6 +88,7 @@ type InqueritoListRow = {
   diligenciasPendentes: string;
   protetivaTexto: string;
   dataFato: string;
+  autoria: string;
   dataInstauracao: string;
   dataEnvioRelatorio: string;
   createdAt: string;
@@ -316,6 +320,10 @@ function formatDatePtBr(ts: number) {
   const year = date.getUTCFullYear();
   return `${day}/${month}/${year}`;
 }
+function formatOptionalDate(value: string) {
+  const ts = parseAnyDate(value);
+  return ts === null ? FALLBACK : formatDatePtBr(ts);
+}
 function pluralizeDays(value: number) {
   return value === 1 ? "dia" : "dias";
 }
@@ -395,6 +403,7 @@ function normalizeInqueritoForList(caso: InqueritoRecord): InqueritoListRow {
       .map(normalizeText)
       .join(" "),
     dataFato: pick(raw, "data_fato", "dataFato"),
+    autoria: pick(raw, "autoria_determinada", "autoriaDeterminada", "autoria"),
     dataInstauracao: pick(raw, "data_instauracao", "dataInstauracao"),
     dataEnvioRelatorio: pick(raw, "data_relatorio", "data_envio_relatorio", "dataEnvioRelatorio"),
     createdAt: pick(raw, "created_at", "createdAt"),
@@ -418,13 +427,14 @@ function Inqueritos() {
   const [representacoes, setRepresentacoes] = useState<RepresentacaoRecord[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const columnController = useTableColumnPreferences(
-    "sipi:inqueritos:table-columns:v2",
+    "sipi:inqueritos:table-columns:v3",
     INQUIRY_COLUMNS,
   );
   const [situacaoFilter, setSituacaoFilter] = useState("todos");
   const [prioridadeFilter, setPrioridadeFilter] = useState("todos");
   const [gravidadeFilter, setGravidadeFilter] = useState("todos");
   const [tipoFilter, setTipoFilter] = useState("todos");
+  const [autoriaFilter, setAutoriaFilter] = useState("todos");
   const [prazoFilter, setPrazoFilter] = useState("todos");
   const [dataInicial, setDataInicial] = useState("");
   const [dataFinal, setDataFinal] = useState("");
@@ -484,6 +494,7 @@ function Inqueritos() {
     setPrioridadeFilter("todos");
     setGravidadeFilter("todos");
     setTipoFilter("todos");
+    setAutoriaFilter("todos");
     setPrazoFilter("todos");
     setDataInicial("");
     setDataFinal("");
@@ -502,6 +513,9 @@ function Inqueritos() {
     assign("gravidade", setGravidadeFilter);
     const tipoParam = params.get("tipo");
     if (tipoParam?.trim()) setTipoFilter(getProcedureType(tipoParam) || tipoParam);
+    const autoria = normalizeText(params.get("autoria") ?? "todos").replace(/-/g, "_");
+    if (["todos", "determinada", "desconhecida", "sem_autoria"].includes(autoria))
+      setAutoriaFilter(autoria);
     const relatorio = normalizeText(params.get("relatorio") ?? "todos").replace(/-/g, "_");
     if (["todos", "sem_relatar", "enviado", "relatado_nao_enviado"].includes(relatorio))
       setRelatorioFilter(relatorio);
@@ -667,6 +681,11 @@ function Inqueritos() {
             : getProcedureType(r.tipoProcedimento) === getProcedureType(tipoFilter))
         )
           return false;
+        if (
+          normalizeText(autoriaFilter) !== "todos" &&
+          classifyAuthorship(r.autoria) !== autoriaFilter
+        )
+          return false;
         if (normalizeText(categoriaFilter) !== "todos" && !matchesCategory(r, categoriaFilter))
           return false;
         if (normalizeText(relatorioFilter) === "sem_relatar" && !isSemRelatorio(r)) return false;
@@ -709,6 +728,7 @@ function Inqueritos() {
       prioridadeFilter,
       gravidadeFilter,
       tipoFilter,
+      autoriaFilter,
       prazoFilter,
       dataInicial,
       dataFinal,
@@ -732,6 +752,7 @@ function Inqueritos() {
       prioridadeFilter,
       gravidadeFilter,
       tipoFilter,
+      autoriaFilter,
       prazoFilter,
       relatorioFilter,
       categoriaFilter,
@@ -858,6 +879,16 @@ function Inqueritos() {
                 <option value="vencendo">Vencendo em até 7 dias</option>
                 <option value={EMPTY_FILTER}>Sem prazo</option>
               </select>
+              <select
+                value={autoriaFilter}
+                onChange={(e) => setAutoriaFilter(e.target.value)}
+                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
+              >
+                <option value="todos">Autoria: todas</option>
+                <option value="determinada">Autoria determinada</option>
+                <option value="desconhecida">Autoria desconhecida</option>
+                <option value="sem_autoria">Sem autoria</option>
+              </select>
               <input
                 type="date"
                 value={dataInicial}
@@ -878,6 +909,7 @@ function Inqueritos() {
                     setPrioridadeFilter("todos");
                     setGravidadeFilter("todos");
                     setTipoFilter("todos");
+                    setAutoriaFilter("todos");
                     setPrazoFilter("todos");
                     setDataInicial("");
                     setDataFinal("");
@@ -1025,6 +1057,31 @@ function Inqueritos() {
                       >
                         {tipoProcedimentoLabel}
                       </span>
+                    </td>
+                    <td
+                      className="px-2 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("data_fato")}
+                    >
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {formatOptionalDate(row.dataFato)}
+                      </span>
+                    </td>
+                    <td
+                      className="px-2 py-2.5 text-center align-middle"
+                      style={getInquiryColumnStyle("autoria")}
+                    >
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const category = classifyAuthorship(row.autoria);
+                          if (category !== "nao_informada") setAutoriaFilter(category);
+                        }}
+                        className="mx-auto block max-w-full truncate text-center text-xs font-medium text-muted-foreground hover:text-foreground"
+                        title={getAuthorshipLabel(row.autoria)}
+                      >
+                        {getAuthorshipLabel(row.autoria)}
+                      </button>
                     </td>
                     <td
                       className="px-2.5 py-2.5 align-middle"

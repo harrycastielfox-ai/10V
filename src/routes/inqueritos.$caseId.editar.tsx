@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { classifyAuthorship } from "@/lib/authorship";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
@@ -254,7 +255,11 @@ function EditarInquerito() {
           );
         }
         setPessoas(pessoasIniciais);
-        setAutoria(String(raw.autoria_determinada ?? ""));
+        setAutoria(
+          classifyAuthorship(raw.autoria_determinada) === "desconhecida"
+            ? "Desconhecida"
+            : String(raw.autoria_determinada ?? ""),
+        );
         setReuPreso(inquerito.reu_preso ?? "");
         setHouveArmaFogo(inquerito.houve_arma_fogo ?? "");
         setArmaUtilizada(inquerito.arma_utilizada ?? "");
@@ -621,10 +626,10 @@ function EditarInquerito() {
               </div>
             )}
             <Select
-              label="Autoria Determinada ou Indeterminada"
+              label="Autoria"
               value={autoria}
               onChange={setAutoria}
-              options={["Determinada", "Indeterminada", "Desconhecida", "Sem Autoria"]}
+              options={["Determinada", "Desconhecida", "Sem Autoria"]}
             />
             <Select
               label="Réu Preso"
