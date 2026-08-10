@@ -7,6 +7,7 @@ export type TableColumnDefinition = {
   label: string;
   defaultWidth: number;
   required?: boolean;
+  align?: "left" | "center" | "right";
 };
 
 type ColumnPreference = {

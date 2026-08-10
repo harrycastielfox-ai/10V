@@ -51,16 +51,16 @@ const statusTone: Record<string, string> = {
 const FALLBACK = "—";
 const EMPTY_FILTER = "__vazio__";
 const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
-  { id: "ppe", label: "Nº PPE", defaultWidth: 144, required: true },
-  { id: "prioridade", label: "Prioridade", defaultWidth: 104 },
-  { id: "tipificacao", label: "Tipificação", defaultWidth: 300 },
-  { id: "gravidade", label: "Gravidade", defaultWidth: 132 },
-  { id: "tipo", label: "Tipo", defaultWidth: 108 },
-  { id: "bairro", label: "Bairro", defaultWidth: 144 },
-  { id: "reu_preso", label: "Réu preso", defaultWidth: 112 },
-  { id: "status", label: "Status", defaultWidth: 164 },
-  { id: "prazo", label: "Prazo", defaultWidth: 128 },
-  { id: "acao", label: "Ação", defaultWidth: 88, required: true },
+  { id: "ppe", label: "Nº PPE", defaultWidth: 160, required: true },
+  { id: "prioridade", label: "Prioridade", defaultWidth: 112 },
+  { id: "tipificacao", label: "Tipificação", defaultWidth: 376 },
+  { id: "gravidade", label: "Gravidade", defaultWidth: 160, align: "center" },
+  { id: "tipo", label: "Tipo", defaultWidth: 116, align: "center" },
+  { id: "bairro", label: "Bairro", defaultWidth: 164 },
+  { id: "reu_preso", label: "Réu preso", defaultWidth: 124, align: "center" },
+  { id: "status", label: "Status", defaultWidth: 180, align: "center" },
+  { id: "prazo", label: "Prazo", defaultWidth: 108, align: "center" },
+  { id: "acao", label: "Ação", defaultWidth: 84, required: true, align: "center" },
 ];
 
 type InqueritoListRow = {
@@ -418,7 +418,7 @@ function Inqueritos() {
   const [representacoes, setRepresentacoes] = useState<RepresentacaoRecord[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const columnController = useTableColumnPreferences(
-    "sipi:inqueritos:table-columns:v1",
+    "sipi:inqueritos:table-columns:v2",
     INQUIRY_COLUMNS,
   );
   const [situacaoFilter, setSituacaoFilter] = useState("todos");
@@ -907,7 +907,16 @@ function Inqueritos() {
             <thead className="bg-muted/25 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               <tr className="grid" style={{ gridTemplateColumns: tableGridTemplate }}>
                 {columnController.visibleColumns.map((column) => (
-                  <th key={column.id} className="px-3 py-2.5 text-left font-bold align-middle">
+                  <th
+                    key={column.id}
+                    className={`px-3 py-2.5 font-bold align-middle ${
+                      column.align === "center"
+                        ? "text-center"
+                        : column.align === "right"
+                          ? "text-right"
+                          : "text-left"
+                    }`}
+                  >
                     {column.label}
                   </th>
                 ))}
