@@ -8,6 +8,120 @@ import {
   validateSheetSyncTimestamp,
   verifySheetSyncSignature,
 } from "@/lib/server/sheetSync";
+import { parseTipificacoes } from "@/lib/tipificacaoParser";
+
+type SupabaseTagRow = { id: string; name: string; slug: string };
+
+function supabaseHeaders(secretKey: string, extra?: HeadersInit) {
+  return {
+    apikey: secretKey,
+    Authorization: `Bearer ${secretKey}`,
+    "Content-Type": "application/json",
+    "X-Client-Info": "sipi-sheet-sync/1.0",
+    ...extra,
+  };
+}
+
+async function readSupabaseJson<T>(response: Response, operation: string): Promise<T> {
+  const body = (await response.json().catch(() => null)) as T | null;
+  if (!response.ok || body === null) {
+    throw new Error(`${operation}_failed_${response.status}`);
+  }
+  return body;
+}
+
+async function assertSupabaseOk(response: Response, operation: string) {
+  if (response.ok) return;
+  throw new Error(`${operation}_failed_${response.status}`);
+}
+
+async function indexInqueritoTipificacoes({
+  supabaseUrl,
+  supabaseSecretKey,
+  inqueritoId,
+  rawTipificacao,
+}: {
+  supabaseUrl: string;
+  supabaseSecretKey: string;
+  inqueritoId: string;
+  rawTipificacao: string | null | undefined;
+}) {
+  const catalogResponse = await fetch(
+    `${supabaseUrl}/rest/v1/procedural_tags?scope=eq.tipificacao&select=id,name,slug`,
+    { headers: supabaseHeaders(supabaseSecretKey) },
+  );
+  const catalog = await readSupabaseJson<SupabaseTagRow[]>(
+    catalogResponse,
+    "sheet_sync_tipificacao_catalog",
+  );
+  const existingBySlug = new Map(catalog.map((tag) => [tag.slug, tag]));
+  const items = parseTipificacoes(
+    rawTipificacao,
+    catalog.map((tag) => tag.name),
+  );
+  const tagIds: string[] = [];
+
+  for (const item of items) {
+    const existing = existingBySlug.get(item.slug);
+    if (existing) {
+      tagIds.push(existing.id);
+      continue;
+    }
+
+    const createResponse = await fetch(`${supabaseUrl}/rest/v1/procedural_tags`, {
+      method: "POST",
+      headers: supabaseHeaders(supabaseSecretKey, { Prefer: "return=representation" }),
+      body: JSON.stringify({
+        scope: "tipificacao",
+        name: item.rotulo,
+        slug: item.slug,
+        color: "purple",
+        is_system: true,
+      }),
+    });
+
+    if (createResponse.status === 409) {
+      const retryResponse = await fetch(
+        `${supabaseUrl}/rest/v1/procedural_tags?scope=eq.tipificacao&slug=eq.${encodeURIComponent(item.slug)}&select=id,name,slug&limit=1`,
+        { headers: supabaseHeaders(supabaseSecretKey) },
+      );
+      const [concurrent] = await readSupabaseJson<SupabaseTagRow[]>(
+        retryResponse,
+        "sheet_sync_tipificacao_refetch",
+      );
+      if (!concurrent) throw new Error("sheet_sync_tipificacao_conflict_without_tag");
+      tagIds.push(concurrent.id);
+      existingBySlug.set(concurrent.slug, concurrent);
+      continue;
+    }
+
+    const [created] = await readSupabaseJson<SupabaseTagRow[]>(
+      createResponse,
+      "sheet_sync_tipificacao_create",
+    );
+    if (!created) throw new Error("sheet_sync_tipificacao_create_empty");
+    tagIds.push(created.id);
+    existingBySlug.set(created.slug, created);
+  }
+
+  const tipificacaoTagIds = [...new Set([...catalog.map((tag) => tag.id), ...tagIds])];
+  if (tipificacaoTagIds.length > 0) {
+    const deleteResponse = await fetch(
+      `${supabaseUrl}/rest/v1/inquerito_tag_links?inquerito_id=eq.${encodeURIComponent(inqueritoId)}&tag_id=in.(${tipificacaoTagIds.join(",")})`,
+      { method: "DELETE", headers: supabaseHeaders(supabaseSecretKey) },
+    );
+    await assertSupabaseOk(deleteResponse, "sheet_sync_tipificacao_clear");
+  }
+
+  if (tagIds.length > 0) {
+    const insertResponse = await fetch(`${supabaseUrl}/rest/v1/inquerito_tag_links`, {
+      method: "POST",
+      headers: supabaseHeaders(supabaseSecretKey),
+      body: JSON.stringify(tagIds.map((tagId) => ({ inquerito_id: inqueritoId, tag_id: tagId }))),
+    });
+    await assertSupabaseOk(insertResponse, "sheet_sync_tipificacao_link");
+  }
+}
 
 function jsonResponse(body: unknown, status: number) {
   return Response.json(body, {
@@ -149,6 +263,32 @@ async function handleSheetSync(request: Request) {
         },
         502,
       );
+    }
+
+    if (record.entity === "inquerito" && record.operation === "upsert" && result?.entityId) {
+      try {
+        await indexInqueritoTipificacoes({
+          supabaseUrl: configuration.supabaseUrl!,
+          supabaseSecretKey: configuration.supabaseSecretKey!,
+          inqueritoId: result.entityId,
+          rawTipificacao:
+            typeof record.payload.tipificacao === "string"
+              ? record.payload.tipificacao
+              : record.payload.tipificacao == null
+                ? null
+                : String(record.payload.tipificacao),
+        });
+      } catch (error) {
+        console.error("sheet_sync_tipificacao_index_failed", {
+          requestId: record.requestId,
+          entityId: result.entityId,
+          message: error instanceof Error ? error.message : "unknown",
+        });
+        return jsonResponse(
+          { error: "tipificacao_index_failed", requestId: record.requestId },
+          502,
+        );
+      }
     }
 
     console.info("sheet_sync_applied", {

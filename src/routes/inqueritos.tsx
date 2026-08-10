@@ -7,7 +7,17 @@ import {
   useTableColumnPreferences,
   type TableColumnDefinition,
 } from "@/components/TableColumnSettings";
-import { Search, Filter, Plus } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  FileDown,
+  Filter,
+  Pencil,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { listInqueritos, type InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import {
   listRepresentacoes,
@@ -22,6 +32,21 @@ import {
 } from "@/lib/authz";
 import { canAccessSigilosa, isRepresentacaoSigilosa } from "@/lib/representacoesSigilo";
 import { classifyAuthorship, getAuthorshipLabel } from "@/lib/authorship";
+import {
+  listInqueritoTagLinks,
+  listProceduralTags,
+} from "@/lib/repositories/proceduralTagsRepository";
+import { tagsByScope, type ProceduralTag } from "@/lib/proceduralTags";
+import { parseTipificacoes } from "@/lib/tipificacaoParser";
+import {
+  createSavedFilter,
+  deleteSavedFilter,
+  listSavedFilters,
+  renameSavedFilter,
+  updateSavedFilter,
+  type SavedFilterRecord,
+} from "@/lib/repositories/savedFiltersRepository";
+import { SipiPrintList } from "@/components/SipiPrintList";
 import {
   calculateInqueritoOperationalPriority,
   isTruthyLike,
@@ -66,6 +91,140 @@ const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
   { id: "acao", label: "Ação", defaultWidth: 84, required: true, align: "center" },
 ];
 
+type FilterOption = { value: string; label: string };
+
+function MultiSelectFilter({
+  label,
+  values,
+  options,
+  onChange,
+}: {
+  label: string;
+  values: string[];
+  options: FilterOption[];
+  onChange: (values: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const summary =
+    values.length === 0
+      ? `${label}: todos`
+      : values.length === 1
+        ? `${label}: ${options.find((option) => option.value === values[0])?.label ?? values[0]}`
+        : `${label}: ${values.length} selecionados`;
+
+  return (
+    <div
+      className="relative"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-border/90 bg-background/70 px-3 text-left text-sm"
+        aria-expanded={open}
+      >
+        <span className="truncate">{summary}</span>
+        <ChevronDown className={`h-4 w-4 shrink-0 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open ? (
+        <div className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-50 max-h-72 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-2xl">
+          {options.map((option) => {
+            const checked = values.includes(option.value);
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  onChange(
+                    checked
+                      ? values.filter((value) => value !== option.value)
+                      : [...values, option.value],
+                  )
+                }
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition hover:bg-accent"
+              >
+                <span
+                  className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                    checked ? "border-primary bg-primary text-primary-foreground" : "border-border"
+                  }`}
+                >
+                  {checked ? <Check className="h-3 w-3" /> : null}
+                </span>
+                <span>{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+type InquiryFilterPayload = {
+  busca: string;
+  situacao: string[];
+  prioridade: string[];
+  gravidade: string[];
+  tipo: string[];
+  equipe: string[];
+  tipificacao: string[];
+  autoria: string;
+  prazo: string;
+  dataInicial: string;
+  dataFinal: string;
+  dataCampo: string;
+  relatorio: string;
+  categoria: string;
+  status: string;
+  elucidado: boolean;
+  naoElucidado: boolean;
+  reuPreso: boolean;
+  reuPresoStrict: boolean;
+  medidaProtetiva: boolean;
+  diligenciasPendentes: boolean;
+};
+
+function deserializeInquiryFilters(raw: Record<string, unknown>): InquiryFilterPayload {
+  const multi = (key: string) => {
+    const value = raw[key];
+    const values = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : [];
+    return [
+      ...new Set(
+        values.map((item) => String(item).trim()).filter((item) => item && item !== "todos"),
+      ),
+    ];
+  };
+  const text = (key: string, fallback = "todos") =>
+    typeof raw[key] === "string" && raw[key].trim() ? raw[key].trim() : fallback;
+  const flag = (key: string) => raw[key] === true;
+
+  return {
+    busca: text("busca", ""),
+    situacao: multi("situacao"),
+    prioridade: multi("prioridade"),
+    gravidade: multi("gravidade"),
+    tipo: multi("tipo"),
+    equipe: multi("equipe"),
+    tipificacao: multi("tipificacao"),
+    autoria: text("autoria"),
+    prazo: text("prazo"),
+    dataInicial: text("dataInicial", ""),
+    dataFinal: text("dataFinal", ""),
+    dataCampo: text("dataCampo", "entrada"),
+    relatorio: text("relatorio"),
+    categoria: text("categoria"),
+    status: text("status"),
+    elucidado: flag("elucidado"),
+    naoElucidado: flag("naoElucidado"),
+    reuPreso: flag("reuPreso"),
+    reuPresoStrict: flag("reuPresoStrict"),
+    medidaProtetiva: flag("medidaProtetiva"),
+    diligenciasPendentes: flag("diligenciasPendentes"),
+  };
+}
+
 type InqueritoListRow = {
   source: InqueritoRecord;
   id: string;
@@ -96,6 +255,7 @@ type InqueritoListRow = {
   elucidado: string;
   motivacao: string;
   fullText: string;
+  tagIds: string[];
 };
 
 function parseDateToUtc(value: string, endDay: boolean) {
@@ -350,7 +510,7 @@ function getPrazoDisplay(prazo: string) {
   return { text: dateText, title, tone: "text-emerald-400/80" };
 }
 
-function normalizeInqueritoForList(caso: InqueritoRecord): InqueritoListRow {
+function normalizeInqueritoForList(caso: InqueritoRecord, tagIds: string[] = []): InqueritoListRow {
   const raw = caso as unknown as Record<string, unknown>;
   const fields = Object.values(raw).map((v) => normalizeText(v == null ? "" : String(v)));
   return {
@@ -411,6 +571,7 @@ function normalizeInqueritoForList(caso: InqueritoRecord): InqueritoListRow {
     elucidado: pick(raw, "cvli_elucidado", "elucidado"),
     motivacao: pick(raw, "motivacao", "motivação"),
     fullText: fields.join(" "),
+    tagIds,
   };
 }
 
@@ -425,15 +586,28 @@ function Inqueritos() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [selectedInquerito, setSelectedInquerito] = useState<InqueritoRecord | null>(null);
   const [representacoes, setRepresentacoes] = useState<RepresentacaoRecord[]>([]);
+  const [proceduralTags, setProceduralTags] = useState<ProceduralTag[]>([]);
+  const [tagLinks, setTagLinks] = useState<Array<{ inquerito_id: string; tag_id: string }>>([]);
+  const [savedFilters, setSavedFilters] = useState<SavedFilterRecord[]>([]);
+  const [activeSavedFilterId, setActiveSavedFilterId] = useState("");
+  const [activeSavedFilterSnapshot, setActiveSavedFilterSnapshot] = useState("");
+  const [showSaveFilterForm, setShowSaveFilterForm] = useState(false);
+  const [savedFilterName, setSavedFilterName] = useState("");
+  const [saveColumnLayout, setSaveColumnLayout] = useState(false);
+  const [savedFilterBusy, setSavedFilterBusy] = useState(false);
+  const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const columnController = useTableColumnPreferences(
     "sipi:inqueritos:table-columns:v3",
     INQUIRY_COLUMNS,
+    "inqueritos",
   );
-  const [situacaoFilter, setSituacaoFilter] = useState("todos");
-  const [prioridadeFilter, setPrioridadeFilter] = useState("todos");
-  const [gravidadeFilter, setGravidadeFilter] = useState("todos");
-  const [tipoFilter, setTipoFilter] = useState("todos");
+  const [situacaoFilter, setSituacaoFilter] = useState<string[]>([]);
+  const [prioridadeFilter, setPrioridadeFilter] = useState<string[]>([]);
+  const [gravidadeFilter, setGravidadeFilter] = useState<string[]>([]);
+  const [tipoFilter, setTipoFilter] = useState<string[]>([]);
+  const [equipeFilter, setEquipeFilter] = useState<string[]>([]);
+  const [tipificacaoFilter, setTipificacaoFilter] = useState<string[]>([]);
   const [autoriaFilter, setAutoriaFilter] = useState("todos");
   const [prazoFilter, setPrazoFilter] = useState("todos");
   const [dataInicial, setDataInicial] = useState("");
@@ -456,13 +630,22 @@ function Inqueritos() {
         setLoading(true);
         const currentProfile = await getCurrentProfile();
         setProfile(currentProfile);
-        const [inqueritos, linkedRepresentacoes] = await Promise.all([
-          listInqueritos(),
-          canViewRepresentacoes(currentProfile)
-            ? listRepresentacoes().catch(() => [] as RepresentacaoRecord[])
-            : Promise.resolve([] as RepresentacaoRecord[]),
-        ]);
+        const [inqueritos, linkedRepresentacoes, loadedTags, loadedTagLinks, loadedSavedFilters] =
+          await Promise.all([
+            listInqueritos(),
+            canViewRepresentacoes(currentProfile)
+              ? listRepresentacoes().catch(() => [] as RepresentacaoRecord[])
+              : Promise.resolve([] as RepresentacaoRecord[]),
+            listProceduralTags(["tipificacao"]).catch(() => [] as ProceduralTag[]),
+            listInqueritoTagLinks().catch(
+              () => [] as Array<{ inquerito_id: string; tag_id: string }>,
+            ),
+            listSavedFilters("inqueritos").catch(() => [] as SavedFilterRecord[]),
+          ]);
         setRows(inqueritos);
+        setProceduralTags(loadedTags);
+        setTagLinks(loadedTagLinks);
+        setSavedFilters(loadedSavedFilters);
         setRepresentacoes(
           canAccessSigilosa(currentProfile)
             ? linkedRepresentacoes
@@ -481,19 +664,25 @@ function Inqueritos() {
     // location.search do roteador e o objeto ja interpretado; aqui queremos a
     // query crua da URL.
     const params = new URLSearchParams(window.location.search);
-    const assign = (key: string, setter: (v: string) => void, allowed?: Set<string>) => {
-      const v = params.get(key);
-      if (!v) return;
-      const n = normalizeText(v);
-      if (!n) return;
-      if (allowed && !allowed.has(n)) return;
-      setter(v);
+    const assignMultiple = (key: string, setter: (values: string[]) => void) => {
+      const raw = params.get(key);
+      if (!raw?.trim()) return;
+      setter([
+        ...new Set(
+          raw
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean),
+        ),
+      ]);
     };
     setSearchTerm("");
-    setSituacaoFilter("todos");
-    setPrioridadeFilter("todos");
-    setGravidadeFilter("todos");
-    setTipoFilter("todos");
+    setSituacaoFilter([]);
+    setPrioridadeFilter([]);
+    setGravidadeFilter([]);
+    setTipoFilter([]);
+    setEquipeFilter([]);
+    setTipificacaoFilter([]);
     setAutoriaFilter("todos");
     setPrazoFilter("todos");
     setDataInicial("");
@@ -508,11 +697,16 @@ function Inqueritos() {
     setReuPresoStrictFilter(false);
     setMedidaProtetivaFilter(false);
     setDiligenciasPendentesFilter(false);
-    assign("prioridade", setPrioridadeFilter);
-    assign("situacao", setSituacaoFilter);
-    assign("gravidade", setGravidadeFilter);
+    assignMultiple("prioridade", setPrioridadeFilter);
+    assignMultiple("situacao", setSituacaoFilter);
+    assignMultiple("gravidade", setGravidadeFilter);
+    assignMultiple("equipe", setEquipeFilter);
+    assignMultiple("tipificacao", setTipificacaoFilter);
     const tipoParam = params.get("tipo");
-    if (tipoParam?.trim()) setTipoFilter(getProcedureType(tipoParam) || tipoParam);
+    if (tipoParam?.trim())
+      setTipoFilter([
+        ...new Set(tipoParam.split(",").map((value) => getProcedureType(value) || value)),
+      ]);
     const autoria = normalizeText(params.get("autoria") ?? "todos").replace(/-/g, "_");
     if (["todos", "determinada", "desconhecida", "sem_autoria"].includes(autoria))
       setAutoriaFilter(autoria);
@@ -564,6 +758,7 @@ function Inqueritos() {
     if (di && /^\d{4}-\d{2}-\d{2}$/u.test(di)) setDataInicial(di);
     if (df && /^\d{4}-\d{2}-\d{2}$/u.test(df)) setDataFinal(df);
     setShowFilters(params.size > 0);
+    setFiltersInitialized(true);
   }, [isInqueritosIndex, location.search]);
 
   const visibleRows = useMemo(
@@ -579,9 +774,19 @@ function Inqueritos() {
           }),
     [profile, rows],
   );
+  const tagIdsByInquerito = useMemo(() => {
+    const mapped = new Map<string, string[]>();
+    for (const link of tagLinks) {
+      mapped.set(link.inquerito_id, [...(mapped.get(link.inquerito_id) ?? []), link.tag_id]);
+    }
+    return mapped;
+  }, [tagLinks]);
   const normalizedRows = useMemo(
-    () => visibleRows.map((r) => normalizeInqueritoForList(r)),
-    [visibleRows],
+    () =>
+      visibleRows.map((record) =>
+        normalizeInqueritoForList(record, tagIdsByInquerito.get(record.id) ?? []),
+      ),
+    [tagIdsByInquerito, visibleRows],
   );
   const linkedRepresentacoes = useMemo(
     () =>
@@ -612,6 +817,23 @@ function Inqueritos() {
   const tipoOptions = useMemo(
     () => options(normalizedRows.map((r) => r.tipoProcedimento)),
     [normalizedRows],
+  );
+  const equipeOptions = useMemo(
+    () => options(normalizedRows.map((r) => r.equipe)),
+    [normalizedRows],
+  );
+  const tipificacaoOptions = useMemo(
+    () => tagsByScope(proceduralTags, "tipificacao"),
+    [proceduralTags],
+  );
+  const selectedTipificacaoSlugs = useMemo(
+    () =>
+      new Set(
+        tipificacaoOptions
+          .filter((tag) => tipificacaoFilter.includes(tag.id))
+          .map((tag) => tag.slug),
+      ),
+    [tipificacaoFilter, tipificacaoOptions],
   );
 
   const filtered = useMemo(
@@ -644,43 +866,67 @@ function Inqueritos() {
           )
         )
           return false;
-        const situacao = isConcluidoAlias(situacaoFilter)
-          ? ([r.situacao, r.statusDiligencias].find(
-              (v) => !isEmpty(v) && matchesSituacaoAlias(v, situacaoFilter),
-            ) ?? (r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias))
-          : r.situacao !== FALLBACK
-            ? r.situacao
-            : r.statusDiligencias;
+        const situacao = r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias;
         if (
-          normalizeText(situacaoFilter) !== "todos" &&
-          !(situacaoFilter === EMPTY_FILTER
-            ? isEmpty(situacao)
-            : matchesSituacaoAlias(situacao, situacaoFilter))
+          situacaoFilter.length > 0 &&
+          !situacaoFilter.some((filter) =>
+            filter === EMPTY_FILTER
+              ? isEmpty(situacao)
+              : [r.situacao, r.statusDiligencias].some(
+                  (value) => !isEmpty(value) && matchesSituacaoAlias(value, filter),
+                ),
+          )
         )
           return false;
-        if (normalizeText(prioridadeFilter) !== "todos") {
+        if (prioridadeFilter.length > 0) {
           const prioridadeOperacional = calculateOperationalPriority(r);
           if (
-            !(prioridadeFilter === EMPTY_FILTER
-              ? isEmpty(prioridadeOperacional)
-              : normalizeText(prioridadeOperacional) === normalizeText(prioridadeFilter))
+            !prioridadeFilter.some((filter) =>
+              filter === EMPTY_FILTER
+                ? isEmpty(prioridadeOperacional)
+                : normalizeText(prioridadeOperacional) === normalizeText(filter),
+            )
           )
             return false;
         }
         if (
-          normalizeText(gravidadeFilter) !== "todos" &&
-          !(gravidadeFilter === EMPTY_FILTER
-            ? isEmpty(r.gravidade)
-            : normalizeText(r.gravidade) === normalizeText(gravidadeFilter))
+          gravidadeFilter.length > 0 &&
+          !gravidadeFilter.some((filter) =>
+            filter === EMPTY_FILTER
+              ? isEmpty(r.gravidade)
+              : normalizeText(r.gravidade) === normalizeText(filter),
+          )
         )
           return false;
         if (
-          normalizeText(tipoFilter) !== "todos" &&
-          !(tipoFilter === EMPTY_FILTER
-            ? isEmpty(r.tipoProcedimento)
-            : getProcedureType(r.tipoProcedimento) === getProcedureType(tipoFilter))
+          tipoFilter.length > 0 &&
+          !tipoFilter.some((filter) =>
+            filter === EMPTY_FILTER
+              ? isEmpty(r.tipoProcedimento)
+              : getProcedureType(r.tipoProcedimento) === getProcedureType(filter),
+          )
         )
           return false;
+        if (
+          equipeFilter.length > 0 &&
+          !equipeFilter.some((filter) =>
+            filter === EMPTY_FILTER
+              ? isEmpty(r.equipe)
+              : normalizeText(r.equipe) === normalizeText(filter),
+          )
+        )
+          return false;
+        if (tipificacaoFilter.length > 0) {
+          const linkedMatch = tipificacaoFilter.some((tagId) => r.tagIds.includes(tagId));
+          const parsedSlugs = new Set(
+            parseTipificacoes(
+              r.tipificacao,
+              tipificacaoOptions.map((tag) => tag.name),
+            ).map((item) => item.slug),
+          );
+          const textMatch = [...selectedTipificacaoSlugs].some((slug) => parsedSlugs.has(slug));
+          if (!linkedMatch && !textMatch) return false;
+        }
         if (
           normalizeText(autoriaFilter) !== "todos" &&
           classifyAuthorship(r.autoria) !== autoriaFilter
@@ -728,6 +974,10 @@ function Inqueritos() {
       prioridadeFilter,
       gravidadeFilter,
       tipoFilter,
+      equipeFilter,
+      tipificacaoFilter,
+      tipificacaoOptions,
+      selectedTipificacaoSlugs,
       autoriaFilter,
       prazoFilter,
       dataInicial,
@@ -747,17 +997,15 @@ function Inqueritos() {
 
   const hasActiveFilters = Boolean(
     searchTerm.trim() ||
-    [
-      situacaoFilter,
-      prioridadeFilter,
-      gravidadeFilter,
-      tipoFilter,
-      autoriaFilter,
-      prazoFilter,
-      relatorioFilter,
-      categoriaFilter,
-      statusQueryFilter,
-    ].some((f) => normalizeText(f) !== "todos") ||
+    situacaoFilter.length ||
+    prioridadeFilter.length ||
+    gravidadeFilter.length ||
+    tipoFilter.length ||
+    equipeFilter.length ||
+    tipificacaoFilter.length ||
+    [autoriaFilter, prazoFilter, relatorioFilter, categoriaFilter, statusQueryFilter].some(
+      (filter) => normalizeText(filter) !== "todos",
+    ) ||
     dataInicial ||
     dataFinal ||
     elucidadoFilter ||
@@ -766,9 +1014,319 @@ function Inqueritos() {
     medidaProtetivaFilter ||
     diligenciasPendentesFilter,
   );
+  const currentFilterPayload = useMemo<InquiryFilterPayload>(
+    () => ({
+      busca: searchTerm,
+      situacao: situacaoFilter,
+      prioridade: prioridadeFilter,
+      gravidade: gravidadeFilter,
+      tipo: tipoFilter,
+      equipe: equipeFilter,
+      tipificacao: tipificacaoFilter,
+      autoria: autoriaFilter,
+      prazo: prazoFilter,
+      dataInicial,
+      dataFinal,
+      dataCampo: dataFieldFilter,
+      relatorio: relatorioFilter,
+      categoria: categoriaFilter,
+      status: statusQueryFilter,
+      elucidado: elucidadoFilter,
+      naoElucidado: naoElucidadoFilter,
+      reuPreso: reuPresoFilter,
+      reuPresoStrict: reuPresoStrictFilter,
+      medidaProtetiva: medidaProtetivaFilter,
+      diligenciasPendentes: diligenciasPendentesFilter,
+    }),
+    [
+      autoriaFilter,
+      categoriaFilter,
+      dataFieldFilter,
+      dataFinal,
+      dataInicial,
+      diligenciasPendentesFilter,
+      elucidadoFilter,
+      equipeFilter,
+      gravidadeFilter,
+      medidaProtetivaFilter,
+      naoElucidadoFilter,
+      prazoFilter,
+      prioridadeFilter,
+      relatorioFilter,
+      reuPresoFilter,
+      reuPresoStrictFilter,
+      searchTerm,
+      situacaoFilter,
+      statusQueryFilter,
+      tipoFilter,
+      tipificacaoFilter,
+    ],
+  );
+
+  const applyInquiryFilterPayload = (raw: Record<string, unknown>) => {
+    const next = deserializeInquiryFilters(raw);
+    setSearchTerm(next.busca);
+    setSituacaoFilter(next.situacao);
+    setPrioridadeFilter(next.prioridade);
+    setGravidadeFilter(next.gravidade);
+    setTipoFilter(next.tipo);
+    setEquipeFilter(next.equipe);
+    setTipificacaoFilter(next.tipificacao);
+    setAutoriaFilter(next.autoria);
+    setPrazoFilter(next.prazo);
+    setDataInicial(next.dataInicial);
+    setDataFinal(next.dataFinal);
+    setDataFieldFilter(next.dataCampo);
+    setRelatorioFilter(next.relatorio);
+    setCategoriaFilter(next.categoria);
+    setStatusQueryFilter(next.status);
+    setElucidadoFilter(next.elucidado);
+    setNaoElucidadoFilter(next.naoElucidado);
+    setReuPresoFilter(next.reuPreso);
+    setReuPresoStrictFilter(next.reuPresoStrict);
+    setMedidaProtetivaFilter(next.medidaProtetiva);
+    setDiligenciasPendentesFilter(next.diligenciasPendentes);
+    setShowFilters(true);
+    return next;
+  };
+
+  useEffect(() => {
+    if (!filtersInitialized || !isInqueritosIndex) return;
+    const params = new URLSearchParams();
+    const setText = (key: string, value: string, defaultValue = "") => {
+      if (value && value !== defaultValue && value !== "todos") params.set(key, value);
+    };
+    const setMulti = (key: string, values: string[]) => {
+      if (values.length) params.set(key, values.join(","));
+    };
+    setText("busca", currentFilterPayload.busca);
+    setMulti("situacao", currentFilterPayload.situacao);
+    setMulti("prioridade", currentFilterPayload.prioridade);
+    setMulti("gravidade", currentFilterPayload.gravidade);
+    setMulti("tipo", currentFilterPayload.tipo);
+    setMulti("equipe", currentFilterPayload.equipe);
+    setMulti("tipificacao", currentFilterPayload.tipificacao);
+    setText("autoria", currentFilterPayload.autoria, "todos");
+    setText("prazo", currentFilterPayload.prazo, "todos");
+    setText("dataInicial", currentFilterPayload.dataInicial);
+    setText("dataFinal", currentFilterPayload.dataFinal);
+    setText("dataCampo", currentFilterPayload.dataCampo, "entrada");
+    setText("relatorio", currentFilterPayload.relatorio, "todos");
+    setText("categoria", currentFilterPayload.categoria, "todos");
+    setText("status", currentFilterPayload.status, "todos");
+    if (currentFilterPayload.elucidado) params.set("elucidado", "1");
+    if (currentFilterPayload.naoElucidado) params.set("elucidado", "0");
+    if (currentFilterPayload.reuPreso) params.set("reuPreso", "1");
+    if (currentFilterPayload.reuPresoStrict) params.set("reu_preso", "1");
+    if (currentFilterPayload.medidaProtetiva) params.set("medidaProtetiva", "1");
+    if (currentFilterPayload.diligenciasPendentes) params.set("diligenciasPendentes", "1");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [currentFilterPayload, filtersInitialized, isInqueritosIndex]);
+
+  const activeSavedFilter = savedFilters.find((item) => item.id === activeSavedFilterId) ?? null;
+  const activeSavedFilterDirty = Boolean(
+    activeSavedFilterId &&
+    activeSavedFilterSnapshot &&
+    JSON.stringify(currentFilterPayload) !== activeSavedFilterSnapshot,
+  );
+
+  const applySavedFilter = (record: SavedFilterRecord) => {
+    const normalized = applyInquiryFilterPayload(record.filters);
+    if (record.columns?.length) columnController.apply(record.columns);
+    setActiveSavedFilterId(record.id);
+    setActiveSavedFilterSnapshot(JSON.stringify(normalized));
+  };
+
+  const handleSaveCurrentFilter = async () => {
+    const name = savedFilterName.trim();
+    if (name.length < 2) {
+      setError("Informe um nome com pelo menos 2 caracteres para o filtro.");
+      return;
+    }
+    setSavedFilterBusy(true);
+    setError("");
+    try {
+      const existing = savedFilters.find(
+        (item) => normalizeText(item.name) === normalizeText(name),
+      );
+      const columns = saveColumnLayout ? columnController.preferences : null;
+      let saved: SavedFilterRecord;
+      if (existing) {
+        if (!window.confirm(`O filtro “${existing.name}” já existe. Deseja substituí-lo?`)) return;
+        saved = await updateSavedFilter(existing.id, { filters: currentFilterPayload, columns });
+      } else {
+        saved = await createSavedFilter({
+          scope: "inqueritos",
+          name,
+          filters: currentFilterPayload,
+          columns,
+        });
+      }
+      setSavedFilters((current) =>
+        [...current.filter((item) => item.id !== saved.id), saved].sort((a, b) =>
+          a.name.localeCompare(b.name, "pt-BR"),
+        ),
+      );
+      setActiveSavedFilterId(saved.id);
+      setActiveSavedFilterSnapshot(JSON.stringify(currentFilterPayload));
+      setShowSaveFilterForm(false);
+      setSavedFilterName("");
+      setSaveColumnLayout(false);
+    } catch {
+      setError("Não foi possível salvar o filtro. Verifique se o nome já está em uso.");
+    } finally {
+      setSavedFilterBusy(false);
+    }
+  };
+
+  const handleUpdateActiveFilter = async () => {
+    if (!activeSavedFilter) return;
+    setSavedFilterBusy(true);
+    try {
+      const updated = await updateSavedFilter(activeSavedFilter.id, {
+        filters: currentFilterPayload,
+        columns: activeSavedFilter.columns === null ? null : columnController.preferences,
+      });
+      setSavedFilters((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setActiveSavedFilterSnapshot(JSON.stringify(currentFilterPayload));
+    } catch {
+      setError("Não foi possível atualizar o filtro salvo.");
+    } finally {
+      setSavedFilterBusy(false);
+    }
+  };
+
+  const handleRenameActiveFilter = async () => {
+    if (!activeSavedFilter) return;
+    const name = window.prompt("Novo nome do filtro:", activeSavedFilter.name)?.trim();
+    if (!name || name.length < 2 || name === activeSavedFilter.name) return;
+    try {
+      const updated = await renameSavedFilter(activeSavedFilter.id, name);
+      setSavedFilters((current) =>
+        current
+          .map((item) => (item.id === updated.id ? updated : item))
+          .sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+      );
+    } catch {
+      setError("Não foi possível renomear. Talvez esse nome já esteja em uso.");
+    }
+  };
+
+  const handleDeleteActiveFilter = async () => {
+    if (
+      !activeSavedFilter ||
+      !window.confirm(`Excluir definitivamente o filtro “${activeSavedFilter.name}”?`)
+    )
+      return;
+    try {
+      await deleteSavedFilter(activeSavedFilter.id);
+      setSavedFilters((current) => current.filter((item) => item.id !== activeSavedFilter.id));
+      setActiveSavedFilterId("");
+      setActiveSavedFilterSnapshot("");
+    } catch {
+      setError("Não foi possível excluir o filtro salvo.");
+    }
+  };
   const visibleInquiryColumns = columnController.visibleColumns;
-  const tableGridTemplate = visibleInquiryColumns.map((column) => `${column.width}px`).join(" ");
-  const tableMinWidth = visibleInquiryColumns.reduce((sum, column) => sum + column.width, 0);
+  const printGeneratedAt = useMemo(
+    () =>
+      new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "medium",
+      }).format(new Date()),
+    [],
+  );
+  const printFilters = useMemo(() => {
+    const result: Array<{ label: string; value: string }> = [];
+    const pushMulti = (label: string, values: string[], resolve?: (value: string) => string) => {
+      if (values.length)
+        result.push({ label, value: values.map((value) => resolve?.(value) ?? value).join("; ") });
+    };
+    if (searchTerm.trim()) result.push({ label: "Busca", value: searchTerm.trim() });
+    pushMulti("Status", situacaoFilter);
+    pushMulti("Prioridade", prioridadeFilter);
+    pushMulti("Gravidade", gravidadeFilter);
+    pushMulti("Tipo", tipoFilter);
+    pushMulti("Equipe", equipeFilter);
+    pushMulti("Tipificação", tipificacaoFilter, (id) => {
+      if (id === EMPTY_FILTER) return "Não informada";
+      return tipificacaoOptions.find((tag) => tag.id === id)?.name ?? id;
+    });
+    if (autoriaFilter !== "todos")
+      result.push({ label: "Autoria", value: autoriaFilter.replaceAll("_", " ") });
+    if (prazoFilter !== "todos") result.push({ label: "Prazo", value: prazoFilter });
+    if (dataInicial || dataFinal)
+      result.push({
+        label: "Período",
+        value: `${dataInicial || "início"} a ${dataFinal || "hoje"}`,
+      });
+    if (relatorioFilter !== "todos")
+      result.push({ label: "Relatório", value: relatorioFilter.replaceAll("_", " ") });
+    if (categoriaFilter !== "todos") result.push({ label: "Categoria", value: categoriaFilter });
+    if (statusQueryFilter !== "todos")
+      result.push({ label: "Estágio", value: statusQueryFilter.replaceAll("_", " ") });
+    if (elucidadoFilter) result.push({ label: "Elucidação", value: "Elucidado" });
+    if (naoElucidadoFilter) result.push({ label: "Elucidação", value: "Não elucidado" });
+    if (reuPresoFilter) result.push({ label: "Réu preso", value: "Sim" });
+    if (medidaProtetivaFilter) result.push({ label: "Medida protetiva", value: "Sim" });
+    if (diligenciasPendentesFilter) result.push({ label: "Diligências pendentes", value: "Sim" });
+    return result;
+  }, [
+    autoriaFilter,
+    categoriaFilter,
+    dataFinal,
+    dataInicial,
+    diligenciasPendentesFilter,
+    elucidadoFilter,
+    equipeFilter,
+    gravidadeFilter,
+    medidaProtetivaFilter,
+    naoElucidadoFilter,
+    prazoFilter,
+    prioridadeFilter,
+    relatorioFilter,
+    reuPresoFilter,
+    searchTerm,
+    situacaoFilter,
+    statusQueryFilter,
+    tipoFilter,
+    tipificacaoFilter,
+    tipificacaoOptions,
+  ]);
+  const printRows = useMemo(
+    () =>
+      filtered.map((row) =>
+        visibleInquiryColumns.map((column) => {
+          const situation = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
+          const values: Record<string, string> = {
+            ppe: row.numeroPpe || FALLBACK,
+            prioridade: calculateOperationalPriority(row) || FALLBACK,
+            tipificacao: row.tipificacao || FALLBACK,
+            gravidade: row.gravidade || FALLBACK,
+            tipo: getProcedureType(row.tipoProcedimento) || FALLBACK,
+            data_fato: formatOptionalDate(row.dataFato),
+            autoria: getAuthorshipLabel(row.autoria),
+            bairro: row.bairro || FALLBACK,
+            reu_preso: hasReuPreso(row) ? "Sim" : "Não",
+            status: situation || FALLBACK,
+            prazo: getPrazoDisplay(row.prazo).text,
+            acao: "Abrir",
+          };
+          return values[column.id] ?? FALLBACK;
+        }),
+      ),
+    [filtered, visibleInquiryColumns],
+  );
+  // Treat the saved widths as proportions while there is enough horizontal
+  // room. This keeps every selected column inside the panel instead of making
+  // the right side of the table disappear when optional columns are enabled.
+  const tableGridTemplate = visibleInquiryColumns
+    .map((column) => `minmax(0, ${column.width}fr)`)
+    .join(" ");
+  const tableMinWidth = Math.max(840, visibleInquiryColumns.length * 76);
   const getInquiryColumnStyle = (id: string) => {
     const index = visibleInquiryColumns.findIndex((column) => column.id === id);
     return index < 0 ? ({ display: "none" } as const) : ({ order: index } as const);
@@ -777,7 +1335,7 @@ function Inqueritos() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="sipi-print-document space-y-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.015)] lg:flex-row lg:items-center lg:justify-between lg:p-6">
           <div className="space-y-1.5">
             <h1 className="text-3xl font-black tracking-tight">Procedimentos Policiais</h1>
@@ -785,14 +1343,23 @@ function Inqueritos() {
               {filtered.length} de {visibleRows.length} caso(s) encontrado(s)
             </p>
           </div>
-          {canCreateCases(profile) ? (
+          <div className="sipi-print-hidden flex flex-wrap items-center gap-2">
             <button
-              className="hidden items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 md:inline-flex"
-              onClick={() => navigate({ to: "/novo-caso" })}
+              type="button"
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/15"
+              onClick={() => window.setTimeout(() => window.print(), 0)}
             >
-              <Plus className="h-4 w-4" /> Novo procedimento
+              <FileDown className="h-4 w-4" /> Exportar PDF
             </button>
-          ) : null}
+            {canCreateCases(profile) ? (
+              <button
+                className="hidden items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 md:inline-flex"
+                onClick={() => navigate({ to: "/novo-caso" })}
+              >
+                <Plus className="h-4 w-4" /> Novo procedimento
+              </button>
+            ) : null}
+          </div>
         </header>
         <section className="rounded-2xl border border-border/80 bg-card/70 p-4 md:p-5">
           <div className="flex flex-col gap-3 md:flex-row">
@@ -816,58 +1383,147 @@ function Inqueritos() {
           </div>
           {showFilters && (
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-4">
-              <select
-                value={situacaoFilter}
-                onChange={(e) => setSituacaoFilter(e.target.value)}
-                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
-              >
-                <option value="todos">Situação: todas</option>
-                <option value={EMPTY_FILTER}>Situação: não informada</option>
-                {situacaoOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={prioridadeFilter}
-                onChange={(e) => setPrioridadeFilter(e.target.value)}
-                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
-              >
-                <option value="todos">Prioridade: todas</option>
-                <option value={EMPTY_FILTER}>Prioridade: não informada</option>
-                {prioridadeOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={gravidadeFilter}
-                onChange={(e) => setGravidadeFilter(e.target.value)}
-                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
-              >
-                <option value="todos">Gravidade: todas</option>
-                <option value={EMPTY_FILTER}>Gravidade: não informada</option>
-                {gravidadeOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={tipoFilter}
-                onChange={(e) => setTipoFilter(e.target.value)}
-                className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
-              >
-                <option value="todos">Tipo: todos</option>
-                <option value={EMPTY_FILTER}>Tipo: não informado</option>
-                {tipoOptions.map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
+              <div className="flex flex-col gap-2 rounded-xl border border-primary/20 bg-primary/[0.04] p-3 md:col-span-4 md:flex-row md:items-center">
+                <select
+                  value={activeSavedFilterId}
+                  onChange={(event) => {
+                    const selected = savedFilters.find((item) => item.id === event.target.value);
+                    if (selected) applySavedFilter(selected);
+                    else {
+                      setActiveSavedFilterId("");
+                      setActiveSavedFilterSnapshot("");
+                    }
+                  }}
+                  className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm md:max-w-sm"
+                >
+                  <option value="">Filtros salvos</option>
+                  {savedFilters.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowSaveFilterForm((current) => !current)}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-primary/40 px-3 text-xs font-bold text-primary hover:bg-primary/10"
+                >
+                  <Save className="h-4 w-4" /> Salvar filtro atual
+                </button>
+                {activeSavedFilter ? (
+                  <>
+                    {activeSavedFilterDirty ? (
+                      <button
+                        type="button"
+                        disabled={savedFilterBusy}
+                        onClick={() => void handleUpdateActiveFilter()}
+                        className="inline-flex h-10 items-center justify-center rounded-lg bg-amber-500/15 px-3 text-xs font-bold text-amber-300 hover:bg-amber-500/25 disabled:opacity-50"
+                      >
+                        Atualizar filtro salvo
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => void handleRenameActiveFilter()}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-border hover:text-primary"
+                      title="Renomear filtro"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteActiveFilter()}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-destructive/40 text-destructive hover:bg-destructive/10"
+                      title="Excluir filtro"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                ) : null}
+              </div>
+              {activeSavedFilterDirty ? (
+                <p className="text-xs font-medium text-amber-300 md:col-span-4">
+                  Esta consulta foi alterada depois de carregar o filtro salvo.
+                </p>
+              ) : null}
+              {showSaveFilterForm ? (
+                <div className="grid gap-3 rounded-xl border border-border bg-background/60 p-3 md:col-span-4 md:grid-cols-[minmax(220px,1fr)_auto_auto] md:items-center">
+                  <input
+                    value={savedFilterName}
+                    onChange={(event) => setSavedFilterName(event.target.value)}
+                    maxLength={80}
+                    placeholder="Nome do filtro — ex.: APF pendente de laudo"
+                    className="h-10 rounded-lg border border-border bg-card px-3 text-sm"
+                  />
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={saveColumnLayout}
+                      onChange={(event) => setSaveColumnLayout(event.target.checked)}
+                    />
+                    Salvar também a organização das colunas
+                  </label>
+                  <button
+                    type="button"
+                    disabled={savedFilterBusy}
+                    onClick={() => void handleSaveCurrentFilter()}
+                    className="h-10 rounded-lg bg-primary px-4 text-xs font-black text-primary-foreground disabled:opacity-50"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              ) : null}
+              <MultiSelectFilter
+                label="Status"
+                values={situacaoFilter}
+                onChange={setSituacaoFilter}
+                options={[
+                  { value: EMPTY_FILTER, label: "Não informado" },
+                  ...situacaoOptions.map((value) => ({ value, label: value })),
+                ]}
+              />
+              <MultiSelectFilter
+                label="Prioridade"
+                values={prioridadeFilter}
+                onChange={setPrioridadeFilter}
+                options={[
+                  { value: EMPTY_FILTER, label: "Não informada" },
+                  ...prioridadeOptions.map((value) => ({ value, label: value })),
+                ]}
+              />
+              <MultiSelectFilter
+                label="Gravidade"
+                values={gravidadeFilter}
+                onChange={setGravidadeFilter}
+                options={[
+                  { value: EMPTY_FILTER, label: "Não informada" },
+                  ...gravidadeOptions.map((value) => ({ value, label: value })),
+                ]}
+              />
+              <MultiSelectFilter
+                label="Tipo"
+                values={tipoFilter}
+                onChange={setTipoFilter}
+                options={[
+                  { value: EMPTY_FILTER, label: "Não informado" },
+                  ...tipoOptions.map((value) => ({ value, label: value })),
+                ]}
+              />
+              <MultiSelectFilter
+                label="Equipe"
+                values={equipeFilter}
+                onChange={setEquipeFilter}
+                options={[
+                  { value: EMPTY_FILTER, label: "Não informada" },
+                  ...equipeOptions.map((value) => ({ value, label: value })),
+                ]}
+              />
+              <MultiSelectFilter
+                label="Tipificação"
+                values={tipificacaoFilter}
+                onChange={setTipificacaoFilter}
+                options={tipificacaoOptions.map((tag) => ({ value: tag.id, label: tag.name }))}
+              />
               <select
                 value={prazoFilter}
                 onChange={(e) => setPrazoFilter(e.target.value)}
@@ -905,10 +1561,12 @@ function Inqueritos() {
                 <button
                   onClick={() => {
                     setSearchTerm("");
-                    setSituacaoFilter("todos");
-                    setPrioridadeFilter("todos");
-                    setGravidadeFilter("todos");
-                    setTipoFilter("todos");
+                    setSituacaoFilter([]);
+                    setPrioridadeFilter([]);
+                    setGravidadeFilter([]);
+                    setTipoFilter([]);
+                    setEquipeFilter([]);
+                    setTipificacaoFilter([]);
                     setAutoriaFilter("todos");
                     setPrazoFilter("todos");
                     setDataInicial("");
@@ -1011,7 +1669,7 @@ function Inqueritos() {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setPrioridadeFilter(prioridadeOperacional || EMPTY_FILTER);
+                          setPrioridadeFilter([prioridadeOperacional || EMPTY_FILTER]);
                         }}
                         className={`inline-flex min-h-6 max-w-full items-center justify-center rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wide ${priorityToneClass(prioridadeOperacional)}`}
                         title="Prioridade operacional calculada para exibição"
@@ -1039,7 +1697,9 @@ function Inqueritos() {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setGravidadeFilter(isEmpty(row.gravidade) ? EMPTY_FILTER : row.gravidade);
+                          setGravidadeFilter([
+                            isEmpty(row.gravidade) ? EMPTY_FILTER : row.gravidade,
+                          ]);
                         }}
                         className="mx-auto block max-w-full truncate text-center text-xs font-medium leading-5 text-muted-foreground hover:text-foreground/80"
                         title={gravidade}
@@ -1114,7 +1774,7 @@ function Inqueritos() {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setSituacaoFilter(situacao || EMPTY_FILTER);
+                          setSituacaoFilter([situacao || EMPTY_FILTER]);
                         }}
                         className={`inline-flex min-h-6 max-w-full items-center justify-center overflow-hidden rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wide ${statusToneClass(situacao)}`}
                         title={statusTexto}
@@ -1160,6 +1820,20 @@ function Inqueritos() {
             </tbody>
           </table>
         </div>
+        <SipiPrintList
+          documentTitle="Procedimentos Policiais"
+          documentSubtitle="Consulta filtrada da relação de procedimentos"
+          filtrosAplicados={printFilters}
+          columns={visibleInquiryColumns.map((column) => ({
+            id: column.id,
+            label: column.label,
+            align: column.align,
+          }))}
+          rows={printRows}
+          total={filtered.length}
+          geradoEm={printGeneratedAt}
+          geradoPor={profile?.nome || profile?.email || "Usuário autenticado"}
+        />
       </div>
       <InqueritoQuickPreview
         record={selectedInquerito}

@@ -190,6 +190,7 @@ function Representacoes() {
   const columnController = useTableColumnPreferences(
     "sipi:movimentacoes:table-columns:v2",
     MOVEMENT_COLUMNS,
+    "representacoes",
   );
 
   useEffect(() => {

@@ -85,6 +85,15 @@ export async function listInqueritoTagIds(inqueritoId: string) {
   return (rows ?? []).map((row) => row.tag_id);
 }
 
+export async function listInqueritoTagLinks() {
+  const rows = await runSupabaseQuery<Array<{ inquerito_id: string; tag_id: string }>>(
+    "vínculos de tags dos procedimentos",
+    (signal) =>
+      supabase.from("inquerito_tag_links").select("inquerito_id,tag_id").abortSignal(signal),
+  );
+  return rows ?? [];
+}
+
 export async function replaceInqueritoTags(inqueritoId: string, tagIds: string[]) {
   await runSupabaseQuery<null>("atualização das tags do procedimento", (signal) =>
     supabase

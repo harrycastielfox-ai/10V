@@ -1,6 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
 import { ChevronDown, ChevronUp, Columns3, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+  getTablePreferences,
+  saveTablePreferences,
+} from "@/lib/repositories/tablePreferencesRepository";
 
 export type TableColumnDefinition = {
   id: string;
@@ -10,56 +14,119 @@ export type TableColumnDefinition = {
   align?: "left" | "center" | "right";
 };
 
-type ColumnPreference = {
+export type ColumnPreference = {
   id: string;
   visible: boolean;
   width: number;
+  order: number;
 };
 
 function defaultPreferences(columns: readonly TableColumnDefinition[]) {
-  return columns.map((column) => ({
+  return columns.map((column, order) => ({
     id: column.id,
     visible: true,
     width: column.defaultWidth,
+    order,
   }));
+}
+
+function normalizePreferences(
+  input: Partial<ColumnPreference>[],
+  definitions: readonly TableColumnDefinition[],
+) {
+  const definitionMap = new Map(definitions.map((definition) => [definition.id, definition]));
+  const valid = input
+    .map((item, index) => ({
+      ...item,
+      derivedOrder: Number.isFinite(item.order) ? item.order! : index,
+    }))
+    .filter((item): item is typeof item & { id: string } =>
+      Boolean(item.id && definitionMap.has(item.id)),
+    )
+    .sort((left, right) => left.derivedOrder - right.derivedOrder);
+  const saved = new Map(valid.map((item) => [item.id, item]));
+  const orderedIds = [
+    ...valid.map((item) => item.id),
+    ...definitions.map((definition) => definition.id).filter((id) => !saved.has(id)),
+  ];
+
+  return orderedIds.map((id, order) => {
+    const definition = definitionMap.get(id)!;
+    const stored = saved.get(id);
+    return {
+      id,
+      visible: definition.required ? true : (stored?.visible ?? true),
+      width: Math.max(72, Number(stored?.width) || definition.defaultWidth),
+      order,
+    };
+  });
+}
+
+function readLocalPreferences(storageKey: string, definitions: readonly TableColumnDefinition[]) {
+  if (typeof window === "undefined") return defaultPreferences(definitions);
+  try {
+    const parsed = JSON.parse(
+      window.localStorage.getItem(storageKey) ?? "[]",
+    ) as Partial<ColumnPreference>[];
+    return Array.isArray(parsed) && parsed.length > 0
+      ? normalizePreferences(parsed, definitions)
+      : defaultPreferences(definitions);
+  } catch {
+    return defaultPreferences(definitions);
+  }
 }
 
 export function useTableColumnPreferences(
   storageKey: string,
   definitions: readonly TableColumnDefinition[],
+  remoteScope?: string,
 ) {
   const [preferences, setPreferences] = useState<ColumnPreference[]>(() =>
-    defaultPreferences(definitions),
+    readLocalPreferences(storageKey, definitions),
   );
+  const [remoteReady, setRemoteReady] = useState(!remoteScope);
 
   useEffect(() => {
-    try {
-      const parsed = JSON.parse(
-        window.localStorage.getItem(storageKey) ?? "[]",
-      ) as ColumnPreference[];
-      if (!Array.isArray(parsed) || parsed.length === 0) return;
-      const saved = new Map(parsed.map((item) => [item.id, item]));
-      const ordered = [
-        ...parsed
-          .map((item) => definitions.find((definition) => definition.id === item.id))
-          .filter((item): item is TableColumnDefinition => Boolean(item)),
-        ...definitions.filter((definition) => !saved.has(definition.id)),
-      ];
-      setPreferences(
-        ordered.map((definition) => ({
-          id: definition.id,
-          visible: definition.required ? true : (saved.get(definition.id)?.visible ?? true),
-          width: Math.max(72, saved.get(definition.id)?.width ?? definition.defaultWidth),
-        })),
-      );
-    } catch {
-      setPreferences(defaultPreferences(definitions));
-    }
+    setPreferences(readLocalPreferences(storageKey, definitions));
   }, [definitions, storageKey]);
 
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(preferences));
   }, [preferences, storageKey]);
+
+  useEffect(() => {
+    if (!remoteScope) return;
+    let active = true;
+    setRemoteReady(false);
+    void (async () => {
+      try {
+        const remote = await getTablePreferences(remoteScope);
+        if (!active) return;
+        if (remote?.length) {
+          setPreferences(normalizePreferences(remote, definitions));
+        } else {
+          await saveTablePreferences(remoteScope, readLocalPreferences(storageKey, definitions));
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) console.warn("Falha ao carregar preferências remotas", error);
+      } finally {
+        if (active) setRemoteReady(true);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [definitions, remoteScope, storageKey]);
+
+  useEffect(() => {
+    if (!remoteScope || !remoteReady) return;
+    const timer = window.setTimeout(() => {
+      void saveTablePreferences(remoteScope, preferences).catch((error) => {
+        if (import.meta.env.DEV) console.warn("Falha ao salvar preferências remotas", error);
+      });
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [preferences, remoteReady, remoteScope]);
 
   const definitionMap = useMemo(
     () => new Map(definitions.map((definition) => [definition.id, definition])),
@@ -94,8 +161,11 @@ export function useTableColumnPreferences(
         if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
         const next = [...current];
         [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-        return next;
+        return next.map((item, order) => ({ ...item, order }));
       });
+    },
+    apply(next: Partial<ColumnPreference>[]) {
+      setPreferences(normalizePreferences(next, definitions));
     },
     reset() {
       setPreferences(defaultPreferences(definitions));
@@ -193,7 +263,7 @@ export function TableColumnSettings({
             })}
           </div>
           <p className="mt-2 text-[10px] text-muted-foreground">
-            Visibilidade, ordem e largura ficam salvas neste navegador.
+            Visibilidade, ordem e largura ficam salvas no seu perfil.
           </p>
         </div>
       ) : null}

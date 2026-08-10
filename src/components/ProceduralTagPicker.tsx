@@ -3,12 +3,12 @@ import { useMemo, useState } from "react";
 import {
   getProceduralTagSearchRank,
   matchesProceduralTagQuery,
-  splitNumberedProceduralTags,
   TAG_COLOR_CLASS,
   type ProceduralTag,
   type ProceduralTagColor,
   type ProceduralTagScope,
 } from "@/lib/proceduralTags";
+import { parseTipificacoes } from "@/lib/tipificacaoParser";
 
 type ProceduralTagPickerProps = {
   label: string;
@@ -74,7 +74,10 @@ export function ProceduralTagPicker({
     setCreating(true);
     setError("");
     try {
-      const names = splitNumberedProceduralTags(query);
+      const names = parseTipificacoes(
+        query,
+        options.filter((option) => option.scope === createScope).map((option) => option.name),
+      ).map((item) => item.rotulo);
       const createdIds: string[] = [];
       for (const name of names) {
         const created = await onCreate({ scope: createScope, name, color: "purple" });

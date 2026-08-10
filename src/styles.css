@@ -1215,6 +1215,80 @@ html[data-theme="light"] .sipi-bairro-name {
     --sipi-print-accent-soft: #f4f1fa;
   }
 
+  .sipi-print-list {
+    --sipi-print-accent: #12607a;
+    --sipi-print-accent-soft: #edf8fa;
+    min-height: 272mm !important;
+  }
+
+  .sipi-print-list-context {
+    display: grid !important;
+    grid-template-columns: 48mm minmax(0, 1fr) !important;
+    gap: 4mm !important;
+    margin: 3mm 0 !important;
+    padding: 2.5mm 3mm !important;
+    border: 1px solid #cbd5e1 !important;
+    background: var(--sipi-print-accent-soft) !important;
+    font-size: 7.4pt !important;
+  }
+
+  .sipi-print-list-context p {
+    margin: 0 !important;
+  }
+
+  .sipi-print-list-context ul {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 1mm 4mm !important;
+    margin: 1mm 0 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+  }
+
+  .sipi-print-list-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 6.8pt !important;
+  }
+
+  .sipi-print-list-table thead {
+    display: table-header-group !important;
+  }
+
+  .sipi-print-list-table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .sipi-print-list-table th,
+  .sipi-print-list-table td {
+    padding: 1.4mm 1.2mm !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #111827 !important;
+    vertical-align: top !important;
+  }
+
+  .sipi-print-list-table th {
+    background: var(--sipi-print-accent) !important;
+    color: #fff !important;
+    font-size: 6.2pt !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+  }
+
+  .sipi-print-list-table tbody tr:nth-child(even) td {
+    background: #f8fafc !important;
+  }
+
+  .sipi-print-list-table .is-center {
+    text-align: center !important;
+  }
+
+  .sipi-print-list-table .is-right {
+    text-align: right !important;
+  }
+
   .sipi-print-masthead {
     display: grid !important;
     grid-template-columns: 30mm minmax(0, 1fr) 50mm !important;
