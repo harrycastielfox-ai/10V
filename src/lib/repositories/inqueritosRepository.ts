@@ -203,6 +203,23 @@ export async function findInqueritosByPpe(numeroPpe: string, limit = 8) {
   return (data ?? []) as InqueritoLinkOption[];
 }
 
+export async function listKnownInqueritoBairros(limit = 500) {
+  const rows = await runSupabaseQuery<Array<{ bairro: string | null }>>(
+    "bairros dos procedimentos",
+    (signal) =>
+      supabase
+        .from("inqueritos")
+        .select("bairro")
+        .is("deleted_at", null)
+        .not("bairro", "is", null)
+        .order("bairro", { ascending: true })
+        .limit(limit)
+        .abortSignal(signal),
+  );
+
+  return [...new Set((rows ?? []).map((row) => row.bairro?.trim()).filter(Boolean) as string[])];
+}
+
 export async function searchInqueritosForLink(query: string, limit = 20) {
   const normalizedQuery = query.trim();
   if (normalizedQuery.length < 2) return [];

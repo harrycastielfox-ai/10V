@@ -27,7 +27,7 @@ describe("normalizeText", () => {
 describe("normalizeCaseCategory", () => {
   it("matches a known category regardless of accents or case", () => {
     expect(normalizeCaseCategory("cvli")).toBe("CVLI");
-    expect(normalizeCaseCategory("VIOLÊNCIA DOMÉSTICA")).toBe("Violência Doméstica");
+    expect(normalizeCaseCategory("VIOLÊNCIA DOMÉSTICA")).toBe("Violência Doméstica e Familiar");
   });
 
   it("falls back for empty or unrecognized values", () => {

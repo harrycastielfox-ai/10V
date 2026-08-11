@@ -2,7 +2,7 @@ import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { extname, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const serverEntry = resolve("dist/server/index.js");
+const serverEntry = resolve("dist/server/index.mjs");
 const serverModule = await import(`${pathToFileURL(serverEntry).href}?t=${Date.now()}`);
 const response = await serverModule.default.fetch(
   new Request("https://local.build/"),

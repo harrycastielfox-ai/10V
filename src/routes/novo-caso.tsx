@@ -5,9 +5,11 @@ import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
+import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import {
   createInquerito,
   findInqueritosByPpe,
+  listKnownInqueritoBairros,
   replaceInqueritoPessoas,
   type InqueritoLinkOption,
 } from "@/lib/repositories/inqueritosRepository";
@@ -29,7 +31,6 @@ import {
   OCCURRENCE_ORIGIN_OPTIONS,
   PROCEDURE_TYPE_OPTIONS,
   REPORT_STATUS_OPTIONS,
-  createInquiryPerson,
   getInquiryRegistrationChecks,
   isYesValue,
   normalizeCriminalCategory,
@@ -58,10 +59,7 @@ function NovoCaso() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [statusTagId, setStatusTagId] = useState("");
   const [resumoFato, setResumoFato] = useState("");
-  const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([
-    createInquiryPerson("vitima"),
-    createInquiryPerson("autor_investigado"),
-  ]);
+  const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([]);
   const [autoria, setAutoria] = useState("");
   const [numeroBo, setNumeroBo] = useState("");
   const [numeroFisico, setNumeroFisico] = useState("");
@@ -75,15 +73,15 @@ function NovoCaso() {
   const [ppeMatches, setPpeMatches] = useState<InqueritoLinkOption[]>([]);
   const [checkingPpe, setCheckingPpe] = useState(false);
   const [prioridade] = useState("MÉDIA");
-  const [gravidade, setGravidade] = useState("Outro");
+  const [gravidade, setGravidade] = useState("Outros");
   const [situacao, setSituacao] = useState("Instaurado");
   const [statusDiligencias, setStatusDiligencias] = useState("Pendente");
-  const [elucidado, setElucidado] = useState("");
   const [reuPreso, setReuPreso] = useState("");
   const [delegadoResponsavel, setDelegadoResponsavel] = useState("");
   const [equipe, setEquipe] = useState("");
   const [escrivao, setEscrivao] = useState("");
   const [bairro, setBairro] = useState("");
+  const [bairroOptions, setBairroOptions] = useState<string[]>([]);
   const [distrito, setDistrito] = useState("");
   const [cidade, setCidade] = useState("Itabela");
   const [motivacao, setMotivacao] = useState("");
@@ -153,6 +151,18 @@ function NovoCaso() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    void listKnownInqueritoBairros()
+      .then((bairros) => {
+        if (active) setBairroOptions(bairros);
+      })
+      .catch((error) => console.warn("[novo-caso:bairros]", error));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (prazoManual || !dataInstauracao || !prazoDias) return;
     const days = Number(prazoDias);
     if (!Number.isInteger(days) || days < 0) return;
@@ -216,7 +226,7 @@ function NovoCaso() {
         equipe,
         escrivao,
         statusDiligencias,
-        elucidado,
+        elucidado: autoria === "Determinada" ? "Sim" : autoria ? "Não" : "",
         dataElucidacao,
         houveArmaDeFogo,
         armaUtilizada,
@@ -239,7 +249,6 @@ function NovoCaso() {
       dataRelatorio,
       delegadoResponsavel,
       distrito,
-      elucidado,
       equipe,
       escrivao,
       gravidade,
@@ -273,11 +282,6 @@ function NovoCaso() {
     if (value !== "Sim") {
       setArmaUtilizada("");
     }
-  };
-
-  const handleElucidadoChange = (value: string) => {
-    setElucidado(value);
-    if (!isYesValue(value)) setDataElucidacao("");
   };
 
   const handleVinculoFaccaoChange = (value: string) => {
@@ -323,8 +327,11 @@ function NovoCaso() {
     }
     setLoading(true);
     const normalizedType = normalizeProcedureType(tipo);
-    const normalizedCategory = normalizeCriminalCategory(normalizeCaseCategory(gravidade, "Outro"));
+    const normalizedCategory = normalizeCriminalCategory(
+      normalizeCaseCategory(gravidade, "Outros"),
+    );
     const isCvli = normalizedCategory === "CVLI";
+    const autoriaDeterminada = autoria === "Determinada";
     const payload = {
       numero_ppe: ppe.trim() || null,
       numero_bo: null,
@@ -348,14 +355,14 @@ function NovoCaso() {
       tipo_procedimento_normalizado: normalizedType,
       prioridade: prioridade || null,
       prioridade_operacional: normalizePriority(prioridade),
-      gravidade: normalizeCaseCategory(gravidade, "Outro"),
+      gravidade: normalizeCaseCategory(gravidade, "Outros"),
       categoria_criminal: normalizedCategory,
       status_diligencias: null,
       status_tag_id: statusTagId,
       situacao: statusOptions.find((tag) => tag.id === statusTagId)?.name || situacao || null,
-      elucidado: elucidado || null,
-      cvli_elucidado: isCvli && elucidado ? isYesValue(elucidado) : null,
-      data_elucidacao: isCvli && isYesValue(elucidado) ? dataElucidacao || null : null,
+      elucidado: autoria ? (autoriaDeterminada ? "Sim" : "Não") : null,
+      cvli_elucidado: isCvli && autoria ? autoriaDeterminada : null,
+      data_elucidacao: isCvli && autoriaDeterminada ? dataElucidacao || null : null,
       houve_arma_fogo: houveArmaDeFogo || null,
       arma_utilizada: armaUtilizada || null,
       delegado_responsavel: null,
@@ -488,7 +495,7 @@ function NovoCaso() {
           />
           <Select
             label="Visibilidade"
-            options={canViewPrivateCases(profile) ? ["Público", "Privado"] : ["Público"]}
+            options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
             value={visibilidade}
             onChange={setVisibilidade}
           />
@@ -566,13 +573,7 @@ function NovoCaso() {
             value={resumoFato}
             onChange={(event) => setResumoFato(event.target.value)}
           />
-          <Select
-            label="Elucidado"
-            options={["Sim", "Não"]}
-            value={elucidado}
-            onChange={handleElucidadoChange}
-          />
-          {normalizeCriminalCategory(gravidade) === "CVLI" && elucidado === "Sim" && (
+          {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
             <Field
               label="Data da elucidação"
               type="date"
@@ -580,24 +581,15 @@ function NovoCaso() {
               onChange={(e) => setDataElucidacao(e.target.value)}
             />
           )}
-          <Select
-            label="Houve arma de fogo?"
-            options={["Sim", "Não"]}
-            value={houveArmaDeFogo}
-            onChange={handleHouveArmaDeFogoChange}
+          <SeizedWeaponsField
+            checked={houveArmaDeFogo === "Sim"}
+            onCheckedChange={(checked) => handleHouveArmaDeFogoChange(checked ? "Sim" : "Não")}
+            value={armaUtilizada}
+            onValueChange={setArmaUtilizada}
           />
-          {houveArmaDeFogo === "Sim" && (
-            <Field
-              label="Arma Utilizada"
-              placeholder="Ex: revólver calibre .38"
-              value={armaUtilizada}
-              onChange={(e) => setArmaUtilizada(e.target.value)}
-            />
-          )}
         </SectionCard>
 
         <SectionCard title="Pessoas Envolvidas">
-          <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
           <Select
             label="Autoria"
             options={["Determinada", "Desconhecida", "Sem Autoria"]}
@@ -610,18 +602,25 @@ function NovoCaso() {
             value={reuPreso}
             onChange={setReuPreso}
           />
+          <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
         </SectionCard>
 
         <SectionCard title="Dados Operacionais">
           <Field
             label="Bairro"
-            placeholder="Informe o bairro"
+            placeholder="Informe ou selecione um bairro já utilizado"
+            list="novo-caso-bairros"
             value={bairro}
             onChange={(e) => setBairro(e.target.value)}
           />
+          <datalist id="novo-caso-bairros">
+            {bairroOptions.map((option) => (
+              <option key={option} value={option} />
+            ))}
+          </datalist>
           <Field
             label="Cidade"
-            placeholder="Informe a cidade"
+            placeholder="Ex.: Itabela"
             value={cidade}
             onChange={(e) => setCidade(e.target.value)}
           />

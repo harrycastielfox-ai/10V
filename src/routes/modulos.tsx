@@ -293,7 +293,7 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
     <div
       className={`group relative h-full overflow-hidden rounded-xl border p-6 flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${styles.ring} ${
         isBoletim
-          ? "border-border bg-card shadow-[0_0_16px_rgba(129,140,248,0.03),inset_0_1px_0_rgba(255,255,255,0.025)] group-hover:border-indigo-400/45 group-focus-visible:border-indigo-400/45 group-hover:shadow-[0_0_24px_rgba(129,140,248,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] group-focus-visible:shadow-[0_0_24px_rgba(129,140,248,0.16),inset_0_1px_0_rgba(255,255,255,0.05)]"
+          ? "border-indigo-400/30 bg-[linear-gradient(140deg,#2E1065_0%,#1E1348_46%,#0A0713_100%)] shadow-[0_0_16px_rgba(129,140,248,0.10),inset_0_1px_0_rgba(255,255,255,0.06)] group-hover:border-indigo-400/55 group-focus-visible:border-indigo-400/55 group-hover:shadow-[0_0_28px_rgba(129,140,248,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] group-focus-visible:shadow-[0_0_28px_rgba(129,140,248,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
           : "border-border bg-card"
       } ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}
     >
@@ -322,10 +322,26 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
         >
           {modulo.hint}
         </div>
-        <h3 className="text-lg font-bold tracking-wide text-foreground mb-2">{modulo.titulo}</h3>
-        <p className="text-sm text-muted-foreground leading-relaxed flex-1">{modulo.descricao}</p>
-        <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
-          <span className="text-xs font-semibold tracking-wider uppercase text-muted-foreground group-hover:text-foreground transition-colors">
+        <h3
+          className={`text-lg font-bold tracking-wide mb-2 ${isBoletim ? "text-white" : "text-foreground"}`}
+        >
+          {modulo.titulo}
+        </h3>
+        <p
+          className={`text-sm leading-relaxed flex-1 ${isBoletim ? "text-indigo-100/65" : "text-muted-foreground"}`}
+        >
+          {modulo.descricao}
+        </p>
+        <div
+          className={`mt-6 pt-4 border-t flex items-center justify-between ${isBoletim ? "border-white/10" : "border-border"}`}
+        >
+          <span
+            className={`text-xs font-semibold tracking-wider uppercase transition-colors ${
+              isBoletim
+                ? "text-indigo-200/70 group-hover:text-indigo-100"
+                : "text-muted-foreground group-hover:text-foreground"
+            }`}
+          >
             {modulo.disponivel ? "Acessar módulo" : "Em desenvolvimento"}
           </span>
           <ArrowRight

@@ -41,10 +41,6 @@ import {
   listRepresentacoes,
   type RepresentacaoRecord,
 } from "@/lib/repositories/representacoesRepository";
-import {
-  listEscrivaoProductivity,
-  type EscrivaoProductivityRow,
-} from "@/lib/repositories/productivityRepository";
 import { normalizeCaseCategory } from "@/lib/inqueritosPriority";
 import { buildCvliMonthlyComparison, isCvliRecord } from "@/lib/cvliMetrics";
 import {
@@ -52,7 +48,6 @@ import {
   isInqueritoEmAndamento,
   isOperationalDateDueWithin,
   isRelatadoNaoEnviado,
-  isRepresentacaoVencendo,
   isYesLike,
   normalizeOperationalText,
   parseOperationalDate,
@@ -165,17 +160,8 @@ const CVLI_YEAR_COLORS = [
   "var(--success)",
   "var(--purple)",
 ];
-const DASHBOARD_CVLI_YEAR_LIMIT = 4;
+const DASHBOARD_CVLI_YEAR_LIMIT = 5;
 const DASHBOARD_LOCALIDADE_LIMIT = 6;
-const TEAM_DISTRIBUTION_COLORS = [
-  "var(--success)",
-  "var(--info)",
-  "var(--warning)",
-  "var(--purple)",
-  "var(--destructive)",
-  "var(--muted-foreground)",
-];
-
 function normalizeProcedureText(value: unknown) {
   return String(value ?? "")
     .normalize("NFD")
@@ -329,8 +315,6 @@ function Dashboard() {
   const [nowTs, setNowTs] = useState<number | null>(null);
   const [inqueritos, setInqueritos] = useState<InqueritoRecord[]>([]);
   const [representacoes, setRepresentacoes] = useState<RepresentacaoRecord[]>([]);
-  const [escrivaoProductivity, setEscrivaoProductivity] = useState<EscrivaoProductivityRow[]>([]);
-  const [escrivaoProductivityError, setEscrivaoProductivityError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loadRequestIdRef = useRef(0);
   const refreshTimerRef = useRef<number | null>(null);
@@ -367,12 +351,9 @@ function Dashboard() {
   const loadDashboardData = useCallback(async (forceRefresh = false) => {
     const requestId = ++loadRequestIdRef.current;
     setLoadError(null);
-    setEscrivaoProductivityError(null);
-
-    const [inqueritosResult, representacoesResult, productivityResult] = await Promise.allSettled([
+    const [inqueritosResult, representacoesResult] = await Promise.allSettled([
       listInqueritos({ forceRefresh }),
       listRepresentacoes({ forceRefresh }),
-      listEscrivaoProductivity(30, { forceRefresh }),
     ]);
 
     if (requestId !== loadRequestIdRef.current) return;
@@ -388,14 +369,6 @@ function Dashboard() {
       setRepresentacoes(representacoesResult.value);
     } else {
       failures.push("representações");
-    }
-
-    if (productivityResult.status === "fulfilled") {
-      setEscrivaoProductivity(productivityResult.value);
-    } else {
-      setEscrivaoProductivityError(
-        "Não foi possível carregar a produtividade institucional agora.",
-      );
     }
 
     setNowTs(Date.now());
@@ -456,9 +429,10 @@ function Dashboard() {
   const prazoCritico = inqueritosOperacionaisAtivos.filter((i) =>
     isOperationalDateDueWithin(i.prazo, 3, nowTs ?? Date.now()),
   ).length;
-  const repsVencendo7 = representacoes.filter((r) =>
-    isRepresentacaoVencendo(r, 7, nowTs ?? Date.now()),
-  ).length;
+  const apfSemRelatar = inqueritos.filter((inquerito) => {
+    if (getInqueritoProcedureType(inquerito) !== "APF") return false;
+    return !normalizeProcedureText(inquerito.situacao).includes("RELATADO");
+  }).length;
   const taxaConclusao = total === 0 ? 0 : Number(((finalizados / total) * 100).toFixed(1));
   const relatadosNaoEnviados = inqueritos.filter(isRelatadoNaoEnviado).length;
   const prioridadeMedia = inqueritos.filter(
@@ -680,44 +654,6 @@ function Dashboard() {
       .sort((a, b) => b.total - a.total || b.cvli - a.cvli || a.bairro.localeCompare(b.bairro));
   }, [inqueritos]);
   const TOP_BAIRROS = useMemo(() => POR_BAIRRO.slice(0, DASHBOARD_LOCALIDADE_LIMIT), [POR_BAIRRO]);
-  const EQUIPES = useMemo(() => {
-    const byEquipe = new Map<string, number>();
-    inqueritos.forEach((i) => {
-      const equipe = getInqueritoTeamName(i);
-      if (!isValidTeamName(equipe)) return;
-      byEquipe.set(equipe, (byEquipe.get(equipe) || 0) + 1);
-    });
-    return Array.from(byEquipe.entries()).map(([name, value]) => ({
-      name,
-      value,
-      pct: total === 0 ? 0 : Math.round((value / total) * 100),
-    }));
-  }, [inqueritos, total]);
-  const totalEquipes = useMemo(() => EQUIPES.reduce((sum, item) => sum + item.value, 0), [EQUIPES]);
-  const EQUIPES_GRAFICO = useMemo(
-    () =>
-      EQUIPES.map((item, index) => ({
-        ...item,
-        pct: totalEquipes === 0 ? 0 : Math.round((item.value / totalEquipes) * 100),
-        color: TEAM_DISTRIBUTION_COLORS[index % TEAM_DISTRIBUTION_COLORS.length],
-      })),
-    [EQUIPES, totalEquipes],
-  );
-  const RANKING_ESCRIVAES = useMemo(
-    () =>
-      escrivaoProductivity
-        .slice()
-        .sort(
-          (a, b) =>
-            b.pontos - a.pontos ||
-            b.conclusoes - a.conclusoes ||
-            b.relatorios_enviados - a.relatorios_enviados ||
-            b.cadastros - a.cadastros ||
-            a.nome.localeCompare(b.nome, "pt-BR"),
-        )
-        .slice(0, 5),
-    [escrivaoProductivity],
-  );
   const panelFxClass =
     "rounded-xl transition-all duration-300 border border-border/70 hover:border-success/55 hover:shadow-[0_0_0_1px_rgba(34,197,94,0.25),0_14px_28px_-22px_rgba(34,197,94,0.75)]";
   const kpiFxClass = "h-full rounded-xl";
@@ -916,21 +852,23 @@ function Dashboard() {
                 className={`flex items-center gap-3 ${interactiveItemClass}`}
                 role="button"
                 tabIndex={0}
-                title="Abrir representações vencendo em até 7 dias"
-                aria-label="Abrir representações vencendo em até 7 dias"
-                onClick={() => goTo("/representacoes", { operationalFilter: "vencendo" })}
+                title="Abrir APFs ainda não relatados"
+                aria-label="Abrir APFs ainda não relatados"
+                onClick={() => goTo("/inqueritos", { tipo: "APF", relatorio: "sem_relatar" })}
                 onKeyDown={(e) =>
                   (e.key === "Enter" || e.key === " ") &&
-                  goTo("/representacoes", { operationalFilter: "vencendo" })
+                  goTo("/inqueritos", { tipo: "APF", relatorio: "sem_relatar" })
                 }
               >
                 <span className="h-2 w-2 rounded-full bg-purple shrink-0" />
                 <div className="flex-1">
-                  <div className="text-sm font-semibold">Representações vencendo (7 dias)</div>
-                  <div className="text-xs text-muted-foreground">Urgência judicial</div>
+                  <div className="text-sm font-semibold">APF sem relatar</div>
+                  <div className="text-xs text-muted-foreground">
+                    Flagrantes fora do status Relatado
+                  </div>
                 </div>
                 <span className="text-[10px] font-bold bg-purple/15 text-purple border border-purple/30 px-2 py-1 rounded">
-                  {repsVencendo7}
+                  {apfSemRelatar}
                 </span>
               </li>
             </ul>
@@ -1444,10 +1382,10 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Gravidade + Equipe */}
-        <div className="order-[30] grid grid-cols-1 items-stretch xl:grid-cols-2 gap-5">
+        {/* Categorias */}
+        <div className="order-[30] grid grid-cols-1 items-stretch gap-5">
           <div className={`${panelFxClass} h-full`}>
-            <Panel title="ANÁLISE POR GRAVIDADE" accent="destructive" className="h-full">
+            <Panel title="ANÁLISE POR CATEGORIA" accent="destructive" className="h-full">
               <div className="h-full min-h-[245px] w-full min-w-0">
                 {isClient ? (
                   <ResponsiveContainer width="100%" height="100%">
@@ -1535,86 +1473,6 @@ function Dashboard() {
               </div>
             </Panel>
           </div>
-
-          <div className={`${panelFxClass} h-full`}>
-            <Panel
-              title="DISTRIBUIÇÃO POR EQUIPE"
-              accent="success"
-              icon={<Users className="h-4 w-4 text-success" />}
-              action={<ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-              className="h-full"
-            >
-              {EQUIPES.length === 0 ? (
-                <div className="py-6 text-sm text-muted-foreground">Nenhum dado disponível.</div>
-              ) : (
-                <div className="grid items-center gap-5 md:grid-cols-[190px_minmax(0,1fr)]">
-                  <div className="relative mx-auto h-40 w-40">
-                    {isClient ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={EQUIPES_GRAFICO}
-                            dataKey="value"
-                            innerRadius={48}
-                            outerRadius={74}
-                            paddingAngle={3}
-                            stroke="var(--card)"
-                            strokeWidth={3}
-                          >
-                            {EQUIPES_GRAFICO.map((team) => (
-                              <Cell key={team.name} fill={team.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            formatter={(value, name) => [
-                              `${Number(value ?? 0)} inquérito(s)`,
-                              String(name),
-                            ]}
-                            contentStyle={{
-                              backgroundColor: "var(--card)",
-                              border: "1px solid var(--border)",
-                              borderRadius: 8,
-                              color: "var(--foreground)",
-                            }}
-                            cursor={false}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : null}
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black tabular-nums text-success">
-                        {totalEquipes}
-                      </span>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                        Equipes
-                      </span>
-                    </div>
-                  </div>
-                  <ul className="space-y-3">
-                    {EQUIPES_GRAFICO.map((team) => (
-                      <li
-                        key={team.name}
-                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md px-2 py-1.5 transition-colors duration-200 hover:bg-success/5"
-                      >
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span
-                            className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]"
-                            style={{ backgroundColor: team.color, color: team.color }}
-                          />
-                          <span className="truncate text-sm font-semibold text-foreground">
-                            {team.name}
-                          </span>
-                        </div>
-                        <span className="text-right text-xs font-semibold tabular-nums text-muted-foreground">
-                          {team.value} ({team.pct}%)
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </Panel>
-          </div>
         </div>
 
         <section className="order-[50] mt-6">
@@ -1629,7 +1487,7 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2">
             <div className={`${panelFxClass} h-full`}>
               <Panel
                 title="PRODUTIVIDADE OPERACIONAL"
@@ -1780,81 +1638,6 @@ function Dashboard() {
                     );
                   })}
                 </ul>
-              </Panel>
-            </div>
-
-            <div className={`${panelFxClass} h-full`}>
-              <Panel
-                title="RANKING DE ESCRIVÃES"
-                accent="warning"
-                icon={<Users className="h-4 w-4 text-warning" />}
-                className="h-full"
-              >
-                <div className="min-w-0">
-                  <div className="grid grid-cols-[minmax(0,1.5fr)_0.62fr_0.58fr_0.58fr_0.58fr_0.58fr] gap-2 border-b border-border/70 px-1 pb-2.5 text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
-                    <span>Escrivão</span>
-                    <span className="text-right">Pontos</span>
-                    <span className="text-right">Cad.</span>
-                    <span className="text-right">Relat.</span>
-                    <span className="text-right">Conc.</span>
-                    <span className="text-right">Atual.</span>
-                  </div>
-                  {escrivaoProductivityError ? (
-                    <div className="py-6 text-center text-xs text-warning">
-                      {escrivaoProductivityError}
-                    </div>
-                  ) : RANKING_ESCRIVAES.length === 0 ? (
-                    <div className="py-6 text-center text-xs text-muted-foreground">
-                      Defina a função Escrivão(ã) no perfil administrativo para iniciar o ranking.
-                    </div>
-                  ) : (
-                    <div>
-                      {RANKING_ESCRIVAES.map((row, index) => (
-                        <div
-                          key={row.user_id}
-                          className="grid w-full grid-cols-[minmax(0,1.5fr)_0.62fr_0.58fr_0.58fr_0.58fr_0.58fr] items-center gap-2 border-b border-border/35 px-1 py-2 text-left text-xs last:border-b-0"
-                          title={
-                            row.ultima_atividade
-                              ? `Última atividade: ${new Date(row.ultima_atividade).toLocaleString("pt-BR")}`
-                              : "Sem atividade no período"
-                          }
-                        >
-                          <span className="flex min-w-0 items-center gap-2 truncate font-black text-foreground">
-                            <span
-                              className={`w-4 shrink-0 text-[10px] ${
-                                index === 0
-                                  ? "text-warning"
-                                  : index === 1
-                                    ? "text-muted-foreground"
-                                    : index === 2
-                                      ? "text-amber-700"
-                                      : "text-muted-foreground/60"
-                              }`}
-                            >
-                              {index + 1}º
-                            </span>
-                            <span className="truncate">{row.nome}</span>
-                          </span>
-                          <span className="text-right font-black tabular-nums text-foreground">
-                            {row.pontos}
-                          </span>
-                          <span className="text-right font-black tabular-nums text-info">
-                            {row.cadastros}
-                          </span>
-                          <span className="text-right font-black tabular-nums text-success">
-                            {row.relatorios_enviados}
-                          </span>
-                          <span className="text-right font-black tabular-nums text-emerald-300">
-                            {row.conclusoes}
-                          </span>
-                          <span className="text-right font-black tabular-nums text-warning">
-                            {row.atualizacoes}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </Panel>
             </div>
           </div>

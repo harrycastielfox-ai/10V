@@ -8,12 +8,15 @@ import {
   type TableColumnDefinition,
 } from "@/components/TableColumnSettings";
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Check,
   ChevronDown,
-  FileDown,
   Filter,
   Pencil,
   Plus,
+  Printer,
   Save,
   Search,
   Trash2,
@@ -48,6 +51,7 @@ import {
 } from "@/lib/repositories/savedFiltersRepository";
 import { SipiPrintList } from "@/components/SipiPrintList";
 import {
+  CASE_CATEGORY_OPTIONS,
   calculateInqueritoOperationalPriority,
   isTruthyLike,
   normalizeCaseCategory,
@@ -76,6 +80,17 @@ const statusTone: Record<string, string> = {
 };
 const FALLBACK = "—";
 const EMPTY_FILTER = "__vazio__";
+const PROCEDURE_STATUS_OPTIONS = [
+  "Instaurado",
+  "Aguardando Laudo Pericial",
+  "Aguardando RIC",
+  "Para Relatar",
+  "Prescrito",
+  "Relatado",
+  "Relatado Para Enviar",
+  "Relatado Para Corrigir",
+  "Requisição Ministerial/Judicial",
+];
 const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
   { id: "ppe", label: "Nº PPE", defaultWidth: 160, required: true },
   { id: "prioridade", label: "Prioridade", defaultWidth: 112 },
@@ -88,7 +103,21 @@ const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
   { id: "reu_preso", label: "Réu preso", defaultWidth: 124, align: "center" },
   { id: "status", label: "Status", defaultWidth: 180, align: "center" },
   { id: "prazo", label: "Prazo", defaultWidth: 108, align: "center" },
+  { id: "resumo_fato", label: "Resumo do fato", defaultWidth: 320, defaultVisible: false },
+  { id: "observacoes", label: "Observações", defaultWidth: 320, defaultVisible: false },
   { id: "acao", label: "Ação", defaultWidth: 84, required: true, align: "center" },
+];
+
+type FilterLogic = "and" | "or";
+type SortDirection = "asc" | "desc";
+type SortState = { columnId: string; direction: SortDirection } | null;
+
+const INQUIRY_PRINT_COLUMNS = [
+  { id: "ordem", label: "Nº", align: "center" as const, width: "7mm" },
+  { id: "procedimento", label: "Procedimento", width: "31mm" },
+  { id: "bo", label: "B.O.", width: "25mm" },
+  { id: "natureza", label: "Natureza do caso" },
+  { id: "situacao", label: "Situação", align: "center" as const, width: "30mm" },
 ];
 
 type FilterOption = { value: string; label: string };
@@ -168,8 +197,10 @@ type InquiryFilterPayload = {
   prioridade: string[];
   gravidade: string[];
   tipo: string[];
-  equipe: string[];
   tipificacao: string[];
+  logic: FilterLogic;
+  sortColumn: string;
+  sortDirection: SortDirection;
   autoria: string;
   prazo: string;
   dataInicial: string;
@@ -206,8 +237,10 @@ function deserializeInquiryFilters(raw: Record<string, unknown>): InquiryFilterP
     prioridade: multi("prioridade"),
     gravidade: multi("gravidade"),
     tipo: multi("tipo"),
-    equipe: multi("equipe"),
     tipificacao: multi("tipificacao"),
+    logic: raw.logic === "or" ? "or" : "and",
+    sortColumn: text("sortColumn", ""),
+    sortDirection: raw.sortDirection === "desc" ? "desc" : "asc",
     autoria: text("autoria"),
     prazo: text("prazo"),
     dataInicial: text("dataInicial", ""),
@@ -254,6 +287,8 @@ type InqueritoListRow = {
   relatorioEnviado: string;
   elucidado: string;
   motivacao: string;
+  resumoFato: string;
+  observacoes: string;
   fullText: string;
   tagIds: string[];
 };
@@ -484,6 +519,23 @@ function formatOptionalDate(value: string) {
   const ts = parseAnyDate(value);
   return ts === null ? FALLBACK : formatDatePtBr(ts);
 }
+function getInquirySortValue(row: InqueritoListRow, columnId: string): string | number {
+  const situation = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
+  if (columnId === "ppe") return row.numeroPpe;
+  if (columnId === "prioridade") return calculateOperationalPriority(row);
+  if (columnId === "tipificacao") return row.tipificacao;
+  if (columnId === "gravidade") return row.gravidade;
+  if (columnId === "tipo") return getProcedureType(row.tipoProcedimento);
+  if (columnId === "data_fato") return parseAnyDate(row.dataFato) ?? Number.MAX_SAFE_INTEGER;
+  if (columnId === "autoria") return getAuthorshipLabel(row.autoria);
+  if (columnId === "bairro") return row.bairro;
+  if (columnId === "reu_preso") return hasReuPreso(row) ? 1 : 0;
+  if (columnId === "status") return situation;
+  if (columnId === "prazo") return parseAnyDate(row.prazo) ?? Number.MAX_SAFE_INTEGER;
+  if (columnId === "resumo_fato") return row.resumoFato;
+  if (columnId === "observacoes") return row.observacoes;
+  return "";
+}
 function pluralizeDays(value: number) {
   return value === 1 ? "dia" : "dias";
 }
@@ -570,6 +622,8 @@ function normalizeInqueritoForList(caso: InqueritoRecord, tagIds: string[] = [])
     relatorioEnviado: pick(raw, "relatorio_status", "relatorio_enviado", "relatorioEnviado"),
     elucidado: pick(raw, "cvli_elucidado", "elucidado"),
     motivacao: pick(raw, "motivacao", "motivação"),
+    resumoFato: pick(raw, "resumo_fato", "resumoFato"),
+    observacoes: pick(raw, "observacoes", "observações"),
     fullText: fields.join(" "),
     tagIds,
   };
@@ -606,8 +660,9 @@ function Inqueritos() {
   const [prioridadeFilter, setPrioridadeFilter] = useState<string[]>([]);
   const [gravidadeFilter, setGravidadeFilter] = useState<string[]>([]);
   const [tipoFilter, setTipoFilter] = useState<string[]>([]);
-  const [equipeFilter, setEquipeFilter] = useState<string[]>([]);
   const [tipificacaoFilter, setTipificacaoFilter] = useState<string[]>([]);
+  const [filterLogic, setFilterLogic] = useState<FilterLogic>("and");
+  const [sortState, setSortState] = useState<SortState>(null);
   const [autoriaFilter, setAutoriaFilter] = useState("todos");
   const [prazoFilter, setPrazoFilter] = useState("todos");
   const [dataInicial, setDataInicial] = useState("");
@@ -681,8 +736,9 @@ function Inqueritos() {
     setPrioridadeFilter([]);
     setGravidadeFilter([]);
     setTipoFilter([]);
-    setEquipeFilter([]);
     setTipificacaoFilter([]);
+    setFilterLogic("and");
+    setSortState(null);
     setAutoriaFilter("todos");
     setPrazoFilter("todos");
     setDataInicial("");
@@ -700,7 +756,6 @@ function Inqueritos() {
     assignMultiple("prioridade", setPrioridadeFilter);
     assignMultiple("situacao", setSituacaoFilter);
     assignMultiple("gravidade", setGravidadeFilter);
-    assignMultiple("equipe", setEquipeFilter);
     assignMultiple("tipificacao", setTipificacaoFilter);
     const tipoParam = params.get("tipo");
     if (tipoParam?.trim())
@@ -736,6 +791,12 @@ function Inqueritos() {
     if (["entrada", "relatorio", "cvli"].includes(dataCampo)) setDataFieldFilter(dataCampo);
     const status = normalizeText(params.get("status") ?? "").replace(/-/g, "_");
     if (["em_andamento"].includes(status)) setStatusQueryFilter(status);
+    setFilterLogic(params.get("logic") === "or" ? "or" : "and");
+    const sortColumn = params.get("sortColumn") ?? "";
+    const sortDirection = params.get("sortDirection") === "desc" ? "desc" : "asc";
+    if (INQUIRY_COLUMNS.some((column) => column.id === sortColumn && column.id !== "acao")) {
+      setSortState({ columnId: sortColumn, direction: sortDirection });
+    }
     const elucidadoParam = params.get("elucidado") ?? "";
     setElucidadoFilter(isTruthyLike(elucidadoParam));
     setNaoElucidadoFilter(isFalseyLike(elucidadoParam));
@@ -757,7 +818,30 @@ function Inqueritos() {
     const df = params.get("dataFinal");
     if (di && /^\d{4}-\d{2}-\d{2}$/u.test(di)) setDataInicial(di);
     if (df && /^\d{4}-\d{2}-\d{2}$/u.test(df)) setDataFinal(df);
-    setShowFilters(params.size > 0);
+    const hasVisibleFilterParams = [
+      "busca",
+      "situacao",
+      "prioridade",
+      "gravidade",
+      "tipo",
+      "tipificacao",
+      "logic",
+      "autoria",
+      "prazo",
+      "dataInicial",
+      "dataFinal",
+      "dataCampo",
+      "relatorio",
+      "categoria",
+      "status",
+      "elucidado",
+      "reuPreso",
+      "reu_preso",
+      "custodia",
+      "medidaProtetiva",
+      "diligenciasPendentes",
+    ].some((key) => params.has(key));
+    setShowFilters(hasVisibleFilterParams);
     setFiltersInitialized(true);
   }, [isInqueritosIndex, location.search]);
 
@@ -801,9 +885,10 @@ function Inqueritos() {
     );
   const situacaoOptions = useMemo(
     () =>
-      options(
-        normalizedRows.map((r) => (r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias)),
-      ),
+      options([
+        ...PROCEDURE_STATUS_OPTIONS,
+        ...normalizedRows.map((r) => (r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias)),
+      ]),
     [normalizedRows],
   );
   const prioridadeOptions = useMemo(
@@ -811,15 +896,11 @@ function Inqueritos() {
     [normalizedRows],
   );
   const gravidadeOptions = useMemo(
-    () => options(normalizedRows.map((r) => r.gravidade)),
+    () => options([...CASE_CATEGORY_OPTIONS, ...normalizedRows.map((r) => r.gravidade)]),
     [normalizedRows],
   );
   const tipoOptions = useMemo(
     () => options(normalizedRows.map((r) => r.tipoProcedimento)),
-    [normalizedRows],
-  );
-  const equipeOptions = useMemo(
-    () => options(normalizedRows.map((r) => r.equipe)),
     [normalizedRows],
   );
   const tipificacaoOptions = useMemo(
@@ -839,6 +920,7 @@ function Inqueritos() {
   const filtered = useMemo(
     () =>
       normalizedRows.filter((r) => {
+        const matches: boolean[] = [];
         const query = normalizeText(searchTerm);
         const isFallbackSearch = [
           "nao informado",
@@ -847,75 +929,63 @@ function Inqueritos() {
           "sem informacao",
           "sem valor",
         ].includes(query);
-        if (
-          query &&
-          !(
+        if (query) {
+          matches.push(
             r.fullText.includes(query) ||
-            (isFallbackSearch &&
-              [
-                r.numeroPpe,
-                r.tipificacao,
-                r.vitima,
-                r.investigado,
-                r.prioridade,
-                r.gravidade,
-                r.situacao,
-                r.statusDiligencias,
-                r.prazo,
-              ].some(isEmpty))
-          )
-        )
-          return false;
+              (isFallbackSearch &&
+                [
+                  r.numeroPpe,
+                  r.tipificacao,
+                  r.vitima,
+                  r.investigado,
+                  r.prioridade,
+                  r.gravidade,
+                  r.situacao,
+                  r.statusDiligencias,
+                  r.prazo,
+                ].some(isEmpty)),
+          );
+        }
         const situacao = r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias;
-        if (
-          situacaoFilter.length > 0 &&
-          !situacaoFilter.some((filter) =>
-            filter === EMPTY_FILTER
-              ? isEmpty(situacao)
-              : [r.situacao, r.statusDiligencias].some(
-                  (value) => !isEmpty(value) && matchesSituacaoAlias(value, filter),
-                ),
-          )
-        )
-          return false;
+        if (situacaoFilter.length > 0) {
+          matches.push(
+            situacaoFilter.some((filter) =>
+              filter === EMPTY_FILTER
+                ? isEmpty(situacao)
+                : [r.situacao, r.statusDiligencias].some(
+                    (value) => !isEmpty(value) && matchesSituacaoAlias(value, filter),
+                  ),
+            ),
+          );
+        }
         if (prioridadeFilter.length > 0) {
           const prioridadeOperacional = calculateOperationalPriority(r);
-          if (
-            !prioridadeFilter.some((filter) =>
+          matches.push(
+            prioridadeFilter.some((filter) =>
               filter === EMPTY_FILTER
                 ? isEmpty(prioridadeOperacional)
                 : normalizeText(prioridadeOperacional) === normalizeText(filter),
-            )
-          )
-            return false;
+            ),
+          );
         }
-        if (
-          gravidadeFilter.length > 0 &&
-          !gravidadeFilter.some((filter) =>
-            filter === EMPTY_FILTER
-              ? isEmpty(r.gravidade)
-              : normalizeText(r.gravidade) === normalizeText(filter),
-          )
-        )
-          return false;
-        if (
-          tipoFilter.length > 0 &&
-          !tipoFilter.some((filter) =>
-            filter === EMPTY_FILTER
-              ? isEmpty(r.tipoProcedimento)
-              : getProcedureType(r.tipoProcedimento) === getProcedureType(filter),
-          )
-        )
-          return false;
-        if (
-          equipeFilter.length > 0 &&
-          !equipeFilter.some((filter) =>
-            filter === EMPTY_FILTER
-              ? isEmpty(r.equipe)
-              : normalizeText(r.equipe) === normalizeText(filter),
-          )
-        )
-          return false;
+        if (gravidadeFilter.length > 0) {
+          matches.push(
+            gravidadeFilter.some((filter) =>
+              filter === EMPTY_FILTER
+                ? isEmpty(r.gravidade)
+                : normalizeText(r.gravidade) === normalizeText(filter),
+            ),
+          );
+        }
+        if (tipoFilter.length > 0) {
+          matches.push(
+            tipoFilter.some((filter) =>
+              filter === EMPTY_FILTER
+                ? isEmpty(r.tipoProcedimento)
+                : getProcedureType(r.tipoProcedimento) === getProcedureType(filter),
+            ),
+          );
+        }
         if (tipificacaoFilter.length > 0) {
           const linkedMatch = tipificacaoFilter.some((tagId) => r.tagIds.includes(tagId));
           const parsedSlugs = new Set(
@@ -925,47 +995,46 @@ function Inqueritos() {
             ).map((item) => item.slug),
           );
           const textMatch = [...selectedTipificacaoSlugs].some((slug) => parsedSlugs.has(slug));
-          if (!linkedMatch && !textMatch) return false;
+          matches.push(linkedMatch || textMatch);
         }
-        if (
-          normalizeText(autoriaFilter) !== "todos" &&
-          classifyAuthorship(r.autoria) !== autoriaFilter
-        )
-          return false;
-        if (normalizeText(categoriaFilter) !== "todos" && !matchesCategory(r, categoriaFilter))
-          return false;
-        if (normalizeText(relatorioFilter) === "sem_relatar" && !isSemRelatorio(r)) return false;
-        if (normalizeText(relatorioFilter) === "enviado" && !isConcluidoCentral(r)) return false;
-        if (
-          normalizeText(relatorioFilter) === "relatado_nao_enviado" &&
-          !isRelatadoNaoEnviado(r.source)
-        )
-          return false;
-        if (normalizeText(statusQueryFilter) === "em_andamento" && !isEmAndamentoCentral(r))
-          return false;
-        if (elucidadoFilter && !isCvliElucidado(r.source)) return false;
-        if (naoElucidadoFilter && isCvliElucidado(r.source)) return false;
+        if (normalizeText(autoriaFilter) !== "todos")
+          matches.push(classifyAuthorship(r.autoria) === autoriaFilter);
+        if (normalizeText(categoriaFilter) !== "todos")
+          matches.push(matchesCategory(r, categoriaFilter));
+        if (normalizeText(relatorioFilter) === "sem_relatar") matches.push(isSemRelatorio(r));
+        if (normalizeText(relatorioFilter) === "enviado") matches.push(isConcluidoCentral(r));
+        if (normalizeText(relatorioFilter) === "relatado_nao_enviado")
+          matches.push(isRelatadoNaoEnviado(r.source));
+        if (normalizeText(statusQueryFilter) === "em_andamento")
+          matches.push(isEmAndamentoCentral(r));
+        if (elucidadoFilter || naoElucidadoFilter) {
+          const elucidado = isCvliElucidado(r.source);
+          matches.push((elucidadoFilter && elucidado) || (naoElucidadoFilter && !elucidado));
+        }
         if (normalizeText(prazoFilter) !== "todos") {
-          if (prazoFilter === EMPTY_FILTER && !isEmpty(r.prazo)) return false;
-          if (prazoFilter === "vencido" && !isPrazoVencido(r.prazo)) return false;
-          if (prazoFilter === "critico" && !isPrazoCritico(r.prazo)) return false;
-          if (prazoFilter === "vencendo" && !isPrazoVencendo(r.prazo)) return false;
+          matches.push(
+            (prazoFilter === EMPTY_FILTER && isEmpty(r.prazo)) ||
+              (prazoFilter === "vencido" && isPrazoVencido(r.prazo)) ||
+              (prazoFilter === "critico" && isPrazoCritico(r.prazo)) ||
+              (prazoFilter === "vencendo" && isPrazoVencendo(r.prazo)),
+          );
         }
-        if (reuPresoFilter && !(reuPresoStrictFilter ? isTruthyLike(r.reuPreso) : hasReuPreso(r)))
-          return false;
-        if (medidaProtetivaFilter && !hasMedidaProtetiva(r)) return false;
-        if (diligenciasPendentesFilter && !hasDiligenciasPendentes(r.diligenciasPendentes))
-          return false;
+        if (reuPresoFilter)
+          matches.push(reuPresoStrictFilter ? isTruthyLike(r.reuPreso) : hasReuPreso(r));
+        if (medidaProtetivaFilter) matches.push(hasMedidaProtetiva(r));
+        if (diligenciasPendentesFilter)
+          matches.push(hasDiligenciasPendentes(r.diligenciasPendentes));
         const hasDateFilter = Boolean(dataInicial || dataFinal);
         if (hasDateFilter) {
           const ts = getDateByField(r, dataFieldFilter);
-          if (ts === null) return false;
           const start = parseDateToUtc(dataInicial, false);
           const end = parseDateToUtc(dataFinal, true);
-          if (start !== null && ts < start) return false;
-          if (end !== null && ts > end) return false;
+          matches.push(
+            ts !== null && (start === null || ts >= start) && (end === null || ts <= end),
+          );
         }
-        return true;
+        if (matches.length === 0) return true;
+        return filterLogic === "or" ? matches.some(Boolean) : matches.every(Boolean);
       }),
     [
       normalizedRows,
@@ -974,7 +1043,6 @@ function Inqueritos() {
       prioridadeFilter,
       gravidadeFilter,
       tipoFilter,
-      equipeFilter,
       tipificacaoFilter,
       tipificacaoOptions,
       selectedTipificacaoSlugs,
@@ -992,8 +1060,65 @@ function Inqueritos() {
       reuPresoStrictFilter,
       medidaProtetivaFilter,
       diligenciasPendentesFilter,
+      filterLogic,
     ],
   );
+
+  const displayedRows = useMemo(() => {
+    if (!sortState) return filtered;
+    const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+    return filtered
+      .map((row, index) => ({ row, index }))
+      .sort((left, right) => {
+        const leftValue = getInquirySortValue(left.row, sortState.columnId);
+        const rightValue = getInquirySortValue(right.row, sortState.columnId);
+        const compared =
+          typeof leftValue === "number" && typeof rightValue === "number"
+            ? leftValue - rightValue
+            : collator.compare(String(leftValue), String(rightValue));
+        if (compared === 0) return left.index - right.index;
+        return sortState.direction === "asc" ? compared : -compared;
+      })
+      .map(({ row }) => row);
+  }, [filtered, sortState]);
+
+  const toggleSort = (columnId: string) => {
+    if (columnId === "acao") return;
+    setSortState((current) => {
+      if (!current || current.columnId !== columnId) return { columnId, direction: "asc" };
+      if (current.direction === "asc") return { columnId, direction: "desc" };
+      return null;
+    });
+  };
+
+  const clearInquiryFilters = () => {
+    setSearchTerm("");
+    setSituacaoFilter([]);
+    setPrioridadeFilter([]);
+    setGravidadeFilter([]);
+    setTipoFilter([]);
+    setTipificacaoFilter([]);
+    setFilterLogic("and");
+    setSortState(null);
+    setAutoriaFilter("todos");
+    setPrazoFilter("todos");
+    setDataInicial("");
+    setDataFinal("");
+    setDataFieldFilter("entrada");
+    setRelatorioFilter("todos");
+    setCategoriaFilter("todos");
+    setStatusQueryFilter("todos");
+    setElucidadoFilter(false);
+    setNaoElucidadoFilter(false);
+    setReuPresoFilter(false);
+    setReuPresoStrictFilter(false);
+    setMedidaProtetivaFilter(false);
+    setDiligenciasPendentesFilter(false);
+    setActiveSavedFilterId("");
+    setActiveSavedFilterSnapshot("");
+    setError("");
+    window.history.replaceState(null, "", "/inqueritos");
+  };
 
   const hasActiveFilters = Boolean(
     searchTerm.trim() ||
@@ -1001,7 +1126,6 @@ function Inqueritos() {
     prioridadeFilter.length ||
     gravidadeFilter.length ||
     tipoFilter.length ||
-    equipeFilter.length ||
     tipificacaoFilter.length ||
     [autoriaFilter, prazoFilter, relatorioFilter, categoriaFilter, statusQueryFilter].some(
       (filter) => normalizeText(filter) !== "todos",
@@ -1012,7 +1136,9 @@ function Inqueritos() {
     naoElucidadoFilter ||
     reuPresoFilter ||
     medidaProtetivaFilter ||
-    diligenciasPendentesFilter,
+    diligenciasPendentesFilter ||
+    filterLogic !== "and" ||
+    sortState,
   );
   const currentFilterPayload = useMemo<InquiryFilterPayload>(
     () => ({
@@ -1021,8 +1147,10 @@ function Inqueritos() {
       prioridade: prioridadeFilter,
       gravidade: gravidadeFilter,
       tipo: tipoFilter,
-      equipe: equipeFilter,
       tipificacao: tipificacaoFilter,
+      logic: filterLogic,
+      sortColumn: sortState?.columnId ?? "",
+      sortDirection: sortState?.direction ?? "asc",
       autoria: autoriaFilter,
       prazo: prazoFilter,
       dataInicial,
@@ -1046,7 +1174,7 @@ function Inqueritos() {
       dataInicial,
       diligenciasPendentesFilter,
       elucidadoFilter,
-      equipeFilter,
+      filterLogic,
       gravidadeFilter,
       medidaProtetivaFilter,
       naoElucidadoFilter,
@@ -1058,6 +1186,7 @@ function Inqueritos() {
       searchTerm,
       situacaoFilter,
       statusQueryFilter,
+      sortState,
       tipoFilter,
       tipificacaoFilter,
     ],
@@ -1070,8 +1199,13 @@ function Inqueritos() {
     setPrioridadeFilter(next.prioridade);
     setGravidadeFilter(next.gravidade);
     setTipoFilter(next.tipo);
-    setEquipeFilter(next.equipe);
     setTipificacaoFilter(next.tipificacao);
+    setFilterLogic(next.logic);
+    setSortState(
+      INQUIRY_COLUMNS.some((column) => column.id === next.sortColumn && column.id !== "acao")
+        ? { columnId: next.sortColumn, direction: next.sortDirection }
+        : null,
+    );
     setAutoriaFilter(next.autoria);
     setPrazoFilter(next.prazo);
     setDataInicial(next.dataInicial);
@@ -1104,8 +1238,11 @@ function Inqueritos() {
     setMulti("prioridade", currentFilterPayload.prioridade);
     setMulti("gravidade", currentFilterPayload.gravidade);
     setMulti("tipo", currentFilterPayload.tipo);
-    setMulti("equipe", currentFilterPayload.equipe);
     setMulti("tipificacao", currentFilterPayload.tipificacao);
+    setText("logic", currentFilterPayload.logic, "and");
+    setText("sortColumn", currentFilterPayload.sortColumn);
+    if (currentFilterPayload.sortColumn)
+      setText("sortDirection", currentFilterPayload.sortDirection, "asc");
     setText("autoria", currentFilterPayload.autoria, "todos");
     setText("prazo", currentFilterPayload.prazo, "todos");
     setText("dataInicial", currentFilterPayload.dataInicial);
@@ -1250,7 +1387,6 @@ function Inqueritos() {
     pushMulti("Prioridade", prioridadeFilter);
     pushMulti("Gravidade", gravidadeFilter);
     pushMulti("Tipo", tipoFilter);
-    pushMulti("Equipe", equipeFilter);
     pushMulti("Tipificação", tipificacaoFilter, (id) => {
       if (id === EMPTY_FILTER) return "Não informada";
       return tipificacaoOptions.find((tag) => tag.id === id)?.name ?? id;
@@ -1273,6 +1409,13 @@ function Inqueritos() {
     if (reuPresoFilter) result.push({ label: "Réu preso", value: "Sim" });
     if (medidaProtetivaFilter) result.push({ label: "Medida protetiva", value: "Sim" });
     if (diligenciasPendentesFilter) result.push({ label: "Diligências pendentes", value: "Sim" });
+    if (filterLogic === "or") result.push({ label: "Combinação", value: "Qualquer filtro (OU)" });
+    if (sortState) {
+      result.push({
+        label: "Ordenação",
+        value: `${INQUIRY_COLUMNS.find((column) => column.id === sortState.columnId)?.label ?? sortState.columnId} - ${sortState.direction === "asc" ? "crescente" : "decrescente"}`,
+      });
+    }
     return result;
   }, [
     autoriaFilter,
@@ -1281,7 +1424,7 @@ function Inqueritos() {
     dataInicial,
     diligenciasPendentesFilter,
     elucidadoFilter,
-    equipeFilter,
+    filterLogic,
     gravidadeFilter,
     medidaProtetivaFilter,
     naoElucidadoFilter,
@@ -1292,34 +1435,48 @@ function Inqueritos() {
     searchTerm,
     situacaoFilter,
     statusQueryFilter,
+    sortState,
     tipoFilter,
     tipificacaoFilter,
     tipificacaoOptions,
   ]);
   const printRows = useMemo(
     () =>
-      filtered.map((row) =>
-        visibleInquiryColumns.map((column) => {
-          const situation = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
-          const values: Record<string, string> = {
-            ppe: row.numeroPpe || FALLBACK,
-            prioridade: calculateOperationalPriority(row) || FALLBACK,
-            tipificacao: row.tipificacao || FALLBACK,
-            gravidade: row.gravidade || FALLBACK,
-            tipo: getProcedureType(row.tipoProcedimento) || FALLBACK,
-            data_fato: formatOptionalDate(row.dataFato),
-            autoria: getAuthorshipLabel(row.autoria),
-            bairro: row.bairro || FALLBACK,
-            reu_preso: hasReuPreso(row) ? "Sim" : "Não",
-            status: situation || FALLBACK,
-            prazo: getPrazoDisplay(row.prazo).text,
-            acao: "Abrir",
-          };
-          return values[column.id] ?? FALLBACK;
-        }),
-      ),
-    [filtered, visibleInquiryColumns],
+      displayedRows.map((row, index) => {
+        const procedureType = getProcedureType(row.tipoProcedimento) || "Procedimento";
+        const procedureNumber = row.numeroPpe || row.source.numero_fisico || FALLBACK;
+        const situation = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
+        return {
+          id: row.id,
+          cells: [
+            String(index + 1).padStart(2, "0"),
+            `${procedureType} ${procedureNumber}`,
+            row.source.numero_bo || FALLBACK,
+            row.tipificacao || FALLBACK,
+            situation || FALLBACK,
+          ],
+          details: [
+            { label: "Data do fato", value: formatOptionalDate(row.dataFato) },
+            { label: "Autoria", value: getAuthorshipLabel(row.autoria) },
+            { label: "Bairro", value: row.bairro || FALLBACK },
+            { label: "Prioridade", value: calculateOperationalPriority(row) || FALLBACK },
+          ],
+        };
+      }),
+    [displayedRows],
   );
+  const printProcedureLabel = useMemo(() => {
+    if (tipoFilter.length !== 1) return "Procedimentos selecionados";
+    return `${getProcedureType(tipoFilter[0]) || tipoFilter[0]} selecionados`;
+  }, [tipoFilter]);
+  const handlePrintSummary = () => {
+    if (filtered.length === 0) return;
+    const originalTitle = document.title;
+    const date = new Intl.DateTimeFormat("pt-BR").format(new Date()).replaceAll("/", "-");
+    document.title = `SIPI - Resumo ${printProcedureLabel} - ${date}`;
+    window.addEventListener("afterprint", () => (document.title = originalTitle), { once: true });
+    window.setTimeout(() => window.print(), 0);
+  };
   // Treat the saved widths as proportions while there is enough horizontal
   // room. This keeps every selected column inside the panel instead of making
   // the right side of the table disappear when optional columns are enabled.
@@ -1346,10 +1503,15 @@ function Inqueritos() {
           <div className="sipi-print-hidden flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/15"
-              onClick={() => window.setTimeout(() => window.print(), 0)}
+              className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-45"
+              onClick={handlePrintSummary}
+              disabled={filtered.length === 0}
+              title="Imprimir um resumo somente dos procedimentos exibidos pelos filtros atuais"
             >
-              <FileDown className="h-4 w-4" /> Exportar PDF
+              <Printer className="h-4 w-4" /> Imprimir resumo
+              <span className="rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-black tabular-nums">
+                {filtered.length}
+              </span>
             </button>
             {canCreateCases(profile) ? (
               <button
@@ -1473,6 +1635,33 @@ function Inqueritos() {
                   </button>
                 </div>
               ) : null}
+              <div className="flex h-11 items-center justify-between gap-3 rounded-xl border border-border/90 bg-background/70 px-3 md:col-span-4">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                    Combinação dos filtros
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    E exige todos; OU aceita qualquer grupo selecionado.
+                  </p>
+                </div>
+                <div className="flex rounded-lg border border-border bg-card p-1">
+                  {(["and", "or"] as const).map((logic) => (
+                    <button
+                      key={logic}
+                      type="button"
+                      onClick={() => setFilterLogic(logic)}
+                      className={`min-w-10 rounded-md px-3 py-1 text-xs font-black transition ${
+                        filterLogic === logic
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                      aria-pressed={filterLogic === logic}
+                    >
+                      {logic === "and" ? "E" : "OU"}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <MultiSelectFilter
                 label="Status"
                 values={situacaoFilter}
@@ -1507,15 +1696,6 @@ function Inqueritos() {
                 options={[
                   { value: EMPTY_FILTER, label: "Não informado" },
                   ...tipoOptions.map((value) => ({ value, label: value })),
-                ]}
-              />
-              <MultiSelectFilter
-                label="Equipe"
-                values={equipeFilter}
-                onChange={setEquipeFilter}
-                options={[
-                  { value: EMPTY_FILTER, label: "Não informada" },
-                  ...equipeOptions.map((value) => ({ value, label: value })),
                 ]}
               />
               <MultiSelectFilter
@@ -1559,30 +1739,8 @@ function Inqueritos() {
               />
               {hasActiveFilters && (
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSituacaoFilter([]);
-                    setPrioridadeFilter([]);
-                    setGravidadeFilter([]);
-                    setTipoFilter([]);
-                    setEquipeFilter([]);
-                    setTipificacaoFilter([]);
-                    setAutoriaFilter("todos");
-                    setPrazoFilter("todos");
-                    setDataInicial("");
-                    setDataFinal("");
-                    setDataFieldFilter("entrada");
-                    setRelatorioFilter("todos");
-                    setCategoriaFilter("todos");
-                    setStatusQueryFilter("todos");
-                    setElucidadoFilter(false);
-                    setNaoElucidadoFilter(false);
-                    setReuPresoFilter(false);
-                    setReuPresoStrictFilter(false);
-                    setMedidaProtetivaFilter(false);
-                    setDiligenciasPendentesFilter(false);
-                    navigate({ to: "/inqueritos" });
-                  }}
+                  type="button"
+                  onClick={clearInquiryFilters}
                   className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-background/70 px-3 text-sm font-medium transition hover:bg-accent md:col-span-4"
                 >
                   Limpar filtros
@@ -1599,6 +1757,13 @@ function Inqueritos() {
                 {columnController.visibleColumns.map((column) => (
                   <th
                     key={column.id}
+                    aria-sort={
+                      sortState?.columnId === column.id
+                        ? sortState.direction === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : "none"
+                    }
                     className={`px-3 py-2.5 font-bold align-middle ${
                       column.align === "center"
                         ? "text-center"
@@ -1607,7 +1772,36 @@ function Inqueritos() {
                           : "text-left"
                     }`}
                   >
-                    {column.label}
+                    {column.id === "acao" ? (
+                      column.label
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleSort(column.id);
+                        }}
+                        className={`inline-flex w-full items-center gap-1.5 transition hover:text-foreground ${
+                          column.align === "center"
+                            ? "justify-center"
+                            : column.align === "right"
+                              ? "justify-end"
+                              : "justify-start"
+                        }`}
+                        title={`Ordenar por ${column.label}. Clique novamente para inverter a ordem.`}
+                      >
+                        <span className="truncate">{column.label}</span>
+                        {sortState?.columnId === column.id ? (
+                          sortState.direction === "asc" ? (
+                            <ArrowUp className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 opacity-45" />
+                        )}
+                      </button>
+                    )}
                   </th>
                 ))}
               </tr>
@@ -1624,7 +1818,7 @@ function Inqueritos() {
                   </td>
                 </tr>
               )}
-              {filtered.map((row) => {
+              {displayedRows.map((row) => {
                 const situacao = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
                 const prazoVencido = isPrazoVencido(row.prazo);
                 const prazoDisplay = getPrazoDisplay(row.prazo);
@@ -1801,6 +1995,28 @@ function Inqueritos() {
                       </button>
                     </td>
                     <td
+                      className="px-2.5 py-2.5 align-middle"
+                      style={getInquiryColumnStyle("resumo_fato")}
+                    >
+                      <span
+                        className="block max-w-full truncate text-xs leading-5 text-muted-foreground"
+                        title={row.resumoFato || "Não informado"}
+                      >
+                        {row.resumoFato || FALLBACK}
+                      </span>
+                    </td>
+                    <td
+                      className="px-2.5 py-2.5 align-middle"
+                      style={getInquiryColumnStyle("observacoes")}
+                    >
+                      <span
+                        className="block max-w-full truncate text-xs leading-5 text-muted-foreground"
+                        title={row.observacoes || "Não informado"}
+                      >
+                        {row.observacoes || FALLBACK}
+                      </span>
+                    </td>
+                    <td
                       className="px-3 py-2.5 text-center align-middle"
                       style={getInquiryColumnStyle("acao")}
                     >
@@ -1821,14 +2037,10 @@ function Inqueritos() {
           </table>
         </div>
         <SipiPrintList
-          documentTitle="Procedimentos Policiais"
-          documentSubtitle="Consulta filtrada da relação de procedimentos"
+          documentTitle="Resumo de Procedimentos Policiais"
+          documentSubtitle={`Relação consolidada - ${printProcedureLabel}`}
           filtrosAplicados={printFilters}
-          columns={visibleInquiryColumns.map((column) => ({
-            id: column.id,
-            label: column.label,
-            align: column.align,
-          }))}
+          columns={INQUIRY_PRINT_COLUMNS}
           rows={printRows}
           total={filtered.length}
           geradoEm={printGeneratedAt}

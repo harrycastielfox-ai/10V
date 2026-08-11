@@ -13,9 +13,11 @@ import { classifyAuthorship } from "@/lib/authorship";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
+import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import {
   getInqueritoById,
   listInqueritoPessoas,
+  listKnownInqueritoBairros,
   replaceInqueritoPessoas,
   updateInquerito,
 } from "@/lib/repositories/inqueritosRepository";
@@ -105,7 +107,6 @@ function EditarInquerito() {
   const [prioridade, setPrioridade] = useState("");
   const [situacao, setSituacao] = useState("");
   const [statusDiligencias, setStatusDiligencias] = useState("");
-  const [elucidado, setElucidado] = useState("");
   const [dataElucidacao, setDataElucidacao] = useState("");
   const [dataFato, setDataFato] = useState("");
   const [dataInstauracao, setDataInstauracao] = useState("");
@@ -117,6 +118,7 @@ function EditarInquerito() {
   const [houveArmaFogo, setHouveArmaFogo] = useState("");
   const [armaUtilizada, setArmaUtilizada] = useState("");
   const [bairro, setBairro] = useState("");
+  const [bairroOptions, setBairroOptions] = useState<string[]>([]);
   const [distrito, setDistrito] = useState("");
   const [cidade, setCidade] = useState("");
   const [motivacao, setMotivacao] = useState("");
@@ -217,7 +219,7 @@ function EditarInquerito() {
             "",
         );
         setResumoFato(inquerito.resumo_fato ?? "");
-        setGravidade(normalizeCaseCategory(inquerito.gravidade, "Outro"));
+        setGravidade(normalizeCaseCategory(inquerito.gravidade, "Outros"));
         setTipo(
           procedureTypeLabel(
             normalizeProcedureType(inquerito.tipo_procedimento_normalizado ?? inquerito.tipo),
@@ -232,7 +234,6 @@ function EditarInquerito() {
         setPrioridade(inquerito.prioridade ?? "");
         setSituacao(inquerito.situacao ?? "");
         setStatusDiligencias(inquerito.status_diligencias ?? "");
-        setElucidado(inquerito.elucidado ?? "");
         setDataElucidacao(toInputDate(inquerito.data_elucidacao));
         setDataFato(toInputDate(inquerito.data_fato));
         setDataInstauracao(toInputDate(inquerito.data_instauracao));
@@ -249,10 +250,13 @@ function EditarInquerito() {
         if (pessoasIniciais.length === 0) {
           const vitimaLegada = (inquerito.vitima ?? "").trim();
           const investigadoLegado = (inquerito.investigado ?? "").trim();
-          pessoasIniciais.push(
-            { ...createInquiryPerson("vitima"), nome: vitimaLegada },
-            { ...createInquiryPerson("autor_investigado"), nome: investigadoLegado },
-          );
+          if (vitimaLegada)
+            pessoasIniciais.push({ ...createInquiryPerson("vitima"), nome: vitimaLegada });
+          if (investigadoLegado)
+            pessoasIniciais.push({
+              ...createInquiryPerson("autor_investigado"),
+              nome: investigadoLegado,
+            });
         }
         setPessoas(pessoasIniciais);
         setAutoria(
@@ -265,7 +269,7 @@ function EditarInquerito() {
         setArmaUtilizada(inquerito.arma_utilizada ?? "");
         setBairro(inquerito.bairro ?? "");
         setDistrito(inquerito.distrito ?? "");
-        setCidade(inquerito.cidade ?? inquerito.distrito ?? "");
+        setCidade(inquerito.cidade ?? inquerito.distrito ?? "Itabela");
         setMotivacao(inquerito.motivacao ?? "");
         setVinculadoFaccao(inquerito.faccao ?? "");
         setNomeFaccao(inquerito.nome_faccao ?? "");
@@ -318,6 +322,18 @@ function EditarInquerito() {
     };
   }, [caseId]);
 
+  useEffect(() => {
+    let active = true;
+    void listKnownInqueritoBairros()
+      .then((bairros) => {
+        if (active) setBairroOptions(bairros);
+      })
+      .catch((error) => console.warn("[inqueritos:editar:bairros]", error));
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (saving || !canEditCases(profile)) return;
@@ -340,13 +356,14 @@ function EditarInquerito() {
       const normalizedType = normalizeProcedureType(tipo);
       const normalizedCategory = normalizeCriminalCategory(gravidade);
       const isCvli = normalizedCategory === "CVLI";
+      const autoriaDeterminada = autoria === "Determinada";
       const payload = {
         numero_ppe: numeroPpe.trim() || null,
         origem_registro: origemRegistro,
         visibilidade: visibilidade.trim() || null,
         tipificacao: selectedTipificacoes.map((tag) => tag.name).join("; "),
         resumo_fato: resumoFato.trim() || null,
-        gravidade: normalizeCaseCategory(gravidade, "Outro"),
+        gravidade: normalizeCaseCategory(gravidade, "Outros"),
         tipo: tipo.trim() || null,
         tipo_procedimento_normalizado: normalizedType,
         prioridade: prioridade.trim() || null,
@@ -354,9 +371,9 @@ function EditarInquerito() {
         categoria_criminal: normalizedCategory,
         status_tag_id: statusTagId,
         situacao: statusOptions.find((tag) => tag.id === statusTagId)?.name || situacao || null,
-        elucidado: elucidado.trim() || null,
-        cvli_elucidado: isCvli && elucidado ? isYesValue(elucidado) : null,
-        data_elucidacao: isCvli && isYesValue(elucidado) ? dataElucidacao || null : null,
+        elucidado: autoria ? (autoriaDeterminada ? "Sim" : "Não") : null,
+        cvli_elucidado: isCvli && autoria ? autoriaDeterminada : null,
+        data_elucidacao: isCvli && autoriaDeterminada ? dataElucidacao || null : null,
         data_fato: dataFato || null,
         data_instauracao: dataInstauracao || null,
         prazo: prazo || null,
@@ -508,7 +525,7 @@ function EditarInquerito() {
             />
             <Select
               label="Visibilidade"
-              options={canViewPrivateCases(profile) ? ["Público", "Privado"] : ["Público"]}
+              options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
               value={visibilidade}
               onChange={setVisibilidade}
             />
@@ -552,6 +569,25 @@ function EditarInquerito() {
             </div>
           </SectionCard>
 
+          <SectionCard title="Movimentações Processuais">
+            <div className="md:col-span-2 lg:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/25 bg-primary/[0.05] px-4 py-3">
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  Registrar protocolo vinculado a este procedimento
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Inclui representações, decisões e relatório final no histórico processual.
+                </p>
+              </div>
+              <a
+                href={`/nova-representacao?inqueritoId=${encodeURIComponent(caseId)}&ppe=${encodeURIComponent(numeroPpe)}`}
+                className="inline-flex h-9 items-center rounded-md border border-primary/40 bg-primary/10 px-4 text-xs font-bold text-primary transition-colors hover:bg-primary/15"
+              >
+                Cadastrar movimentação
+              </a>
+            </div>
+          </SectionCard>
+
           <SectionCard title="Classificação do Caso">
             <ProceduralTagPicker
               label="Tipificações"
@@ -586,13 +622,7 @@ function EditarInquerito() {
               value={resumoFato}
               onChange={(event) => setResumoFato(event.target.value)}
             />
-            <Select
-              label="Elucidado"
-              value={elucidado}
-              onChange={setElucidado}
-              options={["Sim", "Não"]}
-            />
-            {normalizeCriminalCategory(gravidade) === "CVLI" && elucidado === "Sim" && (
+            {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
               <Field
                 label="Data da elucidação"
                 type="date"
@@ -600,31 +630,18 @@ function EditarInquerito() {
                 onChange={(e) => setDataElucidacao(e.target.value)}
               />
             )}
-            <Select
-              label="Houve arma de fogo?"
-              value={houveArmaFogo}
-              onChange={setHouveArmaFogo}
-              options={["Sim", "Não"]}
+            <SeizedWeaponsField
+              checked={isYesValue(houveArmaFogo)}
+              onCheckedChange={(checked) => {
+                setHouveArmaFogo(checked ? "Sim" : "Não");
+                if (!checked) setArmaUtilizada("");
+              }}
+              value={armaUtilizada}
+              onValueChange={setArmaUtilizada}
             />
-            {houveArmaFogo === "Sim" && (
-              <Field
-                label="Arma Utilizada"
-                placeholder="Ex: revólver calibre .38"
-                value={armaUtilizada}
-                onChange={(e) => setArmaUtilizada(e.target.value)}
-              />
-            )}
           </SectionCard>
 
           <SectionCard title="Pessoas Envolvidas">
-            {pessoasCarregadas ? (
-              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
-            ) : (
-              <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-                Os dados principais foram carregados, mas as pessoas adicionais estao
-                temporariamente indisponiveis. Esta parte nao sera alterada ao salvar.
-              </div>
-            )}
             <Select
               label="Autoria"
               value={autoria}
@@ -637,10 +654,29 @@ function EditarInquerito() {
               onChange={setReuPreso}
               options={["Sim", "Não"]}
             />
+            {pessoasCarregadas ? (
+              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
+            ) : (
+              <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-sm text-amber-200 md:col-span-2 lg:col-span-3">
+                Os dados principais foram carregados, mas as pessoas adicionais estao
+                temporariamente indisponiveis. Esta parte nao sera alterada ao salvar.
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard title="Dados Operacionais">
-            <Field label="Bairro" value={bairro} onChange={(e) => setBairro(e.target.value)} />
+            <Field
+              label="Bairro"
+              list="editar-inquerito-bairros"
+              placeholder="Informe ou selecione um bairro já utilizado"
+              value={bairro}
+              onChange={(e) => setBairro(e.target.value)}
+            />
+            <datalist id="editar-inquerito-bairros">
+              {bairroOptions.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
             <Field label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
             <Field
               label="Motivação"

@@ -10,6 +10,7 @@ export type TableColumnDefinition = {
   id: string;
   label: string;
   defaultWidth: number;
+  defaultVisible?: boolean;
   required?: boolean;
   align?: "left" | "center" | "right";
 };
@@ -24,7 +25,7 @@ export type ColumnPreference = {
 function defaultPreferences(columns: readonly TableColumnDefinition[]) {
   return columns.map((column, order) => ({
     id: column.id,
-    visible: true,
+    visible: column.required ? true : (column.defaultVisible ?? true),
     width: column.defaultWidth,
     order,
   }));
@@ -55,7 +56,7 @@ function normalizePreferences(
     const stored = saved.get(id);
     return {
       id,
-      visible: definition.required ? true : (stored?.visible ?? true),
+      visible: definition.required ? true : (stored?.visible ?? definition.defaultVisible ?? true),
       width: Math.max(72, Number(stored?.width) || definition.defaultWidth),
       order,
     };

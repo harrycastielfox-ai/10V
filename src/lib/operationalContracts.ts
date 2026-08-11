@@ -499,7 +499,7 @@ export function normalizeCriminalCategory(value: unknown) {
   const normalized = comparable(value);
   if (normalized === "cvli" || normalized.includes("morte violenta")) return "CVLI";
   if (normalized === "cvp") return "CVP";
-  if (normalized === "miae") return "MIAE";
+  if (normalized === "miae" || normalized === "milae" || normalized === "mae") return "MIAE";
   if (normalized.includes("droga")) return "DROGAS";
   if (normalized.includes("patrimon")) return "PATRIMONIAL";
   if (normalized.includes("sexual")) return "SEXUAL";
@@ -510,7 +510,7 @@ export function normalizeCriminalCategory(value: unknown) {
   }
   if (normalized.includes("idos")) return "PESSOA_IDOSA";
   if (normalized.includes("transito")) return "TRANSITO";
-  if (normalized === "mae") return "MAE";
+  if (normalized.includes("racial") || normalized.includes("preconceito")) return "OUTROS";
   return "OUTROS";
 }
 

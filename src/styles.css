@@ -1150,6 +1150,11 @@ html[data-theme="light"] .sipi-bairro-name {
 
 /* Dedicated A4 document layout. It intentionally overrides the legacy print rules above. */
 @media print {
+  @page sipi-list-page {
+    size: A4 portrait;
+    margin: 10mm 10mm 15mm;
+  }
+
   @page {
     size: A4 portrait;
     margin: 0;
@@ -1218,7 +1223,19 @@ html[data-theme="light"] .sipi-bairro-name {
   .sipi-print-list {
     --sipi-print-accent: #12607a;
     --sipi-print-accent-soft: #edf8fa;
+    page: sipi-list-page;
     min-height: 272mm !important;
+  }
+
+  .sipi-print-document:has(.sipi-print-list) {
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .sipi-print-list .sipi-print-list-footer {
+    position: static !important;
+    margin-top: 4mm !important;
   }
 
   .sipi-print-list-context {
@@ -1248,25 +1265,26 @@ html[data-theme="light"] .sipi-bairro-name {
   .sipi-print-list-table {
     width: 100% !important;
     border-collapse: collapse !important;
-    table-layout: auto !important;
-    font-size: 6.8pt !important;
+    table-layout: fixed !important;
+    font-size: 7pt !important;
   }
 
   .sipi-print-list-table thead {
     display: table-header-group !important;
   }
 
-  .sipi-print-list-table tr {
+  .sipi-print-list-record {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
 
   .sipi-print-list-table th,
   .sipi-print-list-table td {
-    padding: 1.4mm 1.2mm !important;
+    padding: 1.35mm 1.2mm !important;
     border: 1px solid #cbd5e1 !important;
     color: #111827 !important;
-    vertical-align: top !important;
+    vertical-align: middle !important;
+    overflow-wrap: anywhere !important;
   }
 
   .sipi-print-list-table th {
@@ -1277,8 +1295,48 @@ html[data-theme="light"] .sipi-bairro-name {
     text-transform: uppercase !important;
   }
 
-  .sipi-print-list-table tbody tr:nth-child(even) td {
+  .sipi-print-list-primary-row td {
+    font-weight: 700 !important;
+  }
+
+  .sipi-print-list-record:nth-of-type(even) .sipi-print-list-primary-row td {
     background: #f8fafc !important;
+  }
+
+  .sipi-print-list-detail-row td {
+    padding: 0.9mm 1.2mm 1.15mm !important;
+    border-top: 0 !important;
+    background: var(--sipi-print-accent-soft) !important;
+  }
+
+  .sipi-print-list-detail-row dl {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 2.5mm !important;
+    margin: 0 !important;
+  }
+
+  .sipi-print-list-detail-row dl > div {
+    display: flex !important;
+    min-width: 0 !important;
+    gap: 1mm !important;
+  }
+
+  .sipi-print-list-detail-row dt {
+    color: #64748b !important;
+    font-size: 5.7pt !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+  }
+
+  .sipi-print-list-detail-row dd {
+    min-width: 0 !important;
+    margin: 0 !important;
+    color: #1f2937 !important;
+    font-size: 6.2pt !important;
+    font-weight: 700 !important;
+    overflow-wrap: anywhere !important;
   }
 
   .sipi-print-list-table .is-center {
@@ -1291,7 +1349,7 @@ html[data-theme="light"] .sipi-bairro-name {
 
   .sipi-print-masthead {
     display: grid !important;
-    grid-template-columns: 30mm minmax(0, 1fr) 50mm !important;
+    grid-template-columns: 24mm minmax(0, 1fr) 50mm !important;
     align-items: center !important;
     gap: 5mm !important;
     margin: 0 0 2.5mm !important;
@@ -1302,11 +1360,11 @@ html[data-theme="light"] .sipi-bairro-name {
 
   .sipi-print-logo {
     display: block !important;
-    width: 28mm !important;
-    height: 30mm !important;
+    width: 20mm !important;
+    height: 25mm !important;
+    margin: 0 auto !important;
     object-fit: contain !important;
-    transform: scale(1.65) !important;
-    transform-origin: center !important;
+    transform: none !important;
   }
 
   .sipi-print-heading {

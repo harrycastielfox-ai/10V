@@ -147,6 +147,16 @@ function NovaRepresentacao() {
           (tag) => tag.scope === "movimentacao_status" && tag.slug === "em-analise",
         );
         if (defaultStatus) setStatusTagId(defaultStatus.id);
+        const requestedTypeSlug = new URLSearchParams(window.location.search).get("tipo")?.trim();
+        const requestedType = requestedTypeSlug
+          ? tags.find(
+              (tag) =>
+                tag.scope === "movimentacao_tipo" && tag.slug === requestedTypeSlug && tag.active,
+            )
+          : null;
+        if (requestedType) {
+          setSelectedTagIds((current) => [...new Set([...current, requestedType.id])]);
+        }
       })
       .catch((error) => {
         console.warn("[movimentacoes:tags] Catálogo temporariamente indisponível", error);
@@ -430,31 +440,6 @@ function NovaRepresentacao() {
             options={statusTagOptions}
             value={statusTagId}
             onChange={setStatusTagId}
-          />
-          <Field
-            label="Vara / Juízo"
-            placeholder="Ex.: 2ª Vara Criminal"
-            value={varaJuizo}
-            onChange={(e) => setVaraJuizo(e.target.value)}
-          />
-          <Field
-            label="Data da decisão judicial"
-            type="date"
-            value={dataDecisaoJudicial}
-            onChange={(e) => setDataDecisaoJudicial(e.target.value)}
-          />
-          <Field
-            label="Prazo concedido (dias)"
-            type="number"
-            min={0}
-            value={prazoConcedidoDias}
-            onChange={(e) => setPrazoConcedidoDias(e.target.value)}
-          />
-          <Field
-            label="Data de vencimento"
-            type="date"
-            value={dataVencimento}
-            onChange={(e) => setDataVencimento(e.target.value)}
           />
           <ProceduralTagPicker
             label="Prioridade"

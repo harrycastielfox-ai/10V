@@ -9,23 +9,33 @@ export type InqueritoOperationalPriorityDetails = {
 
 export const CASE_CATEGORY_OPTIONS = [
   "CVLI",
-  "CVP",
-  "MIAE",
-  "Drogas",
-  "Crimes Contra o Patrimônio",
-  "Crimes Sexuais",
-  "Violência Doméstica",
-  "Violento",
-  "Violência contra a Criança e o Adolescente",
-  "Violência contra a Pessoa Idosa",
-  "Crimes de Trânsito",
-  "MAE",
-  "Outro",
+  "Tráfico de Drogas",
+  "MILAE",
+  "Violência Doméstica e Familiar",
+  "Sexuais",
+  "Patrimonial",
+  "Raciais e de Preconceito",
+  "Trânsito",
+  "Criança e Adolescente",
+  "Pessoa Idosa",
+  "Outros",
 ] as const;
 
-const CASE_CATEGORY_BY_NORMALIZED = new Map(
-  CASE_CATEGORY_OPTIONS.map((category) => [normalizeText(category), category]),
-);
+const CASE_CATEGORY_BY_NORMALIZED = new Map<string, (typeof CASE_CATEGORY_OPTIONS)[number]>([
+  ...CASE_CATEGORY_OPTIONS.map((category) => [normalizeText(category), category] as const),
+  ["drogas", "Tráfico de Drogas"],
+  ["trafico", "Tráfico de Drogas"],
+  ["miae", "MILAE"],
+  ["mae", "MILAE"],
+  ["violencia domestica", "Violência Doméstica e Familiar"],
+  ["crimes sexuais", "Sexuais"],
+  ["crimes contra o patrimonio", "Patrimonial"],
+  ["cvp", "Patrimonial"],
+  ["crimes de transito", "Trânsito"],
+  ["violencia contra a crianca e o adolescente", "Criança e Adolescente"],
+  ["violencia contra a pessoa idosa", "Pessoa Idosa"],
+  ["outro", "Outros"],
+]);
 
 export function normalizeCaseCategory(value: string | null | undefined, fallback = FALLBACK) {
   const normalized = normalizeText(value ?? "");
@@ -142,16 +152,14 @@ export function calculateInqueritoOperationalPriorityDetails(
     ),
   );
   const manual = normalizeManualPriority(pick(record, "prioridade_operacional", "prioridade"));
-  const highCategories = ["cvli", "miae", "crimes sexuais", "violencia domestica", "violento"];
+  const highCategories = ["cvli", "milae", "sexuais", "violencia domestica e familiar"];
   const mediumCategories = [
-    "drogas",
-    "cvp",
-    "crimes contra o patrimonio",
-    "crimes de transito",
-    "violencia contra crianca e adolescente",
-    "violencia contra a crianca e o adolescente",
-    "violencia contra pessoa idosa",
-    "violencia contra a pessoa idosa",
+    "trafico de drogas",
+    "patrimonial",
+    "transito",
+    "crianca e adolescente",
+    "pessoa idosa",
+    "raciais e de preconceito",
   ];
 
   if (hasReuPreso(record)) return { priority: "ALTA", reason: "Alta por réu preso" };

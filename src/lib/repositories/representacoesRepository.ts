@@ -125,6 +125,38 @@ export async function getRepresentacaoById(id: string) {
   return data as RepresentacaoRecord | null;
 }
 
+export async function countRepresentacoesByInquerito(inqueritoId: string) {
+  const rows = await runSupabaseQuery<Array<{ id: string }>>(
+    "quantidade de movimentações do procedimento",
+    (signal) =>
+      supabase
+        .from("representacoes")
+        .select("id")
+        .eq("inquerito_id", inqueritoId)
+        .is("deleted_at", null)
+        .limit(1000)
+        .abortSignal(signal),
+  );
+  return (rows ?? []).length;
+}
+
+export async function listRepresentacoesByInquerito(inqueritoId: string, limit = 100) {
+  const rows = await runSupabaseQuery<RepresentacaoRecord[]>(
+    "movimentações do procedimento",
+    (signal) =>
+      supabase
+        .from("representacoes")
+        .select("*")
+        .eq("inquerito_id", inqueritoId)
+        .is("deleted_at", null)
+        .order("data_protocolo", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(Math.max(1, Math.min(limit, 500)))
+        .abortSignal(signal),
+  );
+  return (rows ?? []) as RepresentacaoRecord[];
+}
+
 export async function listRepresentacaoPessoas(representacaoId: string) {
   const data = await runSupabaseQuery<RepresentacaoPessoaRecord[]>(
     "pessoas adicionais da representação",
