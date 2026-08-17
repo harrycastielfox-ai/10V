@@ -79,7 +79,7 @@ export function ObjectsSidebar({ profile }: { profile: UserProfile }) {
           aria-label="Voltar aos módulos"
           className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning"
         >
-          <div className="sipi-brand-emblem sipi-brand-emblem-warning flex h-14 w-14 items-center justify-center">
+          <div className="sipi-brand-emblem sipi-brand-emblem-warning sipi-brand-emblem-desktop flex h-14 w-14 items-center justify-center">
             <img
               src="/sipi-logo.png"
               alt="Logo SIPI"

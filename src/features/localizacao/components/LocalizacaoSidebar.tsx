@@ -34,7 +34,7 @@ export function LocalizacaoSidebar({ profile }: { profile: UserProfile }) {
           title="Voltar aos módulos"
           className="localizacao-sidebar-brand group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-operational"
         >
-          <span className="localizacao-sidebar-brand-icon sipi-brand-emblem sipi-brand-emblem-operational flex h-12 w-12 shrink-0 items-center justify-center">
+          <span className="localizacao-sidebar-brand-icon sipi-brand-emblem sipi-brand-emblem-operational sipi-brand-emblem-desktop flex h-12 w-12 shrink-0 items-center justify-center">
             <img
               src="/sipi-badge.png"
               alt="Logo SIPI"

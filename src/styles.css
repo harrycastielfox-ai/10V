@@ -5,8 +5,17 @@
 /* Brasao institucional sem bloco de fundo, com halo adaptado a cada modulo. */
 .sipi-brand-emblem {
   --sipi-emblem-glow: var(--primary);
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
   isolation: isolate;
   overflow: visible;
+}
+
+.sipi-brand-emblem::before,
+.sipi-brand-emblem::after {
+  content: none !important;
 }
 
 .sipi-brand-emblem-primary {
@@ -27,18 +36,22 @@
 
 .sipi-brand-emblem-image {
   filter: drop-shadow(0 0 1px color-mix(in oklab, var(--sipi-emblem-glow) 92%, white 8%))
-    drop-shadow(0 0 5px color-mix(in oklab, var(--sipi-emblem-glow) 58%, transparent))
-    drop-shadow(0 0 11px color-mix(in oklab, var(--sipi-emblem-glow) 24%, transparent));
+    drop-shadow(0 0 4px color-mix(in oklab, var(--sipi-emblem-glow) 50%, transparent))
+    drop-shadow(0 0 9px color-mix(in oklab, var(--sipi-emblem-glow) 18%, transparent));
   transform: translateZ(0);
   transition:
     filter 180ms ease,
     transform 180ms ease;
 }
 
+.sipi-brand-emblem-desktop .sipi-brand-emblem-image {
+  height: 108%;
+}
+
 .group:hover .sipi-brand-emblem-image {
   filter: drop-shadow(0 0 1px color-mix(in oklab, var(--sipi-emblem-glow) 96%, white 4%))
-    drop-shadow(0 0 6px color-mix(in oklab, var(--sipi-emblem-glow) 70%, transparent))
-    drop-shadow(0 0 14px color-mix(in oklab, var(--sipi-emblem-glow) 32%, transparent));
+    drop-shadow(0 0 5px color-mix(in oklab, var(--sipi-emblem-glow) 64%, transparent))
+    drop-shadow(0 0 11px color-mix(in oklab, var(--sipi-emblem-glow) 26%, transparent));
   transform: translateY(-1px) scale(1.025);
 }
 
