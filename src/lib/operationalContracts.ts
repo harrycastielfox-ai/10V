@@ -17,6 +17,10 @@ export type InquiryPersonFormValue = {
   papel: InquiryPersonRole;
   nome: string;
   observacao: string;
+  // Só valem para autor/investigado. null = não informado, diferente de false
+  // ("solto" / "autoria desconhecida").
+  autoriaDeterminada: boolean | null;
+  preso: boolean | null;
 };
 
 export function createInquiryPerson(
@@ -28,7 +32,41 @@ export function createInquiryPerson(
     papel,
     nome,
     observacao: "",
+    autoriaDeterminada: null,
+    preso: null,
   };
+}
+
+function namedInvestigados(pessoas: InquiryPersonFormValue[]) {
+  return pessoas.filter(
+    (pessoa) => pessoa.papel === "autor_investigado" && pessoa.nome.trim().length > 0,
+  );
+}
+
+// A autoria do procedimento sai das pessoas cadastradas: basta um investigado
+// com autoria determinada para o caso inteiro contar como determinado.
+//
+// Devolve "" quando ninguém informou nada — inclusive com investigado na lista.
+// É o que permite a tela de edição preservar o valor já salvo em procedimentos
+// antigos, cadastrados antes de a situação existir por pessoa.
+export function deriveInquiryAutoria(pessoas: InquiryPersonFormValue[]): string {
+  const investigados = namedInvestigados(pessoas);
+  if (investigados.some((pessoa) => pessoa.autoriaDeterminada === true)) return "Determinada";
+  if (investigados.some((pessoa) => pessoa.autoriaDeterminada === false)) return "Desconhecida";
+  if (investigados.length > 0) return "";
+
+  const preenchidas = pessoas.filter((pessoa) => pessoa.nome.trim().length > 0);
+  return preenchidas.length > 0 ? "Sem Autoria" : "";
+}
+
+// Um investigado preso já torna o procedimento "réu preso". Só responde "Não"
+// quando alguém foi explicitamente marcado como solto — "não informado" em
+// todos mantém o campo vazio em vez de afirmar o que ninguém disse.
+export function deriveInquiryReuPreso(pessoas: InquiryPersonFormValue[]): string {
+  const investigados = namedInvestigados(pessoas);
+  if (investigados.some((pessoa) => pessoa.preso === true)) return "Sim";
+  if (investigados.some((pessoa) => pessoa.preso === false)) return "Não";
+  return "";
 }
 
 export const PROCEDURE_TYPE_OPTIONS = [

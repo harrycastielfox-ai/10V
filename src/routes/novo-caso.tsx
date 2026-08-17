@@ -35,6 +35,8 @@ import {
   OCCURRENCE_ORIGIN_OPTIONS,
   PROCEDURE_TYPE_OPTIONS,
   REPORT_STATUS_OPTIONS,
+  deriveInquiryAutoria,
+  deriveInquiryReuPreso,
   getInquiryRegistrationChecks,
   isYesValue,
   normalizeCriminalCategory,
@@ -98,7 +100,6 @@ function NovoCaso() {
   const [selectedGravidadeTagIds, setSelectedGravidadeTagIds] = useState<string[]>([]);
   const [resumoFato, setResumoFato] = useState("");
   const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([]);
-  const [autoria, setAutoria] = useState("");
   const [numeroBo, setNumeroBo] = useState("");
   const [numeroFisico, setNumeroFisico] = useState("");
   const [prazo, setPrazo] = useState("");
@@ -112,7 +113,6 @@ function NovoCaso() {
   const [checkingPpe, setCheckingPpe] = useState(false);
   const [prioridade] = useState("MÉDIA");
   const [statusDiligencias, setStatusDiligencias] = useState("Pendente");
-  const [reuPreso, setReuPreso] = useState("");
   const [delegadoResponsavel, setDelegadoResponsavel] = useState("");
   const [equipe, setEquipe] = useState("");
   const [escrivao, setEscrivao] = useState("");
@@ -138,6 +138,9 @@ function NovoCaso() {
 
   const vitima = pessoas.find((pessoa) => pessoa.papel === "vitima")?.nome ?? "";
   const investigado = pessoas.find((pessoa) => pessoa.papel === "autor_investigado")?.nome ?? "";
+  // Vêm das pessoas cadastradas — não há mais campo solto para preencher.
+  const autoria = deriveInquiryAutoria(pessoas);
+  const reuPreso = deriveInquiryReuPreso(pessoas);
   const statusOptions = useMemo(() => tagsByScope(tagOptions, "inquerito_status"), [tagOptions]);
   const gravidadeOptions = useMemo(
     () => tagsByScope(tagOptions, "inquerito_gravidade"),
@@ -575,6 +578,8 @@ function NovoCaso() {
           papel: pessoa.papel,
           nome: pessoa.nome.trim(),
           observacao: pessoa.observacao.trim() || null,
+          autoria_determinada: pessoa.autoriaDeterminada,
+          preso: pessoa.preso,
           ordem,
         }));
       const linksFailed = await linkComplements(
@@ -792,12 +797,23 @@ function NovoCaso() {
 
           {step === 3 && (
             <SectionCard title="4. Pessoas Envolvidas">
-              <Select
-                label="Autoria"
-                options={["Determinada", "Desconhecida", "Sem Autoria"]}
-                value={autoria}
-                onChange={setAutoria}
-              />
+              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
+              {/* Autoria e réu preso deixaram de ser perguntados soltos: saem do
+                  que foi informado em cada investigado. Aqui fica só o resultado. */}
+              <div className="md:col-span-2 lg:col-span-3">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+                  <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                    Resultado para o procedimento
+                  </span>
+                  <span>
+                    Autoria: <strong className="font-semibold">{autoria || "não informada"}</strong>
+                  </span>
+                  <span>
+                    Réu preso:{" "}
+                    <strong className="font-semibold">{reuPreso || "não informado"}</strong>
+                  </span>
+                </div>
+              </div>
               {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
                 <Field
                   label="Data da elucidação"
@@ -806,13 +822,6 @@ function NovoCaso() {
                   onChange={(e) => setDataElucidacao(e.target.value)}
                 />
               )}
-              <Select
-                label="Réu Preso"
-                options={["Sim", "Não"]}
-                value={reuPreso}
-                onChange={setReuPreso}
-              />
-              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
             </SectionCard>
           )}
 

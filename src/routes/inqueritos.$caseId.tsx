@@ -631,7 +631,18 @@ function InqueritoDetalhes() {
               : pessoa.papel === "testemunha"
                 ? "Testemunha"
                 : "Outro envolvido",
-          pessoa.observacao ? `${pessoa.nome} — (Alcunha: ${pessoa.observacao})` : pessoa.nome,
+          // Só entra o que foi informado: nada de "não informado" enchendo a linha.
+          [
+            pessoa.observacao ? `${pessoa.nome} — (Alcunha: ${pessoa.observacao})` : pessoa.nome,
+            pessoa.autoria_determinada === true
+              ? "Autoria determinada"
+              : pessoa.autoria_determinada === false
+                ? "Autoria desconhecida"
+                : "",
+            pessoa.preso === true ? "Preso" : pessoa.preso === false ? "Solto" : "",
+          ]
+            .filter(Boolean)
+            .join(" · "),
         ])
       : [
           ["Vítima", detalhe.vitima],

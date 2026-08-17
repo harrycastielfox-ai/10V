@@ -44,6 +44,8 @@ import {
   PROCEDURE_TYPE_OPTIONS,
   REPORT_STATUS_OPTIONS,
   createInquiryPerson,
+  deriveInquiryAutoria,
+  deriveInquiryReuPreso,
   isYesValue,
   normalizeCriminalCategory,
   normalizePriority,
@@ -119,7 +121,9 @@ function EditarInquerito() {
   const [prazoDias, setPrazoDias] = useState("");
   const [prazoManual, setPrazoManual] = useState(false);
   const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([]);
-  const [reuPreso, setReuPreso] = useState("");
+  // Valores gravados no procedimento. Continuam valendo enquanto as pessoas não
+  // trouxerem informação própria — procedimentos antigos não têm essa situação.
+  const [reuPresoSalvo, setReuPresoSalvo] = useState("");
   const [houveArmaFogo, setHouveArmaFogo] = useState("");
   const [armaUtilizada, setArmaUtilizada] = useState("");
   const [bairro, setBairro] = useState("");
@@ -141,7 +145,12 @@ function EditarInquerito() {
   const [numeroProcessoMedida, setNumeroProcessoMedida] = useState("");
   const [representacoesLegais, setRepresentacoesLegais] = useState("");
   const [visibilidade, setVisibilidade] = useState("");
-  const [autoria, setAutoria] = useState("");
+  const [autoriaSalva, setAutoriaSalva] = useState("");
+
+  // Sem as pessoas carregadas não há de onde deduzir: mantém o que está gravado
+  // para o salvamento não apagar a informação existente.
+  const autoria = (pessoasCarregadas ? deriveInquiryAutoria(pessoas) : "") || autoriaSalva;
+  const reuPreso = (pessoasCarregadas ? deriveInquiryReuPreso(pessoas) : "") || reuPresoSalvo;
 
   const vitima = pessoas.find((pessoa) => pessoa.papel === "vitima")?.nome ?? "";
   const investigado = pessoas.find((pessoa) => pessoa.papel === "autor_investigado")?.nome ?? "";
@@ -317,6 +326,8 @@ function EditarInquerito() {
           papel: pessoa.papel,
           nome: pessoa.nome,
           observacao: pessoa.observacao ?? "",
+          autoriaDeterminada: pessoa.autoria_determinada ?? null,
+          preso: pessoa.preso ?? null,
         }));
         if (pessoasIniciais.length === 0) {
           const vitimaLegada = (inquerito.vitima ?? "").trim();
@@ -330,12 +341,12 @@ function EditarInquerito() {
             });
         }
         setPessoas(pessoasIniciais);
-        setAutoria(
+        setAutoriaSalva(
           classifyAuthorship(raw.autoria_determinada) === "desconhecida"
             ? "Desconhecida"
             : String(raw.autoria_determinada ?? ""),
         );
-        setReuPreso(inquerito.reu_preso ?? "");
+        setReuPresoSalvo(inquerito.reu_preso ?? "");
         setHouveArmaFogo(inquerito.houve_arma_fogo ?? "");
         setArmaUtilizada(inquerito.arma_utilizada ?? "");
         setBairro(inquerito.bairro ?? "");
@@ -539,6 +550,8 @@ function EditarInquerito() {
                 papel: pessoa.papel,
                 nome: pessoa.nome.trim(),
                 observacao: pessoa.observacao.trim() || null,
+                autoria_determinada: pessoa.autoriaDeterminada,
+                preso: pessoa.preso,
                 ordem,
               }))
           : null,
@@ -762,18 +775,22 @@ function EditarInquerito() {
           </SectionCard>
 
           <SectionCard title="Pessoas Envolvidas">
-            <Select
-              label="Autoria"
-              value={autoria}
-              onChange={setAutoria}
-              options={["Determinada", "Desconhecida", "Sem Autoria"]}
-            />
-            <Select
-              label="Réu Preso"
-              value={reuPreso}
-              onChange={setReuPreso}
-              options={["Sim", "Não"]}
-            />
+            {/* Autoria e réu preso vêm da situação de cada investigado. Enquanto
+                ninguém informar nada, o valor já salvo é mantido. */}
+            <div className="md:col-span-2 lg:col-span-3">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-border bg-card px-4 py-3 text-sm">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  Resultado para o procedimento
+                </span>
+                <span>
+                  Autoria: <strong className="font-semibold">{autoria || "não informada"}</strong>
+                </span>
+                <span>
+                  Réu preso:{" "}
+                  <strong className="font-semibold">{reuPreso || "não informado"}</strong>
+                </span>
+              </div>
+            </div>
             {pessoasCarregadas ? (
               <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
             ) : (

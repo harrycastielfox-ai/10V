@@ -85,6 +85,9 @@ export type InqueritoPessoaRecord = {
   papel: InqueritoPessoaPapel;
   nome: string;
   observacao: string | null;
+  // Só preenchidos para autor_investigado. null = não informado.
+  autoria_determinada: boolean | null;
+  preso: boolean | null;
   ordem: number;
   created_at: string;
   updated_at: string;
@@ -92,7 +95,7 @@ export type InqueritoPessoaRecord = {
 
 export type InqueritoPessoaInput = Pick<
   InqueritoPessoaRecord,
-  "papel" | "nome" | "observacao" | "ordem"
+  "papel" | "nome" | "observacao" | "autoria_determinada" | "preso" | "ordem"
 >;
 
 const LIST_CACHE_TTL_MS = 10000;
@@ -165,7 +168,9 @@ export async function listInqueritoPessoas(inqueritoId: string) {
     (signal) =>
       supabase
         .from("inquerito_pessoas")
-        .select("id,inquerito_id,papel,nome,observacao,ordem,created_at,updated_at")
+        .select(
+          "id,inquerito_id,papel,nome,observacao,autoria_determinada,preso,ordem,created_at,updated_at",
+        )
         .eq("inquerito_id", inqueritoId)
         .order("ordem", { ascending: true })
         .order("created_at", { ascending: true })
