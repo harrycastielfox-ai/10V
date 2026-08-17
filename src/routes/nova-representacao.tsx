@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createRepresentacao,
-  replaceRepresentacaoPessoas,
   updateRepresentacao,
 } from "@/lib/repositories/representacoesRepository";
 import {
@@ -23,10 +22,6 @@ import {
   listProceduralTags,
   replaceMovimentacaoTags,
 } from "@/lib/repositories/proceduralTagsRepository";
-import {
-  RepresentationPeopleEditor,
-  type RepresentationPersonFormValue,
-} from "@/components/RepresentationPeopleEditor";
 import {
   COMPLIANCE_RESULT_DESCRIPTIONS,
   COMPLIANCE_RESULT_OPTIONS,
@@ -99,15 +94,6 @@ function NovaRepresentacao() {
   const [tipoRepresentacao, setTipoRepresentacao] = useState("");
   const [tipoOutra, setTipoOutra] = useState("");
   const [dataRepresentacao, setDataRepresentacao] = useState("");
-  const [responsavel, setResponsavel] = useState("");
-  const [vitima, setVitima] = useState("");
-  const [investigado, setInvestigado] = useState("");
-  const [autorPreso, setAutorPreso] = useState("");
-  const [pessoasAdicionais, setPessoasAdicionais] = useState<RepresentationPersonFormValue[]>([]);
-  const [resumoFatos, setResumoFatos] = useState("");
-  const [fundamentacao, setFundamentacao] = useState("");
-  const [objetivo, setObjetivo] = useState("");
-  const [diligenciasRelacionadas, setDiligenciasRelacionadas] = useState("");
   const [status, setStatus] = useState("");
   const [dataEnvioJudiciario, setDataEnvioJudiciario] = useState("");
   const [dataDecisaoJudicial, setDataDecisaoJudicial] = useState("");
