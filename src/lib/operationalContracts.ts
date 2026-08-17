@@ -37,35 +37,33 @@ export function createInquiryPerson(
   };
 }
 
-function namedInvestigados(pessoas: InquiryPersonFormValue[]) {
-  return pessoas.filter(
-    (pessoa) => pessoa.papel === "autor_investigado" && pessoa.nome.trim().length > 0,
-  );
+// A situação vale para qualquer papel: em agressão mútua quem consta como
+// vítima também responde pelo fato, então a dedução olha todo mundo.
+function pessoasComNome(pessoas: InquiryPersonFormValue[]) {
+  return pessoas.filter((pessoa) => pessoa.nome.trim().length > 0);
 }
 
-// A autoria do procedimento sai das pessoas cadastradas: basta um investigado
-// com autoria determinada para o caso inteiro contar como determinado.
+// A autoria do procedimento sai das pessoas cadastradas: basta alguém com
+// autoria determinada para o caso inteiro contar como determinado.
 //
 // Devolve "" quando ninguém informou nada — inclusive com investigado na lista.
 // É o que permite a tela de edição preservar o valor já salvo em procedimentos
 // antigos, cadastrados antes de a situação existir por pessoa.
 export function deriveInquiryAutoria(pessoas: InquiryPersonFormValue[]): string {
-  const investigados = namedInvestigados(pessoas);
-  if (investigados.some((pessoa) => pessoa.autoriaDeterminada === true)) return "Determinada";
-  if (investigados.some((pessoa) => pessoa.autoriaDeterminada === false)) return "Desconhecida";
-  if (investigados.length > 0) return "";
-
-  const preenchidas = pessoas.filter((pessoa) => pessoa.nome.trim().length > 0);
+  const preenchidas = pessoasComNome(pessoas);
+  if (preenchidas.some((pessoa) => pessoa.autoriaDeterminada === true)) return "Determinada";
+  if (preenchidas.some((pessoa) => pessoa.autoriaDeterminada === false)) return "Desconhecida";
+  if (preenchidas.some((pessoa) => pessoa.papel === "autor_investigado")) return "";
   return preenchidas.length > 0 ? "Sem Autoria" : "";
 }
 
-// Um investigado preso já torna o procedimento "réu preso". Só responde "Não"
+// Uma pessoa presa já torna o procedimento "réu preso". Só responde "Não"
 // quando alguém foi explicitamente marcado como solto — "não informado" em
 // todos mantém o campo vazio em vez de afirmar o que ninguém disse.
 export function deriveInquiryReuPreso(pessoas: InquiryPersonFormValue[]): string {
-  const investigados = namedInvestigados(pessoas);
-  if (investigados.some((pessoa) => pessoa.preso === true)) return "Sim";
-  if (investigados.some((pessoa) => pessoa.preso === false)) return "Não";
+  const preenchidas = pessoasComNome(pessoas);
+  if (preenchidas.some((pessoa) => pessoa.preso === true)) return "Sim";
+  if (preenchidas.some((pessoa) => pessoa.preso === false)) return "Não";
   return "";
 }
 

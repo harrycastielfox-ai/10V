@@ -37,6 +37,16 @@ describe("deriveInquiryAutoria", () => {
     expect(deriveInquiryAutoria(pessoas)).toBe("Sem Autoria");
   });
 
+  it("considera a vítima que também responde pelo fato", () => {
+    // Agressão mútua: os dois se agrediram e ambos constam como vítima.
+    const pessoas = [
+      pessoa("vitima", "Maria", { autoriaDeterminada: true }),
+      pessoa("vitima", "João"),
+    ];
+
+    expect(deriveInquiryAutoria(pessoas)).toBe("Determinada");
+  });
+
   it("não afirma nada sobre investigado sem situação informada", () => {
     // Procedimento antigo: a pessoa existe, mas foi cadastrada antes de o campo
     // existir. A tela de edição depende do vazio para preservar o valor salvo.
@@ -70,5 +80,11 @@ describe("deriveInquiryReuPreso", () => {
     const pessoas = [pessoa("autor_investigado", "Fulano"), pessoa("vitima", "Maria")];
 
     expect(deriveInquiryReuPreso(pessoas)).toBe("");
+  });
+
+  it("conta a prisão de qualquer papel, não só do investigado", () => {
+    const pessoas = [pessoa("vitima", "Maria", { preso: true })];
+
+    expect(deriveInquiryReuPreso(pessoas)).toBe("Sim");
   });
 });

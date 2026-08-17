@@ -25,9 +25,18 @@ const ROLE_LABEL: Record<InquiryPersonRole, string> = {
 // O que cada papel significa, para quem preenche não precisar adivinhar.
 const ROLE_HINT: Record<InquiryPersonRole, string> = {
   vitima: "Quem sofreu o fato.",
-  autor_investigado: "Quem é apontado como autor. Abaixo, informe autoria e prisão.",
+  autor_investigado: "Quem é apontado como autor.",
   testemunha: "Quem presenciou ou tem conhecimento do fato.",
   outro: "Comunicante, representante legal ou qualquer outro envolvido.",
+};
+
+// A situação não é exclusiva do investigado: em agressão mútua quem consta como
+// vítima também responde, e uma testemunha pode estar presa por outro motivo.
+const SITUATION_HINT: Record<InquiryPersonRole, string> = {
+  vitima: "Preencha se esta pessoa também responde pelo fato.",
+  autor_investigado: "Situação deste investigado.",
+  testemunha: "Preencha somente se houver algo a registrar.",
+  outro: "Preencha somente se houver algo a registrar.",
 };
 
 const AUTORIA_OPTIONS = [
@@ -59,12 +68,10 @@ function fromTriState(value: boolean | null): string {
 function personSummary(person: InquiryPersonFormValue): string[] {
   const parts: string[] = [];
   if (person.observacao.trim()) parts.push(person.observacao.trim());
-  if (person.papel === "autor_investigado") {
-    if (person.autoriaDeterminada === true) parts.push("Autoria determinada");
-    if (person.autoriaDeterminada === false) parts.push("Autoria desconhecida");
-    if (person.preso === true) parts.push("Preso");
-    if (person.preso === false) parts.push("Solto");
-  }
+  if (person.autoriaDeterminada === true) parts.push("Autoria determinada");
+  if (person.autoriaDeterminada === false) parts.push("Autoria desconhecida");
+  if (person.preso === true) parts.push("Preso");
+  if (person.preso === false) parts.push("Solto");
   return parts;
 }
 
@@ -95,13 +102,10 @@ export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProp
       return;
     }
 
-    const isInvestigado = draft.papel === "autor_investigado";
     const savedPerson: InquiryPersonFormValue = {
       ...draft,
       nome,
       observacao: draft.observacao.trim(),
-      autoriaDeterminada: isInvestigado ? draft.autoriaDeterminada : null,
-      preso: isInvestigado ? draft.preso : null,
     };
 
     onChange(
@@ -268,8 +272,9 @@ export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProp
                 />
               </label>
 
-              {draft.papel === "autor_investigado" && (
-                <div className="grid gap-4 rounded-xl border border-border/70 bg-background/45 p-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-border/70 bg-background/45 p-4">
+                <p className="mb-3 text-xs text-muted-foreground">{SITUATION_HINT[draft.papel]}</p>
+                <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
                     <span className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted-foreground">
                       Autoria
@@ -305,7 +310,7 @@ export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProp
                     </select>
                   </label>
                 </div>
-              )}
+              </div>
             </div>
 
             {error ? <p className="mt-3 text-sm font-medium text-destructive">{error}</p> : null}
