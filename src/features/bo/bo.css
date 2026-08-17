@@ -77,7 +77,10 @@
 .bo-stat-card {
   position: relative;
   overflow: hidden;
-  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .bo-stat-card::before {
@@ -94,11 +97,21 @@
   transform: translateY(-2px);
 }
 
-.bo-stat-card--total { --bo-stat-color: #8b5cf6; }
-.bo-stat-card--pending { --bo-stat-color: #f59e0b; }
-.bo-stat-card--progress { --bo-stat-color: #3b82f6; }
-.bo-stat-card--waiting { --bo-stat-color: #f97316; }
-.bo-stat-card--done { --bo-stat-color: #22c55e; }
+.bo-stat-card--total {
+  --bo-stat-color: #8b5cf6;
+}
+.bo-stat-card--pending {
+  --bo-stat-color: #f59e0b;
+}
+.bo-stat-card--progress {
+  --bo-stat-color: #3b82f6;
+}
+.bo-stat-card--waiting {
+  --bo-stat-color: #f97316;
+}
+.bo-stat-card--done {
+  --bo-stat-color: #22c55e;
+}
 
 .bo-stat-icon {
   color: var(--bo-stat-color, #818cf8);
@@ -197,7 +210,9 @@
 .bo-row {
   border-top: 1px solid color-mix(in srgb, var(--bo-border) 72%, transparent);
   border-radius: 0.65rem;
-  transition: background-color 160ms ease, transform 160ms ease;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease;
 }
 
 .bo-row:hover {
@@ -295,7 +310,9 @@
 
 .bo-suggestion-item {
   border: 1px solid transparent;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
 
 .bo-suggestion-item:hover,
@@ -347,14 +364,11 @@ html[data-theme="light"] .bo-surface {
 
 html[data-theme="light"] .bo-overview-hero {
   background:
-    radial-gradient(circle at 78% -20%, rgba(139, 92, 246, 0.12), transparent 25rem),
-    #fff;
+    radial-gradient(circle at 78% -20%, rgba(139, 92, 246, 0.12), transparent 25rem), #fff;
 }
 
 html[data-theme="light"] .bo-status-panel {
-  background:
-    radial-gradient(circle at 50% 26%, rgba(124, 58, 237, 0.07), transparent 12rem),
-    #fff;
+  background: radial-gradient(circle at 50% 26%, rgba(124, 58, 237, 0.07), transparent 12rem), #fff;
 }
 
 html[data-theme="light"] .bo-control {
@@ -378,8 +392,8 @@ html[data-theme="light"] .bo-light-only {
 html[data-theme="light"] .bo-sidebar {
   color: #fff;
   background:
-    radial-gradient(circle at 18% 4%, rgba(167, 139, 250, 0.46), transparent 21rem),
-    linear-gradient(155deg, #4c1d95, #38146f 56%, #25084f);
+    radial-gradient(circle at 18% 4%, rgba(167, 139, 250, 0.3), transparent 19rem),
+    linear-gradient(155deg, #391570, #290f52 56%, #180535);
   border-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -400,7 +414,8 @@ html[data-theme="light"] .bo-sidebar-item-active {
 
 html[data-theme="light"] .bo-mobile-nav {
   border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(60, 20, 119, 0.96);
+  /* Acompanha o tom do sidebar: no celular é a mesma barra. */
+  background: rgba(41, 15, 82, 0.96);
 }
 
 html[data-theme="light"] .bo-detail-hero {
