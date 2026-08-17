@@ -14,6 +14,7 @@ import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as AguardandoAutorizacaoRouteImport } from './routes/aguardando-autorizacao'
 import { Route as AlertasRouteImport } from './routes/alertas'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as BoRouteImport } from './routes/bo'
 import { Route as CriarContaRouteImport } from './routes/criar-conta'
 import { Route as CvliComparativoRouteImport } from './routes/cvli-comparativo'
 import { Route as EstatisticasRouteImport } from './routes/estatisticas'
@@ -36,6 +37,10 @@ import { Route as AgendaHistoricoRouteImport } from './routes/agenda.historico'
 import { Route as AgendaNovoRouteImport } from './routes/agenda.novo'
 import { Route as AlertasModuloRouteImport } from './routes/alertas.$modulo'
 import { Route as ApiSheetSyncRouteImport } from './routes/api.sheet-sync'
+import { Route as BoIndexRouteImport } from './routes/bo.index'
+import { Route as BoBoIdRouteImport } from './routes/bo.$boId'
+import { Route as BoBoletinsRouteImport } from './routes/bo.boletins'
+import { Route as BoNovoRouteImport } from './routes/bo.novo'
 import { Route as InqueritosCaseIdRouteImport } from './routes/inqueritos.$caseId'
 import { Route as LocalizacaoIndexRouteImport } from './routes/localizacao.index'
 import { Route as LocalizacaoEnderecosRouteImport } from './routes/localizacao.enderecos'
@@ -63,6 +68,7 @@ import { Route as VeiculosRelatoriosRouteImport } from './routes/veiculos.relato
 import { Route as VeiculosTodosRouteImport } from './routes/veiculos.todos'
 import { Route as AdminUsuariosUserIdRouteImport } from './routes/admin.usuarios.$userId'
 import { Route as AgendaEditarAgendamentoIdRouteImport } from './routes/agenda.editar.$agendamentoId'
+import { Route as BoBoIdEditarRouteImport } from './routes/bo.$boId_.editar'
 import { Route as InqueritosCaseIdEditarRouteImport } from './routes/inqueritos.$caseId.editar'
 import { Route as ObjetosObjectIdEditarRouteImport } from './routes/objetos.$objectId.editar'
 import { Route as RepresentacoesRepresentacaoIdEditarRouteImport } from './routes/representacoes.$representacaoId.editar'
@@ -91,6 +97,11 @@ const AlertasRoute = AlertasRouteImport.update({
 const AuditoriaRoute = AuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BoRoute = BoRouteImport.update({
+  id: '/bo',
+  path: '/bo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CriarContaRoute = CriarContaRouteImport.update({
@@ -202,6 +213,26 @@ const ApiSheetSyncRoute = ApiSheetSyncRouteImport.update({
   id: '/api/sheet-sync',
   path: '/api/sheet-sync',
   getParentRoute: () => rootRouteImport,
+} as any)
+const BoIndexRoute = BoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BoRoute,
+} as any)
+const BoBoIdRoute = BoBoIdRouteImport.update({
+  id: '/$boId',
+  path: '/$boId',
+  getParentRoute: () => BoRoute,
+} as any)
+const BoBoletinsRoute = BoBoletinsRouteImport.update({
+  id: '/boletins',
+  path: '/boletins',
+  getParentRoute: () => BoRoute,
+} as any)
+const BoNovoRoute = BoNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => BoRoute,
 } as any)
 const InqueritosCaseIdRoute = InqueritosCaseIdRouteImport.update({
   id: '/$caseId',
@@ -340,6 +371,11 @@ const AgendaEditarAgendamentoIdRoute =
     path: '/editar/$agendamentoId',
     getParentRoute: () => AgendaRoute,
   } as any)
+const BoBoIdEditarRoute = BoBoIdEditarRouteImport.update({
+  id: '/$boId_/editar',
+  path: '/$boId/editar',
+  getParentRoute: () => BoRoute,
+} as any)
 const InqueritosCaseIdEditarRoute = InqueritosCaseIdEditarRouteImport.update({
   id: '/editar',
   path: '/editar',
@@ -368,6 +404,7 @@ export interface FileRoutesByFullPath {
   '/aguardando-autorizacao': typeof AguardandoAutorizacaoRoute
   '/alertas': typeof AlertasRouteWithChildren
   '/auditoria': typeof AuditoriaRoute
+  '/bo': typeof BoRouteWithChildren
   '/criar-conta': typeof CriarContaRoute
   '/cvli-comparativo': typeof CvliComparativoRoute
   '/estatisticas': typeof EstatisticasRoute
@@ -389,6 +426,9 @@ export interface FileRoutesByFullPath {
   '/agenda/novo': typeof AgendaNovoRoute
   '/alertas/$modulo': typeof AlertasModuloRoute
   '/api/sheet-sync': typeof ApiSheetSyncRoute
+  '/bo/$boId': typeof BoBoIdRoute
+  '/bo/boletins': typeof BoBoletinsRoute
+  '/bo/novo': typeof BoNovoRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
   '/localizacao/enderecos': typeof LocalizacaoEnderecosRoute
   '/localizacao/pessoas': typeof LocalizacaoPessoasRoute
@@ -412,11 +452,13 @@ export interface FileRoutesByFullPath {
   '/veiculos/relatorios': typeof VeiculosRelatoriosRoute
   '/veiculos/todos': typeof VeiculosTodosRoute
   '/agenda/': typeof AgendaIndexRoute
+  '/bo/': typeof BoIndexRoute
   '/localizacao/': typeof LocalizacaoIndexRoute
   '/objetos/': typeof ObjetosIndexRoute
   '/veiculos/': typeof VeiculosIndexRoute
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
   '/agenda/editar/$agendamentoId': typeof AgendaEditarAgendamentoIdRoute
+  '/bo/$boId/editar': typeof BoBoIdEditarRoute
   '/inqueritos/$caseId/editar': typeof InqueritosCaseIdEditarRoute
   '/objetos/$objectId/editar': typeof ObjetosObjectIdEditarRoute
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
@@ -445,6 +487,9 @@ export interface FileRoutesByTo {
   '/agenda/novo': typeof AgendaNovoRoute
   '/alertas/$modulo': typeof AlertasModuloRoute
   '/api/sheet-sync': typeof ApiSheetSyncRoute
+  '/bo/$boId': typeof BoBoIdRoute
+  '/bo/boletins': typeof BoBoletinsRoute
+  '/bo/novo': typeof BoNovoRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
   '/localizacao/enderecos': typeof LocalizacaoEnderecosRoute
   '/localizacao/pessoas': typeof LocalizacaoPessoasRoute
@@ -468,11 +513,13 @@ export interface FileRoutesByTo {
   '/veiculos/relatorios': typeof VeiculosRelatoriosRoute
   '/veiculos/todos': typeof VeiculosTodosRoute
   '/agenda': typeof AgendaIndexRoute
+  '/bo': typeof BoIndexRoute
   '/localizacao': typeof LocalizacaoIndexRoute
   '/objetos': typeof ObjetosIndexRoute
   '/veiculos': typeof VeiculosIndexRoute
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
   '/agenda/editar/$agendamentoId': typeof AgendaEditarAgendamentoIdRoute
+  '/bo/$boId/editar': typeof BoBoIdEditarRoute
   '/inqueritos/$caseId/editar': typeof InqueritosCaseIdEditarRoute
   '/objetos/$objectId/editar': typeof ObjetosObjectIdEditarRoute
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
@@ -485,6 +532,7 @@ export interface FileRoutesById {
   '/aguardando-autorizacao': typeof AguardandoAutorizacaoRoute
   '/alertas': typeof AlertasRouteWithChildren
   '/auditoria': typeof AuditoriaRoute
+  '/bo': typeof BoRouteWithChildren
   '/criar-conta': typeof CriarContaRoute
   '/cvli-comparativo': typeof CvliComparativoRoute
   '/estatisticas': typeof EstatisticasRoute
@@ -506,6 +554,9 @@ export interface FileRoutesById {
   '/agenda/novo': typeof AgendaNovoRoute
   '/alertas/$modulo': typeof AlertasModuloRoute
   '/api/sheet-sync': typeof ApiSheetSyncRoute
+  '/bo/$boId': typeof BoBoIdRoute
+  '/bo/boletins': typeof BoBoletinsRoute
+  '/bo/novo': typeof BoNovoRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
   '/localizacao/enderecos': typeof LocalizacaoEnderecosRoute
   '/localizacao/pessoas': typeof LocalizacaoPessoasRoute
@@ -529,11 +580,13 @@ export interface FileRoutesById {
   '/veiculos/relatorios': typeof VeiculosRelatoriosRoute
   '/veiculos/todos': typeof VeiculosTodosRoute
   '/agenda/': typeof AgendaIndexRoute
+  '/bo/': typeof BoIndexRoute
   '/localizacao/': typeof LocalizacaoIndexRoute
   '/objetos/': typeof ObjetosIndexRoute
   '/veiculos/': typeof VeiculosIndexRoute
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
   '/agenda/editar/$agendamentoId': typeof AgendaEditarAgendamentoIdRoute
+  '/bo/$boId_/editar': typeof BoBoIdEditarRoute
   '/inqueritos/$caseId/editar': typeof InqueritosCaseIdEditarRoute
   '/objetos/$objectId/editar': typeof ObjetosObjectIdEditarRoute
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
@@ -547,6 +600,7 @@ export interface FileRouteTypes {
     | '/aguardando-autorizacao'
     | '/alertas'
     | '/auditoria'
+    | '/bo'
     | '/criar-conta'
     | '/cvli-comparativo'
     | '/estatisticas'
@@ -568,6 +622,9 @@ export interface FileRouteTypes {
     | '/agenda/novo'
     | '/alertas/$modulo'
     | '/api/sheet-sync'
+    | '/bo/$boId'
+    | '/bo/boletins'
+    | '/bo/novo'
     | '/inqueritos/$caseId'
     | '/localizacao/enderecos'
     | '/localizacao/pessoas'
@@ -591,11 +648,13 @@ export interface FileRouteTypes {
     | '/veiculos/relatorios'
     | '/veiculos/todos'
     | '/agenda/'
+    | '/bo/'
     | '/localizacao/'
     | '/objetos/'
     | '/veiculos/'
     | '/admin/usuarios/$userId'
     | '/agenda/editar/$agendamentoId'
+    | '/bo/$boId/editar'
     | '/inqueritos/$caseId/editar'
     | '/objetos/$objectId/editar'
     | '/representacoes/$representacaoId/editar'
@@ -624,6 +683,9 @@ export interface FileRouteTypes {
     | '/agenda/novo'
     | '/alertas/$modulo'
     | '/api/sheet-sync'
+    | '/bo/$boId'
+    | '/bo/boletins'
+    | '/bo/novo'
     | '/inqueritos/$caseId'
     | '/localizacao/enderecos'
     | '/localizacao/pessoas'
@@ -647,11 +709,13 @@ export interface FileRouteTypes {
     | '/veiculos/relatorios'
     | '/veiculos/todos'
     | '/agenda'
+    | '/bo'
     | '/localizacao'
     | '/objetos'
     | '/veiculos'
     | '/admin/usuarios/$userId'
     | '/agenda/editar/$agendamentoId'
+    | '/bo/$boId/editar'
     | '/inqueritos/$caseId/editar'
     | '/objetos/$objectId/editar'
     | '/representacoes/$representacaoId/editar'
@@ -663,6 +727,7 @@ export interface FileRouteTypes {
     | '/aguardando-autorizacao'
     | '/alertas'
     | '/auditoria'
+    | '/bo'
     | '/criar-conta'
     | '/cvli-comparativo'
     | '/estatisticas'
@@ -684,6 +749,9 @@ export interface FileRouteTypes {
     | '/agenda/novo'
     | '/alertas/$modulo'
     | '/api/sheet-sync'
+    | '/bo/$boId'
+    | '/bo/boletins'
+    | '/bo/novo'
     | '/inqueritos/$caseId'
     | '/localizacao/enderecos'
     | '/localizacao/pessoas'
@@ -707,11 +775,13 @@ export interface FileRouteTypes {
     | '/veiculos/relatorios'
     | '/veiculos/todos'
     | '/agenda/'
+    | '/bo/'
     | '/localizacao/'
     | '/objetos/'
     | '/veiculos/'
     | '/admin/usuarios/$userId'
     | '/agenda/editar/$agendamentoId'
+    | '/bo/$boId_/editar'
     | '/inqueritos/$caseId/editar'
     | '/objetos/$objectId/editar'
     | '/representacoes/$representacaoId/editar'
@@ -724,6 +794,7 @@ export interface RootRouteChildren {
   AguardandoAutorizacaoRoute: typeof AguardandoAutorizacaoRoute
   AlertasRoute: typeof AlertasRouteWithChildren
   AuditoriaRoute: typeof AuditoriaRoute
+  BoRoute: typeof BoRouteWithChildren
   CriarContaRoute: typeof CriarContaRoute
   CvliComparativoRoute: typeof CvliComparativoRoute
   EstatisticasRoute: typeof EstatisticasRoute
@@ -777,6 +848,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bo': {
+      id: '/bo'
+      path: '/bo'
+      fullPath: '/bo'
+      preLoaderRoute: typeof BoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/criar-conta': {
@@ -932,6 +1010,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/sheet-sync'
       preLoaderRoute: typeof ApiSheetSyncRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/bo/': {
+      id: '/bo/'
+      path: '/'
+      fullPath: '/bo/'
+      preLoaderRoute: typeof BoIndexRouteImport
+      parentRoute: typeof BoRoute
+    }
+    '/bo/$boId': {
+      id: '/bo/$boId'
+      path: '/$boId'
+      fullPath: '/bo/$boId'
+      preLoaderRoute: typeof BoBoIdRouteImport
+      parentRoute: typeof BoRoute
+    }
+    '/bo/boletins': {
+      id: '/bo/boletins'
+      path: '/boletins'
+      fullPath: '/bo/boletins'
+      preLoaderRoute: typeof BoBoletinsRouteImport
+      parentRoute: typeof BoRoute
+    }
+    '/bo/novo': {
+      id: '/bo/novo'
+      path: '/novo'
+      fullPath: '/bo/novo'
+      preLoaderRoute: typeof BoNovoRouteImport
+      parentRoute: typeof BoRoute
     }
     '/inqueritos/$caseId': {
       id: '/inqueritos/$caseId'
@@ -1122,6 +1228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgendaEditarAgendamentoIdRouteImport
       parentRoute: typeof AgendaRoute
     }
+    '/bo/$boId_/editar': {
+      id: '/bo/$boId_/editar'
+      path: '/$boId/editar'
+      fullPath: '/bo/$boId/editar'
+      preLoaderRoute: typeof BoBoIdEditarRouteImport
+      parentRoute: typeof BoRoute
+    }
     '/inqueritos/$caseId/editar': {
       id: '/inqueritos/$caseId/editar'
       path: '/editar'
@@ -1184,6 +1297,24 @@ const AlertasRouteChildren: AlertasRouteChildren = {
 
 const AlertasRouteWithChildren =
   AlertasRoute._addFileChildren(AlertasRouteChildren)
+
+interface BoRouteChildren {
+  BoBoIdRoute: typeof BoBoIdRoute
+  BoBoletinsRoute: typeof BoBoletinsRoute
+  BoNovoRoute: typeof BoNovoRoute
+  BoIndexRoute: typeof BoIndexRoute
+  BoBoIdEditarRoute: typeof BoBoIdEditarRoute
+}
+
+const BoRouteChildren: BoRouteChildren = {
+  BoBoIdRoute: BoBoIdRoute,
+  BoBoletinsRoute: BoBoletinsRoute,
+  BoNovoRoute: BoNovoRoute,
+  BoIndexRoute: BoIndexRoute,
+  BoBoIdEditarRoute: BoBoIdEditarRoute,
+}
+
+const BoRouteWithChildren = BoRoute._addFileChildren(BoRouteChildren)
 
 interface InqueritosCaseIdRouteChildren {
   InqueritosCaseIdEditarRoute: typeof InqueritosCaseIdEditarRoute
@@ -1352,6 +1483,7 @@ const rootRouteChildren: RootRouteChildren = {
   AguardandoAutorizacaoRoute: AguardandoAutorizacaoRoute,
   AlertasRoute: AlertasRouteWithChildren,
   AuditoriaRoute: AuditoriaRoute,
+  BoRoute: BoRouteWithChildren,
   CriarContaRoute: CriarContaRoute,
   CvliComparativoRoute: CvliComparativoRoute,
   EstatisticasRoute: EstatisticasRoute,

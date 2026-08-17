@@ -25,7 +25,7 @@ function CvliComparativoPage() {
   const [inqueritos, setInqueritos] = useState<InqueritoRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [yearPage, setYearPage] = useState(1);
+  const [yearPage, setYearPage] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -49,18 +49,16 @@ function CvliComparativoPage() {
   }, []);
 
   const comparison = useMemo(() => buildCvliMonthlyComparison(inqueritos), [inqueritos]);
-  useEffect(() => {
-    setYearPage((current) =>
-      Math.min(current, Math.max(1, Math.ceil(comparison.years.length / YEAR_PAGE_SIZE))),
-    );
-  }, [comparison.years.length]);
   const selectedYears = comparison.years;
   const totalYearPages = Math.max(1, Math.ceil(selectedYears.length / YEAR_PAGE_SIZE));
-  const safeYearPage = Math.min(yearPage, totalYearPages);
-  const visibleYears = useMemo(
-    () => selectedYears.slice((safeYearPage - 1) * YEAR_PAGE_SIZE, safeYearPage * YEAR_PAGE_SIZE),
-    [safeYearPage, selectedYears],
-  );
+  const safeYearPage = Math.min(yearPage ?? totalYearPages, totalYearPages);
+  const visibleYears = useMemo(() => {
+    const pagesAfterCurrent = totalYearPages - safeYearPage;
+    const endIndex = selectedYears.length - pagesAfterCurrent * YEAR_PAGE_SIZE;
+    const startIndex = Math.max(0, endIndex - YEAR_PAGE_SIZE);
+
+    return selectedYears.slice(startIndex, endIndex);
+  }, [safeYearPage, selectedYears, totalYearPages]);
   const summary = useMemo(() => {
     const metrics = visibleYears
       .map((year) => ({ year, metric: comparison.totals[year] }))
@@ -145,7 +143,7 @@ function CvliComparativoPage() {
             {selectedYears.length > YEAR_PAGE_SIZE ? (
               <button
                 type="button"
-                onClick={() => setYearPage((current) => Math.max(1, current - 1))}
+                onClick={() => setYearPage(Math.max(1, safeYearPage - 1))}
                 disabled={safeYearPage === 1}
                 className="h-9 rounded-md border border-info/70 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground shadow-[0_0_10px_rgba(14,165,233,0.14)] transition hover:border-info hover:text-info disabled:cursor-not-allowed disabled:border-info/45 disabled:opacity-40"
               >
@@ -163,7 +161,7 @@ function CvliComparativoPage() {
             {selectedYears.length > YEAR_PAGE_SIZE ? (
               <button
                 type="button"
-                onClick={() => setYearPage((current) => Math.min(totalYearPages, current + 1))}
+                onClick={() => setYearPage(Math.min(totalYearPages, safeYearPage + 1))}
                 disabled={safeYearPage === totalYearPages}
                 className="h-9 rounded-md border border-info/70 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground shadow-[0_0_10px_rgba(14,165,233,0.14)] transition hover:border-info hover:text-info disabled:cursor-not-allowed disabled:border-info/45 disabled:opacity-40"
               >

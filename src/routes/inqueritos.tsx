@@ -51,7 +51,6 @@ import {
 } from "@/lib/repositories/savedFiltersRepository";
 import { SipiPrintList } from "@/components/SipiPrintList";
 import {
-  CASE_CATEGORY_OPTIONS,
   calculateInqueritoOperationalPriority,
   isTruthyLike,
   normalizeCaseCategory,
@@ -80,17 +79,6 @@ const statusTone: Record<string, string> = {
 };
 const FALLBACK = "—";
 const EMPTY_FILTER = "__vazio__";
-const PROCEDURE_STATUS_OPTIONS = [
-  "Instaurado",
-  "Aguardando Laudo Pericial",
-  "Aguardando RIC",
-  "Para Relatar",
-  "Prescrito",
-  "Relatado",
-  "Relatado Para Enviar",
-  "Relatado Para Corrigir",
-  "Requisição Ministerial/Judicial",
-];
 const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
   { id: "ppe", label: "Nº PPE", defaultWidth: 160, required: true },
   { id: "prioridade", label: "Prioridade", defaultWidth: 112 },
@@ -691,7 +679,9 @@ function Inqueritos() {
             canViewRepresentacoes(currentProfile)
               ? listRepresentacoes().catch(() => [] as RepresentacaoRecord[])
               : Promise.resolve([] as RepresentacaoRecord[]),
-            listProceduralTags(["tipificacao"]).catch(() => [] as ProceduralTag[]),
+            listProceduralTags(["inquerito_status", "inquerito_gravidade", "tipificacao"]).catch(
+              () => [] as ProceduralTag[],
+            ),
             listInqueritoTagLinks().catch(
               () => [] as Array<{ inquerito_id: string; tag_id: string }>,
             ),
@@ -883,25 +873,21 @@ function Inqueritos() {
     Array.from(new Set(items.filter((v) => !isEmpty(v)))).sort((a, b) =>
       a.localeCompare(b, "pt-BR"),
     );
-  const situacaoOptions = useMemo(
-    () =>
-      options([
-        ...PROCEDURE_STATUS_OPTIONS,
-        ...normalizedRows.map((r) => (r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias)),
-      ]),
-    [normalizedRows],
-  );
   const prioridadeOptions = useMemo(
     () => options(normalizedRows.map((r) => calculateOperationalPriority(r))),
-    [normalizedRows],
-  );
-  const gravidadeOptions = useMemo(
-    () => options([...CASE_CATEGORY_OPTIONS, ...normalizedRows.map((r) => r.gravidade)]),
     [normalizedRows],
   );
   const tipoOptions = useMemo(
     () => options(normalizedRows.map((r) => r.tipoProcedimento)),
     [normalizedRows],
+  );
+  const statusTagOptions = useMemo(
+    () => tagsByScope(proceduralTags, "inquerito_status"),
+    [proceduralTags],
+  );
+  const gravidadeTagOptions = useMemo(
+    () => tagsByScope(proceduralTags, "inquerito_gravidade"),
+    [proceduralTags],
   );
   const tipificacaoOptions = useMemo(
     () => tagsByScope(proceduralTags, "tipificacao"),
@@ -915,6 +901,14 @@ function Inqueritos() {
           .map((tag) => tag.slug),
       ),
     [tipificacaoFilter, tipificacaoOptions],
+  );
+  const statusTagById = useMemo(
+    () => new Map(statusTagOptions.map((tag) => [tag.id, tag])),
+    [statusTagOptions],
+  );
+  const gravidadeTagById = useMemo(
+    () => new Map(gravidadeTagOptions.map((tag) => [tag.id, tag])),
+    [gravidadeTagOptions],
   );
 
   const filtered = useMemo(
@@ -949,13 +943,19 @@ function Inqueritos() {
         const situacao = r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias;
         if (situacaoFilter.length > 0) {
           matches.push(
-            situacaoFilter.some((filter) =>
-              filter === EMPTY_FILTER
-                ? isEmpty(situacao)
-                : [r.situacao, r.statusDiligencias].some(
-                    (value) => !isEmpty(value) && matchesSituacaoAlias(value, filter),
-                  ),
-            ),
+            situacaoFilter.some((filter) => {
+              if (filter === EMPTY_FILTER) return isEmpty(situacao);
+              if (r.tagIds.includes(filter)) return true;
+              const tag = statusTagById.get(filter);
+              return [r.situacao, r.statusDiligencias].some(
+                (value) =>
+                  !isEmpty(value) &&
+                  (tag
+                    ? matchesSituacaoAlias(value, tag.name) ||
+                      normalizeText(value) === normalizeText(tag.name)
+                    : matchesSituacaoAlias(value, filter)),
+              );
+            }),
           );
         }
         if (prioridadeFilter.length > 0) {
@@ -970,11 +970,12 @@ function Inqueritos() {
         }
         if (gravidadeFilter.length > 0) {
           matches.push(
-            gravidadeFilter.some((filter) =>
-              filter === EMPTY_FILTER
-                ? isEmpty(r.gravidade)
-                : normalizeText(r.gravidade) === normalizeText(filter),
-            ),
+            gravidadeFilter.some((filter) => {
+              if (filter === EMPTY_FILTER) return isEmpty(r.gravidade);
+              if (r.tagIds.includes(filter)) return true;
+              const tag = gravidadeTagById.get(filter);
+              return normalizeText(r.gravidade) === normalizeText(tag?.name ?? filter);
+            }),
           );
         }
         if (tipoFilter.length > 0) {
@@ -1040,8 +1041,10 @@ function Inqueritos() {
       normalizedRows,
       searchTerm,
       situacaoFilter,
+      statusTagById,
       prioridadeFilter,
       gravidadeFilter,
+      gravidadeTagById,
       tipoFilter,
       tipificacaoFilter,
       tipificacaoOptions,
@@ -1383,9 +1386,15 @@ function Inqueritos() {
         result.push({ label, value: values.map((value) => resolve?.(value) ?? value).join("; ") });
     };
     if (searchTerm.trim()) result.push({ label: "Busca", value: searchTerm.trim() });
-    pushMulti("Status", situacaoFilter);
+    pushMulti("Status", situacaoFilter, (id) => {
+      if (id === EMPTY_FILTER) return "Não informado";
+      return statusTagById.get(id)?.name ?? id;
+    });
     pushMulti("Prioridade", prioridadeFilter);
-    pushMulti("Gravidade", gravidadeFilter);
+    pushMulti("Gravidade", gravidadeFilter, (id) => {
+      if (id === EMPTY_FILTER) return "Não informada";
+      return gravidadeTagById.get(id)?.name ?? id;
+    });
     pushMulti("Tipo", tipoFilter);
     pushMulti("Tipificação", tipificacaoFilter, (id) => {
       if (id === EMPTY_FILTER) return "Não informada";
@@ -1426,6 +1435,7 @@ function Inqueritos() {
     elucidadoFilter,
     filterLogic,
     gravidadeFilter,
+    gravidadeTagById,
     medidaProtetivaFilter,
     naoElucidadoFilter,
     prazoFilter,
@@ -1434,6 +1444,7 @@ function Inqueritos() {
     reuPresoFilter,
     searchTerm,
     situacaoFilter,
+    statusTagById,
     statusQueryFilter,
     sortState,
     tipoFilter,
@@ -1445,13 +1456,16 @@ function Inqueritos() {
       displayedRows.map((row, index) => {
         const procedureType = getProcedureType(row.tipoProcedimento) || "Procedimento";
         const procedureNumber = row.numeroPpe || row.source.numero_fisico || FALLBACK;
+        const boNumber = row.source.numero_bo || FALLBACK;
         const situation = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
+        const incomplete = [procedureNumber, boNumber, row.tipificacao, situation].every(isEmpty);
         return {
           id: row.id,
+          incomplete,
           cells: [
             String(index + 1).padStart(2, "0"),
             `${procedureType} ${procedureNumber}`,
-            row.source.numero_bo || FALLBACK,
+            boNumber,
             row.tipificacao || FALLBACK,
             situation || FALLBACK,
           ],
@@ -1668,7 +1682,7 @@ function Inqueritos() {
                 onChange={setSituacaoFilter}
                 options={[
                   { value: EMPTY_FILTER, label: "Não informado" },
-                  ...situacaoOptions.map((value) => ({ value, label: value })),
+                  ...statusTagOptions.map((tag) => ({ value: tag.id, label: tag.name })),
                 ]}
               />
               <MultiSelectFilter
@@ -1686,7 +1700,7 @@ function Inqueritos() {
                 onChange={setGravidadeFilter}
                 options={[
                   { value: EMPTY_FILTER, label: "Não informada" },
-                  ...gravidadeOptions.map((value) => ({ value, label: value })),
+                  ...gravidadeTagOptions.map((tag) => ({ value: tag.id, label: tag.name })),
                 ]}
               />
               <MultiSelectFilter
@@ -1820,17 +1834,23 @@ function Inqueritos() {
               )}
               {displayedRows.map((row) => {
                 const situacao = row.situacao !== FALLBACK ? row.situacao : row.statusDiligencias;
+                const rowStatusTags = statusTagOptions.filter((tag) => row.tagIds.includes(tag.id));
+                const rowGravidadeTags = gravidadeTagOptions.filter((tag) =>
+                  row.tagIds.includes(tag.id),
+                );
                 const prazoVencido = isPrazoVencido(row.prazo);
                 const prazoDisplay = getPrazoDisplay(row.prazo);
                 const reuPreso = hasReuPreso(row);
                 const numeroPpe = row.numeroPpe || FALLBACK;
                 const tipificacao = row.tipificacao || FALLBACK;
-                const gravidade = row.gravidade || FALLBACK;
+                const gravidade =
+                  rowGravidadeTags.map((tag) => tag.name).join("; ") || row.gravidade || FALLBACK;
                 const tipoProcedimento = row.tipoProcedimento || FALLBACK;
                 const tipoProcedimentoLabel = getProcedureShortLabel(tipoProcedimento);
                 const prioridadeOperacional = calculateOperationalPriority(row);
                 const bairro = row.bairro || FALLBACK;
-                const statusTexto = situacao || FALLBACK;
+                const statusTexto =
+                  rowStatusTags.map((tag) => tag.name).join("; ") || situacao || FALLBACK;
                 return (
                   <tr
                     key={row.id}
@@ -1891,9 +1911,11 @@ function Inqueritos() {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setGravidadeFilter([
-                            isEmpty(row.gravidade) ? EMPTY_FILTER : row.gravidade,
-                          ]);
+                          setGravidadeFilter(
+                            rowGravidadeTags.length
+                              ? rowGravidadeTags.map((tag) => tag.id)
+                              : [isEmpty(row.gravidade) ? EMPTY_FILTER : row.gravidade],
+                          );
                         }}
                         className="mx-auto block max-w-full truncate text-center text-xs font-medium leading-5 text-muted-foreground hover:text-foreground/80"
                         title={gravidade}
@@ -1968,7 +1990,11 @@ function Inqueritos() {
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          setSituacaoFilter([situacao || EMPTY_FILTER]);
+                          setSituacaoFilter(
+                            rowStatusTags.length
+                              ? rowStatusTags.map((tag) => tag.id)
+                              : [situacao || EMPTY_FILTER],
+                          );
                         }}
                         className={`inline-flex min-h-6 max-w-full items-center justify-center overflow-hidden rounded border px-2 py-0.5 text-[10px] font-extrabold uppercase leading-none tracking-wide ${statusToneClass(situacao)}`}
                         title={statusTexto}

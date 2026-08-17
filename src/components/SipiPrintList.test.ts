@@ -28,8 +28,19 @@ describe("SipiPrintList", () => {
               { label: "Prioridade", value: "Alta" },
             ],
           },
+          {
+            id: "procedure-incomplete",
+            incomplete: true,
+            cells: ["02", "Procedimento —", "—", "—", "—"],
+            details: [
+              { label: "Data do fato", value: "—" },
+              { label: "Autoria", value: "Não informada" },
+              { label: "Bairro", value: "—" },
+              { label: "Prioridade", value: "Baixa" },
+            ],
+          },
         ],
-        total: 1,
+        total: 2,
         geradoEm: "10/08/2026 17:30:00",
         geradoPor: "Usuário de teste",
       }),
@@ -42,5 +53,7 @@ describe("SipiPrintList", () => {
     expect(markup).toContain("Data do fato");
     expect(markup).toContain("25/07/2026");
     expect(markup).toContain('class="sipi-print-list-record"');
+    expect(markup).toContain('class="sipi-print-list-record is-incomplete"');
+    expect(markup).toContain("Cadastro incompleto");
   });
 });

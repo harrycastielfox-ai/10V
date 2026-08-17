@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <style>
+      :root {
+        --navy: #0d203a;
+        --navy-2: #173b63;
+        --blue: #1f5fa8;
+        --green: #187a57;
+        --red: #aa2f3f;
+        --gold: #d6a328;
+        --ink: #162334;
+        --muted: #687589;
+        --line: #d8e0e9;
+        --surface: #f5f7fa;
+        --white: #fff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--surface);
+        font: 14px/1.45 Arial, sans-serif;
+      }
+
+      button, input, textarea, select { font: inherit; }
+
+      .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 72px;
+        padding: 16px 22px;
+        color: var(--white);
+        background: linear-gradient(135deg, var(--navy), var(--navy-2));
+      }
+
+      .app-header h1 { margin: 0; font-size: 21px; }
+      .app-header p { margin: 3px 0 0; color: #cdd9e8; font-size: 12px; }
+
+      main { padding: 20px 22px 26px; }
+
+      .card {
+        margin-bottom: 16px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--white);
+        box-shadow: 0 3px 14px rgba(19, 39, 66, .06);
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 14px;
+        font-size: 16px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 16px;
+      }
+
+      .grid-search { grid-template-columns: 1fr 1.5fr; }
+      .grid-form { grid-template-columns: .85fr .85fr 1.3fr; }
+      .wide { grid-column: 1 / -1; }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #34445a;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      input, textarea, select {
+        width: 100%;
+        border: 1px solid #bdc9d8;
+        border-radius: 7px;
+        background: #fff;
+        color: var(--ink);
+        outline: none;
+        padding: 10px 11px;
+      }
+
+      textarea { min-height: 82px; resize: vertical; }
+      input:focus, textarea:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(31, 95, 168, .13); }
+
+      .autocomplete { position: relative; }
+      .suggestions {
+        position: absolute;
+        top: calc(100% + 5px);
+        right: 0;
+        left: 0;
+        z-index: 15;
+        max-height: 230px;
+        overflow-y: auto;
+        border: 1px solid #b9c6d6;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 12px 28px rgba(13, 32, 58, .18);
+      }
+
+      .suggestion {
+        width: 100%;
+        padding: 10px 12px;
+        border: 0;
+        border-bottom: 1px solid #e5eaf0;
+        color: var(--ink);
+        background: #fff;
+        cursor: pointer;
+        text-align: left;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .suggestion:last-child { border-bottom: 0; }
+      .suggestion:hover, .suggestion.active { color: #fff; background: var(--blue); }
+      .suggestion strong { color: var(--blue); }
+      .suggestion:hover strong, .suggestion.active strong { color: #fff; }
+      .suggestion-hint { padding: 8px 12px; color: var(--muted); background: #f6f8fb; font-size: 10px; }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 16px;
+      }
+
+      .btn {
+        min-height: 38px;
+        padding: 9px 16px;
+        border: 0;
+        border-radius: 7px;
+        color: #fff;
+        background: var(--blue);
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .btn:hover { filter: brightness(.94); }
+      .btn:disabled { opacity: .55; cursor: wait; }
+      .btn-secondary { color: #27384e; background: #e6ebf2; }
+      .btn-success { background: var(--green); }
+      .btn-danger { background: var(--red); }
+      .btn-print { background: var(--navy); }
+      .btn-small { min-height: 31px; padding: 6px 12px; font-size: 12px; }
+
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 9px;
+        border-radius: 999px;
+        color: #34445a;
+        background: #e7ebf0;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .status-pendente { color: #714b00; background: #fff0bd; }
+      .status-andamento { color: #124a82; background: #dcecff; }
+      .status-agendada { color: #075f5a; background: #d5f3ef; }
+      .status-aguardando { color: #644091; background: #eee3ff; }
+      .status-concluido { color: #11633f; background: #d7f1e3; }
+      .status-cancelado { color: #8b2635; background: #f8dce1; }
+      .status-suspenso { color: #495465; background: #e4e8ed; }
+
+      .result-info { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+      .table-wrap { overflow: auto; max-height: 360px; border: 1px solid var(--line); border-radius: 8px; }
+
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 10px 11px; border-bottom: 1px solid #e5eaf0; text-align: left; vertical-align: top; }
+      th { position: sticky; top: 0; z-index: 1; color: #fff; background: var(--navy); font-size: 12px; }
+      tbody tr:nth-child(even) { background: #f6f8fb; }
+      tbody tr:hover { background: #edf4fb; }
+
+      .empty { padding: 30px; color: var(--muted); text-align: center; }
+      .print-only { display: none; }
+      .hidden { display: none !important; }
+
+      .detail-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        color: #fff;
+        background: linear-gradient(135deg, var(--navy), var(--navy-2));
+      }
+
+      #ficha.card { padding: 0; overflow: hidden; }
+      #ficha .actions { padding: 0 18px 18px; }
+      .detail-head h2 { margin: 5px 0 0; color: #fff; font-size: 24px; letter-spacing: .2px; }
+      .detail-head .tag { padding: 5px 9px; border-radius: 999px; color: #fff; background: var(--green); font-size: 10px; font-weight: 700; letter-spacing: .5px; }
+      .detail-subtitle { margin: 4px 0 0; color: #cbd8e7; font-size: 11px; }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 14px 18px 2px;
+      }
+
+      .detail-item { min-width: 0; padding: 11px 12px; border: 1px solid #dfe6ee; border-radius: 8px; background: #f7f9fc; }
+      .detail-item span { display: block; margin-bottom: 5px; color: #52647b; font-size: 10px; font-weight: 700; letter-spacing: .35px; text-transform: uppercase; }
+      .detail-item div { color: #14253b; font-size: 13px; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+      .toast {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 20;
+        max-width: 430px;
+        padding: 12px 15px;
+        border-radius: 8px;
+        color: #fff;
+        background: #26384f;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, .22);
+      }
+
+      .toast.error { background: #9f2635; }
+      .toast.success { background: var(--green); }
+      .loading { opacity: .58; pointer-events: none; }
+
+      @media (max-width: 720px) {
+        .grid, .grid-search, .grid-form, .detail-grid { grid-template-columns: 1fr; }
+      }
+
+      @media print {
+        @page { size: A4 portrait; margin: 14mm; }
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { background: #fff; font-size: 12pt; }
+        .app-header, .no-print, #busca, #formulario, #resultados, .toast { display: none !important; }
+        .print-only { display: block !important; }
+        main { padding: 0; }
+        #ficha { display: block !important; }
+        #ficha.card { overflow: visible; border: 0; box-shadow: none; padding: 0; }
+        .detail-head {
+          display: grid;
+          grid-template-columns: 58px minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 14px;
+          padding: 0 0 12px;
+          color: var(--ink);
+          background: #fff;
+          border-bottom: 3px solid var(--navy);
+          box-shadow: inset 0 -1px 0 var(--gold);
+        }
+        .print-logo { width: 52px; height: 74px; object-fit: contain; }
+        .print-institution { line-height: 1.2; }
+        .print-institution strong {
+          display: block;
+          color: var(--navy);
+          font-size: 12pt;
+          letter-spacing: .6px;
+        }
+        .print-institution span {
+          display: block;
+          margin-top: 4px;
+          color: var(--ink);
+          font-size: 10pt;
+          font-weight: 700;
+          letter-spacing: .25px;
+        }
+        .print-institution small {
+          display: block;
+          margin-top: 4px;
+          color: var(--muted);
+          font-size: 7.5pt;
+        }
+        .detail-title {
+          min-width: 180px;
+          padding-left: 14px;
+          border-left: 1px solid var(--line);
+          text-align: right;
+        }
+        .detail-head .tag {
+          display: block;
+          padding: 0;
+          color: var(--muted);
+          background: transparent;
+          font-size: 7pt;
+          letter-spacing: .7px;
+        }
+        .detail-head h2 {
+          margin-top: 6px;
+          color: var(--navy);
+          font-size: 17pt;
+          white-space: nowrap;
+        }
+        .detail-subtitle { display: none; }
+        .detail-grid { padding: 16px 0 0; }
+        .detail-item { padding: 8px 0; border: 0; border-bottom: 1px solid var(--line); background: #fff; }
+        .detail-grid { gap: 16px 22px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header no-print">
+      <div>
+        <h1 id="titulo-app"></h1>
+        <p>Delegacia Territorial · Gestão de Boletins de Ocorrência</p>
+      </div>
+      <small id="versao"></small>
+    </header>
+
+    <main id="conteudo">
+      <section id="busca" class="card hidden">
+        <h2 class="section-title">Localizar B.O.</h2>
+        <div class="grid grid-search">
+          <div>
+            <label for="busca-numero">Nº B.O.</label>
+            <input id="busca-numero" placeholder="Ex.: somente os 3 primeiros números">
+          </div>
+          <div>
+            <label for="busca-status">Status</label>
+            <select id="busca-status">
+              <option value="">Todos os status</option>
+              <option>Pendente</option>
+              <option>Em Andamento</option>
+              <option>Agendada</option>
+              <option>Aguardando Terceiros</option>
+              <option>Concluída</option>
+              <option>Cancelada</option>
+              <option>Suspensa</option>
+              <option>Aguardando Aprovação/Revisão</option>
+            </select>
+          </div>
+          <div>
+            <label for="busca-infracao">Infração penal</label>
+            <input id="busca-infracao" placeholder="Ex.: furto, ameaça, estelionato...">
+          </div>
+          <div>
+            <label for="busca-responsavel">Responsável</label>
+            <input id="busca-responsavel" placeholder="Nome completo ou apenas uma parte">
+          </div>
+          <div>
+            <label for="busca-diligencias">Diligências pendentes</label>
+            <input id="busca-diligencias" placeholder="Alguma palavra das diligências">
+          </div>
+          <div class="wide">
+            <label for="busca-observacao">Observação</label>
+            <input id="busca-observacao" placeholder="Alguma palavra da observação">
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary" type="button" onclick="limparBusca()">Limpar</button>
+          <button id="btn-pesquisar" class="btn" type="button" onclick="pesquisar()">Pesquisar</button>
+        </div>
+      </section>
+
+      <section id="resultados" class="card hidden">
+        <h2 class="section-title">Resultados encontrados</h2>
+        <p id="resultado-info" class="result-info"></p>
+        <div id="tabela-resultados" class="table-wrap"></div>
+      </section>
+
+      <section id="formulario" class="card hidden">
+        <h2 id="titulo-formulario" class="section-title"></h2>
+        <div class="grid grid-form">
+          <div>
+            <label for="form-numero">Nº B.O. *</label>
+            <input id="form-numero" maxlength="120" autocomplete="off">
+          </div>
+          <div>
+            <label for="form-status">Status *</label>
+            <select id="form-status">
+              <option>Pendente</option>
+              <option>Em Andamento</option>
+              <option>Agendada</option>
+              <option>Aguardando Terceiros</option>
+              <option>Concluída</option>
+              <option>Cancelada</option>
+              <option>Suspensa</option>
+              <option>Aguardando Aprovação/Revisão</option>
+            </select>
+          </div>
+          <div>
+            <label for="form-responsavel">Responsável pelo procedimento</label>
+            <select id="form-responsavel">
+              <option value="">Selecione o responsável</option>
+              <option>Adrieli Souza Chaves</option>
+              <option>Henrique Dias de Oliveira</option>
+              <option>Flavia Santos Souza</option>
+              <option>Rivaldo de Souza Teles</option>
+              <option>Fineias Pereira Peixoto</option>
+              <option>Marluan Domingos Braitt</option>
+              <option>Francisco Siston Hemerly Junior</option>
+              <option>Eduardo Henrique Dias</option>
+            </select>
+          </div>
+          <div class="wide">
+            <label for="form-infracao">Infração penal *</label>
+            <div class="autocomplete">
+              <textarea id="form-infracao" maxlength="1000" autocomplete="off"></textarea>
+              <div id="sugestoes-infracao" class="suggestions hidden"></div>
+            </div>
+          </div>
+          <div class="wide">
+            <label for="form-diligencias">Diligências pendentes</label>
+            <div class="autocomplete">
+              <textarea id="form-diligencias" maxlength="5000" autocomplete="off"></textarea>
+              <div id="sugestoes-diligencias" class="suggestions hidden"></div>
+            </div>
+          </div>
+          <div class="wide">
+            <label for="form-observacao">Observação</label>
+            <textarea id="form-observacao" maxlength="5000"></textarea>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="btn-voltar-form" class="btn btn-secondary hidden" type="button" onclick="voltarResultados()">Voltar</button>
+          <button id="btn-limpar-form" class="btn btn-secondary" type="button" onclick="limparFormulario()">Limpar</button>
+          <button id="btn-salvar" class="btn btn-success" type="button" onclick="salvar()">Salvar B.O.</button>
+        </div>
+      </section>
+
+      <section id="ficha" class="card hidden">
+        <div class="detail-head">
+          <img
+            class="print-only print-logo"
+            src="data:image/jpeg;base64,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"
+            alt="Brasão da Polícia Civil da Bahia"
+          >
+          <div class="print-only print-institution">
+            <strong>POLÍCIA CIVIL DA BAHIA</strong>
+            <span>DELEGACIA TERRITORIAL DE ITABELA</span>
+            <small>Gestão de Boletins de Ocorrência</small>
+          </div>
+          <div class="detail-title">
+            <span class="tag">FICHA INDIVIDUAL</span>
+            <h2 id="ficha-numero"></h2>
+            <p class="detail-subtitle">Boletim de Ocorrência · Consulta individual</p>
+          </div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span>Status</span>
+            <div><span id="ficha-status" class="status-chip"></span></div>
+          </div>
+          <div class="detail-item">
+            <span>Responsável pelo procedimento</span>
+            <div id="ficha-responsavel"></div>
+          </div>
+          <div class="detail-item wide">
+            <span>Infração penal</span>
+            <div id="ficha-infracao"></div>
+          </div>
+          <div class="detail-item wide">
+            <span>Diligências pendentes</span>
+            <div id="ficha-diligencias"></div>
+          </div>
+          <div class="detail-item wide">
+            <span>Observação</span>
+            <div id="ficha-observacao"></div>
+          </div>
+        </div>
+        <div class="actions no-print">
+          <button class="btn btn-secondary" type="button" onclick="voltarResultados()">Voltar</button>
+          <button id="btn-excluir-ficha" class="btn btn-danger hidden" type="button" onclick="confirmarExclusao()">Excluir definitivamente</button>
+          <button id="btn-editar-ficha" class="btn hidden" type="button" onclick="editarFicha()">Editar</button>
+          <button class="btn btn-print" type="button" onclick="imprimirFicha()">Imprimir ficha</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+      const CONTEXTO = <?!= JSON.stringify(contexto) ?>;
+      const SUGESTOES_INFRACOES = ["1: HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","1222: HOMICÍDIO CULPOSO NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 302 DA LEI 9.503/1997 - CTB)","1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)","23024: AMEAÇAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO § 1º DO ART. 121-A DO CPB (ART. 147 DO CPB, § 1° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","188: ESTUPRO DE VULNERÁVEL (ART. 217-A CAPUT DO CPB) (HEDIONDO)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","1079: TRÁFICO DE DROGAS (ART. 33 CAPUT DA LEI 11.343/2006)","20264: MORTE POR INTERVENÇÃO DE AGENTE DE SEGURANÇA PÚBLICA, DO SISTEMA PRISIONAL OU DE OUTROS ÓRGÃOS PÚBLICOS NO EXERCÍCIO DA FUNÇÃO POLICIAL, EM SERVIÇO OU EM RAZÃO DELE, DESDE QUE A AÇÃO TENHA SIDO PRATICADA SOB QUAISQUER DAS HIPÓTESES DE EXCLUSÃO DE ILICITUDE","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)","57: AMEAÇA (ART. 147 DO CPB)","21: LESÃO CORPORAL DOLOSA (ART. 129 CAPUT DO CPB)","57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","131: ESTELIONATO (ART. 171 CAPUT DO CPB)","76: FURTO (ART. 155 CAPUT DO CPB)","152: RECEPTAÇÃO (ART. 180 CAPUT DO CPB)","21062: HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO)","188: ESTUPRO DE VULNERÁVEL - TER CONJUNÇÃO CARNAL OU PRATICAR OUTRO ATO LIBIDINOSO COM MENOR DE 14 (CATORZE) ANOS. (ART. 217-A CAPUT DO CPB) (HEDIONDO)","80: FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)","81: FURTO QUALIFICADO COM ABUSO DE CONFIANÇA, OU MEDIANTE FRAUDE, ESCALADA OU DESTREZA (ART. 155, § 4°, INC. II DO CPB)","83: FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)","110: DANO (ART. 163 CAPUT DO CPB)","110: DANO (ART. 163 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","20210: IMPORTUNAÇÃO SEXUAL (ART. 215-A DO CPB)","4: TENTATIVA DE HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)","3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","346: ASSOCIAÇÃO CRIMINOSA (ART. 288 CAPUT DO CPB)","45: MAUS-TRATOS (ART. 136 CAPUT DO CPB)","6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","1121: DESAPARECIMENTO DE PESSOA","118: APROPRIAÇÃO INDÉBITA (ART. 168 CAPUT DO CPB)","188: ESTUPRO DE VULNERÁVEL (ART. 217-A CAPUT DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","22822: PROCEDIMENTO MIGRADO","1: HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)","1039: PORTE ILEGAL DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO, DE USO PERMITIDO (ART. 14 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO)","1041: POSSE OU PORTE ILEGAL DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO DE USO RESTRITO (ART. 16 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO) (HEDIONDO)","108: ESBULHO POSSESSÓRIO (ART. 161, § 1°, INC. II DO CPB)","1103: OUTROS FATOS ATÍPICOS","1223: LESÃO CORPORAL CULPOSA NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 303 DA LEI 9.503/1997 - CTB)","31: LESÃO CORPORAL SEGUIDA DE MORTE (ART. 129, § 3° DO CPB) (HEDIONDO)","401: USO DE DOCUMENTO FALSO (ART. 304 DO CPB)","5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO)","79: FURTO DE ENERGIA ELÉTRICA OU QUALQUER OUTRA QUE TENHA VALOR ECONÔMICO. (ART. 155, § 3° DO CPB)","86: ROUBO (ART. 157 CAPUT DO CPB)","89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)","94: LATROCÍNIO - ROUBO SEGUIDO DE MORTE (ART. 157, § 3°, INC. II DO CPB) (HEDIONDO)","TRÁFICO DE DROGAS (ART. 33 CAPUT DA LEI 11.343/2006)","1081: ASSOCIAÇÃO PARA O TRÁFICO DE DROGAS (ART. 35 DA LEI 11.343/2006)","1232: FALTA DE HABILITAÇÃO PARA DIRIGIR VEÍCULO AUTOMOTOR (ART. 309 DA LEI 9.503/1997 - CTB)","1246: PORTE, POSSE, AQUISIÇÃO, TRANSPORTE OU FORNECIMENTO DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO COM NUMERAÇÃO, MARCA OU QUALQUER OUTRO SINAL DE IDENTIFICAÇÃO RASPADO, SUPRIMIDO OU ADULTERADO (ART. 16, § 1°, INC. IV DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO) (HEDIONDO)","181: ESTUPRO (ART. 213 CAPUT DO CPB) (HEDIONDO)","181: TENTATIVA DE ESTUPRO (ART. 213 CAPUT DO CPB) (HEDIONDO)","20126: ROUBO COM EMPREGO DE ARMA DE FOGO (ART. 157, § 2°-A, INC. I DO CPB) (HEDIONDO)","20126: ROUBO COM EMPREGO DE ARMA DE FOGO (ART. 157, § 2°-A, INC. I DO CPB) (HEDIONDO)89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)","20682: PERTURBAÇÃO DO TRABALHO OU DO SOSSEGO ALHEIO (ART. 42 CAPUT DO DECRETO-LEI 3.688/1941 - LCP)","21062: HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO), 6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","21403: APREENSÃO DE VEÍCULO","411: ADULTERAÇÃO DE SINAL IDENTIFICADOR DE VEÍCULO AUTOMOTOR (ART. 311 CAPUT DO CPB)","509: FUGA DE PESSOA PRESA OU SUBMETIDA A MEDIDA DE SEGURANÇA (ART. 351 CAPUT DO CPB)","53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB)","77: FURTO PRATICADO DURANTE O REPOUSO NOTURNO (ART. 155, § 1° DO CPB)","AMEAÇA (ART. 147 DO CPB)","1037: POSSE IRREGULAR DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO DE USO PERMITIDO (ART. 12 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO)","1122: ACIDENTE DE TRABALHO - MORTE ACIDENTAL","1129: ENCONTRO DE CADÁVER","1158: OCULTAÇÃO OU DISSIMULAÇÃO DE BENS E VALORES \"LAVAGEM DE DINHEIRO\" (ART. 1° CAPUT DA LEI 9.613/1998)","1222: HOMICÍDIO CULPOSO NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 302 DA LEI 9.503/1997 - CTB)1223: LESÃO CORPORAL CULPOSA NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 303 DA LEI 9.503/1997 - CTB)","1227: CONDUZIR VEÍCULO COM CAPACIDADE PSICOMOTORA ALTERADA EM RAZÃO DA INFLUÊNCIA DE ÁLCOOL OU DE DROGAS (ART. 306 DA LEI 9.503/1997 - CTB)","1509: CUMPRIMENTO DE MANDADO - OUTROS","1527: MORTE ACIDENTAL DE TRÂNSITO","20264: MORTE POR INTERVENÇÃO DE AGENTE DE SEGURANÇA PÚBLICA, DO SISTEMA PRISIONAL OU DE OUTROS ÓRGÃOS PÚBLICOS NO EXERCÍCIO DA FUNÇÃO POLICIAL, EM SERVIÇO OU EM RAZÃO DELE, DESDE QUE A AÇÃO TENHA SIDO PRATICADA SOB QUAISQUER DAS HIPÓTESES DE EXCLUSÃO DE ILICITUDE1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)1079: TRÁFICO DE DROGAS (ART. 33 CAPUT DA LEI 11.343/2006)","20985: PERSEGUIÇÃO (STALKING) (ART. 147-A DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","21: LESÃO CORPORAL DOLOSA (ART. 129 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","21: LESÃO CORPORAL DOLOSA (ART. 129 CAPUT DO CPB)57: AMEAÇA (ART. 147 DO CPB)","21062: TENTATIVA DE HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO)","23011: MATAR MULHER POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO - FEMINICÍDIO (ART. 121-A.) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","23024: AMEAÇAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO § 1º DO ART. 121-A DO CPB (ART. 147 DO CPB, § 1° DO CPB)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER","383: FALSIFICAÇÃO DE DOCUMENTO PÚBLICO (ART. 297 CAPUT DO CPB)","421: PECULATO - APROPRIAÇÃO (ART. 312 CAPUT DO CPB)","453: RESISTÊNCIA (ART. 329 CAPUT DO CPB)","456: DESACATO (ART. 331 DO CPB)","493: FALSO TESTEMUNHO OU FALSA PERÍCIA (ART. 342 CAPUT DO CPB)","5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO), 6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","52: DIFAMAÇÃO (ART. 139 DO CPB)","53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","559: VIAS DE FATO - PRATICAR VIAS DE FATO CONTRA ALGUEM (ART. 21 DO DECRETO-LEI 3.688/1941 - LCP)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 21062: HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)4: TENTATIVA DE HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)","63: VIOLAÇÃO DE DOMICÍLIO (ART. 150 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","64: VIOLAÇÃO DE DOMICÍLIO COMETIDO DURANTE PERÍODO NOTURNO OU LUGAR ERMO (ART. 150, § 1° DO CPB)","8: HOMICÍDIO CULPOSO (ART. 121, § 3° DO CPB)","813: CORROMPER MENOR DE 18 ANOS, COM ELE PRATICANDO INFRAÇÃO PENAL (ART. 244-B DA LEI 8.069/1990 - ESTATUTO DA CRIANÇA E DO ADOLESCENTE)","88: ROUBO COM EMPREGO DE ARMA (ART. 157, § 2°, INC. I DO CPB)","AMEAÇAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO § 1º DO ART. 121-A DO CPB (ART. 147 DO CPB, § 1° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","Artigo 171, caput, do CP - ESTELIONATO","ASSOCIAÇÃO PARA O TRÁFICO DE DROGAS (ART. 35 DA LEI 11.343/2006)","HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","RECEPTAÇÃO (ART. 180 CAPUT DO CPB)",": DEIXAR O CONDUTOR DO VEÍCULO, EM ACIDENTE, DE PRESTAR IMEDIATO SOCORRO À VÍTIMA, OU, DEIXAR DE SOLICITAR AUXÍLIO DA AUTORIDADE PÚBLICA (ART. 304 DA LEI 9.503/1997 - CTB)",": HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)",": LESÃO CORPORAL DOLOSA (ART. 129 CAPUT DO CPB)","1: HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB), 22822: PROCEDIMENTO MIGRADO","1: HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)179: DESTRUIÇÃO, SUBTRAÇÃO OU OCULTAÇÃO DE CADÁVER (ART. 211 DO CPB)","1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER),","1039: PORTE ILEGAL DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO, DE USO PERMITIDO (ART. 14 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO)1079: TRÁFICO DE DROGAS (ART. 33 CAPUT DA LEI 11.343/2006)","1040: DISPARO DE ARMA DE FOGO EM LUGAR HABITADO OU EM SUAS ADJACÊNCIAS, EM VIA PÚBLICA OU EM DIREÇÃO A ELA (ART. 15 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO)57: AMEAÇA (ART. 147 DO CPB)","1041: POSSE OU PORTE ILEGAL DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO DE USO RESTRITO (ART. 16 DA LEI 10.826/200","1079: TRÁFICO DE DROGAS (ART. 33 CAPUT DA LEI 11.343/2006), 152: RECEPTAÇÃO (ART. 180 CAPUT DO CPB)","1082: TRÁFICO DE DROGAS NA MODALIDADE FINANCIAMENTO DO TRÁFICO (ART. 36 DA LEI 11.343/2006)","1095: ACIDENTE DE TRÂNSITO -AUTO LESÃO","110: DANO (ART. 163 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","111: DANO QUALIFICADO COM VIOLÊNCIA À PESSOA OU GRAVE AMEAÇA (ART. 163, PARÁGRAFO ÚNICO, INC. I DO CPB)","111: DANO QUALIFICADO COM VIOLÊNCIA À PESSOA OU GRAVE AMEAÇA (ART. 163, PARÁGRAFO ÚNICO, INC. I DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","112: DANO QUALIFICADO COM EMPREGO DE SUBSTÂNCIA INFLAMÁVEL OU EXPLOSIVA (ART. 163, PARÁGRAFO ÚNICO, INC. II DO CPB)","1132: SUICÍDIO","1135: MORTE A ESCLARECER SEM INDÍCIO DE CRIME","114: DANO QUALIFICADO COMETIDO POR MOTIVO EGOÍSTICO OU COM PREJUÍZO CONSIDERÁVEL (ART. 163, PARÁGRAFO ÚNICO, INC. IV DO CPB)","1146: SEQUESTRO E CÁRCERE PRIVADO CONTRA MENOR DE 18 ANOS (ART. 148, § 1°, INC. IV DO CPB)","1181: PROMOVER, CONSTITUIR, FINANCIAR OU INTEGRAR, PESSOALMENTE OU POR INTERPOSTA PESSOA, ORGANIZAÇÃO CRIMINOSA (ART. 2° CAPUT DA LEI 12.850/2013)","1199: FEMINICÍDIO POR RAZÕES DA CONDIÇÃO DE SEXO FEMININO (REVOGADO PELA LEI Nº 14.994/2024) (ART. 121, § 2°, INC. VI DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)1132: SUICÍDIO","1199: REVOGADO - FEMINICÍDIO POR RAZÕES DA CONDIÇÃO DE SEXO FEMININO (REVOGADO PELA LEI Nº 14.994/2024) (ART. 121, § 2°, INC. VI DO CPB) (HEDIONDO)","1199: TENTATIVA DE FEMINICÍDIO POR RAZÕES DA CONDIÇÃO DE SEXO FEMININO (REVOGADO PELA LEI Nº 14.994/2024) (ART. 121, § 2°, INC. VI DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","12: INDUZIMENTO, INSTIGAÇÃO OU AUXÍLIO A SUICÍDIO OU A AUTOMUTILAÇÃO (ART. 122 CAPUT DO CPB)","1201: FEMINICÍDIO QUANDO ENVOLVE VIOLÊNCIA DOMÉSTICA OU FAMILIAR (REVOGADO PELA LEI Nº 14.994/2024) (ART. 121, § 2°-A, INC. I DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","1208: PRATICAR HOMICÍDIO CULPOSO NA DIREÇÃO DE VEÍCULO AUTOMOTOR SEM CNH OU PERMISSÃO PARA DIRIGIR (ART. 302, § 1°, INC. I DA LEI 9.503/1997 - CTB)","1210: PRATICAR HOMICÍDIO CULPOSO NA DIREÇÃO DE VEÍCULO AUTOMOTOR DEIXANDO DE PRESTAR SOCORRO À VÍTIMA (ART. 302, § 1°, INC. III DA LEI 9.503/1997 - CTB)","1214: CONDUZIR VEÍCULO COM CAPACIDADE PSICOMOTORA ALTERADA EM RAZÃO DA INFLUÊNCIA DE ÁLCOOL OU DE DROGAS COM CONCENTRAÇÃO IGUAL OU SUPERIOR A PERMITIDA POR LEI (ART. 306, § 1°, INC. I DA LEI 9.503/1997 - CTB)","1214: CONDUZIR VEÍCULO COM CAPACIDADE PSICOMOTORA ALTERADA EM RAZÃO DA INFLUÊNCIA DE ÁLCOOL OU DE DROGAS COM CONCENTRAÇÃO IGUAL OU SUPERIOR A PERMITIDA POR LEI (ART. 306, § 1°, INC. I DA LEI 9.503/1997 - CTB)1551: CONSUMO PESSOAL DE DROGAS NA MODALIDADE SEMEAR, CULTIVAR OU COLHER (ART. 28, § 1º DA LEI 11.343/2006)","1215: CONDUZIR VEÍCULO COM CAPACIDADE PSICOMOTORA ALTERADA - ÁLCOOL OU DE OUTRA SUBSTÂNCIA PSICOATIVA QUE DETERMINE DEPENDÊNCIA- SINAIS INDICADORES (ART. 306, § 1°, INC. II DA LEI 9.503/1997 - CTB)","1220: TENTATIVA DE HOMICÍDIO CONTRA AGENTE DE SEGURANÇA PÚBLICA E FAMILIARES (ALTERADA PELA LEI 15.134/2025) (ART.121, § 2°, INC. VII DO CPB) (HEDIONDO)","1222: HOMICÍDIO CULPOSO NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 302 DA LEI 9.503/1997 - CTB)1232: FALTA DE HABILITAÇÃO PARA DIRIGIR VEÍCULO AUTOMOTOR (ART. 309 DA LEI 9.503/1997 - CTB)","1223: LESÃO CORPORAL CULPOSA NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 303 DA LEI 9.503/1997 - CTB)1222: HOMICÍDIO CULPOSO NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 302 DA LEI 9.503/1997 - CTB)","1223: LESÃO CORPORAL CULPOSA NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 303 DA LEI 9.503/1997 - CTB)1232: FALTA DE HABILITAÇÃO PARA DIRIGIR VEÍCULO AUTOMOTOR (ART. 309 DA LEI 9.503/1997 - CTB)1227: CONDUZIR VEÍCULO COM CAPACIDADE PSICOMOTORA ALTERADA EM RAZÃO DA INFLUÊNCIA DE ÁLCOOL OU DE DROGAS (ART. 306 DA LEI 9.503/1997 - CTB)","1225: DEIXAR O CONDUTOR DO VEÍCULO, EM ACIDENTE, DE PRESTAR IMEDIATO SOCORRO À VÍTIMA, AINDA QUE A SUA OMISSÃO SEJA SUPRIDA POR TERCEIROS OU QUE SE TRATE DE VÍTIMA COM MORTE INSTANTÂNEA OU COM FERIMENTOS LEVES (ART. 304, PARÁGRAFO ÚNICO DA LEI 9.503/1997 - CTB),","1226: EVADIR-SE O CONDUTOR DO VEÍCULO DO LOCAL DO ACIDENTE, PARA FUGIR À RESPONSABILIDADE PENAL OU CIVIL QUE LHE POSSA SER ATRIBUÍDA (ART. 305 DA LEI 9.503/1997 - CTB)1223: LESÃO CORPORAL CULPOSA NA DIREÇÃO DE VEÍCULO AUTOMOTOR (ART. 303 DA LEI 9.503/1997 - CTB)","1227: CONDUZIR VEÍCULO COM CAPACIDADE PSICOMOTORA ALTERADA EM RAZÃO DA INFLUÊNCIA DE ÁLCOOL OU DE DROGAS (ART. 306 DA LEI 9.503/1997 - CTB)1232: FALTA DE HABILITAÇÃO PARA DIRIGIR VEÍCULO AUTOMOTOR (ART. 309 DA LEI 9.503/1997 - CTB)","1232: FALTA DE HABILITAÇÃO PARA DIRIGIR VEÍCULO AUTOMOTOR (ART. 309 DA LEI 9.503/1997 - CTB)1225: DEIXAR O CONDUTOR DO VEÍCULO, EM ACIDENTE, DE PRESTAR IMEDIATO SOCORRO À VÍTIMA, AINDA QUE A SUA OMISSÃO SEJA SUPRIDA POR TERCEIROS OU QUE SE TRATE DE VÍTIMA COM MORTE INSTANTÂNEA OU COM FERIMENTOS LEVES (ART. 304, PARÁGRAFO ÚNICO DA LEI 9.503/1997 - CTB)","1298: ABANDONO DE INCAPAZ SE O AGENTE É ASCENDENTE OU DESCENDENTE, CÔNJUGE, IRMÃO, TUTOR OU CURADOR DA VÍTIMA (ART. 133, § 3°, INC. II DO CPB)","131: ESTELIONATO (ART. 171 CAPUT DO CPB), 1726: DELITO DE USURA (ART. 13, PARÁGRAFO ÚNICO DO DECRETO 22.626/1933)","131: ESTELIONATO (ART. 171 CAPUT DO CPB)390: FALSIDADE IDEOLÓGICA (ART. 299 CAPUT DO CPB)401: USO DE DOCUMENTO FALSO (ART. 304 DO CPB)","1504: CUMPRIMENTO DE MANDADO - BUSCA E APREENSÃO DE ADOLESCENTE AUTOR","1506: CUMPRIMENTO DE MANDADO - BUSCA E APREENSÃO DOMICILIAR","152: RECEPTAÇÃO (ART. 180 CAPUT DO CPB","153: RECEPTAÇÃO QUALIFICADA (ART. 180, § 1° DO CPB)","1544: PROMOVER, CONSTITUIR, INTEGRAR OU PRESTAR AUXÍLIO, PESSOALMENTE OU POR INTERPOSTA PESSOA, A ORGANIZAÇÃO TERRORISTA (ART. 3° DA LEI 13.260/2016) (HEDIONDO)","1548: FURTO DE SEMOVENTE DOMESTICÁVEL (ART. 155, § 6° DO CPB)346: ASSOCIAÇÃO CRIMINOSA (ART. 288 CAPUT DO CPB)","1679: ENCAMINHAMENTO DE PESSOAS À DELEGACIA","1698: LOCALIZAÇÃO E RECUPERAÇÃO DE VEÍCULO - FURTADO OU ROUBADO","181: ESTUPRO (ART. 213 CAPUT DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","181: ESTUPRO (ART. 213 CAPUT DO CPB) (HEDIONDO), 57: AMEAÇA (ART. 147 DO CPB)","181: ESTUPRO (ART. 213 CAPUT DO CPB) (HEDIONDO)87: ROUBO - ASSEGURAR A IMPUNIDADE OU DETENÇÃO DA COISA (ART. 157, § 1° DO CPB)20625: ROUBO COM AUMENTO DE PENA - VIOLÊNCIA OU GRAVE AMEAÇA EXERCIDA COM EMPREGO DE ARMA BRANCA (ART. 157, § 2°, INC. VII DO CPB)","182: ESTUPRO QUALIFICADO SE DA CONDUTA RESULTA LESÃO CORPORAL GRAVE OU SE A VÍTIMA É MENOR DE 18 OU MAIOR DE 14 ANOS (ART. 213, § 1° DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)201: AUMENTO DE PENA NOS CRIMES CONTRA A DIGNIDADE SEXUAL - AGENTE ASCENDENTE, PADRASTO OU MADRASTA, TIO, IRMÃO, CÔNJUGE, COMPANHEIRO, TUTOR, CURADOR, PRECEPTOR OU EMPREGADOR DA VÍTIMA OU POR QUALQUER OUTRO TÍTULO TIVER AUTORIDADE SOBRE ELA (ART. 226, INC. II DO CPB, INC. II DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","187: ASSÉDIO SEXUAL COM AUMENTO DE PENA SE A VÍTIMA É MENOR DE 18 (DEZOITO) ANOS (ART. 216-A, § 2° DO CPB)","188: ESTUPRO DE VULNERÁVEL (ART. 217-A CAPUT DO CPB) (HEDIONDO)45: MAUS-TRATOS (ART. 136 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)243: ABANDONO MATERIAL (ART. 244 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","188: TENTATIVA DE ESTUPRO DE VULNERÁVEL - TER CONJUNÇÃO CARNAL OU PRATICAR OUTRO ATO LIBIDINOSO COM MENOR DE 14 (CATORZE) ANOS. (ART. 217-A CAPUT DO CPB) (HEDIONDO)","189: ESTUPRO DE VULNERÁVEL - VÍTIMA COM ENFERMIDADE OU DEFICIÊNCIA MENTAL, , NÃO TEM O NECESSÁRIO DISCERNIMENTO PARA A PRÁTICA DO ATO, OU QUE, POR QUALQUER OUTRA CAUSA, NÃO PODE OFERECER RESISTÊNCIA. (ART. 217-A, § 1° DO CPB) (HEDIONDO)","189: ESTUPRO DE VULNERÁVEL, VÍTIMA COM ENFERMIDADE OU DEFICIÊNCIA MENTAL, OU QUE, POR QUALQUER OUTRA CAUSA, NÃO PODE OFERECER RESISTÊNCIA (ART. 217-A, § 1° DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)201: AUMENTO DE PENA NOS CRIMES CONTRA A DIGNIDADE SEXUAL - AGENTE ASCENDENTE, PADRASTO OU MADRASTA, TIO, IRMÃO, CÔNJUGE, COMPANHEIRO, TUTOR, CURADOR, PRECEPTOR OU EMPREGADOR DA VÍTIMA OU POR QUALQUER OUTRO TÍTULO TIVER AUTORIDADE SOBRE ELA (ART. 226, INC. II DO CPB, INC. II DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","189: ESTUPRO DE VULNERÁVEL, VÍTIMA COM ENFERMIDADE OU DEFICIÊNCIA MENTAL, OU QUE, POR QUALQUER OUTRA CAUSA, NÃO PODE OFERECER RESISTÊNCIA (ART. 217-A, § 1° DO CPB) (HEDIONDO)190: ESTUPRO DE VULNERÁVEL SE DA CONDUTA RESULTA LESÃO CORPORAL DE NATUREZA GRAVE (ART. 217-A, § 3° DO CPB) (HEDIONDO)","20096: ACIDENTE DE TRÂNSITO COM VÍTIMA FATAL PROVOCADO PELA PRÓPRIA VÍTIM","20098: CUMPRIMENTO DE DILIGÊNCIAS, 1079: TRÁFICO DE DROGAS (ART. 33 CAPUT DA LEI 11.343/2006)","20112: CALÚNIA COMETIDA NA PRESENÇA DE VÁRIAS PESSOAS, OU POR MEIO QUE FACILITE A DIVULGAÇÃO DA CALÚNIA, DA DIFAMAÇÃO OU DA INJÚRIA. (ART. 138 C/C ART. 141, INC. III DO CPB)","20116: DIFAMAÇÃO COMETIDA NA PRESENÇA DE VÁRIAS PESSOAS, OU POR MEIO QUE FACILITE A DIVULGAÇÃO DA CALÚNIA, DA DIFAMAÇÃO OU DA INJÚRIA. (ART. 139 C/C ART. 141, INC. III DO CPB, INC. III DO CPB)","20270: PRODUZIR, FOTOGRAFAR, FILMAR POR QUALQUER MEIO, CENA DE NUDEZ OU ATO SEXUAL DE CARÁTER ÍNTIMO E PRIVADO SEM AUTORIZAÇÃO DOS PARTICIPANTES (ART. 216-B DO CPB)","20625: ROUBO COM AUMENTO DE PENA - VIOLÊNCIA OU GRAVE AMEAÇA EXERCIDA COM EMPREGO DE ARMA BRANCA (ART. 157, § 2°, INC. VII DO CPB)","20637: ESBULHO POSSESSÓRIO COM USO DE VIOLÊNCIA (ART. 161, § 2° DO CPB)","20983: PERSEGUIÇÃO COMETIDA CONTRA MULHER POR RAZÕES DA CONDIÇÃO DE SEXO FEMININO (ART. 147-A, § 1°, INC. II DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","21: LESÃO CORPORAL DOLOSA (ART. 129 CAPUT DO CPB","2102: APRESENTAÇÃO DE OBJETO","21062: HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO), 21062: TENTATIVA DE HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO)","21062: HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO), 6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO), 1081: ASSOCIAÇÃO PARA O TRÁFICO DE DROGAS (ART. 35 DA LEI 11.343/2006)","21062: TENTATIVA DE HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO), 6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","21085: DIFAMAÇÃO COMETIDA OU DIVULGADA EM QUAISQUER MODALIDADES DAS REDES SOCIAIS DA REDE MUNDIAL DE COMPUTADORES (ART. 139 C/C ART. 141, § 2° DO CPB)","21703: VIOLÊNCIA PSICOLÓGICA CONTRA A MULHER (ART. 147-B DO CPB)","21703: VIOLÊNCIA PSICOLÓGICA CONTRA A MULHER (ART. 147-B DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","21704: LESÃO CORPORAL PRATICADA CONTRA A MULHER POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO (REVOGADO PELA LEI Nº 14.994/2024) (ART. 129, § 13 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","22: LESÃO CORPORAL DE NATUREZA GRAVE SE RESULTA INCAPACIDADE PARA AS OCUPAÇÕES HABITUAIS, POR MAIS DE TRINTA DIAS (ART. 129, § 1°, INC. I DO CPB)","22: LESÃO CORPORAL DE NATUREZA GRAVE SE RESULTA INCAPACIDADE PARA AS OCUPAÇÕES HABITUAIS, POR MAIS DE TRINTA DIAS (ART. 129, § 1°, INC. I DO CPB)6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","22102: APRESENTAÇÃO DE OBJETO","22484: ADULTERAÇÃO DE SINAL IDENTIFICADOR DE VEÍCULO AUTOMOTOR - QUALQUER SINAL IDENTIFICADOR VEICULAR ADULTERADO OU REMARCADO (ART. 311, § 2°, INC. III DO CPB)","23002: LESÃO CORPORAL PRATICADA CONTRA A MULHER POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO §1º DO ART. 121-A (ART. 129, § 13 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","23003: INJURIAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, OFENDENDO-LHE A DIGNIDADE OU O DECORO, NOS TERMOS DO § 1º DO ART. 121-A (ART. 140 C/C ART. 141, § 3° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","24622: HOMICÍDIO QUALIFICADO COMETIDO POR INTEGRANTE DE ORGANIZAÇÃO CRIMINOSA ULTRAVIOLENTA, GRUPO PARAMILITAR OU MILÍCIA PRIVADA (ART. 121, § 2°-D) (HEDIONDO)","24668: UTILIZAR VIOLÊNCIA OU GRAVE AMEAÇA PARA INTIMIDAR, COAGIR OU CONSTRANGER A POPULAÇÃO OU AGENTES PÚBLICOS, COM O PROPÓSITO DE IMPOR OU EXERCER O CONTROLE, O DOMÍNIO OU A INFLUÊNCIA, TOTAL OU PARCIAL, SOBRE ÁREAS GEOGRÁFICAS, COMUNIDADES OU TERRITÓRIOS; (ART. 2, INC. I DA LEI 15.358/2026)","24709: PROMOVER OU FUNDAR ORGANIZAÇÃO CRIMINOSA ULTRAVIOLENTA, GRUPO PARAMILITAR OU MILÍCIA PRIVADA OU A ELES ADERIR, ASSIM COMO APOIÁ-LOS DE QUALQUER FORMA (ART. 3, INC. I DA LEI 15.358/2026) (HEDIONDO)","262: INCÊNDIO EM LAVOURA, PASTAGEM, MATA OU FLORESTA (ART. 250, § 1°, INC. II, \"H\" DO CPB)112: DANO QUALIFICADO COM EMPREGO DE SUBSTÂNCIA INFLAMÁVEL OU EXPLOSIVA (ART. 163, PARÁGRAFO ÚNICO, INC. II DO CPB)114: DANO QUALIFICADO COMETIDO POR MOTIVO EGOÍSTICO OU COM PREJUÍZO CONSIDERÁVEL (ART. 163, PARÁGRAFO ÚNICO, INC. IV DO CPB)","2668: UTILIZAR VIOLÊNCIA OU GRAVE AMEAÇA PARA INTIMIDAR, COAGIR OU CONSTRANGER A POPULAÇÃO OU AGENTES PÚBLICOS, COM O PROPÓSITO DE IMPOR OU EXERCER O CONTROLE, O DOMÍNIO OU A INFLUÊNCIA, TOTAL OU PARCIAL, SOBRE ÁREAS GEOGRÁFICAS, COMUNIDADES OU TERRITÓRIOS; (ART. 2, INC. I DA LEI 15.358/2026)","28: LESÃO CORPORAL DE NATUREZA GRAVE SE RESULTA EM PERDA OU INUTILIZAÇÃO DO MEMBRO, SENTIDO OU FUNÇÃO (ART. 129, § 2°, INC. III DO CPB) (HEDIONDO)","3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO), 22822: PROCEDIMENTO MIGRADO","3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO)","3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO)","3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","3: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","3: TENTATIVA DE HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","308: INFRAÇÃO DE MEDIDA SANITÁRIA PREVENTIVA (ART. 268 CAPUT DO CPB)","32: LESÃO CORPORAL CULPOSA (ART. 129, § 6° DO CPB)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 23024: AMEAÇAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO § 1º DO ART. 121-A DO CPB (ART. 147 DO CPB, § 1° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 64: VIOLAÇÃO DE DOMICÍLIO COMETIDO DURANTE PERÍODO NOTURNO OU LUGAR ERMO (ART. 150, § 1° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)110: DANO (ART. 163 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","347: ASSOCIAÇÃO CRIMINOSA ARMADA OU SE HOUVER A PARTICIPAÇÃO DE CRIANÇA OU ADOLESCENTE (ART. 288, § 1º DO CPB)","37: ABANDONO DE INCAPAZ (ART. 133 DO CPB)","378: FALSIFICAÇÃO DO SELO OU SINAL PÚBLICO DE TABELIÃO (ART. 296, INC. II DO CPB)383: FALSIFICAÇÃO DE DOCUMENTO PÚBLICO (ART. 297 CAPUT DO CPB)","383: FALSIFICAÇÃO DE DOCUMENTO PÚBLICO (ART. 297 CAPUT DO CPB)401: USO DE DOCUMENTO FALSO (ART. 304 DO CPB)","391: FALSIDADE IDEOLÓGICA - AUMENTO DE PENA - FUNCIONÁRIO PÚBLICO (ART. 299, PARÁGRAFO ÚNICO DO CPB)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 22822: PROCEDIMENTO MIGRADO (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO), 21062: HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO), 6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO), 6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 22822: PROCEDIMENTO MIGRADO","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO) MIGRADO","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)","4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","4: TENTATIVA DE HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)3: TENTATIVA DE HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","4: TENTATIVA DE HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","407: FALSA IDENTIDADE - USO DE DOCUMENTOS DE TERCEIRO COMO PRÓPRIO (ART. 308 DO CPB)","407: FALSA IDENTIDADE - USO DE DOCUMENTOS DE TERCEIRO COMO PRÓPRIO (ART. 308 DO CPB)110: DANO (ART. 163 CAPUT DO CPB)1076: CONSUMO PESSOAL DE DROGAS (ART. 28 CAPUT DA LEI 11.343/2006)","45: MAUS-TRATOS (ART. 136 CAPUT DO CPB)188: ESTUPRO DE VULNERÁVEL (ART. 217-A CAPUT DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","455: DESOBEDIÊNCIA (ART. 330 DO CPB)","456: DESACATO (ART. 331 DO CPB)454: RESISTÊNCIA - IMPEDINDO EXECUÇÃO LEGAL (ART. 329, § 1° DO CPB)","459: CORRUPÇÃO ATIVA (ART. 333 CAPUT DO CPB)","489: DENUNCIAÇÃO CALUNIOSA - AUMENTO DE PENA - SE O AGENTE SE SERVE DE ANONIMATO OU DE NOME SUPOSTO (ART. 339, § 1° DO CPB)","49: CALÚNIA (ART. 138 CAPUT DO CPB)","491: COMUNICAÇÃO FALSA DE CRIME OU DE CONTRAVENÇÃO (ART. 340 DO CPB)","491: COMUNICAÇÃO FALSA DE CRIME OU DE CONTRAVENÇÃO (ART. 340 DO CPB)152: RECEPTAÇÃO (ART. 180 CAPUT DO CPB)","497: COAÇÃO NO CURSO DO PROCESSO (ART. 344 DO CPB), 57: AMEAÇA (ART. 147 DO CPB)","5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","503: FAVORECIMENTO REAL (ART. 349 CAPUT DO CPB)","52: DIFAMAÇÃO (ART. 139 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB)57: AMEAÇA (ART. 147 DO CPB)110: DANO (ART. 163 CAPUT DO CPB)","54: INJÚRIA REAL (ART. 140, § 2° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","55: INJÚRIA RACIAL - VIDE ID 22422 - (ALTERADA PELA LEI 14.532/2023) (ART. 140, § 3° DO CPB (ALTERADA PELA LEI 14.532/2023)) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","56: CONSTRANGIMENTO ILEGAL (ART. 146 CAPUT DO CPB)","57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER","57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 737: RETENÇÃO DE DOCUMENTO (ART. 3° CAPUT DA LEI 5.553/1968) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 131: ESTELIONATO (ART. 171 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)110: DANO (ART. 163 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","57: AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)33: LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","57: AMEAÇA (ART. 147 DO CPB), 186: ASSÉDIO SEXUAL (ART. 216-A CAPUT DO CPB)","57: AMEAÇA (ART. 147 DO CPB), 21: LESÃO CORPORAL DOLOSA (ART. 129 CAPUT DO CPB)","57: AMEAÇA (ART. 147 DO CPB)20963: APOLOGIA DE CRIME OU CRIMINOSO (ART. 287 DO CPB)455: DESOBEDIÊNCIA (ART. 330 DO CPB)515: MOTIM (REBELIÃO) DE PRESOS (ART. 354 DO CPB)","58: SEQUESTRO E CÁRCERE PRIVADO (ART. 148 DO CPB)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 1121: DESAPARECIMENTO DE PESSOA","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO), 22822: PROCEDIMENTO MIGRADO","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO), 3: HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 7: HOMICÍDIO QUALIFICADO PARA ASSEGURAR A EXECUÇÃO, A OCULTAÇÃO, A IMPUNIDADE OU VANTAGEM DE OUTRO CRIME (ART. 121, § 2°, INC. V DO CPB) (HEDIONDO)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 7: HOMICÍDIO QUALIFICADO PARA ASSEGURAR A EXECUÇÃO, A OCULTAÇÃO, A IMPUNIDADE OU VANTAGEM DE OUTRO CRIME (ART. 121, § 2°, INC. V DO CPB) (HEDIONDO), 192: CORRUPÇÃO DE MENORES (ART. 218 DO CPB), 5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO), 346: ASSOCIAÇÃO CRIMINOSA (ART. 288 CAPUT DO CPB)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO), 813: CORROMPER MENOR DE 18 ANOS, COM ELE PRATICANDO INFRAÇÃO PENAL (ART. 244-B DA LEI 8.069/1990 - ESTATUTO DA CRIANÇA E DO ADOLESCENTE)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)179: DESTRUIÇÃO, SUBTRAÇÃO OU OCULTAÇÃO DE CADÁVER (ART. 211 DO CPB)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)1: TENTATIVA DE HOMICÍDIO SIMPLES (ART. 121 CAPUT DO CPB)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)7: HOMICÍDIO QUALIFICADO PARA ASSEGURAR A EXECUÇÃO, A OCULTAÇÃO, A IMPUNIDADE OU VANTAGEM DE OUTRO CRIME (ART. 121, § 2°, INC. V DO CPB) (HEDIONDO)","6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)20126: ROUBO COM EMPREGO DE ARMA DE FOGO (ART. 157, § 2°-A, INC. I DO CPB) (HEDIONDO)89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)3: TENTATIVA DE HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","6: TENTATIVA DE HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","63: VIOLAÇÃO DE DOMICÍLIO (ART. 150 CAPUT DO CPB)","687: RECUSAR CUMPRIMENTO OU OBEDIÊNCIA A DILIGÊNCIAS, ORDENS, INSTRUÇÕES DA JUSTIÇA ELEITORAL (ART. 347 DA LEI 4.737/65 - LEI DE CRIMES ELEITORAIS)","694: ABUSO DE AUTORIDADE COMETIDO EM FACE DA INVIOLABILIDADE DO DOMICÍLIO (REVOGADA PELA LEI 13869/2019) (ART. 3°, \"B\" DA LEI 4.898/1965 (REVOGADO PELA LEI 13.869/2019))","694: REVOGADA - ABUSO DE AUTORIDADE COMETIDO EM FACE DA INVIOLABILIDADE DO DOMICÍLIO (REVOGADA PELA LEI 13869/2019) (\"B\" DA LEI 4.898/1965 (REVOGADO PELA LEI 13.869/2019), ART. 3°)","7: HOMICÍDIO QUALIFICADO PARA ASSEGURAR A EXECUÇÃO, A OCULTAÇÃO, A IMPUNIDADE OU VANTAGEM DE OUTRO CRIME (ART. 121, § 2°, INC. V DO CPB) (HEDIONDO)","7: HOMICÍDIO QUALIFICADO PARA ASSEGURAR A EXECUÇÃO, A OCULTAÇÃO, A IMPUNIDADE OU VANTAGEM DE OUTRO CRIME (ART. 121, § 2°, INC. V DO CPB) (HEDIONDO), 4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO)","76: FURTO (ART. 155 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","76: FURTO (ART. 155 CAPUT DO CPB)509: FUGA DE PESSOA PRESA OU SUBMETIDA A MEDIDA DE SEGURANÇA (ART. 351 CAPUT DO CPB)","76: TENTATIVA DE FURTO (ART. 155 CAPUT DO CPB)","77:FURTO PRATICADO DURANTE O REPOUSO NOTURNO (ART. 155, § 1° DO CPB)","79: FURTO DE ENERGIA ELÉTRICA OU QUALQUER OUTRA QUE TENHA VALOR ECONÔMICO. (ART. 155, § 3° DO CPB)80: FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)83: FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)113: DANO QUALIFICADO COMETIDO CONTRA O PATRIMÔNIO DA UNIÃO, ESTADO, DO DISTRITO FEDERAL, MUNICÍPIO, AUTARQUIA, FUNDAÇÃO PÚBLICA, EMPRESA PÚBLICA, SOCIEDADE DE ECONOMIA MISTA OU EMPRESA CONCESSIONÁRIA DE SERVIÇOS PÚBLICOS (ART. 163, PARÁGRAFO ÚNICO, INC. III DO CPB)114: DANO QUALIFICADO COMETIDO POR MOTIVO EGOÍSTICO OU COM PREJUÍZO CONSIDERÁVEL (ART. 163, PARÁGRAFO ÚNICO, INC. IV DO CPB)","79: FURTO DE ENERGIA ELÉTRICA OU QUALQUER OUTRA QUE TENHA VALOR ECONÔMICO. (ART. 155, § 3° DO CPB)83: FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)","8: HOMICÍDIO CULPOSO (ART. 121, § 3° DO CPB)9: HOMICÍDIO CULPOSO COM AUMENTO DE PENA SE O CRIME RESULTA DE INOBSERVÂNCIA DE REGRA TÉCNICA DE PROFISSÃO, ARTE OU OFÍCIO, OU SE O AGENTE DEIXA DE PRESTAR IMEDIATO SOCORRO À VÍTIMA, NÃO PROCURA DIMINUIR AS CONSEQÜÊNCIAS DO SEU ATO, OU FOGE PARA EVITAR PRISÃO EM FLAGRANTE (ART. 121, § 4° , PRIMEIRA PARTE DO CPB)","8: SEQUESTRO E CÁRCERE PRIVADO (ART. 148 DO CPB)","80: FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)77: FURTO PRATICADO DURANTE O REPOUSO NOTURNO (ART. 155, § 1° DO CPB)","80: FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)81: FURTO QUALIFICADO COM ABUSO DE CONFIANÇA, OU MEDIANTE FRAUDE, ESCALADA OU DESTREZA (ART. 155, § 4°, INC. II DO CPB)","80: TENTATIVA DE FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)","81: FURTO QUALIFICADO COM ABUSO DE CONFIANÇA, OU MEDIANTE FRAUDE, ESCALADA OU DESTREZA (ART. 155, § 4°, INC. II DO CPB)80: FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)83: FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)","81: FURTO QUALIFICADO COM ABUSO DE CONFIANÇA, OU MEDIANTE FRAUDE, ESCALADA OU DESTREZA (ART. 155, § 4°, INC. II DO CPB)83: FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)","813: CORROMPER MENOR DE 18 ANOS, COM ELE PRATICANDO INFRAÇÃO PENAL (ART. 244-B DA LEI 8.069/1990 - ESTATUTO DA CRIANÇA E DO ADOLESCENTE)86: ROUBO (ART. 157 CAPUT DO CPB)","828: FRAUDAR A FISCALIZAÇÃO TRIBUTÁRIA, INSERINDO ELEMENTOS INEXATOS, OU OMITINDO OPERAÇÃO DE QUALQUER NATUREZA, EM DOCUMENTO OU LIVRO EXIGIDO PELA LEI FISCAL (ART. 1°, INC. II DA LEI 8.137/1990)146: OUTRAS FRAUDES (ART. 176 DO CPB) MIGRADO","83: FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)80: FURTO QUALIFICADO COM DESTRUIÇÃO OU ROMPIMENTO DE OBSTÁCULO (ART. 155, § 4°, INC. I DO CPB)","83: TENTATIVA DE FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)","86: ROUBO (ART. 157 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","88: REVOGADO - ROUBO COM EMPREGO DE ARMA (ART. 157, § 2°, INC. I DO CPB)","89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)20126: ROUBO COM EMPREGO DE ARMA DE FOGO (ART. 157, § 2°-A, INC. I DO CPB) (HEDIONDO)","89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)20126: ROUBO COM EMPREGO DE ARMA DE FOGO (ART. 157, § 2°-A, INC. I DO CPB) (HEDIONDO)6: HOMICÍDIO QUALIFICADO PELA TRAIÇÃO, DE EMBOSCADA, OU MEDIANTE DISSIMULAÇÃO OU OUTRO RECURSO QUE DIFICULTE OU TORNE IMPOSSÍVEL A DEFESA DO OFENDIDO (ART. 121, § 2°, INC. IV DO CPB) (HEDIONDO)","89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)453: RESISTÊNCIA (ART. 329 CAPUT DO CPB)88: ROUBO COM EMPREGO DE ARMA (ART. 157, § 2°, INC. I DO CPB)20264: MORTE POR INTERVENÇÃO DE AGENTE DE SEGURANÇA PÚBLICA, DO SISTEMA PRISIONAL OU DE OUTROS ÓRGÃOS PÚBLICOS NO EXERCÍCIO DA FUNÇÃO POLICIAL, EM SERVIÇO OU EM RAZÃO DELE, DESDE QUE A AÇÃO TENHA SIDO PRATICADA SOB QUAISQUER DAS HIPÓTESES DE EXCLUSÃO DE ILICITUDE","89: ROUBO COM AUMENTO DE PENA SE HÁ CONCURSO DE DUAS OU MAIS PESSOAS (ART. 157, § 2°, INC. II DO CPB)92: ROUBO COM AUMENTO DE PENA SE HÁ RESTRIÇÃO DE LIBERDADE DA VÍTIMA (ART. 157, § 2°, INC. V DO CPB) (HEDIONDO)88: ROUBO COM EMPREGO DE ARMA (ART. 157, § 2°, INC. I DO CPB)","92: ROUBO COM AUMENTO DE PENA SE HÁ RESTRIÇÃO DE LIBERDADE DA VÍTIMA (§ 2°, INC. V DO CPB, ART. 157) (HEDIONDO)","93: ROUBO QUALIFICADO SE RESULTA LESÃO CORPORAL GRAVE (ART. 157, § 3°, INC. I DO CPB) (HEDIONDO)","94: LATROCÍNIO - ROUBO SEGUIDO DE MORTE (ART. 157, § 3°, INC. II DO CPB) (HEDIONDO) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","94: LATROCÍNIO - ROUBO SEGUIDO DE MORTE (ART. 157, § 3°, INC. II DO CPB) (HEDIONDO), 813: CORROMPER MENOR DE 18 ANOS, COM ELE PRATICANDO INFRAÇÃO PENAL (ART. 244-B DA LEI 8.069/1990 - ESTATUTO DA CRIANÇA E DO ADOLESCENTE), 5: HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO), 4: HOMICÍDIO QUALIFICADO POR MOTIVO FÚTIL (ART. 121, § 2°, INC. II DO CPB) (HEDIONDO), 346: ASSOCIAÇÃO CRIMINOSA (ART. 288 CAPUT DO CPB)","94: TENTATIVA DE LATROCÍNIO - ROUBO SEGUIDO DE MORTE (ART. 157, § 3°, INC. II DO CPB) (HEDIONDO)","95: EXTORSÃO (ART. 158 CAPUT DO CPB)","953: CORTAR ÁRVORES EM FLORESTA CONSIDERADA DE PRESERVAÇÃO PERMANENTE, SEM PERMISSÃO DA AUTORIDADE COMPETENTE (ART. 39 DA LEI 9605/98 - CRIMES CONTRA O MEIO AMBIENTE)","97: COAÇÃO NO CURSO DO PROCESSO (ART. 344 DO CPB)","AMEAÇA (ART. 147 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","AMEAÇA (ART. 147 DO CPB) e VIOLAÇÃO DE DOMICILIO(ART. 150, § 1° DO CPB)","AMEAÇAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO § 1º DO ART. 121-A DO CPB (ART. 147 DO CPB, § 1° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 53: INJÚRIA COMETIDA OFENDENDO A DIGNIDADE OU O DECORO (ART. 140 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","APROPRIAÇÃO INDÉBITA (ART. 168 CAPUT DO CPB)","Artigo 107, Inciso I, do CP (Morte por intervenção de Agente de Segurança Pública)","Artigo 148 do CP - Sequestro e Cárcere Privado cometido por integrantes de facções criminosas.","Artigo 155, § 1.º e § 4.º, inciso IV, do CP","ARTIGO 155, § 1.º, DO CP.","Artigo 155, caput, do CP.","Artigo 157, §2.º, incisos I e II, do CP (Roubo de Veiculo)","Artigo 217-A, § 1° DO CPB - ESTUPRO DE VULNERÁVEL","Artigo 23, Inciso III, do CP - Morte por intervenção de agente de segurança pública, no exercício da função policial, em serviço ou em razão dele, desde que a ação tenha sido praticada sob quaisquer das hipóteses de exclusão de ilicitude.","ASSOCIAÇÃO CRIMINOSA (ART. 288 CAPUT DO CPB)","DANO (ART. 163 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 52: DIFAMAÇÃO (ART. 139 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER), 21703: VIOLÊNCIA PSICOLÓGICA CONTRA A MULHER (ART. 147-B DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","DESAPARECIMENTO DE PESSOA","ESTELIONATO (ART. 171 CAPUT DO CPB)","ESTELIONATO COMETIDO CONTRA IDOSO OU VULNERÁVEL (ART. 171, § 4° DO CPB)","FURTO (ART. 155 CAPUT DO CPB)","FURTO (ART. 155 CAPUT DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. - ART. 155, § 4°, INC. IV DO CP.","FURTO QUALIFICADO MEDIANTE CONCURSO DE DUAS OU MAIS PESSOAS. (ART. 155, § 4°, INC. IV DO CPB)","HOMICÍDIO QUALIFICADO COM EMPREGO DE ARMA DE FOGO DE USO RESTRITO OU PROIBIDO (ART. 121, § 2°, INC. VIII DO CPB) (HEDIONDO)","HOMICÍDIO QUALIFICADO COM EMPREGO DE VENENO, FOGO, EXPLOSIVO, ASFIXIA, TORTURA OU OUTRO MEIO INSIDIOSO OU CRUEL (ART. 121, § 2°, INC. III DO CPB) (HEDIONDO)","HOMICÍDIO QUALIFICADO MEDIANTE PAGA OU PROMESSA DE RECOMPENSA, OU POR OUTRO MOTIVO TORPE (ART. 121, § 2°, INC. I DO CPB) (HEDIONDO)","INJURIA COMETIDA NA PRESENÇA DE VÁRIAS PESSOAS, OU POR MEIO QUE FACILITE A DIVULGAÇÃO DA CALÚNIA, DA DIFAMAÇÃO OU DA INJÚRIA (ART. 140 C/C ART. 141, INC. III DO CPB)","LESÃO CORPORAL CULPOSA (ART. 129, § 6° DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","LESÃO CORPORAL DOLOSA - VIOLÊNCIA DOMÉSTICA (ART. 129, § 9° DO CPB)","LESÃO CORPORAL PRATICADA CONTRA A MULHER POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO (REVOGADO PELA LEI Nº 14.994/2024) (ART. 129, § 13 DO CPB) (VIOLÊNCIA DOMÉSTICA CONTRA A MULHER)","PORTE ILEGAL DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO, DE USO PERMITIDO - ART. 14 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTOAMEAÇAR MULHER, POR RAZÕES DA CONDIÇÃO DO SEXO FEMININO, NOS TERMOS DO § 1º DO ART. 121-A DO CPB - ART. 147 DO CPB, § 1° DO CPB (LEI MARIA DA PENHA)","PORTE ILEGAL DE ARMA DE FOGO, ACESSÓRIO OU MUNIÇÃO, DE USO PERMITIDO (ART. 14 DA LEI 10.826/2003 - ESTATUTO DO DESARMAMENTO)","PROCEDIMENTO MIGRADO,"];
+      // Modelos gerais baseados no CPP e em legislação especial; adapte ao caso concreto.
+      const SUGESTOES_DILIGENCIAS = ["Preservar e isolar o local do fato até a chegada da perícia.","Requisitar exame pericial do local do fato.","Providenciar o registro fotográfico e a documentação técnica do local.","Identificar, coletar e preservar vestígios relacionados ao fato.","Formalizar e documentar a cadeia de custódia dos vestígios.","Apreender os objetos relacionados ao fato após a liberação pela perícia.","Encaminhar os objetos apreendidos para exame pericial.","Juntar aos autos o auto de apreensão e os respectivos lacres.","Juntar aos autos o boletim de ocorrência e os documentos apresentados.","Juntar aos autos a portaria de instauração.","Expedir ordem de missão para cumprimento das diligências investigativas.","Juntar aos autos o relatório de investigação criminal.","Certificar o cumprimento da ordem de missão.","Localizar e qualificar a vítima.","Intimar e ouvir a vítima.","Complementar as declarações da vítima sobre circunstâncias relevantes.","Localizar e qualificar possíveis testemunhas.","Intimar e ouvir as testemunhas identificadas.","Identificar e ouvir testemunhas presenciais.","Localizar e qualificar o investigado.","Intimar o investigado para interrogatório.","Proceder ao interrogatório do investigado, observadas as garantias legais.","Realizar reconhecimento de pessoa, observadas as formalidades legais.","Realizar reconhecimento de objeto, observadas as formalidades legais.","Realizar acareação, quando necessária ao esclarecimento de divergências.","Verificar a necessidade de reprodução simulada dos fatos.","Requisitar exame de corpo de delito.","Requisitar exame de lesões corporais.","Requisitar exame de necropsia.","Requisitar exame toxicológico.","Requisitar exame de alcoolemia, quando cabível.","Requisitar exame de balística.","Requisitar exame de eficiência e prestabilidade de arma ou munição.","Requisitar exame papiloscópico.","Requisitar exame documentoscópico ou grafotécnico.","Requisitar exame químico ou laboratorial da substância apreendida.","Requisitar perícia em aparelho eletrônico ou mídia digital.","Requisitar extração e análise forense de dados digitais.","Providenciar cópia forense e preservação da integridade da mídia digital.","Requisitar exame pericial em veículo.","Requisitar exame de identificação veicular.","Requisitar confronto genético ou exame de DNA, quando legalmente cabível.","Requisitar prontuário, relatório ou documento médico pertinente.","Requisitar documentos e informações necessários à apuração.","Requisitar imagens de câmeras de segurança relacionadas ao fato.","Preservar imagens e registros eletrônicos sujeitos a apagamento automático.","Requisitar dados cadastrais pertinentes, conforme a legislação aplicável.","Representar pelo acesso a dados protegidos, mediante autorização judicial quando exigida.","Representar pela obtenção de dados telemáticos, mediante autorização judicial quando exigida.","Representar pela interceptação de comunicações, quando legalmente cabível.","Representar pela quebra de sigilo bancário ou financeiro, quando legalmente cabível.","Representar por busca e apreensão, quando necessária e legalmente cabível.","Representar por medida cautelar pessoal, quando presentes os requisitos legais.","Cumprir mandado judicial relacionado ao procedimento.","Juntar aos autos a decisão judicial e certificar seu cumprimento.","Consultar e juntar a folha de antecedentes criminais.","Verificar a existência de mandados de prisão em aberto.","Consultar registros de outras ocorrências policiais relacionadas.","Verificar registro de posse ou porte de arma de fogo, quando pertinente.","Identificar a propriedade e a origem dos objetos relacionados ao fato.","Consultar a situação e as restrições do veículo relacionado ao fato.","Providenciar a restituição do bem, quando autorizada e cabível.","Expedir ofício ao órgão público ou entidade responsável pela informação.","Expedir carta precatória para cumprimento de diligência em outra circunscrição.","Reiterar ofício ou requisição ainda não atendida.","Certificar tentativa de intimação ou localização não cumprida.","Realizar as diligências requisitadas pelo Ministério Público ou pelo Poder Judiciário.","Juntar representação ou requerimento da vítima, quando exigido.","Verificar a necessidade de medidas protetivas de urgência.","Realizar avaliação de risco conforme o protocolo institucional vigente.","Ouvir a ofendida em ambiente adequado, evitando revitimização.","Tomar a representação da ofendida a termo, se apresentada.","Encaminhar o pedido de medida protetiva ao juízo no prazo legal.","Encaminhar a ofendida para atendimento de saúde ou exame no IML, quando necessário.","Adotar providências de proteção policial e comunicar os órgãos competentes, quando necessário.","Informar a ofendida sobre seus direitos e os serviços de atendimento disponíveis.","Ouvir o agressor e as testemunhas em procedimento de violência doméstica.","Verificar registros de arma de fogo do agressor e comunicar o órgão competente, quando cabível.","Encaminhar a vítima à rede de proteção e atendimento, quando cabível.","Providenciar escuta especializada de criança ou adolescente, quando cabível.","Providenciar depoimento especial de criança ou adolescente, quando cabível.","Evitar a repetição desnecessária de oitivas de criança ou adolescente.","Preservar a privacidade da criança ou adolescente vítima ou testemunha.","Evitar contato da criança ou adolescente com o suposto autor.","Requisitar medidas de proteção para criança ou adolescente em situação de risco.","Comunicar o caso aos órgãos da rede de proteção, quando cabível.","Aguardar o cumprimento da ordem de missão.","Aguardar o retorno do ofício ou da requisição.","Aguardar o cumprimento da carta precatória.","Aguardar o laudo pericial requisitado.","Aguardar a conclusão da extração ou análise de dados.","Aguardar o cumprimento da medida judicial.","Pendente a localização e intimação da vítima.","Pendente a localização e intimação de testemunha.","Pendente a localização e intimação do investigado.","Pendente a oitiva da vítima.","Pendente a oitiva de testemunha.","Pendente o interrogatório do investigado.","Pendente a juntada do relatório de investigação criminal.","Pendente a juntada de documentos ou laudos.","Analisar os elementos informativos e verificar diligências complementares.","Certificar a inexistência de outras diligências pendentes.","Elaborar relatório final.","Procedimento pronto para relatório final.","Remeter os autos à autoridade ou ao órgão competente."];
+      const sugestoesInfracoesAtuais = [...SUGESTOES_INFRACOES];
+      const sugestoesDiligenciasAtuais = [...SUGESTOES_DILIGENCIAS];
+      let registroAtual = null;
+      let resultadosAtuais = [];
+
+      document.addEventListener("DOMContentLoaded", iniciar);
+
+      function iniciar() {
+        document.getElementById("titulo-app").textContent = CONTEXTO.titulo;
+        document.getElementById("versao").textContent = `v${CONTEXTO.versao}`;
+        configurarAutocomplete("form-infracao", "sugestoes-infracao", sugestoesInfracoesAtuais);
+        configurarAutocomplete("form-diligencias", "sugestoes-diligencias", sugestoesDiligenciasAtuais);
+        google.script.run
+          .withSuccessHandler((personalizadas) => {
+            mesclarSugestoes(sugestoesInfracoesAtuais, personalizadas && personalizadas.infracoes);
+            mesclarSugestoes(sugestoesDiligenciasAtuais, personalizadas && personalizadas.diligencias);
+          })
+          .withFailureHandler(() => {})
+          .obterSugestoesPersonalizadas();
+        if (CONTEXTO.modo === "novo") {
+          abrirFormulario(null);
+          return;
+        }
+        mostrar("busca");
+        document.getElementById("busca-numero").focus();
+        document.querySelectorAll("#busca input").forEach((campo) => {
+          campo.addEventListener("keydown", (evento) => {
+            if (evento.key === "Enter") pesquisar();
+          });
+        });
+      }
+
+      function filtrosBusca() {
+        return {
+          numero: valor("busca-numero"),
+          status: valor("busca-status"),
+          infracao: valor("busca-infracao"),
+          diligencias: valor("busca-diligencias"),
+          responsavel: valor("busca-responsavel"),
+          observacao: valor("busca-observacao"),
+        };
+      }
+
+      function pesquisar() {
+        const filtros = filtrosBusca();
+        if (!Object.values(filtros).some(Boolean)) {
+          aviso("Preencha ao menos uma informação para pesquisar.", true);
+          return;
+        }
+        carregando(true);
+        google.script.run
+          .withSuccessHandler(renderizarResultados)
+          .withFailureHandler(falhou)
+          .buscarBos(filtros);
+      }
+
+      function renderizarResultados(resposta) {
+        carregando(false);
+        ajustarAlturaJanela(680);
+        resultadosAtuais = resposta.itens || [];
+        mostrar("busca");
+        mostrar("resultados");
+        ocultar("formulario");
+        ocultar("ficha");
+
+        const info = resposta.total === 1 ? "1 registro encontrado." : `${resposta.total} registros encontrados.`;
+        document.getElementById("resultado-info").textContent = resposta.limitado
+          ? `${info} Mostrando os primeiros ${resultadosAtuais.length}; refine a pesquisa.`
+          : info;
+
+        const destino = document.getElementById("tabela-resultados");
+        if (!resultadosAtuais.length) {
+          destino.innerHTML = '<div class="empty">Nenhum B.O. corresponde aos filtros informados.</div>';
+          return;
+        }
+
+        const rotulo = CONTEXTO.modo === "editar" ? "Editar" : CONTEXTO.modo === "excluir" ? "Excluir" : "Abrir";
+        destino.innerHTML = `
+          <table>
+            <thead><tr><th>#</th><th>Nº B.O.</th><th>Status</th><th>Infração penal</th><th>Responsável</th><th>Ação</th></tr></thead>
+            <tbody>${resultadosAtuais.map((item, indice) => `
+              <tr>
+                <td>${indice + 1}</td>
+                <td><strong>${esc(item.numero)}</strong></td>
+                <td><span class="status-chip ${statusClasse(item.status)}">${esc(item.status || "Pendente")}</span></td>
+                <td>${esc(item.infracao)}</td>
+                <td>${esc(item.responsavel || "—")}</td>
+                <td><button class="btn btn-small ${CONTEXTO.modo === "excluir" ? "btn-danger" : ""}" onclick="abrirResultado(${indice})">${rotulo}</button></td>
+              </tr>`).join("")}
+            </tbody>
+          </table>`;
+      }
+
+      function abrirResultado(indice) {
+        const item = resultadosAtuais[indice];
+        if (!item) return aviso("O resultado selecionado não está mais disponível.", true);
+        carregando(true);
+        google.script.run
+          .withSuccessHandler((registro) => {
+            carregando(false);
+            registroAtual = registro;
+            if (CONTEXTO.modo === "editar") abrirFormulario(registro);
+            else abrirFicha(registro);
+          })
+          .withFailureHandler(falhou)
+          .obterBo(item.linha, item.numero);
+      }
+
+      function abrirFormulario(registro) {
+        registroAtual = registro;
+        ajustarAlturaJanela(680);
+        ocultar("busca");
+        ocultar("resultados");
+        ocultar("ficha");
+        mostrar("formulario");
+
+        document.getElementById("titulo-formulario").textContent = registro ? `Editar B.O. ${registro.numero}` : "Cadastrar novo B.O.";
+        document.getElementById("btn-voltar-form").classList.toggle("hidden", !registro);
+        document.getElementById("btn-limpar-form").classList.toggle("hidden", Boolean(registro));
+        preencherFormulario(registro || {});
+        document.getElementById("form-numero").focus();
+      }
+
+      function preencherFormulario(registro) {
+        definir("form-numero", registro.numero);
+        definir("form-status", registro.status || "Pendente");
+        definir("form-infracao", registro.infracao);
+        definir("form-diligencias", registro.diligencias);
+        definirResponsavel(registro.responsavel);
+        definir("form-observacao", registro.observacao);
+      }
+
+      function dadosFormulario() {
+        return {
+          linha: registroAtual && registroAtual.linha,
+          token: registroAtual && registroAtual.token,
+          numero: valor("form-numero"),
+          status: valor("form-status"),
+          infracao: valor("form-infracao"),
+          diligencias: valor("form-diligencias"),
+          responsavel: valor("form-responsavel"),
+          observacao: valor("form-observacao"),
+        };
+      }
+
+      function salvar() {
+        const dados = dadosFormulario();
+        if (!dados.numero) return aviso("Informe o número do B.O.", true);
+        if (!dados.status) return aviso("Selecione o status do B.O.", true);
+        if (!dados.infracao) return aviso("Informe a infração penal.", true);
+        carregando(true);
+        google.script.run
+          .withSuccessHandler((resposta) => {
+            carregando(false);
+            registroAtual = resposta.registro;
+            if (CONTEXTO.modo === "novo") {
+              aviso("B.O. cadastrado com sucesso!", false);
+              window.setTimeout(() => google.script.host.close(), 1500);
+              return;
+            }
+            aviso(resposta.mensagem, false);
+            abrirFicha(registroAtual);
+          })
+          .withFailureHandler(falhou)
+          .salvarBo(dados);
+      }
+
+      function abrirFicha(registro) {
+        registroAtual = registro;
+        ocultar("busca");
+        ocultar("resultados");
+        ocultar("formulario");
+        mostrar("ficha");
+        texto("ficha-numero", `B.O. ${registro.numero}`);
+        const statusFicha = document.getElementById("ficha-status");
+        statusFicha.textContent = registro.status || "Pendente";
+        statusFicha.className = `status-chip ${statusClasse(registro.status)}`;
+        texto("ficha-infracao", registro.infracao || "—");
+        texto("ficha-diligencias", registro.diligencias || "Nenhuma diligência informada.");
+        texto("ficha-responsavel", registro.responsavel || "Não informado.");
+        texto("ficha-observacao", registro.observacao || "Nenhuma observação informada.");
+        document.getElementById("btn-excluir-ficha").classList.toggle("hidden", CONTEXTO.modo !== "excluir");
+        document.getElementById("btn-editar-ficha").classList.toggle("hidden", CONTEXTO.modo !== "pesquisar");
+        window.requestAnimationFrame(() => {
+          const cabecalho = document.querySelector(".app-header").offsetHeight;
+          const alturaFicha = document.getElementById("ficha").scrollHeight;
+          ajustarAlturaJanela(Math.min(620, Math.max(440, cabecalho + alturaFicha + 54)));
+        });
+      }
+
+      function imprimirFicha() {
+        const tituloOriginal = document.title;
+        const numero = registroAtual && registroAtual.numero ? registroAtual.numero : "";
+        document.title = `Ficha B.O. ${numero} - Delegacia Territorial de Itabela`;
+        window.print();
+        window.setTimeout(() => { document.title = tituloOriginal; }, 1000);
+      }
+
+      function editarFicha() {
+        abrirFormulario(registroAtual);
+      }
+
+      function confirmarExclusao() {
+        if (!registroAtual) return;
+        const confirmado = window.confirm(
+          `Excluir definitivamente o B.O. ${registroAtual.numero}?\n\nOs dados serão guardados no histórico de auditoria.`,
+        );
+        if (!confirmado) return;
+        carregando(true);
+        google.script.run
+          .withSuccessHandler((resposta) => {
+            carregando(false);
+            registroAtual = null;
+            aviso(resposta.mensagem, false);
+            limparBusca();
+            ocultar("ficha");
+            ocultar("resultados");
+            mostrar("busca");
+          })
+          .withFailureHandler(falhou)
+          .excluirBo({ linha: registroAtual.linha, token: registroAtual.token });
+      }
+
+      function voltarResultados() {
+        ajustarAlturaJanela(680);
+        ocultar("ficha");
+        ocultar("formulario");
+        if (CONTEXTO.modo === "novo") {
+          abrirFormulario(null);
+          return;
+        }
+        mostrar("busca");
+        if (resultadosAtuais.length) mostrar("resultados");
+      }
+
+      function limparBusca() {
+        ["busca-numero", "busca-status", "busca-infracao", "busca-diligencias", "busca-responsavel", "busca-observacao"]
+          .forEach((id) => definir(id, ""));
+        resultadosAtuais = [];
+        ocultar("resultados");
+        document.getElementById("busca-numero").focus();
+      }
+
+      function limparFormulario() {
+        preencherFormulario({});
+        registroAtual = null;
+        document.getElementById("form-numero").focus();
+      }
+
+      function carregando(ativo) {
+        document.getElementById("conteudo").classList.toggle("loading", ativo);
+        document.querySelectorAll("button").forEach((botao) => { botao.disabled = ativo; });
+      }
+
+      function falhou(erro) {
+        carregando(false);
+        aviso(erro && erro.message ? erro.message : String(erro || "Erro inesperado."), true);
+      }
+
+      function aviso(mensagem, erro) {
+        const toast = document.getElementById("toast");
+        toast.textContent = mensagem;
+        toast.classList.toggle("error", Boolean(erro));
+        toast.classList.toggle("success", !erro);
+        toast.classList.remove("hidden");
+        window.clearTimeout(aviso.timer);
+        aviso.timer = window.setTimeout(() => toast.classList.add("hidden"), erro ? 7000 : 4500);
+      }
+
+      function mostrar(id) { document.getElementById(id).classList.remove("hidden"); }
+      function ocultar(id) { document.getElementById(id).classList.add("hidden"); }
+      function ajustarAlturaJanela(altura) { google.script.host.setHeight(Math.round(altura)); }
+
+      function configurarAutocomplete(campoId, listaId, opcoes) {
+        const campo = document.getElementById(campoId);
+        const lista = document.getElementById(listaId);
+        let resultados = [];
+        let indiceAtivo = -1;
+
+        const fechar = () => {
+          lista.classList.add("hidden");
+          lista.innerHTML = "";
+          resultados = [];
+          indiceAtivo = -1;
+        };
+
+        const selecionar = (opcao) => {
+          const textoAtual = campo.value;
+          const inicioTrecho = textoAtual.lastIndexOf("\n") + 1;
+          const prefixo = textoAtual.slice(0, inicioTrecho);
+          campo.value = `${prefixo}${opcao}`;
+          fechar();
+          campo.focus();
+          campo.setSelectionRange(campo.value.length, campo.value.length);
+        };
+
+        const pesquisarOpcoes = () => {
+          const trecho = campo.value.slice(campo.value.lastIndexOf("\n") + 1).trim();
+          const termo = normalizarBusca(trecho);
+          if (termo.length < 2) return fechar();
+
+          resultados = opcoes
+            .map((opcao, ordem) => {
+              const normalizada = normalizarBusca(opcao);
+              const palavras = normalizada.split(" ");
+              const prioridade = normalizada.startsWith(termo) ? 0 : palavras.some((palavra) => palavra.startsWith(termo)) ? 1 : 2;
+              return { opcao, ordem, normalizada, prioridade };
+            })
+            .filter((item) => item.normalizada.includes(termo))
+            .sort((a, b) => a.prioridade - b.prioridade || a.ordem - b.ordem)
+            .slice(0, 8)
+            .map((item) => item.opcao);
+
+          indiceAtivo = -1;
+          if (!resultados.length) return fechar();
+          lista.innerHTML = `${resultados.map((opcao, indice) =>
+            `<button class="suggestion" type="button" data-indice="${indice}">${destacarTermo(opcao, trecho)}</button>`
+          ).join("")}<div class="suggestion-hint">Modelos gerais sem dados pessoais — adapte ao caso. Use ↑ ↓ e Enter.</div>`;
+          lista.classList.remove("hidden");
+        };
+
+        campo.addEventListener("input", pesquisarOpcoes);
+        campo.addEventListener("keydown", (evento) => {
+          if (lista.classList.contains("hidden")) return;
+          if (evento.key === "ArrowDown" || evento.key === "ArrowUp") {
+            evento.preventDefault();
+            const passo = evento.key === "ArrowDown" ? 1 : -1;
+            indiceAtivo = (indiceAtivo + passo + resultados.length) % resultados.length;
+            lista.querySelectorAll(".suggestion").forEach((item, indice) => item.classList.toggle("active", indice === indiceAtivo));
+          } else if (evento.key === "Enter" && indiceAtivo >= 0) {
+            evento.preventDefault();
+            selecionar(resultados[indiceAtivo]);
+          } else if (evento.key === "Escape") {
+            fechar();
+          }
+        });
+        lista.addEventListener("mousedown", (evento) => {
+          const botao = evento.target.closest(".suggestion");
+          if (!botao) return;
+          evento.preventDefault();
+          selecionar(resultados[Number(botao.dataset.indice)]);
+        });
+        campo.addEventListener("blur", () => window.setTimeout(fechar, 160));
+      }
+
+      function mesclarSugestoes(destino, novas) {
+        const existentes = new Set(destino.map((item) => normalizarBusca(item)));
+        const adicionais = [];
+        (novas || []).forEach((item) => {
+          const texto = String(item || "").trim();
+          const chave = normalizarBusca(texto);
+          if (!texto || existentes.has(chave)) return;
+          existentes.add(chave);
+          adicionais.push(texto);
+        });
+        destino.unshift(...adicionais);
+      }
+
+      function normalizarBusca(textoBusca) {
+        return String(textoBusca || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase();
+      }
+
+      function statusClasse(status) {
+        const normalizado = normalizarBusca(status);
+        if (normalizado === "pendente") return "status-pendente";
+        if (normalizado === "em andamento") return "status-andamento";
+        if (normalizado === "agendada") return "status-agendada";
+        if (normalizado.startsWith("aguardando")) return "status-aguardando";
+        if (normalizado === "concluida") return "status-concluido";
+        if (normalizado === "cancelada") return "status-cancelado";
+        if (normalizado === "suspensa") return "status-suspenso";
+        return "";
+      }
+
+      function destacarTermo(opcao, termo) {
+        const segura = esc(opcao);
+        const palavras = normalizarBusca(termo).split(/\s+/).filter(Boolean);
+        if (!palavras.length) return segura;
+        return segura.replace(new RegExp(`(${palavras.map(escRegex).join("|")})`, "gi"), "<strong>$1</strong>");
+      }
+
+      function escRegex(valorRegex) { return valorRegex.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+      function valor(id) { return document.getElementById(id).value.trim(); }
+      function definir(id, valorCampo) { document.getElementById(id).value = valorCampo || ""; }
+      function definirResponsavel(valorCampo) {
+        const seletor = document.getElementById("form-responsavel");
+        const valorAtual = valorCampo || "";
+        const opcaoAnterior = seletor.querySelector('option[data-anterior="true"]');
+        if (opcaoAnterior) opcaoAnterior.remove();
+        if (valorAtual && !Array.from(seletor.options).some((opcao) => opcao.value === valorAtual)) {
+          const opcao = document.createElement("option");
+          opcao.value = valorAtual;
+          opcao.textContent = `${valorAtual} (registro anterior)`;
+          opcao.dataset.anterior = "true";
+          seletor.appendChild(opcao);
+        }
+        seletor.value = valorAtual;
+      }
+      function texto(id, valorCampo) { document.getElementById(id).textContent = valorCampo; }
+
+      function esc(valorCampo) {
+        return String(valorCampo === null || valorCampo === undefined ? "" : valorCampo)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+    </script>
+  </body>
+</html>

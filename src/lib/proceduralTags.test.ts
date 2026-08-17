@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getProceduralTagSearchRank,
   matchesProceduralTagQuery,
+  repairUtf8Mojibake,
   slugifyProceduralTag,
   splitNumberedProceduralTags,
   tagsByScope,
@@ -51,6 +52,18 @@ describe("proceduralTags", () => {
 
   it("limita o slug ao tamanho aceito pelo banco", () => {
     expect(slugifyProceduralTag("a".repeat(150))).toHaveLength(120);
+  });
+
+  it("corrige rótulos UTF-8 interpretados como Latin-1 sem alterar textos válidos", () => {
+    expect(repairUtf8Mojibake("CrianÃ§a e Adolescente")).toBe("Criança e Adolescente");
+    expect(repairUtf8Mojibake("Crimes Contra o PatrimÃ´nio")).toBe(
+      "Crimes Contra o Patrimônio",
+    );
+    expect(repairUtf8Mojibake("Crimes de TrÃ¢nsito")).toBe("Crimes de Trânsito");
+    expect(repairUtf8Mojibake("ViolÃªncia DomÃ©stica e Familiar")).toBe(
+      "Violência Doméstica e Familiar",
+    );
+    expect(repairUtf8Mojibake("ASSOCIAÇÃO CRIMINOSA")).toBe("ASSOCIAÇÃO CRIMINOSA");
   });
 
   it("retorna somente tags ativas do escopo solicitado", () => {

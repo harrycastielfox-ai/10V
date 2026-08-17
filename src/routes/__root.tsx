@@ -60,7 +60,13 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className="dark" data-theme="default" suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      className="dark"
+      data-theme="default"
+      data-appearance="default"
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: appearanceInitScript }} />
         <HeadContent />

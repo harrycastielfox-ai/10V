@@ -147,54 +147,75 @@ html[data-theme="light"] {
   --sidebar-ring: #16834d;
 }
 
-html[data-theme="black"] {
+/* Mesclar: superfície clara com uma identidade premium por módulo. */
+html[data-appearance="mixed"] .app-layout > aside {
   color-scheme: dark;
+  box-shadow: 10px 0 36px rgb(15 23 42 / 0.12);
+}
 
-  --background: oklch(0.075 0.004 240);
-  --foreground: oklch(0.96 0.006 240);
+html[data-appearance="mixed"] .app-layout-inqueritos > aside {
+  --primary: #5ee4a7;
+  --primary-foreground: #052e22;
+  --muted-foreground: #a7d8c5;
+  --border: #1c654e;
+  --ring: #6ee7b7;
+  --sidebar: #073d2d;
+  --sidebar-foreground: #ecfdf5;
+  --sidebar-primary: #5ee4a7;
+  --sidebar-primary-foreground: #052e22;
+  --sidebar-accent: #0d503b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1c654e;
+  --sidebar-ring: #6ee7b7;
+  background-image: linear-gradient(165deg, #0c513b 0%, #073d2d 52%, #052b21 100%);
+}
 
-  --card: oklch(0.105 0.006 240);
-  --card-foreground: oklch(0.96 0.006 240);
+html[data-appearance="mixed"] .app-layout-veiculos > aside {
+  --info: #75baff;
+  --muted-foreground: #abc9e9;
+  --border: #25598d;
+  --ring: #75baff;
+  --sidebar: #0a315a;
+  --sidebar-foreground: #eff7ff;
+  --sidebar-primary: #75baff;
+  --sidebar-primary-foreground: #08233d;
+  --sidebar-accent: #124575;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #25598d;
+  --sidebar-ring: #75baff;
+  background-image: linear-gradient(165deg, #124d82 0%, #0a315a 55%, #071f3a 100%);
+}
 
-  --popover: oklch(0.12 0.007 240);
-  --popover-foreground: oklch(0.96 0.006 240);
+html[data-appearance="mixed"] .app-layout-objetos > aside {
+  --warning: #ffd166;
+  --muted-foreground: #ddcba5;
+  --border: #765525;
+  --ring: #ffd166;
+  --sidebar: #432c0c;
+  --sidebar-foreground: #fff9e8;
+  --sidebar-primary: #ffd166;
+  --sidebar-primary-foreground: #352006;
+  --sidebar-accent: #5a3c12;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #765525;
+  --sidebar-ring: #ffd166;
+  background-image: linear-gradient(165deg, #5b3d13 0%, #432c0c 56%, #2d1c07 100%);
+}
 
-  --primary: oklch(0.75 0.18 152);
-  --primary-foreground: oklch(0.075 0.004 240);
-
-  --secondary: oklch(0.16 0.009 240);
-  --secondary-foreground: oklch(0.96 0.006 240);
-
-  --muted: oklch(0.145 0.007 240);
-  --muted-foreground: oklch(0.67 0.015 240);
-
-  --accent: oklch(0.18 0.012 240);
-  --accent-foreground: oklch(0.97 0.005 240);
-
-  --destructive: oklch(0.64 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
-
-  --success: oklch(0.75 0.18 152);
-  --warning: oklch(0.8 0.17 85);
-  --info: oklch(0.68 0.18 235);
-  --purple: oklch(0.67 0.2 295);
-
-  --operational: oklch(0.84 0.13 200);
-  --operational-contrast: oklch(0.075 0.004 240);
-  --operational-map: oklch(0.085 0.012 220);
-
-  --border: oklch(0.22 0.011 240);
-  --input: oklch(0.17 0.009 240);
-  --ring: oklch(0.75 0.18 152);
-
-  --sidebar: oklch(0.055 0.003 240);
-  --sidebar-foreground: oklch(0.94 0.006 240);
-  --sidebar-primary: oklch(0.75 0.18 152);
-  --sidebar-primary-foreground: oklch(0.075 0.004 240);
-  --sidebar-accent: oklch(0.14 0.008 240);
-  --sidebar-accent-foreground: oklch(0.97 0.005 240);
-  --sidebar-border: oklch(0.18 0.009 240);
-  --sidebar-ring: oklch(0.75 0.18 152);
+html[data-appearance="mixed"] .app-layout-agenda > aside {
+  --info: #67e8f9;
+  --muted-foreground: #a5dce3;
+  --border: #176477;
+  --ring: #67e8f9;
+  --sidebar: #0a3a46;
+  --sidebar-foreground: #ecfeff;
+  --sidebar-primary: #67e8f9;
+  --sidebar-primary-foreground: #07323b;
+  --sidebar-accent: #0f5060;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #176477;
+  --sidebar-ring: #67e8f9;
+  background-image: linear-gradient(165deg, #105567 0%, #0a3a46 56%, #062831 100%);
 }
 
 @layer base {
@@ -1301,6 +1322,17 @@ html[data-theme="light"] .sipi-bairro-name {
 
   .sipi-print-list-record:nth-of-type(even) .sipi-print-list-primary-row td {
     background: #f8fafc !important;
+  }
+
+  .sipi-print-list-record.is-incomplete .sipi-print-list-primary-row td {
+    background: #fff7ed !important;
+    color: #9a3412 !important;
+  }
+
+  .sipi-print-list-record.is-incomplete .sipi-print-list-primary-row td:nth-child(2) {
+    font-weight: 900 !important;
+    letter-spacing: 0.03em !important;
+    text-transform: uppercase !important;
   }
 
   .sipi-print-list-detail-row td {

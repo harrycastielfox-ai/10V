@@ -1,6 +1,6 @@
 export const APPEARANCE_STORAGE_KEY = "sipi-appearance";
 
-export const APPEARANCE_OPTIONS = ["default", "light", "black"] as const;
+export const APPEARANCE_OPTIONS = ["default", "light", "mixed"] as const;
 
 export type Appearance = (typeof APPEARANCE_OPTIONS)[number];
 
@@ -23,9 +23,11 @@ export function applyAppearance(appearance: Appearance) {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
-  root.dataset.theme = appearance;
-  root.classList.toggle("dark", appearance !== "light");
-  root.style.colorScheme = appearance === "light" ? "light" : "dark";
+  const usesLightSurface = appearance === "light" || appearance === "mixed";
+  root.dataset.appearance = appearance;
+  root.dataset.theme = usesLightSurface ? "light" : "default";
+  root.classList.toggle("dark", !usesLightSurface);
+  root.style.colorScheme = usesLightSurface ? "light" : "dark";
 }
 
 export const appearanceInitScript = `
@@ -40,8 +42,10 @@ export const appearanceInitScript = `
     } catch {}
 
     const root = document.documentElement;
-    root.dataset.theme = appearance;
-    root.classList.toggle("dark", appearance !== "light");
-    root.style.colorScheme = appearance === "light" ? "light" : "dark";
+    const usesLightSurface = appearance === "light" || appearance === "mixed";
+    root.dataset.appearance = appearance;
+    root.dataset.theme = usesLightSurface ? "light" : "default";
+    root.classList.toggle("dark", !usesLightSurface);
+    root.style.colorScheme = usesLightSurface ? "light" : "dark";
   })();
 `;

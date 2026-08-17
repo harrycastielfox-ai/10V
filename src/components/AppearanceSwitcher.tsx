@@ -1,4 +1,4 @@
-import { Check, Lightbulb, Monitor, Moon, Sun } from "lucide-react";
+import { Check, Lightbulb, Moon, PanelLeft, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   APPEARANCE_STORAGE_KEY,
@@ -13,13 +13,13 @@ const options: Array<{
   value: Appearance;
   label: string;
   description: string;
-  icon: typeof Monitor;
+  icon: typeof Moon;
 }> = [
   {
     value: "default",
-    label: "Padrão",
-    description: "Visual original do SIPI",
-    icon: Monitor,
+    label: "Escuro",
+    description: "Visual escuro original do SIPI",
+    icon: Moon,
   },
   {
     value: "light",
@@ -28,10 +28,10 @@ const options: Array<{
     icon: Sun,
   },
   {
-    value: "black",
-    label: "Black",
-    description: "Preto profundo e alto contraste",
-    icon: Moon,
+    value: "mixed",
+    label: "Mesclar",
+    description: "Conteúdo claro com lateral colorida",
+    icon: PanelLeft,
   },
 ];
 

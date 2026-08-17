@@ -12,7 +12,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { classifyAuthorship } from "@/lib/authorship";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
-import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
+import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import {
   getInqueritoById,
@@ -36,7 +36,7 @@ import {
   canViewPrivateCases,
   type UserProfile,
 } from "@/lib/authz";
-import { CASE_CATEGORY_OPTIONS, normalizeCaseCategory } from "@/lib/inqueritosPriority";
+import { normalizeCaseCategory } from "@/lib/inqueritosPriority";
 import {
   OCCURRENCE_ORIGIN_OPTIONS,
   PROCEDURE_TYPE_OPTIONS,
@@ -96,12 +96,12 @@ function EditarInquerito() {
   const [numeroPpe, setNumeroPpe] = useState("");
   const [numeroFisico, setNumeroFisico] = useState("");
   const [numeroBo, setNumeroBo] = useState("");
-  const [tipificacao, setTipificacao] = useState("");
   const [tagOptions, setTagOptions] = useState<ProceduralTag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-  const [statusTagId, setStatusTagId] = useState("");
+  const [selectedTipificacaoTagIds, setSelectedTipificacaoTagIds] = useState<string[]>([]);
+  const [selectedStatusTagIds, setSelectedStatusTagIds] = useState<string[]>([]);
+  const [selectedGravidadeTagIds, setSelectedGravidadeTagIds] = useState<string[]>([]);
+  const [preservedGeneralTagIds, setPreservedGeneralTagIds] = useState<string[]>([]);
   const [resumoFato, setResumoFato] = useState("");
-  const [gravidade, setGravidade] = useState("");
   const [tipo, setTipo] = useState("");
   const [origemRegistro, setOrigemRegistro] = useState<OccurrenceOrigin>("novo");
   const [prioridade, setPrioridade] = useState("");
@@ -141,7 +141,42 @@ function EditarInquerito() {
   const vitima = pessoas.find((pessoa) => pessoa.papel === "vitima")?.nome ?? "";
   const investigado = pessoas.find((pessoa) => pessoa.papel === "autor_investigado")?.nome ?? "";
   const statusOptions = useMemo(() => tagsByScope(tagOptions, "inquerito_status"), [tagOptions]);
+  const gravidadeOptions = useMemo(
+    () => tagsByScope(tagOptions, "inquerito_gravidade"),
+    [tagOptions],
+  );
   const tipificacaoOptions = useMemo(() => tagsByScope(tagOptions, "tipificacao"), [tagOptions]);
+  const selectedStatusTags = useMemo(
+    () =>
+      selectedStatusTagIds
+        .map((id) => statusOptions.find((tag) => tag.id === id))
+        .filter(Boolean) as ProceduralTag[],
+    [selectedStatusTagIds, statusOptions],
+  );
+  const selectedGravidadeTags = useMemo(
+    () =>
+      selectedGravidadeTagIds
+        .map((id) => gravidadeOptions.find((tag) => tag.id === id))
+        .filter(Boolean) as ProceduralTag[],
+    [gravidadeOptions, selectedGravidadeTagIds],
+  );
+  const selectedTipificacoes = useMemo(
+    () =>
+      selectedTipificacaoTagIds
+        .map((id) => tipificacaoOptions.find((tag) => tag.id === id))
+        .filter(Boolean) as ProceduralTag[],
+    [selectedTipificacaoTagIds, tipificacaoOptions],
+  );
+  const statusTagId = selectedStatusTags[0]?.id ?? "";
+  const gravidade = selectedGravidadeTags[0]?.name ?? "";
+
+  const createTagOption = async (input: Parameters<typeof createProceduralTag>[0]) => {
+    const created = await createProceduralTag(input);
+    setTagOptions((current) =>
+      current.some((tag) => tag.id === created.id) ? current : [...current, created],
+    );
+    return created;
+  };
 
   useEffect(() => {
     if (prazoManual || !dataInstauracao || !prazoDias) return;
@@ -169,7 +204,12 @@ function EditarInquerito() {
                 console.warn("[inqueritos:editar] pessoas adicionais indisponiveis", peopleError);
                 return { pessoasSalvas: [], failed: true };
               }),
-            listProceduralTags(["inquerito_status", "tipificacao", "inquerito_geral"])
+            listProceduralTags([
+              "inquerito_status",
+              "inquerito_gravidade",
+              "tipificacao",
+              "inquerito_geral",
+            ])
               .then((tags) => ({ tags, failed: false }))
               .catch((tagsError: unknown) => {
                 console.warn("[inqueritos:editar] catálogo de tags indisponível", tagsError);
@@ -179,7 +219,7 @@ function EditarInquerito() {
               .then((tagIds) => ({ tagIds, failed: false }))
               .catch((tagsError: unknown) => {
                 console.warn("[inqueritos:editar] vínculos de tags indisponíveis", tagsError);
-                return { tagIds: [], failed: true };
+                return { tagIds: [] as string[], failed: true };
               }),
           ]);
         setProfile(currentProfile);
@@ -205,21 +245,47 @@ function EditarInquerito() {
         setNumeroPpe(inquerito.numero_ppe ?? "");
         setNumeroFisico(inquerito.numero_fisico ?? "");
         setNumeroBo(inquerito.numero_bo ?? "");
-        setTipificacao(inquerito.tipificacao ?? "");
         setTagOptions(tagsResult.tags);
-        setSelectedTagIds(tagIdsResult.tagIds);
-        setStatusTagId(
-          inquerito.status_tag_id ??
-            tagsResult.tags.find(
-              (tag) =>
-                tag.scope === "inquerito_status" &&
-                tag.name.toLocaleLowerCase("pt-BR") ===
-                  (inquerito.situacao ?? "").toLocaleLowerCase("pt-BR"),
-            )?.id ??
-            "",
+        const linkedTags = tagsResult.tags.filter((tag) => tagIdsResult.tagIds.includes(tag.id));
+        setSelectedTipificacaoTagIds(
+          linkedTags.filter((tag) => tag.scope === "tipificacao").map((tag) => tag.id),
+        );
+        const linkedStatusIds = linkedTags
+          .filter((tag) => tag.scope === "inquerito_status")
+          .map((tag) => tag.id);
+        const fallbackStatusId = tagsResult.tags.find(
+          (tag) =>
+            tag.scope === "inquerito_status" &&
+            tag.name.toLocaleLowerCase("pt-BR") ===
+              (inquerito.situacao ?? "").toLocaleLowerCase("pt-BR"),
+        )?.id;
+        setSelectedStatusTagIds([
+          ...new Set(
+            [inquerito.status_tag_id, ...linkedStatusIds, fallbackStatusId].filter(
+              Boolean,
+            ) as string[],
+          ),
+        ]);
+        const linkedGravidadeIds = linkedTags
+          .filter((tag) => tag.scope === "inquerito_gravidade")
+          .map((tag) => tag.id);
+        const legacyGravidade = normalizeCaseCategory(inquerito.gravidade, "Outros");
+        const fallbackGravidadeId = tagsResult.tags.find(
+          (tag) =>
+            tag.scope === "inquerito_gravidade" &&
+            normalizeCaseCategory(tag.name, "") === legacyGravidade,
+        )?.id;
+        setSelectedGravidadeTagIds(
+          linkedGravidadeIds.length
+            ? linkedGravidadeIds
+            : fallbackGravidadeId
+              ? [fallbackGravidadeId]
+              : [],
+        );
+        setPreservedGeneralTagIds(
+          linkedTags.filter((tag) => tag.scope === "inquerito_geral").map((tag) => tag.id),
         );
         setResumoFato(inquerito.resumo_fato ?? "");
-        setGravidade(normalizeCaseCategory(inquerito.gravidade, "Outros"));
         setTipo(
           procedureTypeLabel(
             normalizeProcedureType(inquerito.tipo_procedimento_normalizado ?? inquerito.tipo),
@@ -343,9 +409,10 @@ function EditarInquerito() {
       setErro("Selecione o status do procedimento.");
       return;
     }
-    const selectedTipificacoes = tipificacaoOptions.filter((tag) =>
-      selectedTagIds.includes(tag.id),
-    );
+    if (selectedGravidadeTags.length === 0) {
+      setErro("Adicione ao menos uma gravidade do fato.");
+      return;
+    }
     if (selectedTipificacoes.length === 0) {
       setErro("Adicione ao menos uma tipificação.");
       return;
@@ -400,7 +467,12 @@ function EditarInquerito() {
       await updateInquerito(caseId, payload);
       let tagsWarning = false;
       try {
-        await replaceInqueritoTags(caseId, selectedTagIds);
+        await replaceInqueritoTags(caseId, [
+          ...selectedTipificacaoTagIds,
+          ...selectedStatusTagIds,
+          ...selectedGravidadeTagIds,
+          ...preservedGeneralTagIds,
+        ]);
       } catch (tagsError) {
         tagsWarning = true;
         console.warn(
@@ -593,27 +665,34 @@ function EditarInquerito() {
               label="Tipificações"
               hint="Adicione um ou mais crimes. Cada tipificação poderá ser usada em filtros e relatórios."
               options={tipificacaoOptions}
-              value={selectedTagIds}
-              onChange={setSelectedTagIds}
-              onCreate={async (input) => {
-                const created = await createProceduralTag(input);
-                setTagOptions((current) => [...current, created]);
-                return created;
-              }}
+              value={selectedTipificacaoTagIds}
+              onChange={setSelectedTipificacaoTagIds}
+              onCreate={createTagOption}
               createScope="tipificacao"
               canCreate={canManageProceduralTags(profile)}
+              placeholder="Busque ou crie uma tipificação"
             />
-            <Select
-              label="Categoria do Caso"
-              value={gravidade}
-              onChange={setGravidade}
-              options={[...CASE_CATEGORY_OPTIONS]}
+            <ProceduralTagPicker
+              label="Gravidade do fato"
+              hint="Selecione uma ou mais gravidades. A primeira será a classificação principal do procedimento."
+              options={gravidadeOptions}
+              value={selectedGravidadeTagIds}
+              onChange={setSelectedGravidadeTagIds}
+              onCreate={createTagOption}
+              createScope="inquerito_gravidade"
+              canCreate={canManageProceduralTags(profile)}
+              placeholder="Busque ou crie uma gravidade"
             />
-            <ProceduralStatusSelect
+            <ProceduralTagPicker
               label="Status do procedimento"
+              hint="Selecione um ou mais status. O primeiro será o status principal e continuará no histórico."
               options={statusOptions}
-              value={statusTagId}
-              onChange={setStatusTagId}
+              value={selectedStatusTagIds}
+              onChange={setSelectedStatusTagIds}
+              onCreate={createTagOption}
+              createScope="inquerito_status"
+              canCreate={canManageProceduralTags(profile)}
+              placeholder="Busque ou crie um status"
             />
             <TextArea
               label="Resumo do Fato"

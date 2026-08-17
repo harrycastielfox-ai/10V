@@ -9,6 +9,7 @@ export type SipiPrintListRow = {
   id: string;
   cells: string[];
   details: { label: string; value: string }[];
+  incomplete?: boolean;
 };
 
 type SipiPrintListProps = {
@@ -90,14 +91,19 @@ export function SipiPrintList({
           </tr>
         </thead>
         {rows.map((row) => (
-          <tbody className="sipi-print-list-record" key={row.id}>
+          <tbody
+            className={`sipi-print-list-record${row.incomplete ? " is-incomplete" : ""}`}
+            key={row.id}
+          >
             <tr className="sipi-print-list-primary-row">
               {row.cells.map((value, columnIndex) => (
                 <td
                   key={`${row.id}-${columns[columnIndex]?.id ?? columnIndex}`}
                   className={`is-${columns[columnIndex]?.align ?? "left"}`}
                 >
-                  {value || "—"}
+                  {row.incomplete && columns[columnIndex]?.id === "procedimento"
+                    ? "Cadastro incompleto"
+                    : value || "—"}
                 </td>
               ))}
             </tr>

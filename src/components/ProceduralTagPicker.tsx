@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import {
   getProceduralTagSearchRank,
   matchesProceduralTagQuery,
+  normalizeProceduralTagSearch,
   TAG_COLOR_CLASS,
   type ProceduralTag,
   type ProceduralTagColor,
@@ -23,6 +24,7 @@ type ProceduralTagPickerProps = {
   createScope?: ProceduralTagScope;
   canCreate?: boolean;
   hint?: string;
+  placeholder?: string;
 };
 
 export function ProceduralTagPicker({
@@ -34,6 +36,7 @@ export function ProceduralTagPicker({
   createScope,
   canCreate = false,
   hint,
+  placeholder = "Digite um número ou palavra para buscar",
 }: ProceduralTagPickerProps) {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
@@ -48,11 +51,11 @@ export function ProceduralTagPicker({
   );
   const available = useMemo(() => {
     const normalized = query.trim();
-    if (!normalized) return [];
     return options
       .filter(
         (option) =>
-          !value.includes(option.id) && matchesProceduralTagQuery(option.name, normalized),
+          !value.includes(option.id) &&
+          (!normalized || matchesProceduralTagQuery(option.name, normalized)),
       )
       .sort((left, right) => {
         const rankDifference =
@@ -61,6 +64,13 @@ export function ProceduralTagPicker({
         return rankDifference || left.name.localeCompare(right.name, "pt-BR");
       });
   }, [options, query, value]);
+  const hasExactMatch = useMemo(() => {
+    const normalized = normalizeProceduralTagSearch(query);
+    return Boolean(
+      normalized &&
+      options.some((option) => normalizeProceduralTagSearch(option.name) === normalized),
+    );
+  }, [options, query]);
 
   function selectTag(tag: ProceduralTag) {
     onChange([...new Set([...value, tag.id])]);
@@ -152,15 +162,15 @@ export function ProceduralTagPicker({
                   void handleCreate();
                 }
               }}
-              placeholder="Digite um número ou palavra, ex.: Homicídio"
+              placeholder={placeholder}
               className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary/55"
               role="combobox"
-              aria-expanded={open && available.length > 0}
+              aria-expanded={open}
               aria-controls="procedural-tag-results"
               autoComplete="off"
             />
           </div>
-          {canCreate && onCreate && createScope && query.trim() && available.length === 0 && (
+          {canCreate && onCreate && createScope && query.trim() && !hasExactMatch && (
             <button
               type="button"
               onClick={handleCreate}
@@ -172,13 +182,13 @@ export function ProceduralTagPicker({
             </button>
           )}
         </div>
-        {open && available.length > 0 && (
+        {open && (
           <div
             id="procedural-tag-results"
             role="listbox"
             className="absolute inset-x-2.5 top-[calc(100%-0.15rem)] z-40 max-h-64 overflow-y-auto rounded-lg border border-primary/25 bg-card p-1.5 shadow-2xl"
           >
-            {available.slice(0, 10).map((tag) => (
+            {available.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
@@ -191,9 +201,9 @@ export function ProceduralTagPicker({
                 <span className="leading-5">{tag.name}</span>
               </button>
             ))}
-            {available.length > 10 ? (
-              <p className="px-3 py-2 text-[11px] text-muted-foreground">
-                Continue digitando para refinar os {available.length} resultados.
+            {available.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-muted-foreground">
+                Nenhuma outra tag disponível.
               </p>
             ) : null}
           </div>

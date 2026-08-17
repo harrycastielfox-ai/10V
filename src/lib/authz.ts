@@ -269,6 +269,20 @@ export function canManageAgenda(
   return Boolean(profile && isAuthorized(profile) && AGENDA_EDITOR_ROLES.includes(profile.cargo));
 }
 
+const BO_EDITOR_ROLES: UserRole[] = ["sipi_access", "delegado", "admin"];
+
+export function canViewBos(
+  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
+): boolean {
+  return Boolean(profile && isAuthorized(profile) && profile.cargo !== "membro");
+}
+
+export function canManageBos(
+  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
+): boolean {
+  return Boolean(profile && isAuthorized(profile) && BO_EDITOR_ROLES.includes(profile.cargo));
+}
+
 // Contato Operacional é restrito ao cargo admin — a pedido explícito do usuário.
 const LOCALIZACAO_ROLES: UserRole[] = ["admin"];
 

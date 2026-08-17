@@ -1,0 +1,1 @@
+Erro de sintaxe: ParseError: Unexpected token ILLEGAL, linha: 133, arquivo: Boletins.gs

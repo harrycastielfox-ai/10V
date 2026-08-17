@@ -50,6 +50,11 @@ export type RepresentacaoPayload = Partial<
   Omit<RepresentacaoRecord, "id" | "created_at" | "updated_at" | "deleted_at">
 >;
 
+export type RepresentacaoLinkOption = Pick<
+  RepresentacaoRecord,
+  "id" | "numero_ppe" | "processo_judicial" | "tipo" | "data_representacao" | "status"
+>;
+
 export type RepresentacaoPessoaPapel =
   "vitima" | "investigado_representado" | "testemunha" | "outro";
 
@@ -155,6 +160,30 @@ export async function listRepresentacoesByInquerito(inqueritoId: string, limit =
         .abortSignal(signal),
   );
   return (rows ?? []) as RepresentacaoRecord[];
+}
+
+export async function searchRepresentacoesForLink(query: string, limit = 20) {
+  const normalizedQuery = query.trim();
+  if (normalizedQuery.length < 2) return [];
+  const safeQuery = normalizedQuery.replace(/[%_(),]/g, "");
+  if (safeQuery.length < 2) return [];
+
+  const data = await runSupabaseQuery<RepresentacaoLinkOption[]>(
+    "vínculo com representação",
+    (signal) =>
+      supabase
+        .from("representacoes")
+        .select("id,numero_ppe,processo_judicial,tipo,data_representacao,status")
+        .or(
+          `numero_ppe.ilike.%${safeQuery}%,processo_judicial.ilike.%${safeQuery}%,tipo.ilike.%${safeQuery}%`,
+        )
+        .is("deleted_at", null)
+        .order("data_representacao", { ascending: false, nullsFirst: false })
+        .limit(limit)
+        .abortSignal(signal),
+  );
+
+  return (data ?? []) as RepresentacaoLinkOption[];
 }
 
 export async function listRepresentacaoPessoas(representacaoId: string) {

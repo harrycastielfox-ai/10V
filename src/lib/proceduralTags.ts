@@ -1,5 +1,6 @@
 export const PROCEDURAL_TAG_SCOPES = [
   "inquerito_status",
+  "inquerito_gravidade",
   "tipificacao",
   "inquerito_geral",
   "movimentacao_tipo",
@@ -63,6 +64,18 @@ export function normalizeProceduralTagSearch(value: string) {
     .toLocaleLowerCase("pt-BR")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+export function repairUtf8Mojibake(value: string) {
+  return value.replace(/[ÃÂ][\u0080-\u00BF]/g, (sequence) => {
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(
+        Uint8Array.from([sequence.charCodeAt(0), sequence.charCodeAt(1)]),
+      );
+    } catch {
+      return sequence;
+    }
+  });
 }
 
 export function matchesProceduralTagQuery(name: string, query: string) {

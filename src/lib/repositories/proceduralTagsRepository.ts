@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import {
+  repairUtf8Mojibake,
   slugifyProceduralTag,
   type ProceduralStatusHistory,
   type ProceduralTag,
@@ -22,7 +23,10 @@ export async function listProceduralTags(scopes?: ProceduralTagScope[]) {
     if (scopes?.length) query = query.in("scope", scopes);
     return query;
   });
-  return (rows ?? []) as ProceduralTag[];
+  return (rows ?? []).map((tag) => ({
+    ...tag,
+    name: repairUtf8Mojibake(tag.name),
+  })) as ProceduralTag[];
 }
 
 export async function createProceduralTag(input: {
@@ -30,7 +34,7 @@ export async function createProceduralTag(input: {
   name: string;
   color?: ProceduralTagColor;
 }) {
-  const name = input.name.trim().replace(/\s+/g, " ");
+  const name = repairUtf8Mojibake(input.name).trim().replace(/\s+/g, " ");
   const slug = slugifyProceduralTag(name);
   if (name.length < 2 || !slug) throw new Error("TAG_INVALID_NAME");
 

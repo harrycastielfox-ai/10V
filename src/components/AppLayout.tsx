@@ -7,7 +7,7 @@ import { getMobileRouteRedirect, MOBILE_VIEWPORT_QUERY } from "@/lib/mobileExper
 import { AppProfileContext } from "./AppProfileContext";
 import { MobileNavigation } from "./MobileNavigation";
 
-type AppModule = "inqueritos" | "veiculos" | "objetos" | "agenda";
+type AppModule = "inqueritos" | "veiculos" | "objetos" | "agenda" | "bo";
 
 const AppSidebar = lazy(() =>
   import("./AppSidebar").then((module) => ({ default: module.AppSidebar })),
@@ -38,6 +38,12 @@ const AgendaMobileNavigation = lazy(() =>
   import("./AgendaMobileNavigation").then((module) => ({
     default: module.AgendaMobileNavigation,
   })),
+);
+const BoSidebar = lazy(() =>
+  import("./BoSidebar").then((module) => ({ default: module.BoSidebar })),
+);
+const BoMobileNavigation = lazy(() =>
+  import("./BoMobileNavigation").then((module) => ({ default: module.BoMobileNavigation })),
 );
 const AgendaLembreteNotification = lazy(() =>
   import("./AgendaLembreteNotification").then((module) => ({
@@ -152,7 +158,10 @@ export function AppLayout({
 
   return (
     <AppProfileContext.Provider value={profile}>
-      <div className="min-h-screen flex w-full bg-background text-foreground">
+      <div
+        className={`app-layout app-layout-${module} min-h-screen flex w-full bg-background text-foreground`}
+        data-app-module={module}
+      >
         <Suspense fallback={null}>
           {mobile ? (
             module === "veiculos" ? (
@@ -161,6 +170,8 @@ export function AppLayout({
               <ObjectsMobileNavigation profile={profile} />
             ) : module === "agenda" ? (
               <AgendaMobileNavigation profile={profile} />
+            ) : module === "bo" ? (
+              <BoMobileNavigation profile={profile} />
             ) : (
               <MobileNavigation profile={profile} />
             )
@@ -170,6 +181,8 @@ export function AppLayout({
             <ObjectsSidebar profile={profile} />
           ) : module === "agenda" ? (
             <AgendaSidebar profile={profile} />
+          ) : module === "bo" ? (
+            <BoSidebar profile={profile} />
           ) : (
             <>
               <AppSidebar profile={profile} />

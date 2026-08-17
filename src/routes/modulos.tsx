@@ -59,7 +59,8 @@ const MODULOS: Modulo[] = [
       "Lavratura e consulta de boletins de ocorrência, com histórico do fato, envolvidos e encaminhamentos.",
     icon: ClipboardList,
     tone: "report",
-    disponivel: false,
+    to: "/bo",
+    disponivel: true,
   },
   {
     id: "veiculos",

@@ -38,6 +38,9 @@ supabase/.temp/
 # Arquivos de trabalho (mockups, backups, PDFs gerados)
 tmp/
 output/
+.codex-doc-review/
+.codex-prototypes/
+scratch_*.sql
 
 # Configuração local do Claude Code (a launch.json fica versionada)
 .claude/settings.local.json
