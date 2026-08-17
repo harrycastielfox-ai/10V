@@ -11,6 +11,7 @@ import {
 import { AppLayout } from "@/components/AppLayout";
 import { classifyAuthorship } from "@/lib/authorship";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
+import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
@@ -20,6 +21,7 @@ import {
   listKnownInqueritoBairros,
   replaceInqueritoPessoas,
   updateInquerito,
+  type InqueritoPessoaInput,
 } from "@/lib/repositories/inqueritosRepository";
 import {
   createProceduralTag,
@@ -89,6 +91,9 @@ function EditarInquerito() {
   const [erro, setErro] = useState("");
   const [pessoasCarregadas, setPessoasCarregadas] = useState(true);
   const [feedback, setFeedback] = useState("");
+  // Vínculos complementares que não foram gravados junto com os dados principais.
+  const [pendingTagIds, setPendingTagIds] = useState<string[] | null>(null);
+  const [pendingPessoas, setPendingPessoas] = useState<InqueritoPessoaInput[] | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [restricted, setRestricted] = useState(false);
@@ -400,6 +405,60 @@ function EditarInquerito() {
     };
   }, []);
 
+  const pendingLinksLabel = [
+    pendingTagIds ? "as tags" : null,
+    pendingPessoas ? "as pessoas envolvidas" : null,
+  ]
+    .filter(Boolean)
+    .join(" e ");
+
+  // Grava tags e pessoas e guarda o que falhou, para o usuário reenviar só isso.
+  const linkComplements = async (
+    tagIds: string[] | null,
+    pessoasPreenchidas: InqueritoPessoaInput[] | null,
+  ) => {
+    let tagsFailed = false;
+    if (tagIds) {
+      try {
+        await replaceInqueritoTags(caseId, tagIds);
+      } catch (tagsError) {
+        tagsFailed = true;
+        console.warn(
+          "[inqueritos:tags] Dados principais atualizados sem vínculos de tags",
+          tagsError,
+        );
+      }
+    }
+
+    let pessoasFailed = false;
+    if (pessoasPreenchidas) {
+      try {
+        await replaceInqueritoPessoas(caseId, pessoasPreenchidas);
+      } catch (pessoasError) {
+        pessoasFailed = true;
+        console.warn("[inqueritos:pessoas] Dados principais atualizados sem pessoas", pessoasError);
+      }
+    }
+
+    setPendingTagIds(tagsFailed ? tagIds : null);
+    setPendingPessoas(pessoasFailed ? pessoasPreenchidas : null);
+    return tagsFailed || pessoasFailed;
+  };
+
+  const retryPendingLinks = async () => {
+    setSaving(true);
+    setErro("");
+    try {
+      const linksFailed = await linkComplements(pendingTagIds, pendingPessoas);
+      if (!linksFailed) {
+        setFeedback("Procedimento atualizado com sucesso.");
+        navigate({ to: "/inqueritos/$caseId", params: { caseId } });
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (saving || !canEditCases(profile)) return;
@@ -465,48 +524,30 @@ function EditarInquerito() {
       };
 
       await updateInquerito(caseId, payload);
-      let tagsWarning = false;
-      try {
-        await replaceInqueritoTags(caseId, [
+
+      const linksFailed = await linkComplements(
+        [
           ...selectedTipificacaoTagIds,
           ...selectedStatusTagIds,
           ...selectedGravidadeTagIds,
           ...preservedGeneralTagIds,
-        ]);
-      } catch (tagsError) {
-        tagsWarning = true;
-        console.warn(
-          "[inqueritos:tags] Dados principais atualizados sem vínculos de tags",
-          tagsError,
-        );
-      }
-      let pessoasWarning = false;
-      if (pessoasCarregadas) {
-        try {
-          await replaceInqueritoPessoas(
-            caseId,
-            pessoas
+        ],
+        pessoasCarregadas
+          ? pessoas
               .filter((pessoa) => pessoa.nome.trim())
               .map((pessoa, ordem) => ({
                 papel: pessoa.papel,
                 nome: pessoa.nome.trim(),
                 observacao: pessoa.observacao.trim() || null,
                 ordem,
-              })),
-          );
-        } catch (pessoasError) {
-          pessoasWarning = true;
-          console.warn(
-            "[inqueritos:pessoas] Dados principais atualizados sem pessoas",
-            pessoasError,
-          );
-        }
-      }
-      setFeedback(
-        pessoasWarning || tagsWarning
-          ? "Procedimento atualizado, mas alguns vínculos complementares precisam ser conferidos."
-          : "Procedimento atualizado com sucesso.",
+              }))
+          : null,
       );
+      // Com vínculo pendente o usuário fica na tela: o aviso não sobrevive à
+      // navegação e o procedimento ficaria incompleto sem ninguém perceber.
+      if (linksFailed) return;
+
+      setFeedback("Procedimento atualizado com sucesso.");
       setTimeout(() => {
         navigate({ to: "/inqueritos/$caseId", params: { caseId } });
       }, 300);
@@ -801,6 +842,17 @@ function EditarInquerito() {
               )}
             </div>
           )}
+
+          {pendingLinksLabel ? (
+            <IncompleteSaveNotice
+              title={`Dados atualizados, mas ${pendingLinksLabel} não foram vinculadas.`}
+              description="As alterações principais já estão gravadas — não é preciso salvar de novo. Tente vincular novamente ou abra o procedimento e ajuste por lá."
+              busy={saving}
+              retryLabel="Tentar vincular novamente"
+              onRetry={() => void retryPendingLinks()}
+              onContinue={() => navigate({ to: "/inqueritos/$caseId", params: { caseId } })}
+            />
+          ) : null}
 
           <div className="flex gap-3 justify-end">
             <button

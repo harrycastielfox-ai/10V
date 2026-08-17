@@ -3,6 +3,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   createRepresentacao,
   replaceRepresentacaoPessoas,
+  updateRepresentacao,
 } from "@/lib/repositories/representacoesRepository";
 import {
   searchInqueritosForLink,
@@ -10,6 +11,7 @@ import {
 } from "@/lib/repositories/inqueritosRepository";
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
+import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { PageHeader } from "@/components/PageHeader";
 import { ProceduralStatusSelect, ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { getCurrentProfile } from "@/lib/auth";
@@ -78,6 +80,9 @@ function NovaRepresentacao() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState("");
+  // Movimentação já gravada cujas tags ainda não foram vinculadas.
+  const [savedRepresentacaoId, setSavedRepresentacaoId] = useState<string | null>(null);
+  const [pendingTagIds, setPendingTagIds] = useState<string[] | null>(null);
   const [erro, setErro] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [tagOptions, setTagOptions] = useState<ProceduralTag[]>([]);
@@ -219,6 +224,33 @@ function NovaRepresentacao() {
     };
   }, [inqueritoId, ppe, vinculoInquerito]);
 
+  // Grava as tags e guarda as pendentes, para o usuário reenviar só elas.
+  async function linkTags(representacaoId: string, tagIds: string[]) {
+    try {
+      await replaceMovimentacaoTags(representacaoId, tagIds);
+      setPendingTagIds(null);
+      return false;
+    } catch (tagsError) {
+      console.warn("[movimentacoes:tags] Registro salvo sem vínculos de tags", tagsError);
+      setPendingTagIds(tagIds);
+      return true;
+    }
+  }
+
+  async function retryPendingTags() {
+    if (!savedRepresentacaoId || !pendingTagIds) return;
+    setLoading(true);
+    setErro("");
+    try {
+      if (!(await linkTags(savedRepresentacaoId, pendingTagIds))) {
+        setFeedback("Movimentação processual salva com sucesso.");
+        navigate({ to: "/representacoes" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (loading) return;
@@ -236,7 +268,9 @@ function NovaRepresentacao() {
     setLoading(true);
 
     try {
-      const created = await createRepresentacao({
+      // Se o registro já foi gravado numa tentativa anterior (só as tags
+      // falharam), atualiza a mesma movimentação em vez de criar outra.
+      const payload = {
         inquerito_id: vinculoInquerito === "sim" ? inqueritoId : null,
         justificativa_sem_inquerito:
           vinculoInquerito === "nao" ? justificativaSemInquerito.trim() : null,
@@ -277,19 +311,17 @@ function NovaRepresentacao() {
         medida_protetiva_normalizada: normalizeRepresentationType(tipoFinal) === "medida_protetiva",
         observacoes_internas: null,
         observacoes_movimentacao: observacoesInternas.trim() || null,
-      });
-      let tagsWarning = false;
-      try {
-        await replaceMovimentacaoTags(created.id, selectedTagIds);
-      } catch (tagsError) {
-        tagsWarning = true;
-        console.warn("[movimentacoes:tags] Registro salvo sem vínculos de tags", tagsError);
-      }
-      setFeedback(
-        tagsWarning
-          ? "Movimentação salva, mas as tags precisam ser conferidas."
-          : "Movimentação processual salva com sucesso.",
-      );
+      };
+      const created = savedRepresentacaoId
+        ? await updateRepresentacao(savedRepresentacaoId, payload)
+        : await createRepresentacao(payload);
+      setSavedRepresentacaoId(created.id);
+
+      // Com as tags pendentes o usuário fica na tela: o aviso não sobrevive à
+      // navegação e a movimentação ficaria incompleta sem ninguém perceber.
+      if (await linkTags(created.id, selectedTagIds)) return;
+
+      setFeedback("Movimentação processual salva com sucesso.");
       navigate({ to: "/representacoes" });
     } catch (error) {
       const isRlsError =
@@ -474,6 +506,16 @@ function NovaRepresentacao() {
             {feedback}
           </div>
         )}
+        {savedRepresentacaoId && pendingTagIds ? (
+          <IncompleteSaveNotice
+            title="Movimentação salva, mas as tags não foram vinculadas."
+            description="A movimentação já está gravada — não é preciso salvar de novo. Tente vincular novamente ou siga para a lista e ajuste depois."
+            busy={loading}
+            retryLabel="Tentar vincular novamente"
+            onRetry={() => void retryPendingTags()}
+            onContinue={() => navigate({ to: "/representacoes" })}
+          />
+        ) : null}
 
         <div className="flex gap-3 justify-end">
           <Link

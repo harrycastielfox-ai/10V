@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
+import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
@@ -11,7 +12,9 @@ import {
   findInqueritosByPpe,
   listKnownInqueritoBairros,
   replaceInqueritoPessoas,
+  updateInquerito,
   type InqueritoLinkOption,
+  type InqueritoPessoaInput,
 } from "@/lib/repositories/inqueritosRepository";
 import {
   createProceduralTag,
@@ -50,6 +53,10 @@ function NovoCaso() {
   const navigate = useNavigate();
   const [feedback, setFeedback] = useState("");
   const [erro, setErro] = useState("");
+  // Cadastro já gravado cujos vínculos complementares ainda não foram aceitos.
+  const [savedCaseId, setSavedCaseId] = useState<string | null>(null);
+  const [pendingTagIds, setPendingTagIds] = useState<string[] | null>(null);
+  const [pendingPessoas, setPendingPessoas] = useState<InqueritoPessoaInput[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [houveArmaDeFogo, setHouveArmaDeFogo] = useState("");
   const [armaUtilizada, setArmaUtilizada] = useState("");
@@ -350,6 +357,62 @@ function NovoCaso() {
     }
   };
 
+  const pendingLinksLabel = [
+    pendingTagIds ? "as tags" : null,
+    pendingPessoas ? "as pessoas envolvidas" : null,
+  ]
+    .filter(Boolean)
+    .join(" e ");
+
+  // Grava tags e pessoas e guarda o que falhou, para o usuário reenviar só isso.
+  const linkComplements = async (
+    caseId: string,
+    tagIds: string[] | null,
+    pessoasPreenchidas: InqueritoPessoaInput[] | null,
+  ) => {
+    let tagsFailed = false;
+    if (tagIds) {
+      try {
+        await replaceInqueritoTags(caseId, tagIds);
+      } catch (tagsError) {
+        tagsFailed = true;
+        console.warn("[inqueritos:tags] Registro salvo sem vínculos de tags", tagsError);
+      }
+    }
+
+    let pessoasFailed = false;
+    if (pessoasPreenchidas) {
+      try {
+        await replaceInqueritoPessoas(caseId, pessoasPreenchidas);
+      } catch (pessoasError) {
+        pessoasFailed = true;
+        console.warn(
+          "[inqueritos:pessoas] Registro principal salvo sem pessoas adicionais",
+          pessoasError,
+        );
+      }
+    }
+
+    setPendingTagIds(tagsFailed ? tagIds : null);
+    setPendingPessoas(pessoasFailed ? pessoasPreenchidas : null);
+    return tagsFailed || pessoasFailed;
+  };
+
+  const retryPendingLinks = async () => {
+    if (!savedCaseId) return;
+    setLoading(true);
+    setErro("");
+    try {
+      const linksFailed = await linkComplements(savedCaseId, pendingTagIds, pendingPessoas);
+      if (!linksFailed) {
+        setFeedback("Procedimento salvo com sucesso.");
+        navigate({ to: "/inqueritos/$caseId", params: { caseId: savedCaseId } });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (loading || !canCreateCases(profile)) return;
@@ -434,18 +497,13 @@ function NovoCaso() {
       representacoes_legais: null,
     };
     try {
-      const created = await createInquerito(payload);
-      let tagsWarning = false;
-      try {
-        await replaceInqueritoTags(created.id, [
-          ...selectedTipificacaoTagIds,
-          ...selectedStatusTagIds,
-          ...selectedGravidadeTagIds,
-        ]);
-      } catch (tagsError) {
-        tagsWarning = true;
-        console.warn("[inqueritos:tags] Registro salvo sem vínculos de tags", tagsError);
-      }
+      // Se o cadastro já foi gravado numa tentativa anterior (só os vínculos
+      // falharam), atualiza o mesmo procedimento em vez de criar outro.
+      const created = savedCaseId
+        ? await updateInquerito(savedCaseId, payload)
+        : await createInquerito(payload);
+      setSavedCaseId(created.id);
+
       const pessoasPreenchidas = pessoas
         .filter((pessoa) => pessoa.nome.trim())
         .map((pessoa, ordem) => ({
@@ -454,23 +512,16 @@ function NovoCaso() {
           observacao: pessoa.observacao.trim() || null,
           ordem,
         }));
-      let pessoasWarning = false;
-      if (pessoasPreenchidas.length > 0) {
-        try {
-          await replaceInqueritoPessoas(created.id, pessoasPreenchidas);
-        } catch (pessoasError) {
-          pessoasWarning = true;
-          console.warn(
-            "[inqueritos:pessoas] Registro principal salvo sem pessoas adicionais",
-            pessoasError,
-          );
-        }
-      }
-      setFeedback(
-        pessoasWarning || tagsWarning
-          ? "Procedimento salvo, mas alguns vínculos complementares precisam ser conferidos."
-          : "Procedimento salvo com sucesso.",
+      const linksFailed = await linkComplements(
+        created.id,
+        [...selectedTipificacaoTagIds, ...selectedStatusTagIds, ...selectedGravidadeTagIds],
+        pessoasPreenchidas.length ? pessoasPreenchidas : null,
       );
+      // Com vínculo pendente o usuário fica na tela: o aviso não sobrevive à
+      // navegação e o cadastro ficaria incompleto sem ninguém perceber.
+      if (linksFailed) return;
+
+      setFeedback("Procedimento salvo com sucesso.");
       navigate({ to: "/inqueritos/$caseId", params: { caseId: created.id } });
     } catch (error) {
       const isRlsError =
@@ -725,6 +776,19 @@ function NovoCaso() {
             )}
           </div>
         )}
+
+        {savedCaseId && pendingLinksLabel ? (
+          <IncompleteSaveNotice
+            title={`Procedimento salvo, mas ${pendingLinksLabel} não foram vinculadas.`}
+            description="O procedimento já está gravado — não é preciso salvar de novo. Tente vincular novamente ou abra o procedimento e ajuste por lá."
+            busy={loading}
+            retryLabel="Tentar vincular novamente"
+            onRetry={() => void retryPendingLinks()}
+            onContinue={() =>
+              navigate({ to: "/inqueritos/$caseId", params: { caseId: savedCaseId } })
+            }
+          />
+        ) : null}
 
         <div className="flex gap-3 justify-end">
           <button

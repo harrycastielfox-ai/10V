@@ -1,15 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Camera,
-  Link2,
-  LoaderCircle,
-  Save,
-  ShieldAlert,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Camera, Link2, LoaderCircle, Save, ShieldAlert, X } from "lucide-react";
+import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { useAppProfile } from "@/components/AppProfileContext";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { canCreateObjects, canEditObjects, canReleaseObjects } from "@/lib/authz";
@@ -463,49 +455,25 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
       ) : null}
 
       {savedObjectId && pendingPhotos.length ? (
-        <section className="rounded-xl border border-warning/35 bg-warning/10 p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-warning">
-                Objeto salvo.{" "}
-                {pendingPhotos.length === 1
-                  ? "1 fotografia não foi enviada"
-                  : `${pendingPhotos.length} fotografias não foram enviadas`}
-                .
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                O cadastro já está gravado — não é preciso salvar de novo. Tente enviar as
-                fotografias restantes ou siga para o objeto e envie depois.
-              </p>
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() =>
-                    navigate({
-                      to: "/objetos/$objectId",
-                      params: { objectId: savedObjectId },
-                      replace: true,
-                    })
-                  }
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-xs font-semibold hover:border-warning/45 disabled:opacity-50"
-                >
-                  Continuar sem as fotografias
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void retryPendingPhotos()}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-warning px-4 text-xs font-bold text-background disabled:opacity-50"
-                >
-                  {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-                  Tentar enviar novamente
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
+        <IncompleteSaveNotice
+          title={`Objeto salvo. ${
+            pendingPhotos.length === 1
+              ? "1 fotografia não foi enviada"
+              : `${pendingPhotos.length} fotografias não foram enviadas`
+          }.`}
+          description="O cadastro já está gravado — não é preciso salvar de novo. Tente enviar as fotografias restantes ou siga para o objeto e envie depois."
+          busy={saving}
+          retryLabel="Tentar enviar novamente"
+          continueLabel="Continuar sem as fotografias"
+          onRetry={() => void retryPendingPhotos()}
+          onContinue={() =>
+            navigate({
+              to: "/objetos/$objectId",
+              params: { objectId: savedObjectId },
+              replace: true,
+            })
+          }
+        />
       ) : null}
 
       <form
