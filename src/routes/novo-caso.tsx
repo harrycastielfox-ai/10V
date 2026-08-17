@@ -1145,7 +1145,7 @@ function ReviewGroup({
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-border/60 bg-background/70 p-5 lg:p-7">
+    <section className="sipi-shimmer rounded-xl border border-border/60 bg-background/70 p-5 lg:p-7">
       <h2 className="text-sm font-bold tracking-[0.2em] text-primary uppercase mb-5">{title}</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">{children}</div>
     </section>

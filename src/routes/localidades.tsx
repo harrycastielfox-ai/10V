@@ -147,19 +147,19 @@ function LocalidadesPage() {
 
         <section className="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[1.2fr_0.8fr]">
           <label className="relative block">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="sipi-search-neon pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-warning" />
             <input
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Buscar por PPE, bairro, vítima, investigado, equipe ou status..."
-              className="h-12 w-full rounded-lg border border-border bg-card pl-11 pr-4 text-sm font-semibold text-foreground outline-none transition placeholder:text-muted-foreground focus:border-warning/60 focus:ring-2 focus:ring-warning/15"
+              className="sipi-field-neon sipi-field-neon-warning h-12 w-full rounded-lg border bg-card pl-11 pr-4 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
 
           <select
             value={selectedLocalidade}
             onChange={(event) => setSelectedLocalidade(event.target.value)}
-            className="h-12 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground outline-none transition focus:border-warning/60 focus:ring-2 focus:ring-warning/15"
+            className="sipi-field-neon sipi-field-neon-warning h-12 rounded-lg border bg-card px-4 text-sm font-semibold text-foreground outline-none"
           >
             <option value="todas">Todas as localidades</option>
             {stats.map((item) => (
