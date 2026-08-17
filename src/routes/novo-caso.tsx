@@ -218,15 +218,11 @@ function NovoCaso() {
         const defaultStatus = tags.find(
           (tag) => tag.scope === "inquerito_status" && tag.slug === "instaurado",
         );
-        const defaultGravidade = tags.find(
-          (tag) => tag.scope === "inquerito_gravidade" && tag.slug === "outros",
-        );
         setSelectedStatusTagIds((current) =>
           current.length || !defaultStatus ? current : [defaultStatus.id],
         );
-        setSelectedGravidadeTagIds((current) =>
-          current.length || !defaultGravidade ? current : [defaultGravidade.id],
-        );
+        // A gravidade não vem preenchida: "Outros" entrava sozinha em todo
+        // cadastro e virava a classificação principal sem ninguém escolher.
       })
       .catch((error) => {
         console.error("[novo-caso:tags]", error);
