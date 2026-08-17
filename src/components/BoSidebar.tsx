@@ -26,8 +26,12 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
           className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300"
           aria-label="Voltar aos módulos"
         >
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg shadow-violet-950/20">
-            <ClipboardList className="h-5 w-5" />
+          <span className="sipi-brand-emblem sipi-brand-emblem-bo sipi-brand-emblem-desktop flex h-14 w-14 shrink-0 items-center justify-center">
+            <img
+              src="/sipi-logo.png"
+              alt="Logo SIPI-B.O"
+              className="sipi-brand-emblem-image h-[92%] w-auto object-contain"
+            />
           </span>
           <span className="min-w-0">
             <strong className="block text-base font-black tracking-wide text-white">SIPI-B.O</strong>

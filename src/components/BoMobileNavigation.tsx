@@ -12,8 +12,12 @@ export function BoMobileNavigation({ profile }: { profile: UserProfile }) {
     <>
       <header className="bo-mobile-nav fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-indigo-400/15 px-4 text-white backdrop-blur-xl">
         <Link to="/modulos" className="flex items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600">
-            <ClipboardList className="h-4 w-4" />
+          <span className="sipi-brand-emblem sipi-brand-emblem-bo flex h-10 w-10 shrink-0 items-center justify-center">
+            <img
+              src="/sipi-logo.png"
+              alt=""
+              className="sipi-brand-emblem-image h-[92%] w-auto max-w-none object-contain"
+            />
           </span>
           <span>
             <strong className="block text-sm font-black">SIPI-B.O</strong>
