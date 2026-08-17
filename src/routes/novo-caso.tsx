@@ -44,6 +44,7 @@ import {
   normalizeProcedureType,
   type OccurrenceOrigin,
   type InquiryPersonFormValue,
+  type RegistrationCheck,
   type ReportStatus,
 } from "@/lib/operationalContracts";
 
@@ -360,6 +361,79 @@ function NovoCaso() {
 
   const blockingChecks = registrationChecks.filter((item) => item.blocking && !item.complete);
   const pendingChecks = registrationChecks.filter((item) => !item.complete);
+  const filledCount = registrationChecks.length - pendingChecks.length;
+
+  // Cada pendência é mostrada dentro do bloco da etapa onde se resolve, em vez
+  // de uma lista solta no fim que repetia os campos vazios do resumo.
+  const pendingByStep = useMemo(() => {
+    const groups: Record<number, RegistrationCheck[]> = {};
+    for (const item of pendingChecks) {
+      const index = CHECK_STEP[item.id] ?? 0;
+      (groups[index] ??= []).push(item);
+    }
+    return groups;
+  }, [pendingChecks]);
+
+  const reviewGroups: Array<{ step: number; title: string; rows: Array<[string, string]> }> = [
+    {
+      step: 0,
+      title: "Identificação",
+      rows: [
+        ["PPE", ppe],
+        ["Origem do registro", origemRegistro],
+        ["Tipo de procedimento", tipo],
+        ["Visibilidade", visibilidade],
+      ],
+    },
+    {
+      step: 1,
+      title: "Fato",
+      rows: [
+        ["Data do fato", dataFato],
+        ["Tipificações", selectedTipificacoes.map((tag) => tag.name).join("; ")],
+        ["Gravidade", selectedGravidadeTags.map((tag) => tag.name).join("; ")],
+        ["Resumo do fato", resumoFato],
+        ["Arma de fogo", houveArmaDeFogo === "Sim" ? armaUtilizada || "Sim" : houveArmaDeFogo],
+      ],
+    },
+    {
+      step: 2,
+      title: "Local e motivação",
+      rows: [
+        ["Bairro", bairro],
+        ["Cidade", cidade],
+        ["Motivação", motivacao],
+        ["Facção", isYesValue(vinculadoFaccao) ? nomeFaccao || "Sim" : vinculadoFaccao],
+      ],
+    },
+    {
+      step: 3,
+      title: "Pessoas",
+      rows: [
+        [
+          "Pessoas cadastradas",
+          pessoas
+            .filter((pessoa) => pessoa.nome.trim())
+            .map((pessoa) => pessoa.nome.trim())
+            .join(", "),
+        ],
+        ["Autoria", autoria],
+        ["Réu preso", reuPreso],
+        ["Data da elucidação", dataElucidacao],
+      ],
+    },
+    {
+      step: 4,
+      title: "Situação e prazos",
+      rows: [
+        ["Status", selectedStatusTags.map((tag) => tag.name).join("; ")],
+        ["Data de instauração", dataInstauracao],
+        ["Prazo (dias)", prazoDias],
+        ["Data final", prazo],
+        ["Observações e diligências", diligenciasPendentes],
+      ],
+    },
+  ];
 
   const handleHouveArmaDeFogoChange = (value: string) => {
     setHouveArmaDeFogo(value);
@@ -878,91 +952,18 @@ function NovoCaso() {
 
           {step === REVIEW_STEP && (
             <SectionCard title="6. Revisar e Registrar">
-              <div className="space-y-4 md:col-span-2 lg:col-span-3">
-                <ReviewGroup
-                  title="Identificação"
-                  onEdit={() => goToStep(0)}
-                  rows={[
-                    ["PPE", ppe],
-                    ["Origem do registro", origemRegistro],
-                    ["Tipo de procedimento", tipo],
-                    ["Visibilidade", visibilidade],
-                  ]}
-                />
-                <ReviewGroup
-                  title="Fato"
-                  onEdit={() => goToStep(1)}
-                  rows={[
-                    ["Data do fato", dataFato],
-                    ["Tipificações", selectedTipificacoes.map((tag) => tag.name).join("; ")],
-                    ["Gravidade", selectedGravidadeTags.map((tag) => tag.name).join("; ")],
-                    ["Resumo do fato", resumoFato],
-                    ["Arma de fogo", houveArmaDeFogo === "Sim" ? armaUtilizada || "Sim" : "Não"],
-                  ]}
-                />
-                <ReviewGroup
-                  title="Local e motivação"
-                  onEdit={() => goToStep(2)}
-                  rows={[
-                    ["Bairro", bairro],
-                    ["Cidade", cidade],
-                    ["Motivação", motivacao],
-                    ["Facção", isYesValue(vinculadoFaccao) ? nomeFaccao || "Sim" : vinculadoFaccao],
-                  ]}
-                />
-                <ReviewGroup
-                  title="Pessoas"
-                  onEdit={() => goToStep(3)}
-                  rows={[
-                    ["Autoria", autoria],
-                    ["Data da elucidação", dataElucidacao],
-                    ["Réu preso", reuPreso],
-                    ["Vítima", vitima],
-                    ["Investigado", investigado],
-                    [
-                      "Pessoas cadastradas",
-                      pessoas.filter((pessoa) => pessoa.nome.trim()).length || "",
-                    ],
-                  ]}
-                />
-                <ReviewGroup
-                  title="Situação e prazos"
-                  onEdit={() => goToStep(4)}
-                  rows={[
-                    ["Status", selectedStatusTags.map((tag) => tag.name).join("; ")],
-                    ["Data de instauração", dataInstauracao],
-                    ["Prazo (dias)", prazoDias],
-                    ["Data final", prazo],
-                    ["Observações e diligências", diligenciasPendentes],
-                  ]}
-                />
+              <div className="space-y-3 md:col-span-2 lg:col-span-3">
+                <ReviewProgress filled={filledCount} total={registrationChecks.length} />
 
-                {pendingChecks.length > 0 && (
-                  <div className="rounded-xl border border-warning/35 bg-warning/10 p-4">
-                    <h3 className="text-sm font-bold text-warning">
-                      {pendingChecks.length === 1
-                        ? "1 informação recomendada está em branco"
-                        : `${pendingChecks.length} informações recomendadas estão em branco`}
-                    </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      O registro pode ser concluído assim mesmo. Toque em um item para voltar à
-                      etapa correspondente.
-                    </p>
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                      {pendingChecks.map((item) => (
-                        <li key={item.id}>
-                          <button
-                            type="button"
-                            onClick={() => goToStep(CHECK_STEP[item.id] ?? 0)}
-                            className="rounded-lg border border-warning/30 bg-background/60 px-3 py-1.5 text-left text-[11px] font-semibold hover:border-warning/60"
-                          >
-                            {item.label}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {reviewGroups.map((group) => (
+                  <ReviewGroup
+                    key={group.step}
+                    title={group.title}
+                    rows={group.rows}
+                    pending={pendingByStep[group.step] ?? []}
+                    onEdit={() => goToStep(group.step)}
+                  />
+                ))}
               </div>
             </SectionCard>
           )}
@@ -1038,47 +1039,107 @@ function NovoCaso() {
   );
 }
 
-// Resumo de uma etapa na revisão final. Campos em branco aparecem como "—" para
-// o usuário enxergar o que deixou de preencher antes de registrar.
+// Barra do topo da revisão: dá a noção de completude antes de o usuário descer
+// pelos blocos.
+function ReviewProgress({ filled, total }: { filled: number; total: number }) {
+  const missing = Math.max(0, total - filled);
+  const percent = total > 0 ? Math.round((filled / total) * 100) : 100;
+
+  return (
+    <div className="rounded-xl border border-border/70 bg-card/60 p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-sm font-bold">
+          {missing === 0
+            ? "Tudo preenchido"
+            : missing === 1
+              ? "Falta 1 informação recomendada"
+              : `Faltam ${missing} informações recomendadas`}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {filled} de {total} preenchidas
+        </p>
+      </div>
+      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-border/60">
+        <div
+          className="h-full rounded-full bg-success transition-[width] duration-500"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {missing > 0 && (
+        <p className="mt-2.5 text-xs text-muted-foreground">
+          Nada disso impede o registro. Toque em um item pendente para voltar ao campo.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Resumo de uma etapa. Só entra o que foi preenchido — o que falta aparece como
+// pendência clicável no rodapé do próprio bloco, e não como uma fila de traços.
 function ReviewGroup({
   title,
   rows,
+  pending,
   onEdit,
 }: {
   title: string;
-  rows: Array<[string, string | number]>;
+  rows: Array<[string, string]>;
+  pending: RegistrationCheck[];
   onEdit: () => void;
 }) {
+  const filled = rows.filter(([, value]) => value.trim().length > 0);
+
   return (
-    <div className="rounded-xl border border-border/70 bg-card/60 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
+    <section className="overflow-hidden rounded-xl border border-border/70 bg-card/60">
+      <header className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-2.5">
+        <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-foreground">
           {title}
+          {pending.length > 0 && (
+            <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-bold tracking-normal text-warning">
+              {pending.length}
+            </span>
+          )}
         </h3>
         <button
           type="button"
           onClick={onEdit}
-          className="text-[11px] font-semibold text-primary hover:underline"
+          className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold transition hover:border-primary/45 hover:text-primary"
         >
           Editar
         </button>
-      </div>
-      <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-        {rows.map(([label, value]) => (
-          <div key={label} className="flex min-w-0 items-baseline justify-between gap-3">
-            <dt className="shrink-0 text-[11px] text-muted-foreground">{label}</dt>
-            <dd
-              className={`min-w-0 truncate text-right text-xs font-semibold ${
-                String(value).trim() ? "" : "text-muted-foreground/60"
-              }`}
-              title={String(value)}
-            >
-              {String(value).trim() || "—"}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+      </header>
+
+      {filled.length > 0 ? (
+        <dl className="grid grid-cols-1 gap-x-6 px-4 py-3 sm:grid-cols-2">
+          {filled.map(([label, value]) => (
+            <div key={label} className="flex min-w-0 items-baseline justify-between gap-3 py-1">
+              <dt className="shrink-0 text-[11px] text-muted-foreground">{label}</dt>
+              <dd className="min-w-0 truncate text-right text-xs font-semibold" title={value}>
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="px-4 py-3 text-xs text-muted-foreground">Nada preenchido nesta etapa.</p>
+      )}
+
+      {pending.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5 border-t border-border/50 bg-warning/[0.06] px-4 py-3">
+          {pending.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-lg border border-warning/30 bg-background/50 px-2.5 py-1 text-[11px] font-medium text-warning/90 transition hover:border-warning/60 hover:text-warning"
+              >
+                {item.label.replace(/\.$/, "")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
