@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 
 export type RepresentacaoRecord = {
   id: string;
@@ -212,7 +212,7 @@ export async function replaceRepresentacaoPessoas(
     }))
     .filter((person) => person.nome.length > 0);
 
-  await runSupabaseQuery<null>("atualização das pessoas da representação", (signal) =>
+  await runSupabaseMutation<null>("atualização das pessoas da representação", (signal) =>
     supabase
       .rpc("replace_representacao_pessoas", {
         p_representacao_id: representacaoId,
@@ -223,15 +223,17 @@ export async function replaceRepresentacaoPessoas(
 }
 
 export async function createRepresentacao(payload: RepresentacaoPayload) {
-  const data = await runSupabaseQuery<RepresentacaoRecord>("criação de representação", (signal) =>
-    supabase.from("representacoes").insert(payload).select("*").abortSignal(signal).single(),
+  const data = await runSupabaseMutation<RepresentacaoRecord>(
+    "criação de representação",
+    (signal) =>
+      supabase.from("representacoes").insert(payload).select("*").abortSignal(signal).single(),
   );
   invalidateRepresentacoesCache();
   return data as RepresentacaoRecord;
 }
 
 export async function updateRepresentacao(id: string, payload: RepresentacaoPayload) {
-  const data = await runSupabaseQuery<RepresentacaoRecord | null>(
+  const data = await runSupabaseMutation<RepresentacaoRecord | null>(
     "atualização de representação",
     (signal) =>
       supabase
@@ -265,7 +267,7 @@ export async function updateRepresentacao(id: string, payload: RepresentacaoPayl
 }
 
 export async function softDeleteRepresentacao(id: string) {
-  await runSupabaseQuery<null>("exclusão de representação", (signal) =>
+  await runSupabaseMutation<null>("exclusão de representação", (signal) =>
     supabase
       .from("representacoes")
       .update({ deleted_at: new Date().toISOString() })

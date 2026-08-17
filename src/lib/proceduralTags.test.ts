@@ -56,9 +56,7 @@ describe("proceduralTags", () => {
 
   it("corrige rótulos UTF-8 interpretados como Latin-1 sem alterar textos válidos", () => {
     expect(repairUtf8Mojibake("CrianÃ§a e Adolescente")).toBe("Criança e Adolescente");
-    expect(repairUtf8Mojibake("Crimes Contra o PatrimÃ´nio")).toBe(
-      "Crimes Contra o Patrimônio",
-    );
+    expect(repairUtf8Mojibake("Crimes Contra o PatrimÃ´nio")).toBe("Crimes Contra o Patrimônio");
     expect(repairUtf8Mojibake("Crimes de TrÃ¢nsito")).toBe("Crimes de Trânsito");
     expect(repairUtf8Mojibake("ViolÃªncia DomÃ©stica e Familiar")).toBe(
       "Violência Doméstica e Familiar",

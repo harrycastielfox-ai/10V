@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import type {
   AgendaConflito,
   AgendaOverviewStats,
@@ -77,13 +77,13 @@ export async function checarConflitos(input: {
 }
 
 export async function createAgendamento(payload: AgendamentoPayload) {
-  return runSupabaseQuery<AgendamentoRecord>("cadastro do agendamento", (signal) =>
+  return runSupabaseMutation<AgendamentoRecord>("cadastro do agendamento", (signal) =>
     supabase.from("agendamentos").insert(payload).select("*").abortSignal(signal).single(),
   );
 }
 
 export async function updateAgendamento(id: string, payload: Partial<AgendamentoPayload>) {
-  return runSupabaseQuery<AgendamentoRecord>("atualização do agendamento", (signal) =>
+  return runSupabaseMutation<AgendamentoRecord>("atualização do agendamento", (signal) =>
     supabase
       .from("agendamentos")
       .update(payload)
@@ -96,7 +96,7 @@ export async function updateAgendamento(id: string, payload: Partial<Agendamento
 }
 
 export async function softDeleteAgendamento(id: string) {
-  const deleted = await runSupabaseQuery<boolean>("exclusão do agendamento", (signal) =>
+  const deleted = await runSupabaseMutation<boolean>("exclusão do agendamento", (signal) =>
     supabase.rpc("soft_delete_agendamento", { p_agendamento_id: id }).abortSignal(signal),
   );
 

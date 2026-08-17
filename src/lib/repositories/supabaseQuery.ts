@@ -56,6 +56,7 @@ function buildTimeoutError(label: string, timeoutMs: number) {
   };
 }
 
+// Use apenas em leituras. Repetir a chamada é seguro porque nada é alterado no banco.
 export async function runSupabaseQuery<T>(
   label: string,
   execute: (signal: AbortSignal) => PromiseLike<SupabaseResult<T>>,
@@ -97,4 +98,14 @@ export async function runSupabaseQuery<T>(
   }
 
   throw lastError;
+}
+
+// Use em gravações (insert/update/upsert/delete e RPCs que alteram dados).
+// Sem retentativa: se o banco gravar e a resposta se perder, repetir duplicaria o registro.
+export function runSupabaseMutation<T>(
+  label: string,
+  execute: (signal: AbortSignal) => PromiseLike<SupabaseResult<T>>,
+  options: Omit<RunSupabaseQueryOptions, "retries"> = {},
+): Promise<T> {
+  return runSupabaseQuery(label, execute, { ...options, retries: 0 });
 }

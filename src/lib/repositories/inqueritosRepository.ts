@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 
 export type InqueritoRecord = {
   id: string;
@@ -175,7 +175,7 @@ export async function replaceInqueritoPessoas(
     }))
     .filter((person) => person.nome.length > 0);
 
-  await runSupabaseQuery<unknown>("atualização das pessoas envolvidas", (signal) =>
+  await runSupabaseMutation<unknown>("atualização das pessoas envolvidas", (signal) =>
     supabase
       .rpc("replace_inquerito_pessoas", {
         p_inquerito_id: inqueritoId,
@@ -240,7 +240,7 @@ export async function searchInqueritosForLink(query: string, limit = 20) {
 }
 
 export async function createInquerito(payload: InqueritoPayload) {
-  const data = await runSupabaseQuery<InqueritoRecord>("criação de inquérito", (signal) =>
+  const data = await runSupabaseMutation<InqueritoRecord>("criação de inquérito", (signal) =>
     supabase.from("inqueritos").insert(payload).select("*").abortSignal(signal).single(),
   );
   invalidateInqueritosCache();
@@ -248,7 +248,7 @@ export async function createInquerito(payload: InqueritoPayload) {
 }
 
 export async function updateInquerito(id: string, payload: InqueritoPayload) {
-  const data = await runSupabaseQuery<InqueritoRecord>("atualização de inquérito", (signal) =>
+  const data = await runSupabaseMutation<InqueritoRecord>("atualização de inquérito", (signal) =>
     supabase
       .from("inqueritos")
       .update(payload)
@@ -263,7 +263,7 @@ export async function updateInquerito(id: string, payload: InqueritoPayload) {
 }
 
 export async function softDeleteInquerito(id: string) {
-  const deleted = await runSupabaseQuery<boolean>("exclusão de inquérito", (signal) =>
+  const deleted = await runSupabaseMutation<boolean>("exclusão de inquérito", (signal) =>
     supabase.rpc("soft_delete_inquerito", { p_id: id }).abortSignal(signal),
   );
 

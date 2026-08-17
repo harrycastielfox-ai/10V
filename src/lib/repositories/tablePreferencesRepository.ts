@@ -1,4 +1,4 @@
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import { supabase } from "@/lib/supabaseClient";
 
 export type StoredColumnPreference = {
@@ -23,7 +23,7 @@ export async function getTablePreferences(scope: string) {
 }
 
 export async function saveTablePreferences(scope: string, columns: StoredColumnPreference[]) {
-  await runSupabaseQuery<null>("gravação das preferências da tabela", (signal) =>
+  await runSupabaseMutation<null>("gravação das preferências da tabela", (signal) =>
     supabase
       .from("user_table_preferences")
       .upsert({ scope, columns }, { onConflict: "user_id,scope" })

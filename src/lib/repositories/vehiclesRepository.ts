@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import { compressVehicleImage } from "@/features/vehicles/imageCompression";
 import type {
   VehicleListFilters,
@@ -80,13 +80,13 @@ export async function findVehicleIdentifierConflicts(input: {
 }
 
 export async function createVehicle(payload: VehiclePayload) {
-  return runSupabaseQuery<VehicleRecord>("cadastro do veículo", (signal) =>
+  return runSupabaseMutation<VehicleRecord>("cadastro do veículo", (signal) =>
     supabase.from("vehicles").insert(payload).select("*").abortSignal(signal).single(),
   );
 }
 
 export async function updateVehicle(id: string, payload: VehiclePayload) {
-  return runSupabaseQuery<VehicleRecord>("atualização do veículo", (signal) =>
+  return runSupabaseMutation<VehicleRecord>("atualização do veículo", (signal) =>
     supabase
       .from("vehicles")
       .update(payload)
@@ -99,7 +99,7 @@ export async function updateVehicle(id: string, payload: VehiclePayload) {
 }
 
 export async function softDeleteVehicle(id: string) {
-  const deleted = await runSupabaseQuery<boolean>("exclusão de veículo", (signal) =>
+  const deleted = await runSupabaseMutation<boolean>("exclusão de veículo", (signal) =>
     supabase.rpc("soft_delete_vehicle", { p_vehicle_id: id }).abortSignal(signal),
   );
 
@@ -189,21 +189,23 @@ export async function uploadVehiclePhotos(vehicleId: string, files: File[]) {
       if (thumbnailUpload.error) throw thumbnailUpload.error;
       uploadedPaths.push(thumbnailPath);
 
-      const photo = await runSupabaseQuery<VehiclePhotoRecord>("registro da fotografia", (signal) =>
-        supabase
-          .from("vehicle_photos")
-          .insert({
-            vehicle_id: vehicleId,
-            storage_path: originalPath,
-            thumbnail_path: thumbnailPath,
-            sort_order: index,
-            original_size_bytes: original.size,
-            thumbnail_size_bytes: thumbnail.size,
-            mime_type: "image/webp",
-          })
-          .select("*")
-          .abortSignal(signal)
-          .single(),
+      const photo = await runSupabaseMutation<VehiclePhotoRecord>(
+        "registro da fotografia",
+        (signal) =>
+          supabase
+            .from("vehicle_photos")
+            .insert({
+              vehicle_id: vehicleId,
+              storage_path: originalPath,
+              thumbnail_path: thumbnailPath,
+              sort_order: index,
+              original_size_bytes: original.size,
+              thumbnail_size_bytes: thumbnail.size,
+              mime_type: "image/webp",
+            })
+            .select("*")
+            .abortSignal(signal)
+            .single(),
       );
       created.push(photo);
     } catch (error) {
@@ -225,7 +227,7 @@ export async function registerVehicleMovement(input: {
   occurredAt?: string;
   details?: Record<string, unknown>;
 }) {
-  return runSupabaseQuery<VehicleMovementRecord>("movimentação do veículo", (signal) =>
+  return runSupabaseMutation<VehicleMovementRecord>("movimentação do veículo", (signal) =>
     supabase
       .rpc("register_vehicle_movement", {
         p_vehicle_id: input.vehicleId,

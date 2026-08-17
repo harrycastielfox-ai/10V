@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import { compressObjectImage } from "@/features/objects/imageCompression";
 import type {
   ObjectDetailBundle,
@@ -57,13 +57,13 @@ export async function getObjectOverviewStats() {
 }
 
 export async function createObject(payload: ObjectPayload) {
-  return runSupabaseQuery<ObjectRecord>("cadastro do objeto", (signal) =>
+  return runSupabaseMutation<ObjectRecord>("cadastro do objeto", (signal) =>
     supabase.from("objects").insert(payload).select("*").abortSignal(signal).single(),
   );
 }
 
 export async function updateObject(id: string, payload: ObjectPayload) {
-  return runSupabaseQuery<ObjectRecord>("atualização do objeto", (signal) =>
+  return runSupabaseMutation<ObjectRecord>("atualização do objeto", (signal) =>
     supabase
       .from("objects")
       .update(payload)
@@ -76,7 +76,7 @@ export async function updateObject(id: string, payload: ObjectPayload) {
 }
 
 export async function softDeleteObject(id: string) {
-  const deleted = await runSupabaseQuery<boolean>("exclusão de objeto", (signal) =>
+  const deleted = await runSupabaseMutation<boolean>("exclusão de objeto", (signal) =>
     supabase.rpc("soft_delete_object", { p_object_id: id }).abortSignal(signal),
   );
 
@@ -167,21 +167,23 @@ export async function uploadObjectPhotos(objectId: string, files: File[]) {
       if (thumbnailUpload.error) throw thumbnailUpload.error;
       uploadedPaths.push(thumbnailPath);
 
-      const photo = await runSupabaseQuery<ObjectPhotoRecord>("registro da fotografia", (signal) =>
-        supabase
-          .from("object_photos")
-          .insert({
-            object_id: objectId,
-            storage_path: originalPath,
-            thumbnail_path: thumbnailPath,
-            sort_order: index,
-            original_size_bytes: original.size,
-            thumbnail_size_bytes: thumbnail.size,
-            mime_type: "image/webp",
-          })
-          .select("*")
-          .abortSignal(signal)
-          .single(),
+      const photo = await runSupabaseMutation<ObjectPhotoRecord>(
+        "registro da fotografia",
+        (signal) =>
+          supabase
+            .from("object_photos")
+            .insert({
+              object_id: objectId,
+              storage_path: originalPath,
+              thumbnail_path: thumbnailPath,
+              sort_order: index,
+              original_size_bytes: original.size,
+              thumbnail_size_bytes: thumbnail.size,
+              mime_type: "image/webp",
+            })
+            .select("*")
+            .abortSignal(signal)
+            .single(),
       );
       created.push(photo);
     } catch (error) {
@@ -203,7 +205,7 @@ export async function registerObjectMovement(input: {
   occurredAt?: string;
   details?: Record<string, unknown>;
 }) {
-  return runSupabaseQuery<ObjectMovementRecord>("movimentação do objeto", (signal) =>
+  return runSupabaseMutation<ObjectMovementRecord>("movimentação do objeto", (signal) =>
     supabase
       .rpc("register_object_movement", {
         p_object_id: input.objectId,

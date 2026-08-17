@@ -34,7 +34,9 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
             />
           </span>
           <span className="min-w-0">
-            <strong className="block text-base font-black tracking-wide text-white">SIPI-B.O</strong>
+            <strong className="block text-base font-black tracking-wide text-white">
+              SIPI-B.O
+            </strong>
             <small className="block truncate text-[9px] uppercase tracking-[0.12em] text-indigo-200/60">
               Módulo de Boletins
             </small>
@@ -61,7 +63,6 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
             active={boletinsActive}
           />
         </nav>
-
       </div>
 
       <div className="m-4 mt-auto flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">

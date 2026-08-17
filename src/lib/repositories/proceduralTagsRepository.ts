@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import {
   repairUtf8Mojibake,
   slugifyProceduralTag,
@@ -99,7 +99,7 @@ export async function listInqueritoTagLinks() {
 }
 
 export async function replaceInqueritoTags(inqueritoId: string, tagIds: string[]) {
-  await runSupabaseQuery<null>("atualização das tags do procedimento", (signal) =>
+  await runSupabaseMutation<null>("atualização das tags do procedimento", (signal) =>
     supabase
       .rpc("replace_inquerito_tags", {
         p_inquerito_id: inqueritoId,
@@ -121,7 +121,7 @@ export async function listMovimentacaoTagIds(representacaoId: string) {
 }
 
 export async function replaceMovimentacaoTags(representacaoId: string, tagIds: string[]) {
-  await runSupabaseQuery<null>("atualização das tags da movimentação", (signal) =>
+  await runSupabaseMutation<null>("atualização das tags da movimentação", (signal) =>
     supabase
       .rpc("replace_movimentacao_tags", {
         p_representacao_id: representacaoId,

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import type { BoPayload, BoRecord } from "@/features/bo/boTypes";
 
 const LIST_CACHE_TTL_MS = 10_000;
@@ -51,7 +51,7 @@ export async function getBoById(id: string) {
 }
 
 export async function createBo(payload: BoPayload) {
-  const data = await runSupabaseQuery<BoRecord>("cadastro do B.O.", (signal) =>
+  const data = await runSupabaseMutation<BoRecord>("cadastro do B.O.", (signal) =>
     supabase.from("boletins_ocorrencia").insert(payload).select("*").abortSignal(signal).single(),
   );
   invalidateBoCache();
@@ -59,7 +59,7 @@ export async function createBo(payload: BoPayload) {
 }
 
 export async function updateBo(id: string, payload: BoPayload, expectedUpdatedAt: string) {
-  const data = await runSupabaseQuery<BoRecord | null>("atualização do B.O.", (signal) =>
+  const data = await runSupabaseMutation<BoRecord | null>("atualização do B.O.", (signal) =>
     supabase
       .from("boletins_ocorrencia")
       .update(payload)
@@ -80,7 +80,7 @@ export async function updateBo(id: string, payload: BoPayload, expectedUpdatedAt
 }
 
 export async function softDeleteBo(id: string) {
-  const deleted = await runSupabaseQuery<boolean>("exclusão do B.O.", (signal) =>
+  const deleted = await runSupabaseMutation<boolean>("exclusão do B.O.", (signal) =>
     supabase.rpc("soft_delete_bo", { p_bo_id: id }).abortSignal(signal),
   );
   if (!deleted) throw new Error("B.O. não encontrado ou já excluído.");

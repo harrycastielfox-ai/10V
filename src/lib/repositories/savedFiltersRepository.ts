@@ -1,4 +1,4 @@
-import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
 import { supabase } from "@/lib/supabaseClient";
 import type { StoredColumnPreference } from "@/lib/repositories/tablePreferencesRepository";
 
@@ -34,7 +34,7 @@ export async function listSavedFilters(scope: string) {
 }
 
 export async function createSavedFilter(input: SavedFilterInput) {
-  return runSupabaseQuery<SavedFilterRecord>("criação do filtro salvo", (signal) =>
+  return runSupabaseMutation<SavedFilterRecord>("criação do filtro salvo", (signal) =>
     supabase
       .from("user_saved_filters")
       .insert({ ...input, name: input.name.trim(), columns: input.columns ?? null })
@@ -45,7 +45,7 @@ export async function createSavedFilter(input: SavedFilterInput) {
 }
 
 export async function renameSavedFilter(id: string, name: string) {
-  return runSupabaseQuery<SavedFilterRecord>("renomeação do filtro salvo", (signal) =>
+  return runSupabaseMutation<SavedFilterRecord>("renomeação do filtro salvo", (signal) =>
     supabase
       .from("user_saved_filters")
       .update({ name: name.trim() })
@@ -60,7 +60,7 @@ export async function updateSavedFilter(
   id: string,
   input: Pick<SavedFilterInput, "filters" | "columns">,
 ) {
-  return runSupabaseQuery<SavedFilterRecord>("atualização do filtro salvo", (signal) =>
+  return runSupabaseMutation<SavedFilterRecord>("atualização do filtro salvo", (signal) =>
     supabase
       .from("user_saved_filters")
       .update({ filters: input.filters, columns: input.columns ?? null })
@@ -72,7 +72,7 @@ export async function updateSavedFilter(
 }
 
 export async function deleteSavedFilter(id: string) {
-  await runSupabaseQuery<null>("exclusão do filtro salvo", (signal) =>
+  await runSupabaseMutation<null>("exclusão do filtro salvo", (signal) =>
     supabase.from("user_saved_filters").delete().eq("id", id).abortSignal(signal),
   );
 }
