@@ -48,11 +48,11 @@ export function MobileNavigation({ profile }: { profile: UserProfile }) {
             aria-label="Abrir Inquéritos"
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-primary/30 bg-primary/10">
+            <span className="sipi-brand-emblem sipi-brand-emblem-primary flex h-10 w-10 shrink-0 items-center justify-center">
               <img
                 src="/sipi-logo.png"
                 alt=""
-                className="h-[135%] w-[135%] max-w-none object-contain"
+                className="sipi-brand-emblem-image h-[92%] w-auto max-w-none object-contain"
               />
             </span>
             <span className="min-w-0">

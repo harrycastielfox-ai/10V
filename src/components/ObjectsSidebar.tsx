@@ -79,11 +79,11 @@ export function ObjectsSidebar({ profile }: { profile: UserProfile }) {
           aria-label="Voltar aos módulos"
           className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning"
         >
-          <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-warning/35 bg-warning/10 p-1 shadow-[0_0_18px_color-mix(in_oklab,var(--warning)_25%,transparent)]">
+          <div className="sipi-brand-emblem sipi-brand-emblem-warning flex h-14 w-14 items-center justify-center">
             <img
               src="/sipi-logo.png"
               alt="Logo SIPI"
-              className="h-[124%] w-[134%] object-contain"
+              className="sipi-brand-emblem-image h-[92%] w-auto object-contain"
             />
           </div>
           <div className="min-w-0 flex-1">

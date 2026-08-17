@@ -90,11 +90,11 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
           title="Voltar aos módulos"
           className="sipi-brand-link group flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <div className="sipi-brand-mark flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-primary/30 bg-primary/15 p-1 transition-colors group-hover:border-primary/55">
+          <div className="sipi-brand-mark sipi-brand-emblem sipi-brand-emblem-primary flex h-14 w-14 items-center justify-center">
             <img
               src="/sipi-logo.png"
               alt="Logo SIPI"
-              className="h-[124%] w-[134%] shrink-0 object-contain"
+              className="sipi-brand-emblem-image h-[92%] w-auto shrink-0 object-contain"
             />
           </div>
           <div className="min-w-0 flex-1">

@@ -25,11 +25,11 @@ export function ObjectsMobileNavigation({ profile }: { profile: UserProfile }) {
             to="/objetos/todos"
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning"
           >
-            <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg border border-warning/35 bg-warning/10">
+            <span className="sipi-brand-emblem sipi-brand-emblem-warning flex h-10 w-10 items-center justify-center">
               <img
                 src="/sipi-logo.png"
                 alt=""
-                className="h-[135%] w-[135%] max-w-none object-contain"
+                className="sipi-brand-emblem-image h-[92%] w-auto max-w-none object-contain"
               />
             </span>
             <span className="min-w-0">
