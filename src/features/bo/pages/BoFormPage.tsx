@@ -1,10 +1,20 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, FileText, Link2, Plus, Save, Scale, Search, Unlink } from "lucide-react";
+import {
+  ChevronLeft,
+  FileText,
+  Link2,
+  Plus,
+  Save,
+  Scale,
+  Search,
+  Unlink,
+  UserRound,
+} from "lucide-react";
 import { useAppProfile } from "@/components/AppProfileContext";
 import { canManageBos } from "@/lib/authz";
 import { listResponsaveis } from "@/lib/repositories/agendaRepository";
-import { createBo, updateBo } from "@/lib/repositories/boRepository";
+import { createBo, listBos, updateBo } from "@/lib/repositories/boRepository";
 import { listProceduralTags } from "@/lib/repositories/proceduralTagsRepository";
 import { getInqueritoById, searchInqueritosForLink } from "@/lib/repositories/inqueritosRepository";
 import {
@@ -26,6 +36,7 @@ import {
   getActiveBoInfractionQuery,
   getBoDiligenceSuggestions,
   getBoInfractionSuggestions,
+  getBoResponsibleSuggestions,
 } from "../boSuggestions";
 import { BO_DILIGENCE_SUGGESTIONS } from "../boDiligenceSuggestions";
 
@@ -55,14 +66,28 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
   const [infracaoSuggestionsOpen, setInfracaoSuggestionsOpen] = useState(false);
   const [highlightedSuggestion, setHighlightedSuggestion] = useState(0);
   const [diligenciaSuggestionsOpen, setDiligenciaSuggestionsOpen] = useState(false);
+  const [responsavelSuggestionsOpen, setResponsavelSuggestionsOpen] = useState(false);
+  const [highlightedResponsavel, setHighlightedResponsavel] = useState(0);
   const [highlightedDiligenciaSuggestion, setHighlightedDiligenciaSuggestion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Duas origens: quem tem login no SIPI e quem já foi responsável por algum
+  // B.O. Só a primeira deixava de fora servidor sem usuário no sistema.
   useEffect(() => {
-    void listResponsaveis()
-      .then((items) => setResponsaveis(items.map((item) => item.nome)))
-      .catch(() => setResponsaveis([]));
+    void Promise.all([
+      listResponsaveis()
+        .then((items) => items.map((item) => item.nome ?? ""))
+        .catch(() => [] as string[]),
+      listBos()
+        .then((records) => records.map((record) => record.responsavel_nome ?? ""))
+        .catch(() => [] as string[]),
+    ]).then(([usuarios, deBoletins]) => {
+      const nomes = [...usuarios, ...deBoletins].map((nome) => nome.trim()).filter(Boolean);
+      setResponsaveis(
+        [...new Set(nomes)].sort((left, right) => left.localeCompare(right, "pt-BR")),
+      );
+    });
   }, []);
 
   useEffect(() => {
@@ -86,6 +111,17 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
     () => getBoDiligenceSuggestions(diligencias, [...BO_DILIGENCE_SUGGESTIONS]),
     [diligencias],
   );
+
+  const responsavelSuggestions = useMemo(
+    () => getBoResponsibleSuggestions(responsavel, responsaveis),
+    [responsavel, responsaveis],
+  );
+
+  const chooseResponsavelSuggestion = (suggestion: string) => {
+    setResponsavel(suggestion);
+    setResponsavelSuggestionsOpen(false);
+    setHighlightedResponsavel(0);
+  };
 
   const chooseDiligenciaSuggestion = (suggestion: string) => {
     setDiligencias(applyBoDiligenceSuggestion(diligencias, suggestion));
@@ -288,19 +324,77 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
             </select>
           </Field>
           <Field label="Responsável pelo procedimento">
-            <input
-              value={responsavel}
-              onChange={(event) => setResponsavel(event.target.value)}
-              list="bo-responsaveis"
-              maxLength={300}
-              placeholder="Nome do responsável"
-              className="bo-form-control"
-            />
-            <datalist id="bo-responsaveis">
-              {responsaveis.map((item) => (
-                <option key={item} value={item} />
-              ))}
-            </datalist>
+            <div className="relative">
+              <input
+                value={responsavel}
+                onFocus={() => {
+                  setResponsavelSuggestionsOpen(true);
+                  setHighlightedResponsavel(0);
+                }}
+                onBlur={() => setResponsavelSuggestionsOpen(false)}
+                onChange={(event) => {
+                  setResponsavel(event.target.value);
+                  setResponsavelSuggestionsOpen(true);
+                  setHighlightedResponsavel(0);
+                }}
+                onKeyDown={(event) => {
+                  if (!responsavelSuggestionsOpen || responsavelSuggestions.length === 0) return;
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setHighlightedResponsavel((current) =>
+                      current >= responsavelSuggestions.length - 1 ? 0 : current + 1,
+                    );
+                  } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setHighlightedResponsavel((current) =>
+                      current <= 0 ? responsavelSuggestions.length - 1 : current - 1,
+                    );
+                  } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    chooseResponsavelSuggestion(responsavelSuggestions[highlightedResponsavel]);
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    setResponsavelSuggestionsOpen(false);
+                  }
+                }}
+                maxLength={300}
+                placeholder="Nome do responsável"
+                className="bo-form-control"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={responsavelSuggestionsOpen && responsavelSuggestions.length > 0}
+                aria-controls="bo-responsavel-suggestions"
+                autoComplete="off"
+              />
+              {responsavelSuggestionsOpen && responsavelSuggestions.length > 0 ? (
+                <div
+                  id="bo-responsavel-suggestions"
+                  role="listbox"
+                  className="bo-suggestion-results absolute inset-x-0 top-[calc(100%+0.35rem)] z-40 max-h-64 overflow-y-auto rounded-xl p-1.5"
+                >
+                  <p className="bo-faint px-3 py-2 text-[9px] font-black uppercase tracking-[0.14em]">
+                    Servidores da unidade e responsáveis já registrados
+                  </p>
+                  {responsavelSuggestions.map((suggestion, index) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      role="option"
+                      aria-selected={index === highlightedResponsavel}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onMouseEnter={() => setHighlightedResponsavel(index)}
+                      onClick={() => chooseResponsavelSuggestion(suggestion)}
+                      className={`bo-suggestion-item flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs ${
+                        index === highlightedResponsavel ? "bo-suggestion-item-active" : ""
+                      }`}
+                    >
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-violet-400" />
+                      <span className="bo-strong leading-5">{suggestion}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </Field>
         </div>
       </section>

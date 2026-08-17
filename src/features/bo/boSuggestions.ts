@@ -65,3 +65,31 @@ export function applyBoDiligenceSuggestion(value: string, suggestion: string) {
   lines[lines.length - 1] = suggestion;
   return lines.join("\n");
 }
+
+// O responsável é um nome só, não uma lista por linha como infração e
+// diligências. Com o campo vazio devolve a lista inteira: no B.O. quem digita
+// costuma querer ver quem são os responsáveis, não adivinhar a primeira letra.
+export function getBoResponsibleSuggestions(value: string, options: string[], limit = 8) {
+  const query = value.trim();
+  const unique = [...new Set(options.map((option) => option.trim()).filter(Boolean))];
+  const matches = query
+    ? unique.filter((option) => matchesProceduralTagQuery(option, query))
+    : unique;
+
+  // Nome já escolhido por inteiro: não há mais o que sugerir.
+  if (
+    matches.length === 1 &&
+    normalizeProceduralTagSearch(matches[0]) === normalizeProceduralTagSearch(query)
+  ) {
+    return [];
+  }
+
+  return matches
+    .sort((left, right) => {
+      if (!query) return left.localeCompare(right, "pt-BR");
+      const rankDifference =
+        getProceduralTagSearchRank(left, query) - getProceduralTagSearchRank(right, query);
+      return rankDifference || left.localeCompare(right, "pt-BR");
+    })
+    .slice(0, limit);
+}

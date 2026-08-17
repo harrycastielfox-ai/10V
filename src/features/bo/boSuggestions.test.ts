@@ -5,6 +5,7 @@ import {
   getActiveBoInfractionQuery,
   getBoDiligenceSuggestions,
   getBoInfractionSuggestions,
+  getBoResponsibleSuggestions,
 } from "./boSuggestions";
 
 const options = [
@@ -54,5 +55,33 @@ describe("sugestões de diligências do B.O.", () => {
     expect(applyBoDiligenceSuggestion("Primeira diligência\nlaudo", diligenceOptions[1])).toBe(
       `Primeira diligência\n${diligenceOptions[1]}`,
     );
+  });
+});
+
+describe("sugestões de responsável do B.O.", () => {
+  const nomes = [
+    "Adrieli Souza Chaves",
+    "Flavia Santos Souza",
+    "Henrique Dias de Oliveira",
+    "Adrieli Souza Chaves",
+  ];
+
+  it("com o campo vazio mostra todos, sem repetir", () => {
+    expect(getBoResponsibleSuggestions("", nomes)).toEqual([
+      "Adrieli Souza Chaves",
+      "Flavia Santos Souza",
+      "Henrique Dias de Oliveira",
+    ]);
+  });
+
+  it("filtra por qualquer parte do nome, ignorando acento", () => {
+    expect(getBoResponsibleSuggestions("souza", nomes)).toEqual([
+      "Adrieli Souza Chaves",
+      "Flavia Santos Souza",
+    ]);
+  });
+
+  it("para de sugerir quando o nome já está escolhido por inteiro", () => {
+    expect(getBoResponsibleSuggestions("Flavia Santos Souza", nomes)).toEqual([]);
   });
 });
