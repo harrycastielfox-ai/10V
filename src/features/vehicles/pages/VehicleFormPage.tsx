@@ -347,6 +347,10 @@ export function VehicleFormPage({ mode, vehicleId }: { mode: FormMode; vehicleId
   const [identifierConflicts, setIdentifierConflicts] = useState<VehicleIdentifierConflict[]>([]);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState("");
+  // Guarda o id do cadastro já gravado para que uma nova tentativa (fotos que
+  // falharam) atualize o mesmo veículo em vez de criar outro.
+  const [savedVehicleId, setSavedVehicleId] = useState<string | null>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const [inquiryQuery, setInquiryQuery] = useState("");
   const debouncedInquiryQuery = useDebouncedValue(inquiryQuery, 350);
   const [inquiries, setInquiries] = useState<InqueritoLinkOption[]>([]);
@@ -449,6 +453,7 @@ export function VehicleFormPage({ mode, vehicleId }: { mode: FormMode; vehicleId
     try {
       setForm(normalizedForm);
       const payload = toPayload(normalizedForm);
+      const existingId = mode === "edit" ? vehicleId : savedVehicleId;
       if (!skipDuplicateCheck) {
         const conflicts = await findVehicleIdentifierConflicts({
           plate: payload.plate_status === "informado" ? (payload.plate ?? null) : null,
@@ -456,7 +461,7 @@ export function VehicleFormPage({ mode, vehicleId }: { mode: FormMode; vehicleId
           engineNumber:
             payload.engine_status === "informado" ? (payload.engine_number ?? null) : null,
           chassis: payload.chassis_status === "informado" ? (payload.chassis ?? null) : null,
-          excludeVehicleId: mode === "edit" ? (vehicleId ?? null) : null,
+          excludeVehicleId: existingId ?? null,
         });
         if (conflicts.length) {
           setIdentifierConflicts(conflicts);
@@ -465,15 +470,46 @@ export function VehicleFormPage({ mode, vehicleId }: { mode: FormMode; vehicleId
         }
       }
 
-      const saved =
-        mode === "edit" && vehicleId
-          ? await updateVehicle(vehicleId, payload)
-          : await createVehicle(payload);
-      if (photos.length) await uploadVehiclePhotos(saved.id, photos);
+      const saved = existingId
+        ? await updateVehicle(existingId, payload)
+        : await createVehicle(payload);
+      setSavedVehicleId(saved.id);
+
+      // Daqui em diante o veículo já está gravado. As fotografias são uma etapa
+      // à parte: se falharem, o usuário reenvia só elas.
+      if (photos.length) {
+        const failed = await sendPhotos(saved.id, photos);
+        if (failed.length) return;
+      }
       navigate({ to: "/veiculos/$vehicleId", params: { vehicleId: saved.id }, replace: true });
     } catch (submissionError) {
       console.error("[VehicleForm] Falha ao salvar", submissionError);
       setError("Não foi possível salvar o veículo. Revise os dados e tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function sendPhotos(targetVehicleId: string, files: File[]) {
+    const { failed } = await uploadVehiclePhotos(targetVehicleId, files);
+    setPendingPhotos(failed);
+    setPhotos(failed);
+    return failed;
+  }
+
+  async function retryPendingPhotos() {
+    if (!savedVehicleId || !pendingPhotos.length) return;
+    setSaving(true);
+    setError("");
+    try {
+      const failed = await sendPhotos(savedVehicleId, pendingPhotos);
+      if (!failed.length) {
+        navigate({
+          to: "/veiculos/$vehicleId",
+          params: { vehicleId: savedVehicleId },
+          replace: true,
+        });
+      }
     } finally {
       setSaving(false);
     }
@@ -537,6 +573,52 @@ export function VehicleFormPage({ mode, vehicleId }: { mode: FormMode; vehicleId
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </p>
+      ) : null}
+
+      {savedVehicleId && pendingPhotos.length ? (
+        <section className="rounded-xl border border-warning/35 bg-warning/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-warning">
+                Veículo salvo.{" "}
+                {pendingPhotos.length === 1
+                  ? "1 fotografia não foi enviada"
+                  : `${pendingPhotos.length} fotografias não foram enviadas`}
+                .
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                O cadastro já está gravado — não é preciso salvar de novo. Tente enviar as
+                fotografias restantes ou siga para o veículo e envie depois.
+              </p>
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() =>
+                    navigate({
+                      to: "/veiculos/$vehicleId",
+                      params: { vehicleId: savedVehicleId },
+                      replace: true,
+                    })
+                  }
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-xs font-semibold hover:border-warning/45 disabled:opacity-50"
+                >
+                  Continuar sem as fotografias
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void retryPendingPhotos()}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-warning px-4 text-xs font-bold text-background disabled:opacity-50"
+                >
+                  {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                  Tentar enviar novamente
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {identifierConflicts.length ? (

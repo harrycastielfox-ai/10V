@@ -163,20 +163,32 @@ export async function getVehicleDetailBundle(vehicleId: string) {
   return { vehicle, photos, timeline };
 }
 
-export async function uploadVehiclePhotos(vehicleId: string, files: File[]) {
+// O veículo já está salvo quando as fotos sobem. Uma falha aqui não pode
+// derrubar o lote inteiro nem ser tratada como falha do cadastro: cada foto é
+// tentada isoladamente e as que não passarem voltam para o formulário reenviar.
+export type VehiclePhotoUploadResult = {
+  created: VehiclePhotoRecord[];
+  failed: File[];
+};
+
+export async function uploadVehiclePhotos(
+  vehicleId: string,
+  files: File[],
+): Promise<VehiclePhotoUploadResult> {
   const created: VehiclePhotoRecord[] = [];
+  const failed: File[] = [];
 
   for (const [index, source] of files.entries()) {
-    const token = crypto.randomUUID();
-    const originalPath = `${vehicleId}/${token}.webp`;
-    const thumbnailPath = `${vehicleId}/thumbs/${token}.webp`;
-    const [original, thumbnail] = await Promise.all([
-      compressVehicleImage(source, { maxDimension: 1920, quality: 0.82 }),
-      compressVehicleImage(source, { maxDimension: 480, quality: 0.7 }),
-    ]);
-
     const uploadedPaths: string[] = [];
     try {
+      const token = crypto.randomUUID();
+      const originalPath = `${vehicleId}/${token}.webp`;
+      const thumbnailPath = `${vehicleId}/thumbs/${token}.webp`;
+      const [original, thumbnail] = await Promise.all([
+        compressVehicleImage(source, { maxDimension: 1920, quality: 0.82 }),
+        compressVehicleImage(source, { maxDimension: 480, quality: 0.7 }),
+      ]);
+
       const originalUpload = await supabase.storage
         .from(VEHICLE_PHOTOS_BUCKET)
         .upload(originalPath, original, { contentType: "image/webp", upsert: false });
@@ -209,13 +221,18 @@ export async function uploadVehiclePhotos(vehicleId: string, files: File[]) {
       );
       created.push(photo);
     } catch (error) {
-      if (uploadedPaths.length)
-        await supabase.storage.from(VEHICLE_PHOTOS_BUCKET).remove(uploadedPaths);
-      throw error;
+      console.error("[vehicles] Falha ao enviar fotografia", error);
+      if (uploadedPaths.length) {
+        await supabase.storage
+          .from(VEHICLE_PHOTOS_BUCKET)
+          .remove(uploadedPaths)
+          .catch(() => undefined);
+      }
+      failed.push(source);
     }
   }
 
-  return created;
+  return { created, failed };
 }
 
 export async function registerVehicleMovement(input: {

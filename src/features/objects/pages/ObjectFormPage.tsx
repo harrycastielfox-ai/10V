@@ -1,6 +1,15 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ArrowLeft, Camera, Link2, LoaderCircle, Save, ShieldAlert, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Camera,
+  Link2,
+  LoaderCircle,
+  Save,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 import { useAppProfile } from "@/components/AppProfileContext";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { canCreateObjects, canEditObjects, canReleaseObjects } from "@/lib/authz";
@@ -286,6 +295,10 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
   const [error, setError] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState("");
+  // Guarda o id do cadastro já gravado para que uma nova tentativa (fotos que
+  // falharam) atualize o mesmo objeto em vez de criar outro.
+  const [savedObjectId, setSavedObjectId] = useState<string | null>(null);
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const [inquiryQuery, setInquiryQuery] = useState("");
   const debouncedInquiryQuery = useDebouncedValue(inquiryQuery, 350);
   const [inquiries, setInquiries] = useState<InqueritoLinkOption[]>([]);
@@ -364,15 +377,43 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
     setError("");
     try {
       const payload = toPayload(form);
-      const saved =
-        mode === "edit" && objectId
-          ? await updateObject(objectId, payload)
-          : await createObject(payload);
-      if (photos.length) await uploadObjectPhotos(saved.id, photos);
+      const existingId = mode === "edit" ? objectId : savedObjectId;
+      const saved = existingId
+        ? await updateObject(existingId, payload)
+        : await createObject(payload);
+      setSavedObjectId(saved.id);
+
+      // Daqui em diante o objeto já está gravado. As fotografias são uma etapa
+      // à parte: se falharem, o usuário reenvia só elas.
+      if (photos.length) {
+        const failed = await sendPhotos(saved.id, photos);
+        if (failed.length) return;
+      }
       navigate({ to: "/objetos/$objectId", params: { objectId: saved.id }, replace: true });
     } catch (submissionError) {
       console.error("[ObjectForm] Falha ao salvar", submissionError);
       setError("Não foi possível salvar o objeto. Revise os dados e tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function sendPhotos(targetObjectId: string, files: File[]) {
+    const { failed } = await uploadObjectPhotos(targetObjectId, files);
+    setPendingPhotos(failed);
+    setPhotos(failed);
+    return failed;
+  }
+
+  async function retryPendingPhotos() {
+    if (!savedObjectId || !pendingPhotos.length) return;
+    setSaving(true);
+    setError("");
+    try {
+      const failed = await sendPhotos(savedObjectId, pendingPhotos);
+      if (!failed.length) {
+        navigate({ to: "/objetos/$objectId", params: { objectId: savedObjectId }, replace: true });
+      }
     } finally {
       setSaving(false);
     }
@@ -419,6 +460,52 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
         <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
         </p>
+      ) : null}
+
+      {savedObjectId && pendingPhotos.length ? (
+        <section className="rounded-xl border border-warning/35 bg-warning/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-bold text-warning">
+                Objeto salvo.{" "}
+                {pendingPhotos.length === 1
+                  ? "1 fotografia não foi enviada"
+                  : `${pendingPhotos.length} fotografias não foram enviadas`}
+                .
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                O cadastro já está gravado — não é preciso salvar de novo. Tente enviar as
+                fotografias restantes ou siga para o objeto e envie depois.
+              </p>
+              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() =>
+                    navigate({
+                      to: "/objetos/$objectId",
+                      params: { objectId: savedObjectId },
+                      replace: true,
+                    })
+                  }
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background px-4 text-xs font-semibold hover:border-warning/45 disabled:opacity-50"
+                >
+                  Continuar sem as fotografias
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => void retryPendingPhotos()}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-warning px-4 text-xs font-bold text-background disabled:opacity-50"
+                >
+                  {saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                  Tentar enviar novamente
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <form

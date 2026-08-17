@@ -141,20 +141,32 @@ export async function getObjectDetailBundle(objectId: string): Promise<ObjectDet
   return { object, photos, movements };
 }
 
-export async function uploadObjectPhotos(objectId: string, files: File[]) {
+// O objeto já está salvo quando as fotos sobem. Uma falha aqui não pode derrubar
+// o lote inteiro nem ser tratada como falha do cadastro: cada foto é tentada
+// isoladamente e as que não passarem voltam para o formulário reenviar.
+export type ObjectPhotoUploadResult = {
+  created: ObjectPhotoRecord[];
+  failed: File[];
+};
+
+export async function uploadObjectPhotos(
+  objectId: string,
+  files: File[],
+): Promise<ObjectPhotoUploadResult> {
   const created: ObjectPhotoRecord[] = [];
+  const failed: File[] = [];
 
   for (const [index, source] of files.entries()) {
-    const token = crypto.randomUUID();
-    const originalPath = `${objectId}/${token}.webp`;
-    const thumbnailPath = `${objectId}/thumbs/${token}.webp`;
-    const [original, thumbnail] = await Promise.all([
-      compressObjectImage(source, { maxDimension: 1920, quality: 0.82 }),
-      compressObjectImage(source, { maxDimension: 480, quality: 0.7 }),
-    ]);
-
     const uploadedPaths: string[] = [];
     try {
+      const token = crypto.randomUUID();
+      const originalPath = `${objectId}/${token}.webp`;
+      const thumbnailPath = `${objectId}/thumbs/${token}.webp`;
+      const [original, thumbnail] = await Promise.all([
+        compressObjectImage(source, { maxDimension: 1920, quality: 0.82 }),
+        compressObjectImage(source, { maxDimension: 480, quality: 0.7 }),
+      ]);
+
       const originalUpload = await supabase.storage
         .from(OBJECT_PHOTOS_BUCKET)
         .upload(originalPath, original, { contentType: "image/webp", upsert: false });
@@ -187,13 +199,18 @@ export async function uploadObjectPhotos(objectId: string, files: File[]) {
       );
       created.push(photo);
     } catch (error) {
-      if (uploadedPaths.length)
-        await supabase.storage.from(OBJECT_PHOTOS_BUCKET).remove(uploadedPaths);
-      throw error;
+      console.error("[objects] Falha ao enviar fotografia", error);
+      if (uploadedPaths.length) {
+        await supabase.storage
+          .from(OBJECT_PHOTOS_BUCKET)
+          .remove(uploadedPaths)
+          .catch(() => undefined);
+      }
+      failed.push(source);
     }
   }
 
-  return created;
+  return { created, failed };
 }
 
 export async function registerObjectMovement(input: {
