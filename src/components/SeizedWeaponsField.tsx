@@ -89,7 +89,7 @@ export function SeizedWeaponsField({
 
   return (
     <div className="md:col-span-2 lg:col-span-3">
-      <div className="flex min-h-14 flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition focus-within:border-primary/50">
+      <div className="sipi-shimmer flex min-h-14 flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition focus-within:border-primary/50">
         <label className="flex cursor-pointer items-center gap-3 text-sm font-medium">
           <input
             type="checkbox"

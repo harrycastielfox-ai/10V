@@ -321,6 +321,53 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     outline-offset: 2px;
   }
 
+  /* Lupa dos campos de busca de tag: o brilho é o que faz o olho achar o campo
+     no meio do formulário. */
+  .sipi-search-neon {
+    color: var(--primary);
+    filter: drop-shadow(0 0 4px color-mix(in oklab, var(--primary) 60%, transparent))
+      drop-shadow(0 0 10px color-mix(in oklab, var(--primary) 32%, transparent));
+  }
+
+  /* Reflexo que atravessa a faixa de tempos em tempos, para o campo não passar
+     despercebido. Fica atrás do conteúdo e não intercepta cliques. */
+  .sipi-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sipi-shimmer::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 38%,
+      color-mix(in oklab, var(--primary) 20%, transparent) 50%,
+      transparent 62%
+    );
+    content: "";
+    pointer-events: none;
+    transform: translateX(-130%);
+    animation: sipi-shimmer-sweep 5s ease-in-out infinite;
+  }
+
+  @keyframes sipi-shimmer-sweep {
+    0% {
+      transform: translateX(-130%);
+    }
+    45%,
+    100% {
+      transform: translateX(130%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sipi-shimmer::after {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
   /* Etiquetas de tipificação, gravidade e status. O preenchimento anterior era
      de 10% e sumia no fundo escuro; cada tema recebe sua própria mistura para a
      etiqueta ficar legível sem virar bloco de cor sólida. */
