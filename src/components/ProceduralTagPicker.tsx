@@ -133,8 +133,10 @@ export function ProceduralTagPicker({
         </div>
       )}
 
+      {/* O campo repete a aparência dos demais do formulário (mesma altura,
+          fundo e borda) para não parecer apagado no meio dos outros. */}
       <div
-        className="relative rounded-lg border border-border/80 bg-background/55 p-2.5"
+        className="relative"
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
         }}
@@ -142,7 +144,7 @@ export function ProceduralTagPicker({
         <div className="flex gap-2">
           <div className="relative min-w-0 flex-1">
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary/70"
               aria-hidden="true"
             />
             <input
@@ -163,7 +165,7 @@ export function ProceduralTagPicker({
                 }
               }}
               placeholder={placeholder}
-              className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary/55"
+              className="h-11 w-full rounded-lg border border-border bg-card pl-10 pr-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary"
               role="combobox"
               aria-expanded={open}
               aria-controls="procedural-tag-results"
@@ -175,7 +177,7 @@ export function ProceduralTagPicker({
               type="button"
               onClick={handleCreate}
               disabled={creating}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-primary transition hover:bg-primary/15 disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-primary/50 bg-primary/15 px-3.5 text-xs font-semibold text-primary transition hover:bg-primary/25 disabled:opacity-50"
             >
               <Plus className="h-3.5 w-3.5" />
               {creating ? "Criando..." : "Criar tag"}
@@ -186,7 +188,7 @@ export function ProceduralTagPicker({
           <div
             id="procedural-tag-results"
             role="listbox"
-            className="absolute inset-x-2.5 top-[calc(100%-0.15rem)] z-40 max-h-64 overflow-y-auto rounded-lg border border-primary/25 bg-card p-1.5 shadow-2xl"
+            className="absolute inset-x-0 top-[calc(100%+0.35rem)] z-40 max-h-64 overflow-y-auto rounded-lg border border-primary/35 bg-card p-1.5 shadow-2xl"
           >
             {available.map((tag) => (
               <button

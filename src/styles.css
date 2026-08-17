@@ -321,6 +321,43 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     outline-offset: 2px;
   }
 
+  /* Etiquetas de tipificação, gravidade e status. O preenchimento anterior era
+     de 10% e sumia no fundo escuro; cada tema recebe sua própria mistura para a
+     etiqueta ficar legível sem virar bloco de cor sólida. */
+  .sipi-tag {
+    border-color: color-mix(in oklab, var(--sipi-tag-color) 60%, transparent);
+    background: color-mix(in oklab, var(--sipi-tag-color) 22%, transparent);
+    color: color-mix(in oklab, var(--sipi-tag-color) 78%, white 22%);
+  }
+
+  html[data-theme="light"] .sipi-tag {
+    border-color: color-mix(in oklab, var(--sipi-tag-color) 50%, transparent);
+    background: color-mix(in oklab, var(--sipi-tag-color) 18%, white 82%);
+    color: color-mix(in oklab, var(--sipi-tag-color) 60%, black 40%);
+  }
+
+  .sipi-tag-cyan {
+    --sipi-tag-color: oklch(0.78 0.12 205);
+  }
+  .sipi-tag-blue {
+    --sipi-tag-color: oklch(0.74 0.13 240);
+  }
+  .sipi-tag-green {
+    --sipi-tag-color: oklch(0.78 0.15 160);
+  }
+  .sipi-tag-amber {
+    --sipi-tag-color: oklch(0.82 0.14 80);
+  }
+  .sipi-tag-red {
+    --sipi-tag-color: oklch(0.68 0.19 25);
+  }
+  .sipi-tag-purple {
+    --sipi-tag-color: oklch(0.7 0.17 300);
+  }
+  .sipi-tag-slate {
+    --sipi-tag-color: oklch(0.74 0.03 250);
+  }
+
   /* Cadastro em etapas apresentado como janela flutuante: a sombra é o que
      descola o painel do fundo, então ela muda junto com o tema. */
   .sipi-wizard-window {

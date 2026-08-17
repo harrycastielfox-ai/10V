@@ -36,14 +36,16 @@ export type ProceduralStatusHistory = {
   note: string | null;
 };
 
+// As cores vivem em styles.css (.sipi-tag-*) porque precisam de valores
+// diferentes no tema claro e no escuro.
 export const TAG_COLOR_CLASS: Record<ProceduralTagColor, string> = {
-  cyan: "border-cyan-400/35 bg-cyan-500/10 text-cyan-300",
-  blue: "border-sky-400/35 bg-sky-500/10 text-sky-300",
-  green: "border-emerald-400/35 bg-emerald-500/10 text-emerald-300",
-  amber: "border-amber-400/35 bg-amber-500/10 text-amber-300",
-  red: "border-red-400/35 bg-red-500/10 text-red-300",
-  purple: "border-purple-400/35 bg-purple-500/10 text-purple-300",
-  slate: "border-slate-400/30 bg-slate-500/10 text-slate-300",
+  cyan: "sipi-tag sipi-tag-cyan",
+  blue: "sipi-tag sipi-tag-blue",
+  green: "sipi-tag sipi-tag-green",
+  amber: "sipi-tag sipi-tag-amber",
+  red: "sipi-tag sipi-tag-red",
+  purple: "sipi-tag sipi-tag-purple",
+  slate: "sipi-tag sipi-tag-slate",
 };
 
 export function slugifyProceduralTag(value: string) {
