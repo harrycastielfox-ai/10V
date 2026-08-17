@@ -272,160 +272,186 @@ function AuditEventCard({ event }: { event: AuditoriaEvent }) {
 
   const cardBaseClassName =
     "group relative block overflow-hidden rounded-xl border border-transparent bg-transparent transition-[background-color,border-color,box-shadow]";
-  const cardContent = (
-    <div className="relative grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(185px,220px)_minmax(0,1fr)] lg:items-stretch">
-      <div className="flex min-w-0 items-center gap-3 border-b border-border/35 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5">
-        <div className="relative shrink-0">
-          <span
-            className="absolute -left-3 top-1/2 hidden h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-primary/55 bg-[#070b0e] shadow-[0_0_0_5px_rgba(34,197,94,0.1)] sm:block"
-            aria-hidden="true"
+
+  // O executor abre o perfil dele; o restante do card abre o registro. São dois
+  // destinos diferentes, então não dá para envolver o card inteiro num link só.
+  const executorHref = String(event.executor_user_id ?? "").trim();
+  const executorBlock = (
+    <div className="flex h-full min-w-0 items-center gap-3 border-b border-border/35 pb-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5">
+      <div className="relative shrink-0">
+        <span
+          className="absolute -left-3 top-1/2 hidden h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-primary/55 bg-[#070b0e] shadow-[0_0_0_5px_rgba(34,197,94,0.1)] sm:block"
+          aria-hidden="true"
+        />
+        {shouldShowAvatar ? (
+          <img
+            src={executorAvatarUrl ?? undefined}
+            alt={`Avatar de ${executorName}`}
+            className="h-12 w-12 rounded-full border border-primary/25 object-cover shadow-[0_10px_24px_rgba(0,0,0,0.24)]"
+            onError={() => setAvatarFailed(true)}
           />
-          {shouldShowAvatar ? (
-            <img
-              src={executorAvatarUrl ?? undefined}
-              alt={`Avatar de ${executorName}`}
-              className="h-12 w-12 rounded-full border border-primary/25 object-cover shadow-[0_10px_24px_rgba(0,0,0,0.24)]"
-              onError={() => setAvatarFailed(true)}
-            />
-          ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-sm font-black text-primary/90 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
-              {avatarInitials || "?"}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-foreground" title={executorName}>
-            {executorName}
-          </p>
-          <p className="truncate text-xs text-muted-foreground" title={executorEmail}>
-            {executorEmail}
-          </p>
-          {executorRole ? (
-            <p
-              className="mt-1 truncate text-[10px] font-bold uppercase tracking-[0.14em] text-primary/70"
-              title={executorRole}
-            >
-              {executorRole}
-            </p>
-          ) : null}
-        </div>
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-sm font-black text-primary/90 shadow-[0_10px_24px_rgba(0,0,0,0.24)]">
+            {avatarInitials || "?"}
+          </div>
+        )}
       </div>
-
-      <div className="min-w-0 space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] ${moduleInfo.className}`}
-            >
-              {moduleInfo.label}
-            </span>
-            {isNavigable ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.11em] text-primary/75">
-                Registro vinculado <ChevronRight className="h-3 w-3" aria-hidden="true" />
-              </span>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground sm:justify-end">
-            <time
-              className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums"
-              dateTime={event.created_at}
-            >
-              <Clock3 className="h-3.5 w-3.5 text-primary/70" aria-hidden="true" /> {timestamp}
-            </time>
-            {isNavigable ? (
-              <ChevronRight
-                className="h-4 w-4 text-muted-foreground/55 transition group-hover:translate-x-0.5 group-hover:text-primary"
-                aria-hidden="true"
-              />
-            ) : null}
-          </div>
-        </div>
-
-        {changeSummary ? (
-          <div className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 border-l-2 border-primary/65 bg-primary/[0.045] px-3 py-2 text-[11px] text-muted-foreground">
-            <span className="font-bold uppercase tracking-[0.12em] text-primary/80">
-              Alteração registrada
-            </span>
-            <span className="font-semibold text-foreground/90">{changeSummary.field}</span>
-            <span aria-hidden="true">→</span>
-            <span className="font-semibold text-primary">{changeSummary.value}</span>
-          </div>
-        ) : null}
-
-        <div className="space-y-1">
-          <p className="break-words text-sm font-semibold leading-6 text-foreground/90">
-            {eventTitle}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-bold text-foreground" title={executorName}>
+          {executorName}
+        </p>
+        <p className="truncate text-xs text-muted-foreground" title={executorEmail}>
+          {executorEmail}
+        </p>
+        {executorRole ? (
+          <p
+            className="mt-1 truncate text-[10px] font-bold uppercase tracking-[0.14em] text-primary/70"
+            title={executorRole}
+          >
+            {executorRole}
           </p>
-          {shouldShowDescription ? (
-            <p className="break-words text-xs leading-5 text-muted-foreground">{description}</p>
-          ) : null}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-          <span className="font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
-            Registro
-          </span>
-          <span className="font-semibold text-foreground/85" title={target.fullLabel}>
-            {target.label}
-          </span>
-          {target.identifier ? (
-            <span
-              className={
-                target.identifier.isFallback
-                  ? "font-mono text-muted-foreground"
-                  : "font-semibold text-primary/85"
-              }
-              title={target.identifier.fullValue}
-            >
-              {target.identifier.label} {target.identifier.value}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">ID não informado</span>
-          )}
-        </div>
-
-        {metadata.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {metadata.map((item) => (
-              <span
-                key={item.id}
-                className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border border-border/45 bg-background/30 px-2.5 py-1 text-[11px] text-muted-foreground sm:max-w-[15rem]"
-                title={`${item.key}: ${item.fullValue}`}
-              >
-                <span className="shrink-0 font-semibold text-foreground/80">{item.key}:</span>
-                <span className="min-w-0 truncate">{item.value}</span>
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        {isNavigable ? (
-          <div className="flex items-center justify-between gap-3 border-t border-border/35 pt-3 text-xs">
-            <span className="text-muted-foreground">
-              Consulte o registro completo e o histórico relacionado.
-            </span>
-            <span className="inline-flex shrink-0 items-center gap-1.5 font-bold text-primary transition group-hover:translate-x-0.5">
-              Abrir {destinationLabel}
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </span>
-          </div>
         ) : null}
       </div>
     </div>
   );
 
-  if (!eventHref || isDeleteEvent)
-    return <article className={cardBaseClassName}>{cardContent}</article>;
+  const eventBlock = (
+    <div className="min-w-0 space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] ${moduleInfo.className}`}
+          >
+            {moduleInfo.label}
+          </span>
+          {isNavigable ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.11em] text-primary/75">
+              Registro vinculado <ChevronRight className="h-3 w-3" aria-hidden="true" />
+            </span>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground sm:justify-end">
+          <time
+            className="inline-flex items-center gap-1.5 whitespace-nowrap tabular-nums"
+            dateTime={event.created_at}
+          >
+            <Clock3 className="h-3.5 w-3.5 text-primary/70" aria-hidden="true" /> {timestamp}
+          </time>
+          {isNavigable ? (
+            <ChevronRight
+              className="h-4 w-4 text-muted-foreground/55 transition group-hover:translate-x-0.5 group-hover:text-primary"
+              aria-hidden="true"
+            />
+          ) : null}
+        </div>
+      </div>
+
+      {changeSummary ? (
+        <div className="flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 border-l-2 border-primary/65 bg-primary/[0.045] px-3 py-2 text-[11px] text-muted-foreground">
+          <span className="font-bold uppercase tracking-[0.12em] text-primary/80">
+            Alteração registrada
+          </span>
+          <span className="font-semibold text-foreground/90">{changeSummary.field}</span>
+          <span aria-hidden="true">→</span>
+          <span className="font-semibold text-primary">{changeSummary.value}</span>
+        </div>
+      ) : null}
+
+      <div className="space-y-1">
+        <p className="break-words text-sm font-semibold leading-6 text-foreground/90">
+          {eventTitle}
+        </p>
+        {shouldShowDescription ? (
+          <p className="break-words text-xs leading-5 text-muted-foreground">{description}</p>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+        <span className="font-bold uppercase tracking-[0.12em] text-muted-foreground/70">
+          Registro
+        </span>
+        <span className="font-semibold text-foreground/85" title={target.fullLabel}>
+          {target.label}
+        </span>
+        {target.identifier ? (
+          <span
+            className={
+              target.identifier.isFallback
+                ? "font-mono text-muted-foreground"
+                : "font-semibold text-primary/85"
+            }
+            title={target.identifier.fullValue}
+          >
+            {target.identifier.label} {target.identifier.value}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">ID não informado</span>
+        )}
+      </div>
+
+      {metadata.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 pt-1">
+          {metadata.map((item) => (
+            <span
+              key={item.id}
+              className="inline-flex min-w-0 max-w-full items-center gap-1 rounded-full border border-border/45 bg-background/30 px-2.5 py-1 text-[11px] text-muted-foreground sm:max-w-[15rem]"
+              title={`${item.key}: ${item.fullValue}`}
+            >
+              <span className="shrink-0 font-semibold text-foreground/80">{item.key}:</span>
+              <span className="min-w-0 truncate">{item.value}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {isNavigable ? (
+        <div className="flex items-center justify-between gap-3 border-t border-border/35 pt-3 text-xs">
+          <span className="text-muted-foreground">
+            Consulte o registro completo e o histórico relacionado.
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-bold text-primary transition group-hover/evento:translate-x-0.5">
+            Abrir {destinationLabel}
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const hoverClassName =
+    "cursor-pointer hover:border-primary/25 hover:bg-primary/[0.045] focus-visible:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15";
 
   return (
-    <Link
-      to={eventHref}
-      className={`${cardBaseClassName} cursor-pointer hover:border-primary/25 hover:bg-primary/[0.045] hover:shadow-[0_12px_32px_rgba(0,0,0,0.16)] focus-visible:border-primary/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/15`}
-      title={`Abrir ${destinationLabel}`}
-      aria-label={`Abrir ${destinationLabel}`}
-    >
-      {cardContent}
-    </Link>
+    <article className={cardBaseClassName}>
+      <div className="relative grid gap-4 px-4 py-4 sm:px-5 lg:grid-cols-[minmax(185px,220px)_minmax(0,1fr)] lg:items-stretch">
+        {executorHref ? (
+          <Link
+            to="/admin/usuarios/$userId"
+            params={{ userId: executorHref }}
+            className={`block min-w-0 rounded-lg border border-transparent ${hoverClassName}`}
+            title={`Abrir o perfil de ${executorName}`}
+            aria-label={`Abrir o perfil de ${executorName}`}
+          >
+            {executorBlock}
+          </Link>
+        ) : (
+          executorBlock
+        )}
+
+        {eventHref && !isDeleteEvent ? (
+          <Link
+            to={eventHref}
+            className={`group/evento block min-w-0 rounded-lg border border-transparent p-1 -m-1 ${hoverClassName}`}
+            title={`Abrir ${destinationLabel}`}
+            aria-label={`Abrir ${destinationLabel}`}
+          >
+            {eventBlock}
+          </Link>
+        ) : (
+          eventBlock
+        )}
+      </div>
+    </article>
   );
 }
 
