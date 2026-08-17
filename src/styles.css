@@ -321,6 +321,20 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     outline-offset: 2px;
   }
 
+  /* Cadastro em etapas apresentado como janela flutuante: a sombra é o que
+     descola o painel do fundo, então ela muda junto com o tema. */
+  .sipi-wizard-window {
+    box-shadow:
+      0 24px 70px rgb(0 0 0 / 0.28),
+      inset 0 1px 0 rgb(255 255 255 / 0.03);
+  }
+
+  html[data-theme="light"] .sipi-wizard-window {
+    box-shadow:
+      0 22px 50px -26px rgb(23 33 43 / 0.35),
+      0 2px 8px -4px rgb(23 33 43 / 0.12);
+  }
+
   .sipi-cta-neon {
     box-shadow:
       0 0 0 1px color-mix(in oklab, var(--success) 55%, transparent),

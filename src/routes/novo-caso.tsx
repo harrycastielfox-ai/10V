@@ -625,403 +625,410 @@ function NovoCaso() {
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Novo Procedimento Policial"
-        subtitle="Identificação, classificação e fluxo operacional"
-        showActions={false}
-      />
+      {/* Cabeçalho e janela compartilham a mesma largura e ficam centralizados,
+          para o cadastro não ficar colado na borda esquerda em telas largas. */}
+      <div className="mx-auto w-full max-w-6xl">
+        <PageHeader
+          title="Novo Procedimento Policial"
+          subtitle="Identificação, classificação e fluxo operacional"
+          showActions={false}
+        />
 
-      <ol className="grid max-w-6xl grid-cols-2 gap-2 pb-1 sm:grid-cols-3 lg:grid-cols-6">
-        {STEPS.map((label, index) => (
-          <li key={label}>
-            <button
-              type="button"
-              onClick={() => goToStep(index)}
-              aria-current={step === index ? "step" : undefined}
-              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
-                step === index
-                  ? "border-primary/50 bg-primary/15 text-primary"
-                  : index < step
-                    ? "border-success/35 bg-success/5 text-success"
-                    : "border-border bg-card text-muted-foreground"
-              }`}
-            >
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-current text-[10px]">
-                {index < step ? <Check className="h-3 w-3" /> : index + 1}
-              </span>
-              <span className="truncate">{label}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
+        <ol className="relative z-10 grid grid-cols-2 gap-2 rounded-t-3xl border border-b-0 border-border/80 bg-card/75 p-3 backdrop-blur-sm sm:grid-cols-3 md:p-4 lg:grid-cols-6">
+          {STEPS.map((label, index) => (
+            <li key={label}>
+              <button
+                type="button"
+                onClick={() => goToStep(index)}
+                aria-current={step === index ? "step" : undefined}
+                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition ${
+                  step === index
+                    ? "border-primary/50 bg-primary/15 text-primary shadow-[0_0_18px_rgba(34,197,94,0.08)]"
+                    : index < step
+                      ? "border-success/35 bg-success/5 text-success"
+                      : "border-border bg-card/70 text-muted-foreground"
+                }`}
+              >
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-current text-[10px]">
+                  {index < step ? <Check className="h-3 w-3" /> : index + 1}
+                </span>
+                <span className="truncate">{label}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
 
-      <form className="space-y-5 max-w-6xl pb-6" onSubmit={handleSubmit}>
-        {step === 0 && (
-          <SectionCard title="1. Identificação do Procedimento">
-            <Field
-              label="PPE"
-              placeholder="Ex.: 001/2026-DPPC"
-              value={ppe}
-              onChange={(e) => setPpe(e.target.value)}
-            />
-            <OptionSelect
-              label="Origem do registro"
-              options={OCCURRENCE_ORIGIN_OPTIONS}
-              value={origemRegistro}
-              onChange={(value) => setOrigemRegistro(value as OccurrenceOrigin)}
-            />
-            {checkingPpe && (
-              <InlineNotice>Verificando ocorrências existentes com este PPE...</InlineNotice>
-            )}
-            {!checkingPpe && ppeMatches.length > 0 && (
-              <InlineNotice tone="warning">
-                Este PPE já aparece em {ppeMatches.length} ocorrência(s) ativa(s). O cadastro
-                continua permitido para procedimentos migrados; confirme a origem do registro antes
-                de salvar.
-              </InlineNotice>
-            )}
-            <Select
-              label="Tipo de Procedimento"
-              value={tipo}
-              onChange={setTipo}
-              options={PROCEDURE_TYPE_OPTIONS.map((option) => option.label)}
-            />
-            <Select
-              label="Visibilidade"
-              options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
-              value={visibilidade}
-              onChange={setVisibilidade}
-            />
-          </SectionCard>
-        )}
-
-        {step === 1 && (
-          <SectionCard title="2. O Fato">
-            <Field
-              label="Data do Fato"
-              type="date"
-              value={dataFato}
-              onChange={(e) => setDataFato(e.target.value)}
-            />
-            <ProceduralTagPicker
-              label="Tipificações"
-              hint="Adicione um ou mais crimes. Cada tipificação poderá ser usada em filtros e relatórios."
-              options={tipificacaoOptions}
-              value={selectedTipificacaoTagIds}
-              onChange={setSelectedTipificacaoTagIds}
-              onCreate={createTagOption}
-              createScope="tipificacao"
-              canCreate={canManageProceduralTags(profile)}
-              placeholder="Busque ou crie uma tipificação"
-            />
-            <ProceduralTagPicker
-              label="Gravidade do fato"
-              hint="Selecione uma ou mais gravidades. A primeira será a classificação principal do procedimento."
-              options={gravidadeOptions}
-              value={selectedGravidadeTagIds}
-              onChange={setSelectedGravidadeTagIds}
-              onCreate={createTagOption}
-              createScope="inquerito_gravidade"
-              canCreate={canManageProceduralTags(profile)}
-              placeholder="Busque ou crie uma gravidade"
-            />
-            <TextArea
-              label="Resumo do Fato"
-              rows={5}
-              placeholder="Registre, de forma objetiva, o fato que originou o procedimento..."
-              value={resumoFato}
-              onChange={(event) => setResumoFato(event.target.value)}
-            />
-            <SeizedWeaponsField
-              checked={houveArmaDeFogo === "Sim"}
-              onCheckedChange={(checked) => handleHouveArmaDeFogoChange(checked ? "Sim" : "Não")}
-              value={armaUtilizada}
-              onValueChange={setArmaUtilizada}
-            />
-          </SectionCard>
-        )}
-
-        {step === 2 && (
-          <SectionCard title="3. Local e Motivação">
-            <Field
-              label="Bairro"
-              placeholder="Informe ou selecione um bairro já utilizado"
-              list="novo-caso-bairros"
-              value={bairro}
-              onChange={(e) => setBairro(e.target.value)}
-            />
-            <datalist id="novo-caso-bairros">
-              {bairroOptions.map((option) => (
-                <option key={option} value={option} />
-              ))}
-            </datalist>
-            <Field
-              label="Cidade"
-              placeholder="Ex.: Itabela"
-              value={cidade}
-              onChange={(e) => setCidade(e.target.value)}
-            />
-            <Field
-              label="Motivação"
-              placeholder="Motivação principal"
-              value={motivacao}
-              onChange={(e) => setMotivacao(e.target.value)}
-            />
-            <Select
-              label="Vinculado a Facção"
-              options={["Sim", "Não", "A definir"]}
-              value={vinculadoFaccao}
-              onChange={handleVinculoFaccaoChange}
-            />
-            {isYesValue(vinculadoFaccao) && (
+        <form
+          className="sipi-wizard-window relative -mt-px space-y-5 rounded-b-3xl border border-border/80 bg-card/75 p-4 pt-5 backdrop-blur-sm md:p-6 md:pt-5"
+          onSubmit={handleSubmit}
+        >
+          {step === 0 && (
+            <SectionCard title="1. Identificação do Procedimento">
               <Field
-                label="Nome da Facção"
-                placeholder="Informe a facção vinculada"
-                value={nomeFaccao}
-                onChange={(e) => setNomeFaccao(e.target.value)}
+                label="PPE"
+                placeholder="Ex.: 001/2026-DPPC"
+                value={ppe}
+                onChange={(e) => setPpe(e.target.value)}
               />
-            )}
-          </SectionCard>
-        )}
+              <OptionSelect
+                label="Origem do registro"
+                options={OCCURRENCE_ORIGIN_OPTIONS}
+                value={origemRegistro}
+                onChange={(value) => setOrigemRegistro(value as OccurrenceOrigin)}
+              />
+              {checkingPpe && (
+                <InlineNotice>Verificando ocorrências existentes com este PPE...</InlineNotice>
+              )}
+              {!checkingPpe && ppeMatches.length > 0 && (
+                <InlineNotice tone="warning">
+                  Este PPE já aparece em {ppeMatches.length} ocorrência(s) ativa(s). O cadastro
+                  continua permitido para procedimentos migrados; confirme a origem do registro
+                  antes de salvar.
+                </InlineNotice>
+              )}
+              <Select
+                label="Tipo de Procedimento"
+                value={tipo}
+                onChange={setTipo}
+                options={PROCEDURE_TYPE_OPTIONS.map((option) => option.label)}
+              />
+              <Select
+                label="Visibilidade"
+                options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
+                value={visibilidade}
+                onChange={setVisibilidade}
+              />
+            </SectionCard>
+          )}
 
-        {step === 3 && (
-          <SectionCard title="4. Pessoas Envolvidas">
-            <Select
-              label="Autoria"
-              options={["Determinada", "Desconhecida", "Sem Autoria"]}
-              value={autoria}
-              onChange={setAutoria}
-            />
-            {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
+          {step === 1 && (
+            <SectionCard title="2. O Fato">
               <Field
-                label="Data da elucidação"
+                label="Data do Fato"
                 type="date"
-                value={dataElucidacao}
-                onChange={(e) => setDataElucidacao(e.target.value)}
+                value={dataFato}
+                onChange={(e) => setDataFato(e.target.value)}
               />
-            )}
-            <Select
-              label="Réu Preso"
-              options={["Sim", "Não"]}
-              value={reuPreso}
-              onChange={setReuPreso}
-            />
-            <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
-          </SectionCard>
-        )}
+              <ProceduralTagPicker
+                label="Tipificações"
+                hint="Adicione um ou mais crimes. Cada tipificação poderá ser usada em filtros e relatórios."
+                options={tipificacaoOptions}
+                value={selectedTipificacaoTagIds}
+                onChange={setSelectedTipificacaoTagIds}
+                onCreate={createTagOption}
+                createScope="tipificacao"
+                canCreate={canManageProceduralTags(profile)}
+                placeholder="Busque ou crie uma tipificação"
+              />
+              <ProceduralTagPicker
+                label="Gravidade do fato"
+                hint="Selecione uma ou mais gravidades. A primeira será a classificação principal do procedimento."
+                options={gravidadeOptions}
+                value={selectedGravidadeTagIds}
+                onChange={setSelectedGravidadeTagIds}
+                onCreate={createTagOption}
+                createScope="inquerito_gravidade"
+                canCreate={canManageProceduralTags(profile)}
+                placeholder="Busque ou crie uma gravidade"
+              />
+              <TextArea
+                label="Resumo do Fato"
+                rows={5}
+                placeholder="Registre, de forma objetiva, o fato que originou o procedimento..."
+                value={resumoFato}
+                onChange={(event) => setResumoFato(event.target.value)}
+              />
+              <SeizedWeaponsField
+                checked={houveArmaDeFogo === "Sim"}
+                onCheckedChange={(checked) => handleHouveArmaDeFogoChange(checked ? "Sim" : "Não")}
+                value={armaUtilizada}
+                onValueChange={setArmaUtilizada}
+              />
+            </SectionCard>
+          )}
 
-        {step === 4 && (
-          <SectionCard title="5. Situação e Prazos">
-            <ProceduralTagPicker
-              label="Status do procedimento"
-              hint="Selecione um ou mais status. O primeiro será o status principal e continuará no histórico."
-              options={statusOptions}
-              value={selectedStatusTagIds}
-              onChange={setSelectedStatusTagIds}
-              onCreate={createTagOption}
-              createScope="inquerito_status"
-              canCreate={canManageProceduralTags(profile)}
-              placeholder="Busque ou crie um status"
-            />
-            <Field
-              label="Data de Instauração"
-              type="date"
-              value={dataInstauracao}
-              onChange={(e) => setDataInstauracao(e.target.value)}
-            />
-            <Field
-              label="Prazo do procedimento (dias)"
-              type="number"
-              min={0}
-              max={3650}
-              value={prazoDias}
-              onChange={(e) => setPrazoDias(e.target.value)}
-            />
-            <div>
-              <FormFieldLabel label="Data final calculada" />
-              <input
-                type="date"
-                value={prazo}
-                disabled={!prazoManual}
-                onChange={(event) => setPrazo(event.target.value)}
-                className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-70"
+          {step === 2 && (
+            <SectionCard title="3. Local e Motivação">
+              <Field
+                label="Bairro"
+                placeholder="Informe ou selecione um bairro já utilizado"
+                list="novo-caso-bairros"
+                value={bairro}
+                onChange={(e) => setBairro(e.target.value)}
               />
-              <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={prazoManual}
-                  onChange={(event) => setPrazoManual(event.target.checked)}
+              <datalist id="novo-caso-bairros">
+                {bairroOptions.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
+              <Field
+                label="Cidade"
+                placeholder="Ex.: Itabela"
+                value={cidade}
+                onChange={(e) => setCidade(e.target.value)}
+              />
+              <Field
+                label="Motivação"
+                placeholder="Motivação principal"
+                value={motivacao}
+                onChange={(e) => setMotivacao(e.target.value)}
+              />
+              <Select
+                label="Vinculado a Facção"
+                options={["Sim", "Não", "A definir"]}
+                value={vinculadoFaccao}
+                onChange={handleVinculoFaccaoChange}
+              />
+              {isYesValue(vinculadoFaccao) && (
+                <Field
+                  label="Nome da Facção"
+                  placeholder="Informe a facção vinculada"
+                  value={nomeFaccao}
+                  onChange={(e) => setNomeFaccao(e.target.value)}
                 />
-                Alterar a data final manualmente
-              </label>
-            </div>
-            <TextArea
-              label="Observações e Diligências"
-              rows={6}
-              placeholder="Registre observações, diligências realizadas e providências pendentes..."
-              value={diligenciasPendentes}
-              onChange={(e) => setDiligenciasPendentes(e.target.value)}
-            />
-          </SectionCard>
-        )}
+              )}
+            </SectionCard>
+          )}
 
-        {step === REVIEW_STEP && (
-          <SectionCard title="6. Revisar e Registrar">
-            <div className="space-y-4 md:col-span-2 lg:col-span-3">
-              <ReviewGroup
-                title="Identificação"
-                onEdit={() => goToStep(0)}
-                rows={[
-                  ["PPE", ppe],
-                  ["Origem do registro", origemRegistro],
-                  ["Tipo de procedimento", tipo],
-                  ["Visibilidade", visibilidade],
-                ]}
+          {step === 3 && (
+            <SectionCard title="4. Pessoas Envolvidas">
+              <Select
+                label="Autoria"
+                options={["Determinada", "Desconhecida", "Sem Autoria"]}
+                value={autoria}
+                onChange={setAutoria}
               />
-              <ReviewGroup
-                title="Fato"
-                onEdit={() => goToStep(1)}
-                rows={[
-                  ["Data do fato", dataFato],
-                  ["Tipificações", selectedTipificacoes.map((tag) => tag.name).join("; ")],
-                  ["Gravidade", selectedGravidadeTags.map((tag) => tag.name).join("; ")],
-                  ["Resumo do fato", resumoFato],
-                  ["Arma de fogo", houveArmaDeFogo === "Sim" ? armaUtilizada || "Sim" : "Não"],
-                ]}
+              {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
+                <Field
+                  label="Data da elucidação"
+                  type="date"
+                  value={dataElucidacao}
+                  onChange={(e) => setDataElucidacao(e.target.value)}
+                />
+              )}
+              <Select
+                label="Réu Preso"
+                options={["Sim", "Não"]}
+                value={reuPreso}
+                onChange={setReuPreso}
               />
-              <ReviewGroup
-                title="Local e motivação"
-                onEdit={() => goToStep(2)}
-                rows={[
-                  ["Bairro", bairro],
-                  ["Cidade", cidade],
-                  ["Motivação", motivacao],
-                  ["Facção", isYesValue(vinculadoFaccao) ? nomeFaccao || "Sim" : vinculadoFaccao],
-                ]}
-              />
-              <ReviewGroup
-                title="Pessoas"
-                onEdit={() => goToStep(3)}
-                rows={[
-                  ["Autoria", autoria],
-                  ["Data da elucidação", dataElucidacao],
-                  ["Réu preso", reuPreso],
-                  ["Vítima", vitima],
-                  ["Investigado", investigado],
-                  [
-                    "Pessoas cadastradas",
-                    pessoas.filter((pessoa) => pessoa.nome.trim()).length || "",
-                  ],
-                ]}
-              />
-              <ReviewGroup
-                title="Situação e prazos"
-                onEdit={() => goToStep(4)}
-                rows={[
-                  ["Status", selectedStatusTags.map((tag) => tag.name).join("; ")],
-                  ["Data de instauração", dataInstauracao],
-                  ["Prazo (dias)", prazoDias],
-                  ["Data final", prazo],
-                  ["Observações e diligências", diligenciasPendentes],
-                ]}
-              />
+              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
+            </SectionCard>
+          )}
 
-              {pendingChecks.length > 0 && (
-                <div className="rounded-xl border border-warning/35 bg-warning/10 p-4">
-                  <h3 className="text-sm font-bold text-warning">
-                    {pendingChecks.length === 1
-                      ? "1 informação recomendada está em branco"
-                      : `${pendingChecks.length} informações recomendadas estão em branco`}
-                  </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    O registro pode ser concluído assim mesmo. Toque em um item para voltar à etapa
-                    correspondente.
-                  </p>
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {pendingChecks.map((item) => (
-                      <li key={item.id}>
-                        <button
-                          type="button"
-                          onClick={() => goToStep(CHECK_STEP[item.id] ?? 0)}
-                          className="rounded-lg border border-warning/30 bg-background/60 px-3 py-1.5 text-left text-[11px] font-semibold hover:border-warning/60"
-                        >
-                          {item.label}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+          {step === 4 && (
+            <SectionCard title="5. Situação e Prazos">
+              <ProceduralTagPicker
+                label="Status do procedimento"
+                hint="Selecione um ou mais status. O primeiro será o status principal e continuará no histórico."
+                options={statusOptions}
+                value={selectedStatusTagIds}
+                onChange={setSelectedStatusTagIds}
+                onCreate={createTagOption}
+                createScope="inquerito_status"
+                canCreate={canManageProceduralTags(profile)}
+                placeholder="Busque ou crie um status"
+              />
+              <Field
+                label="Data de Instauração"
+                type="date"
+                value={dataInstauracao}
+                onChange={(e) => setDataInstauracao(e.target.value)}
+              />
+              <Field
+                label="Prazo do procedimento (dias)"
+                type="number"
+                min={0}
+                max={3650}
+                value={prazoDias}
+                onChange={(e) => setPrazoDias(e.target.value)}
+              />
+              <div>
+                <FormFieldLabel label="Data final calculada" />
+                <input
+                  type="date"
+                  value={prazo}
+                  disabled={!prazoManual}
+                  onChange={(event) => setPrazo(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-70"
+                />
+                <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={prazoManual}
+                    onChange={(event) => setPrazoManual(event.target.checked)}
+                  />
+                  Alterar a data final manualmente
+                </label>
+              </div>
+              <TextArea
+                label="Observações e Diligências"
+                rows={6}
+                placeholder="Registre observações, diligências realizadas e providências pendentes..."
+                value={diligenciasPendentes}
+                onChange={(e) => setDiligenciasPendentes(e.target.value)}
+              />
+            </SectionCard>
+          )}
+
+          {step === REVIEW_STEP && (
+            <SectionCard title="6. Revisar e Registrar">
+              <div className="space-y-4 md:col-span-2 lg:col-span-3">
+                <ReviewGroup
+                  title="Identificação"
+                  onEdit={() => goToStep(0)}
+                  rows={[
+                    ["PPE", ppe],
+                    ["Origem do registro", origemRegistro],
+                    ["Tipo de procedimento", tipo],
+                    ["Visibilidade", visibilidade],
+                  ]}
+                />
+                <ReviewGroup
+                  title="Fato"
+                  onEdit={() => goToStep(1)}
+                  rows={[
+                    ["Data do fato", dataFato],
+                    ["Tipificações", selectedTipificacoes.map((tag) => tag.name).join("; ")],
+                    ["Gravidade", selectedGravidadeTags.map((tag) => tag.name).join("; ")],
+                    ["Resumo do fato", resumoFato],
+                    ["Arma de fogo", houveArmaDeFogo === "Sim" ? armaUtilizada || "Sim" : "Não"],
+                  ]}
+                />
+                <ReviewGroup
+                  title="Local e motivação"
+                  onEdit={() => goToStep(2)}
+                  rows={[
+                    ["Bairro", bairro],
+                    ["Cidade", cidade],
+                    ["Motivação", motivacao],
+                    ["Facção", isYesValue(vinculadoFaccao) ? nomeFaccao || "Sim" : vinculadoFaccao],
+                  ]}
+                />
+                <ReviewGroup
+                  title="Pessoas"
+                  onEdit={() => goToStep(3)}
+                  rows={[
+                    ["Autoria", autoria],
+                    ["Data da elucidação", dataElucidacao],
+                    ["Réu preso", reuPreso],
+                    ["Vítima", vitima],
+                    ["Investigado", investigado],
+                    [
+                      "Pessoas cadastradas",
+                      pessoas.filter((pessoa) => pessoa.nome.trim()).length || "",
+                    ],
+                  ]}
+                />
+                <ReviewGroup
+                  title="Situação e prazos"
+                  onEdit={() => goToStep(4)}
+                  rows={[
+                    ["Status", selectedStatusTags.map((tag) => tag.name).join("; ")],
+                    ["Data de instauração", dataInstauracao],
+                    ["Prazo (dias)", prazoDias],
+                    ["Data final", prazo],
+                    ["Observações e diligências", diligenciasPendentes],
+                  ]}
+                />
+
+                {pendingChecks.length > 0 && (
+                  <div className="rounded-xl border border-warning/35 bg-warning/10 p-4">
+                    <h3 className="text-sm font-bold text-warning">
+                      {pendingChecks.length === 1
+                        ? "1 informação recomendada está em branco"
+                        : `${pendingChecks.length} informações recomendadas estão em branco`}
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      O registro pode ser concluído assim mesmo. Toque em um item para voltar à
+                      etapa correspondente.
+                    </p>
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {pendingChecks.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            onClick={() => goToStep(CHECK_STEP[item.id] ?? 0)}
+                            className="rounded-lg border border-warning/30 bg-background/60 px-3 py-1.5 text-left text-[11px] font-semibold hover:border-warning/60"
+                          >
+                            {item.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
+          {(erro || feedback) && (
+            <div className="space-y-2">
+              {erro && (
+                <p className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+                  {erro}
+                </p>
+              )}
+              {feedback && (
+                <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">
+                  {feedback}
+                </p>
               )}
             </div>
-          </SectionCard>
-        )}
+          )}
 
-        {(erro || feedback) && (
-          <div className="space-y-2">
-            {erro && (
-              <p className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-                {erro}
-              </p>
-            )}
-            {feedback && (
-              <p className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">
-                {feedback}
-              </p>
+          {savedCaseId && pendingLinksLabel ? (
+            <IncompleteSaveNotice
+              title={`Procedimento salvo, mas ${pendingLinksLabel} não foram vinculadas.`}
+              description="O procedimento já está gravado — não é preciso salvar de novo. Tente vincular novamente ou abra o procedimento e ajuste por lá."
+              busy={loading}
+              retryLabel="Tentar vincular novamente"
+              onRetry={() => void retryPendingLinks()}
+              onContinue={() =>
+                navigate({ to: "/inqueritos/$caseId", params: { caseId: savedCaseId } })
+              }
+            />
+          ) : null}
+
+          <div className="flex flex-col-reverse gap-3 border-t border-border/80 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={() => (step === 0 ? navigate({ to: "/inqueritos" }) : goToStep(step - 1))}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold hover:bg-accent"
+            >
+              {step === 0 ? (
+                "Cancelar"
+              ) : (
+                <>
+                  <ArrowLeft className="h-4 w-4" /> Anterior
+                </>
+              )}
+            </button>
+            {step < REVIEW_STEP ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="sipi-cta-green inline-flex h-11 items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold"
+              >
+                Próximo <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="sipi-cta-green sipi-cta-neon inline-flex h-11 items-center justify-center gap-2 rounded-lg px-6 text-sm font-black tracking-wide disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-4 w-4" />
+                )}
+                {loading ? "Registrando..." : "Registrar Inquérito"}
+              </button>
             )}
           </div>
-        )}
-
-        {savedCaseId && pendingLinksLabel ? (
-          <IncompleteSaveNotice
-            title={`Procedimento salvo, mas ${pendingLinksLabel} não foram vinculadas.`}
-            description="O procedimento já está gravado — não é preciso salvar de novo. Tente vincular novamente ou abra o procedimento e ajuste por lá."
-            busy={loading}
-            retryLabel="Tentar vincular novamente"
-            onRetry={() => void retryPendingLinks()}
-            onContinue={() =>
-              navigate({ to: "/inqueritos/$caseId", params: { caseId: savedCaseId } })
-            }
-          />
-        ) : null}
-
-        <div className="flex flex-col-reverse gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            onClick={() => (step === 0 ? navigate({ to: "/inqueritos" }) : goToStep(step - 1))}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border px-5 text-sm font-semibold hover:bg-accent"
-          >
-            {step === 0 ? (
-              "Cancelar"
-            ) : (
-              <>
-                <ArrowLeft className="h-4 w-4" /> Anterior
-              </>
-            )}
-          </button>
-          {step < REVIEW_STEP ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="sipi-cta-green inline-flex h-11 items-center justify-center gap-2 rounded-lg px-6 text-sm font-bold"
-            >
-              Próximo <ArrowRight className="h-4 w-4" />
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={loading}
-              className="sipi-cta-green sipi-cta-neon inline-flex h-11 items-center justify-center gap-2 rounded-lg px-6 text-sm font-black tracking-wide disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loading ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="h-4 w-4" />
-              )}
-              {loading ? "Registrando..." : "Registrar Inquérito"}
-            </button>
-          )}
-        </div>
-      </form>
+        </form>
+      </div>
     </AppLayout>
   );
 }
