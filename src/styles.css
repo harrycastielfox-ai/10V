@@ -302,6 +302,43 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     box-shadow: 0 0 18px color-mix(in oklab, var(--primary) 28%, transparent);
   }
 
+  /* Avanço e conclusão dos cadastros em etapas. O verde é o mesmo --success do
+     restante do sistema; o neon fica só no botão que grava o registro. */
+  .sipi-cta-green {
+    background: var(--success);
+    color: color-mix(in oklab, var(--success) 12%, black 88%);
+    transition:
+      filter 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .sipi-cta-green:hover {
+    filter: brightness(1.08);
+  }
+
+  .sipi-cta-green:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .sipi-cta-neon {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--success) 55%, transparent),
+      0 0 18px color-mix(in oklab, var(--success) 45%, transparent),
+      0 0 38px color-mix(in oklab, var(--success) 22%, transparent);
+  }
+
+  .sipi-cta-neon:hover {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--success) 70%, transparent),
+      0 0 24px color-mix(in oklab, var(--success) 58%, transparent),
+      0 0 52px color-mix(in oklab, var(--success) 30%, transparent);
+  }
+
+  html[data-theme="light"] .sipi-cta-green {
+    color: white;
+  }
+
   .appearance-trigger {
     position: relative;
     display: inline-flex;
