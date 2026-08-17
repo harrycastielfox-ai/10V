@@ -1,5 +1,6 @@
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
+import { clearSessionCaches } from "@/lib/sessionCache";
 import {
   PUBLIC_SIGNUP_INSTITUTIONAL_FUNCTIONS,
   type InstitutionalFunction,
@@ -123,7 +124,13 @@ export async function getSession() {
 }
 
 export async function logout(): Promise<void> {
-  await supabase.auth.signOut();
+  try {
+    await supabase.auth.signOut();
+  } finally {
+    // Não espera o evento de auth: mesmo se o signOut falhar, nada da sessão
+    // anterior pode continuar em memória.
+    clearSessionCaches();
+  }
 }
 
 export async function getCurrentProfile(): Promise<CurrentUserProfile | null> {

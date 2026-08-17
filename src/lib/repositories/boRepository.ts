@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import {
+  currentSessionGeneration,
+  isSessionGenerationCurrent,
+  registerSessionCache,
+} from "@/lib/sessionCache";
 import type { BoPayload, BoRecord } from "@/features/bo/boTypes";
 
 const LIST_CACHE_TTL_MS = 10_000;
@@ -10,6 +15,11 @@ function invalidateBoCache() {
   boCache = null;
 }
 
+registerSessionCache(() => {
+  boCache = null;
+  boPending = null;
+});
+
 export async function listBos(options: { forceRefresh?: boolean } = {}) {
   if (boPending) return boPending;
   const now = Date.now();
@@ -17,6 +27,7 @@ export async function listBos(options: { forceRefresh?: boolean } = {}) {
     return boCache.data;
   }
 
+  const generation = currentSessionGeneration();
   boPending = runSupabaseQuery<BoRecord[]>("boletins de ocorrência", (signal) =>
     supabase
       .from("boletins_ocorrencia")
@@ -28,11 +39,13 @@ export async function listBos(options: { forceRefresh?: boolean } = {}) {
   )
     .then((data) => {
       const rows = (data ?? []) as BoRecord[];
-      boCache = { data: rows, fetchedAt: Date.now() };
+      if (isSessionGenerationCurrent(generation)) {
+        boCache = { data: rows, fetchedAt: Date.now() };
+      }
       return rows;
     })
     .finally(() => {
-      boPending = null;
+      if (isSessionGenerationCurrent(generation)) boPending = null;
     });
 
   return boPending;

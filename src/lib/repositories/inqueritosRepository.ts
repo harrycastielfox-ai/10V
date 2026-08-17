@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import {
+  currentSessionGeneration,
+  isSessionGenerationCurrent,
+  registerSessionCache,
+} from "@/lib/sessionCache";
 
 export type InqueritoRecord = {
   id: string;
@@ -99,6 +104,11 @@ function invalidateInqueritosCache() {
   inqueritosCache = null;
 }
 
+registerSessionCache(() => {
+  inqueritosCache = null;
+  inqueritosPending = null;
+});
+
 export async function listInqueritos(options: { forceRefresh?: boolean } = {}) {
   if (inqueritosPending) {
     return inqueritosPending;
@@ -113,6 +123,7 @@ export async function listInqueritos(options: { forceRefresh?: boolean } = {}) {
     return inqueritosCache.data;
   }
 
+  const generation = currentSessionGeneration();
   inqueritosPending = runSupabaseQuery<InqueritoRecord[]>("inquéritos", (signal) =>
     supabase
       .from("inqueritos")
@@ -123,11 +134,13 @@ export async function listInqueritos(options: { forceRefresh?: boolean } = {}) {
   )
     .then((data) => {
       const rows = (data ?? []) as InqueritoRecord[];
-      inqueritosCache = { data: rows, fetchedAt: Date.now() };
+      if (isSessionGenerationCurrent(generation)) {
+        inqueritosCache = { data: rows, fetchedAt: Date.now() };
+      }
       return rows;
     })
     .finally(() => {
-      inqueritosPending = null;
+      if (isSessionGenerationCurrent(generation)) inqueritosPending = null;
     });
 
   return inqueritosPending;

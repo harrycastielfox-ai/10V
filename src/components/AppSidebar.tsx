@@ -76,8 +76,8 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
   const avatarUrl = getProfileAvatarPublicUrl(profile.avatar_path);
   const initial = (profile.nome?.trim().charAt(0) || "?").toUpperCase();
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate({ to: "/login" });
   }
 

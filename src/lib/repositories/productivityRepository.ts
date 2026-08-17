@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import {
+  currentSessionGeneration,
+  isSessionGenerationCurrent,
+  registerSessionCache,
+} from "@/lib/sessionCache";
 
 export type EscrivaoProductivityRow = {
   user_id: string;
@@ -18,6 +23,11 @@ const LIST_CACHE_TTL_MS = 10000;
 const productivityCache = new Map<number, { data: EscrivaoProductivityRow[]; fetchedAt: number }>();
 const productivityPending = new Map<number, Promise<EscrivaoProductivityRow[]>>();
 
+registerSessionCache(() => {
+  productivityCache.clear();
+  productivityPending.clear();
+});
+
 export async function listEscrivaoProductivity(
   days = 30,
   options: { forceRefresh?: boolean } = {},
@@ -31,6 +41,7 @@ export async function listEscrivaoProductivity(
     return cached.data;
   }
 
+  const generation = currentSessionGeneration();
   const request = runSupabaseQuery<EscrivaoProductivityRow[]>(
     "produtividade dos escrivães",
     (signal) =>
@@ -47,11 +58,13 @@ export async function listEscrivaoProductivity(
       })),
     )
     .then((rows) => {
-      productivityCache.set(safeDays, { data: rows, fetchedAt: Date.now() });
+      if (isSessionGenerationCurrent(generation)) {
+        productivityCache.set(safeDays, { data: rows, fetchedAt: Date.now() });
+      }
       return rows;
     })
     .finally(() => {
-      productivityPending.delete(safeDays);
+      if (isSessionGenerationCurrent(generation)) productivityPending.delete(safeDays);
     });
 
   productivityPending.set(safeDays, request);

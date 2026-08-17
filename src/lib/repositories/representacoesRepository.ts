@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import {
+  currentSessionGeneration,
+  isSessionGenerationCurrent,
+  registerSessionCache,
+} from "@/lib/sessionCache";
 
 export type RepresentacaoRecord = {
   id: string;
@@ -83,6 +88,11 @@ function invalidateRepresentacoesCache() {
   representacoesCache = null;
 }
 
+registerSessionCache(() => {
+  representacoesCache = null;
+  representacoesPending = null;
+});
+
 export async function listRepresentacoes(options: { forceRefresh?: boolean } = {}) {
   if (representacoesPending) {
     return representacoesPending;
@@ -97,6 +107,7 @@ export async function listRepresentacoes(options: { forceRefresh?: boolean } = {
     return representacoesCache.data;
   }
 
+  const generation = currentSessionGeneration();
   representacoesPending = runSupabaseQuery<RepresentacaoRecord[]>("representações", (signal) =>
     supabase
       .from("representacoes")
@@ -107,11 +118,13 @@ export async function listRepresentacoes(options: { forceRefresh?: boolean } = {
   )
     .then((data) => {
       const rows = (data ?? []) as RepresentacaoRecord[];
-      representacoesCache = { data: rows, fetchedAt: Date.now() };
+      if (isSessionGenerationCurrent(generation)) {
+        representacoesCache = { data: rows, fetchedAt: Date.now() };
+      }
       return rows;
     })
     .finally(() => {
-      representacoesPending = null;
+      if (isSessionGenerationCurrent(generation)) representacoesPending = null;
     });
 
   return representacoesPending;
