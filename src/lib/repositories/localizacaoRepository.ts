@@ -389,21 +389,14 @@ export async function createEndereco(payload: EnderecoPayload): Promise<Endereco
 }
 
 export async function softDeleteEndereco(id: string): Promise<void> {
-  const { data: userResult, error: userError } = await supabase.auth.getUser();
-  if (userError || !userResult.user?.id) {
-    throw new Error("Sessão expirada. Entre novamente para excluir o endereço.");
-  }
-
-  const { data, error } = await supabase
-    .from("localizacao_enderecos")
-    .update({ deleted_at: new Date().toISOString(), updated_by: userResult.user.id })
-    .eq("id", id)
-    .is("deleted_at", null)
-    .select("id")
-    .maybeSingle();
+  // Pela função, e não por UPDATE direto: a policy de SELECT esconde a linha
+  // com deleted_at preenchido, e o cliente não consegue recebê-la de volta.
+  const { data, error } = await supabase.rpc("soft_delete_localizacao_endereco", {
+    p_endereco_id: id,
+  });
   if (error) fail("Falha ao excluir endereço", error);
   if (!data) {
-    throw new Error("Endereço não encontrado ou sem permissão para exclusão.");
+    throw new Error("Endereço não encontrado ou já excluído.");
   }
 }
 
@@ -538,21 +531,12 @@ export async function listPessoas(search = ""): Promise<PessoaAlvoRecord[]> {
 }
 
 export async function softDeletePessoa(id: string): Promise<void> {
-  const { data: userResult, error: userError } = await supabase.auth.getUser();
-  if (userError || !userResult.user?.id) {
-    throw new Error("Sessão expirada. Entre novamente para excluir o contato.");
-  }
-
-  const { data, error } = await supabase
-    .from("localizacao_pessoas")
-    .update({ deleted_at: new Date().toISOString(), updated_by: userResult.user.id })
-    .eq("id", id)
-    .is("deleted_at", null)
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("soft_delete_localizacao_pessoa", {
+    p_pessoa_id: id,
+  });
   if (error) fail("Falha ao excluir contato", error);
   if (!data) {
-    throw new Error("Contato não encontrado ou sem permissão para exclusão.");
+    throw new Error("Contato não encontrado ou já excluído.");
   }
 }
 
