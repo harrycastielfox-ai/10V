@@ -14,6 +14,7 @@ import {
   Check,
   ChevronDown,
   Filter,
+  Lock,
   Pencil,
   Plus,
   Printer,
@@ -563,6 +564,19 @@ function getPrazoDisplay(prazo: string) {
       ? `Vence hoje. Prazo: ${dateText}`
       : `Prazo em ${diffDays} ${pluralizeDays(diffDays)}. Prazo: ${dateText}`;
   return { text: dateText, title, tone: "text-emerald-400/80" };
+}
+
+function isInqueritoSigiloso(record: InqueritoRecord) {
+  const raw = record as unknown as Record<string, unknown>;
+  const visibility = normalizeText(
+    String(raw.visibilidade ?? raw.visibility ?? raw.publico_privado ?? ""),
+  );
+  return (
+    visibility.includes("sig") ||
+    raw.sigiloso === true ||
+    raw.sigiloso_normalizado === true ||
+    isTruthyLike(raw.sigiloso)
+  );
 }
 
 function normalizeInqueritoForList(caso: InqueritoRecord, tagIds: string[] = []): InqueritoListRow {
@@ -1856,6 +1870,7 @@ function Inqueritos() {
                 const prazoVencido = isPrazoVencido(row.prazo);
                 const prazoDisplay = getPrazoDisplay(row.prazo);
                 const reuPreso = hasReuPreso(row);
+                const sigiloso = isInqueritoSigiloso(row.source);
                 const numeroPpe = row.numeroPpe || FALLBACK;
                 const tipificacao = row.tipificacao || FALLBACK;
                 const gravidade =
@@ -1885,12 +1900,23 @@ function Inqueritos() {
                     style={{ gridTemplateColumns: tableGridTemplate }}
                   >
                     <td className="px-3 py-2.5 align-middle" style={getInquiryColumnStyle("ppe")}>
-                      <p
-                        className="truncate font-mono text-[14px] font-bold leading-5 text-primary drop-shadow-[0_0_8px_rgba(34,197,94,0.16)]"
-                        title={numeroPpe}
+                      <div
+                        className="flex min-w-0 items-center gap-2"
+                        title={sigiloso ? `${numeroPpe} - procedimento sigiloso` : numeroPpe}
                       >
-                        {numeroPpe}
-                      </p>
+                        <p
+                          className={`truncate font-mono text-[14px] font-bold leading-5 ${
+                            sigiloso
+                              ? "text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.24)]"
+                              : "text-primary drop-shadow-[0_0_8px_rgba(34,197,94,0.16)]"
+                          }`}
+                        >
+                          {numeroPpe}
+                        </p>
+                        {sigiloso ? (
+                          <Lock className="h-3.5 w-3.5 shrink-0 text-purple-400" aria-hidden />
+                        ) : null}
+                      </div>
                     </td>
                     <td
                       className="px-2.5 py-2.5 align-middle"
