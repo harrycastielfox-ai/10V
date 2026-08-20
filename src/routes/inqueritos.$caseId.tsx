@@ -56,6 +56,7 @@ import {
   FolderOpen,
   Gavel,
   Link2,
+  Lock,
   MoreVertical,
   Pencil,
   Printer,
@@ -166,6 +167,15 @@ function pickCaseCategory(record: Record<string, unknown>) {
     if (normalized !== FALLBACK) return normalized;
   }
   return FALLBACK;
+}
+
+function isInqueritoSigiloso(record: InqueritoRecord) {
+  const raw = record as unknown as Record<string, unknown>;
+  const visibility = normalizeText(
+    String(raw.visibilidade ?? raw.visibility ?? raw.publico_privado ?? ""),
+  );
+  const sigiloso = normalizeText(String(raw.sigiloso ?? raw.sigiloso_normalizado ?? ""));
+  return visibility.includes("sig") || raw.sigiloso === true || raw.sigiloso_normalizado === true || sigiloso === "sim";
 }
 
 function parsePrazoToUtc(value: string) {
@@ -621,6 +631,7 @@ function InqueritoDetalhes() {
   const prazoSummary = getPrazoSummary(detalhe.prazo);
   const pendingChecks = registrationChecks.filter((item) => !item.complete);
   const headerIdentifier = detalhe.numeroPpe !== FALLBACK ? detalhe.numeroPpe : "sem identificação";
+  const sigiloso = isInqueritoSigiloso(caso);
   const peopleRows: Array<[string, string]> =
     pessoas.length > 0
       ? pessoas.map((pessoa) => [
@@ -772,6 +783,15 @@ function InqueritoDetalhes() {
                   <span className="truncate">{displayValue(detalhe.tipo)}</span>
                   <span className="text-border">•</span>
                   <span className="truncate">{displayValue(detalhe.gravidade)}</span>
+                  {sigiloso ? (
+                    <>
+                      <span className="text-border">•</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-purple-400/40 bg-purple-500/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-purple-500">
+                        <Lock className="h-3 w-3" />
+                        Sigiloso
+                      </span>
+                    </>
+                  ) : null}
                   {detalhe.ultimaEdicao !== FALLBACK && (
                     <>
                       <span className="hidden text-border sm:inline">•</span>
