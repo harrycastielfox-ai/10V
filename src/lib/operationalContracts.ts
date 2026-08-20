@@ -89,6 +89,28 @@ export const OCCURRENCE_ORIGIN_OPTIONS = [
 
 export type OccurrenceOrigin = (typeof OCCURRENCE_ORIGIN_OPTIONS)[number]["value"];
 
+// Origens gravadas pelo próprio sistema. Não aparecem no seletor porque ninguém
+// as escolhe à mão, mas precisam de rótulo e precisam sobreviver a uma edição.
+export const SYSTEM_OCCURRENCE_ORIGIN_LABELS: Record<string, string> = {
+  restaurado: "Registro restaurado",
+  relacionado: "Registro relacionado",
+  planilha_oficial: "Planilha oficial",
+};
+
+export function isEditableOccurrenceOrigin(value: string): value is OccurrenceOrigin {
+  return OCCURRENCE_ORIGIN_OPTIONS.some((option) => option.value === value);
+}
+
+export function getOccurrenceOriginLabel(value: string | null | undefined) {
+  const normalized = (value ?? "").trim();
+  if (!normalized) return "";
+  return (
+    OCCURRENCE_ORIGIN_OPTIONS.find((option) => option.value === normalized)?.label ??
+    SYSTEM_OCCURRENCE_ORIGIN_LABELS[normalized] ??
+    normalized
+  );
+}
+
 export const REPORT_STATUS_OPTIONS = [
   { value: "pendente", label: "Pendente de relatório" },
   { value: "relatado", label: "Relatado, ainda não enviado" },

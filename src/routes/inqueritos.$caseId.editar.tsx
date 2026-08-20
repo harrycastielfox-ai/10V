@@ -46,6 +46,8 @@ import {
   createInquiryPerson,
   deriveInquiryAutoria,
   deriveInquiryReuPreso,
+  getOccurrenceOriginLabel,
+  isEditableOccurrenceOrigin,
   isYesValue,
   normalizeCriminalCategory,
   normalizePriority,
@@ -111,6 +113,9 @@ function EditarInquerito() {
   const [resumoFato, setResumoFato] = useState("");
   const [tipo, setTipo] = useState("");
   const [origemRegistro, setOrigemRegistro] = useState<OccurrenceOrigin>("novo");
+  // Origem definida pelo sistema (planilha oficial, restauração, vínculo). Fica
+  // fora do seletor e é devolvida intacta no salvamento.
+  const [origemRegistroSistema, setOrigemRegistroSistema] = useState("");
   const [prioridade, setPrioridade] = useState("");
   const [situacao, setSituacao] = useState("");
   const [statusDiligencias, setStatusDiligencias] = useState("");
@@ -305,12 +310,10 @@ function EditarInquerito() {
             normalizeProcedureType(inquerito.tipo_procedimento_normalizado ?? inquerito.tipo),
           ),
         );
-        const savedOrigin = String(inquerito.origem_registro ?? "");
-        setOrigemRegistro(
-          OCCURRENCE_ORIGIN_OPTIONS.some((option) => option.value === savedOrigin)
-            ? (savedOrigin as OccurrenceOrigin)
-            : "novo",
-        );
+        const savedOrigin = String(inquerito.origem_registro ?? "").trim();
+        const originIsEditable = isEditableOccurrenceOrigin(savedOrigin);
+        setOrigemRegistro(originIsEditable ? savedOrigin : "novo");
+        setOrigemRegistroSistema(originIsEditable ? "" : savedOrigin);
         setPrioridade(inquerito.prioridade ?? "");
         setSituacao(inquerito.situacao ?? "");
         setStatusDiligencias(inquerito.status_diligencias ?? "");
@@ -496,7 +499,7 @@ function EditarInquerito() {
       const autoriaDeterminada = autoria === "Determinada";
       const payload = {
         numero_ppe: numeroPpe.trim() || null,
-        origem_registro: origemRegistro,
+        origem_registro: origemRegistroSistema || origemRegistro,
         visibilidade: visibilidade.trim() || null,
         tipificacao: selectedTipificacoes.map((tag) => tag.name).join("; "),
         resumo_fato: resumoFato.trim() || null,
@@ -637,12 +640,21 @@ function EditarInquerito() {
               value={numeroPpe}
               onChange={(e) => setNumeroPpe(e.target.value)}
             />
-            <OptionSelect
-              label="Origem do registro"
-              options={OCCURRENCE_ORIGIN_OPTIONS}
-              value={origemRegistro}
-              onChange={(value) => setOrigemRegistro(value as OccurrenceOrigin)}
-            />
+            {origemRegistroSistema ? (
+              <Field
+                label="Origem do registro"
+                value={getOccurrenceOriginLabel(origemRegistroSistema)}
+                readOnly
+                title="Origem definida pelo sistema. É preservada ao salvar."
+              />
+            ) : (
+              <OptionSelect
+                label="Origem do registro"
+                options={OCCURRENCE_ORIGIN_OPTIONS}
+                value={origemRegistro}
+                onChange={(value) => setOrigemRegistro(value as OccurrenceOrigin)}
+              />
+            )}
             <Select
               label="Tipo de Procedimento"
               value={tipo}

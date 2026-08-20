@@ -41,8 +41,8 @@ import {
 } from "@/lib/inqueritosPriority";
 import {
   getInquiryRegistrationChecks,
+  getOccurrenceOriginLabel,
   isYesValue,
-  OCCURRENCE_ORIGIN_OPTIONS,
   REPORT_STATUS_OPTIONS,
   type ReportStatus,
 } from "@/lib/operationalContracts";
@@ -314,7 +314,7 @@ function normalizeInqueritoForDetail(caso: InqueritoRecord): InqueritoDetalheUI 
     tipificacao: pick(raw, "tipificacao"),
     numeroFisico: pick(raw, "numero_fisico", "numeroFisico"),
     numeroBo: pick(raw, "numero_bo", "numeroBo"),
-    origemRegistro: getOptionLabel(pick(raw, "origem_registro"), OCCURRENCE_ORIGIN_OPTIONS),
+    origemRegistro: getOccurrenceOriginLabel(pick(raw, "origem_registro")) || FALLBACK,
     visibilidade: pick(raw, "visibilidade"),
     tipo: pick(
       raw,
