@@ -51,6 +51,35 @@ export async function listBos(options: { forceRefresh?: boolean } = {}) {
   return boPending;
 }
 
+/**
+ * Busca por número, infração ou responsável direto no banco.
+ * A lista completa é cacheada e filtrada no cliente, o que serve às telas do
+ * módulo; para a busca global o filtro precisa ser do servidor.
+ */
+export async function searchBos(query: string, limit = 5) {
+  const safe = query.trim().replace(/[%_,()]/g, "");
+  if (safe.length < 2) return [];
+
+  const data = await runSupabaseQuery<BoRecord[]>("busca de boletins", (signal) =>
+    supabase
+      .from("boletins_ocorrencia")
+      .select("*")
+      .is("deleted_at", null)
+      .or(
+        [
+          `numero_bo.ilike.%${safe}%`,
+          `infracao_penal.ilike.%${safe}%`,
+          `responsavel_nome.ilike.%${safe}%`,
+        ].join(","),
+      )
+      .order("updated_at", { ascending: false })
+      .limit(limit)
+      .abortSignal(signal),
+  );
+
+  return (data ?? []) as BoRecord[];
+}
+
 export async function getBoById(id: string) {
   return runSupabaseQuery<BoRecord | null>("boletim de ocorrência", (signal) =>
     supabase

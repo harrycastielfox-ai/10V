@@ -12,6 +12,9 @@ type AppModule = "inqueritos" | "veiculos" | "objetos" | "agenda" | "bo";
 const AppSidebar = lazy(() =>
   import("./AppSidebar").then((module) => ({ default: module.AppSidebar })),
 );
+const CommandPalette = lazy(() =>
+  import("./CommandPalette").then((module) => ({ default: module.CommandPalette })),
+);
 const DueSoonNotification = lazy(() =>
   import("./DueSoonNotification").then((module) => ({ default: module.DueSoonNotification })),
 );
@@ -196,6 +199,12 @@ export function AppLayout({
         >
           {children}
         </main>
+        {/* Busca global por Ctrl+K. Fica fora do <main> para valer em todos os módulos. */}
+        {mobile ? null : (
+          <Suspense fallback={null}>
+            <CommandPalette />
+          </Suspense>
+        )}
       </div>
     </AppProfileContext.Provider>
   );
