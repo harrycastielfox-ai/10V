@@ -443,6 +443,7 @@ html[data-theme="light"] .bo-row:hover {
 
   .bo-module-shell,
   html[data-theme="light"] .bo-module-shell {
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     color: #111827 !important;
@@ -451,32 +452,5 @@ html[data-theme="light"] .bo-row:hover {
 
   .bo-module-shell::before {
     display: none;
-  }
-
-  .bo-surface,
-  .bo-flat-surface {
-    break-inside: avoid;
-    border-color: #d1d5db !important;
-    color: #111827 !important;
-    background: #fff !important;
-    box-shadow: none !important;
-  }
-
-  .bo-strong,
-  .bo-title,
-  .bo-section-title {
-    color: #111827 !important;
-  }
-
-  .bo-muted,
-  .bo-faint,
-  .bo-kicker {
-    color: #4b5563 !important;
-  }
-
-  .bo-detail-hero {
-    color: #fff !important;
-    background: #2e1065 !important;
-    box-shadow: none !important;
   }
 }

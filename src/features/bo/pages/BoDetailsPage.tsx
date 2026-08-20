@@ -13,6 +13,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useAppProfile } from "@/components/AppProfileContext";
+import { SipiPrintSheet, type SipiPrintSection } from "@/components/SipiPrintSheet";
 import { canManageBos } from "@/lib/authz";
 import { getErrorCode, getErrorMessage } from "@/lib/errorMessage";
 import { getBoById, softDeleteBo } from "@/lib/repositories/boRepository";
@@ -21,8 +22,14 @@ import {
   getRepresentacaoById,
   type RepresentacaoRecord,
 } from "@/lib/repositories/representacoesRepository";
-import type { BoRecord } from "../boTypes";
+import { getBoStatusLabel, type BoRecord } from "../boTypes";
 import { BoStatusBadge } from "../components/BoStatusBadge";
+
+const BO_ORIGEM_LABELS: Record<BoRecord["origem_registro"], string> = {
+  sipi: "SIPI",
+  google_sheets: "Planilha oficial",
+  migrado: "Procedimento migrado",
+};
 
 export default function BoDetailsPage({ boId }: { boId: string }) {
   const profile = useAppProfile();
@@ -90,8 +97,78 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
     );
   }
 
+  const statusLabel = getBoStatusLabel(record.status);
+  const origemLabel = BO_ORIGEM_LABELS[record.origem_registro] ?? "SIPI";
+  const inqueritoResumo = inquerito
+    ? [
+        inquerito.numero_ppe || "Sem número PPE",
+        inquerito.tipo_procedimento_normalizado || inquerito.tipo,
+        inquerito.situacao,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  const representacaoResumo = representacao
+    ? [
+        representacao.processo_judicial || representacao.numero_ppe || "Sem número",
+        representacao.tipo,
+        representacao.status,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  const printSections: SipiPrintSection[] = [
+    {
+      title: "Identificação do boletim",
+      fields: [
+        { label: "Nº do B.O.", value: record.numero_bo },
+        { label: "Status", value: statusLabel },
+        { label: "Responsável", value: record.responsavel_nome },
+        { label: "Origem do registro", value: origemLabel },
+        { label: "Infração penal", value: record.infracao_penal, wide: true },
+      ],
+    },
+    {
+      title: "Providências e observações",
+      wide: true,
+      narrative: true,
+      fields: [
+        { label: "Diligências pendentes", value: record.diligencias_pendentes, wide: true },
+        { label: "Observação", value: record.observacao, wide: true },
+      ],
+    },
+    {
+      title: "Vínculos",
+      fields: [
+        { label: "Inquérito vinculado", value: inqueritoResumo, wide: true },
+        { label: "Representação vinculada", value: representacaoResumo, wide: true },
+      ],
+    },
+    {
+      title: "Registro no sistema",
+      fields: [
+        { label: "Cadastrado em", value: formatDateTime(record.created_at) },
+        { label: "Última atualização", value: formatDateTime(record.updated_at) },
+        { label: "Origem", value: origemLabel },
+      ],
+    },
+  ];
+
   return (
-    <article className="mx-auto max-w-6xl">
+    <article className="sipi-print-document mx-auto max-w-6xl">
+      <SipiPrintSheet
+        variant="summary"
+        documentTitle="Ficha de Boletim de Ocorrência"
+        documentSubtitle="Cadastro, acompanhamento e vínculos com procedimentos do SIPI"
+        identifierLabel="B.O."
+        identifier={record.numero_bo}
+        summary={[
+          { label: "Status", value: statusLabel },
+          { label: "Responsável", value: record.responsavel_nome },
+          { label: "Origem", value: origemLabel },
+        ]}
+        sections={printSections}
+      />
       <div className="bo-print-hide mb-4 flex items-center justify-between gap-3">
         <Link
           to="/bo/boletins"
@@ -228,10 +305,7 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
             <div className="space-y-3">
               <DetailField label="Cadastrado em" value={formatDateTime(record.created_at)} />
               <DetailField label="Última atualização" value={formatDateTime(record.updated_at)} />
-              <DetailField
-                label="Origem"
-                value={record.origem_registro === "google_sheets" ? "Planilha oficial" : "SIPI"}
-              />
+              <DetailField label="Origem" value={origemLabel} />
             </div>
           </DetailSection>
         </aside>
