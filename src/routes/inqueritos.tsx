@@ -81,16 +81,33 @@ const FALLBACK = "—";
 const EMPTY_FILTER = "__vazio__";
 const INQUIRY_COLUMNS: readonly TableColumnDefinition[] = [
   { id: "ppe", label: "Nº PPE", defaultWidth: 160, required: true },
-  { id: "prioridade", label: "Prioridade", defaultWidth: 112 },
-  { id: "tipificacao", label: "Tipificação", defaultWidth: 376 },
+  {
+    id: "prioridade",
+    label: "Prioridade",
+    defaultWidth: 112,
+    required: true,
+    hiddenFromSettings: true,
+  },
+  {
+    id: "tipificacao",
+    label: "Tipificação",
+    defaultWidth: 376,
+    required: true,
+    hiddenFromSettings: true,
+  },
   { id: "gravidade", label: "Gravidade", defaultWidth: 160, align: "center" },
-  { id: "tipo", label: "Tipo", defaultWidth: 116, align: "center" },
+  {
+    id: "tipo",
+    label: "Tipo",
+    defaultWidth: 116,
+    required: true,
+    hiddenFromSettings: true,
+    align: "center",
+  },
   { id: "data_fato", label: "Data do fato", defaultWidth: 124, align: "center" },
   { id: "autoria", label: "Autoria", defaultWidth: 144, align: "center" },
   { id: "reu_preso", label: "Réu preso", defaultWidth: 124, align: "center" },
   { id: "status", label: "Status", defaultWidth: 180, align: "center" },
-  { id: "resumo_fato", label: "Resumo do fato", defaultWidth: 320, defaultVisible: false },
-  { id: "observacoes", label: "Observações", defaultWidth: 320, defaultVisible: false },
   { id: "acao", label: "Ação", defaultWidth: 84, required: true, align: "center" },
 ];
 
@@ -638,9 +655,9 @@ function Inqueritos() {
   const [filtersInitialized, setFiltersInitialized] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const columnController = useTableColumnPreferences(
-    "sipi:inqueritos:table-columns:v3",
+    "sipi:inqueritos:table-columns:v4",
     INQUIRY_COLUMNS,
-    "inqueritos",
+    "inqueritos:v4",
   );
   const [situacaoFilter, setSituacaoFilter] = useState<string[]>([]);
   const [prioridadeFilter, setPrioridadeFilter] = useState<string[]>([]);

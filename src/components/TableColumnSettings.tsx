@@ -12,6 +12,7 @@ export type TableColumnDefinition = {
   defaultWidth: number;
   defaultVisible?: boolean;
   required?: boolean;
+  hiddenFromSettings?: boolean;
   align?: "left" | "center" | "right";
 };
 
@@ -184,6 +185,9 @@ export function TableColumnSettings({
 }) {
   const [open, setOpen] = useState(false);
   const definitionMap = new Map(definitions.map((definition) => [definition.id, definition]));
+  const editablePreferences = controller.preferences.filter(
+    (preference) => !definitionMap.get(preference.id)?.hiddenFromSettings,
+  );
 
   return (
     <div className="relative">
@@ -210,7 +214,7 @@ export function TableColumnSettings({
             </button>
           </div>
           <div className="max-h-[420px] space-y-1 overflow-y-auto">
-            {controller.preferences.map((preference, index) => {
+            {editablePreferences.map((preference, index) => {
               const definition = definitionMap.get(preference.id);
               if (!definition) return null;
               return (
@@ -251,7 +255,7 @@ export function TableColumnSettings({
                     </button>
                     <button
                       type="button"
-                      disabled={index === controller.preferences.length - 1}
+                      disabled={index === editablePreferences.length - 1}
                       onClick={() => controller.move(preference.id, 1)}
                       className="rounded border border-border p-1 disabled:opacity-30"
                       title="Mover para a direita"
