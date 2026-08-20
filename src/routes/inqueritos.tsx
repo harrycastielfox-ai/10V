@@ -1977,7 +1977,7 @@ function Inqueritos() {
                           SIM
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">{FALLBACK}</span>
+                        <span className="text-xs text-muted-foreground">A definir</span>
                       )}
                     </td>
                     <td
