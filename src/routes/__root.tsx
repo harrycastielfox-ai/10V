@@ -51,7 +51,11 @@ export const Route = createRootRoute({
       { name: "twitter:card", content: "summary" },
       { property: "og:type", content: "website" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "icon", type: "image/png", href: "/sipi-badge.png?v=original" },
+      { rel: "apple-touch-icon", href: "/sipi-badge.png?v=original" },
+      { rel: "stylesheet", href: appCss },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,
