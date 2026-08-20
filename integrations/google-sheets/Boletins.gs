@@ -1,17 +1,27 @@
 /**
  * Sistema oficial de gestão de Boletins de Ocorrência.
- * Planilha: [DT] BOLETIM DE OCORRÊNCIA
+ * Planilha: EDUARDO DIAS - B.O/IP
  *
- * Este arquivo deve ser colado em Extensões > Apps Script > Code.gs.
+ * Este arquivo deve ser colado em Extensões > Apps Script > Boletins.gs.
  * O arquivo BoApp.html precisa ser criado no mesmo projeto Apps Script.
  */
 
 const BO_APP = Object.freeze({
-  VERSION: "1.3.0",
-  SPREADSHEET_ID: "1prgEuUOxyW7qdILyFbemvUlgetAgtbQDXOL7sbHQEWk",
-  BASE_SHEET: "B.O'S EM ANDAMENTO",
+  VERSION: "1.4.0",
+
+  SPREADSHEET_ID: "1D06WzYW2ObHjY2V7erfIWCjgh82LPhcC7mCGwyAmbEQ",
+
+  BASE_SHEET: "BOLETINS DE OCORRÊNCIA",
+
   AUDIT_SHEET: "_BO_AUDITORIA",
   CATALOG_SHEET: "_BO_CATALOGOS",
+
+  /**
+   * Colunas do módulo, na ordem em que ficam na aba.
+   * A partir da 1.4.0 quem manda é a aba: coluna removida do fim tira o campo
+   * do cadastro, em vez de derrubar o módulo inteiro. Hoje isso vale para
+   * STATUS, que é a última.
+   */
   HEADERS: Object.freeze([
     "Nº B.O.",
     "INFRAÇÃO PENAL",
@@ -20,6 +30,10 @@ const BO_APP = Object.freeze({
     "OBSERVAÇÃO",
     "STATUS",
   ]),
+
+  /** Sem estas duas não há registro que se sustente. */
+  MINIMO_COLUNAS: 2,
+
   STATUSES: Object.freeze([
     "Pendente",
     "Em Andamento",
@@ -40,12 +54,14 @@ function onOpen() {
 
   ui.createMenu("⚖️ CADASTRAR")
     .addItem("➕ Cadastrar B.O.", "abrirCadastroBo")
+    .addItem("📁 Cadastrar Inquérito", "abrirCadastroInquerito")
     .addSeparator()
     .addItem("❌ Excluir B.O.", "abrirExcluirBo")
     .addToUi();
 
   ui.createMenu("🔍 PESQUISAR")
     .addItem("Buscar B.O.", "abrirPesquisaBo")
+    .addItem("Buscar Inquérito", "abrirPesquisaInquerito")
     .addToUi();
 }
 
@@ -81,7 +97,7 @@ function abrirPesquisaBo() {
 }
 
 function abrirAplicativoBo_(modo) {
-  exigirBaseOficial_();
+  const base = exigirBaseOficial_();
   const titulos = {
     novo: "Cadastrar B.O.",
     editar: "Editar B.O.",
@@ -95,6 +111,9 @@ function abrirAplicativoBo_(modo) {
     modo,
     titulo: titulos[modo],
     versao: BO_APP.VERSION,
+    /* Campo cuja coluna não existe sai da tela, em vez de ser preenchido
+       e descartado sem aviso na hora de gravar. */
+    presentes: { STATUS: boTemStatus_(base) },
   };
   const html = template.evaluate().setWidth(1060).setHeight(680);
   SpreadsheetApp.getUi().showModalDialog(html, titulos[modo]);
@@ -111,10 +130,11 @@ function buscarBos(filtros) {
   }
 
   const base = exigirBaseOficial_();
+  const largura = boLargura_(base);
   const ultimaLinha = base.getLastRow();
   if (ultimaLinha < 2) return { total: 0, limitado: false, itens: [] };
 
-  const valores = base.getRange(2, 1, ultimaLinha - 1, BO_APP.HEADERS.length).getDisplayValues();
+  const valores = base.getRange(2, 1, ultimaLinha - 1, largura).getDisplayValues();
   const encontrados = [];
   let total = 0;
 
@@ -136,7 +156,7 @@ function buscarBos(filtros) {
 function obterBo(linha, numeroEsperado) {
   const base = exigirBaseOficial_();
   const numeroLinha = validarLinha_(linha, base);
-  const valores = base.getRange(numeroLinha, 1, 1, BO_APP.HEADERS.length).getDisplayValues()[0];
+  const valores = base.getRange(numeroLinha, 1, 1, boLargura_(base)).getDisplayValues()[0];
   if (valores.every((valor) => !String(valor).trim())) {
     throw new Error("O registro selecionado está vazio ou não existe mais.");
   }
@@ -159,7 +179,14 @@ function salvarBo(dados) {
 
   try {
     const base = exigirBaseOficial_();
+    const largura = boLargura_(base);
     const registro = validarDadosBo_(dados);
+
+    /* Sem coluna STATUS o campo não entra no registro nem no token. Sem isto,
+       a tela mandaria "Pendente", o registro salvo teria status vazio, e toda
+       edição acusaria "alterado por outra pessoa" sem ninguém ter alterado. */
+    if (!boTemStatus_(base)) registro.status = "";
+
     let linha;
     let acao;
 
@@ -181,10 +208,11 @@ function salvarBo(dados) {
       registro.responsavel,
       registro.observacao,
       registro.status,
-    ]];
+    ].slice(0, largura)];
+
     base.getRange(linha, 1).setNumberFormat("@");
-    base.getRange(linha, 1, 1, BO_APP.HEADERS.length).setValues(valores);
-    base.getRange(linha, 5).setNumberFormat("@");
+    base.getRange(linha, 1, 1, largura).setValues(valores);
+    if (largura >= 5) base.getRange(linha, 5).setNumberFormat("@");
     base.setRowHeightsForced(linha, 1, BO_APP.DATA_ROW_HEIGHT);
     SpreadsheetApp.flush();
 
@@ -217,7 +245,7 @@ function excluirBo(dados) {
     const base = exigirBaseOficial_();
     const linha = validarLinha_(dados && dados.linha, base);
     exigirRegistroInalterado_(base, linha, dados && dados.token);
-    const valores = base.getRange(linha, 1, 1, BO_APP.HEADERS.length).getDisplayValues()[0];
+    const valores = base.getRange(linha, 1, 1, boLargura_(base)).getDisplayValues()[0];
     const numero = String(valores[0] || "").trim();
     if (!numero) throw new Error("O registro selecionado não existe mais.");
 
@@ -234,18 +262,57 @@ function excluirBo(dados) {
 function exigirPlanilhaOficial_() {
   const planilha = SpreadsheetApp.getActive();
   if (planilha.getId() !== BO_APP.SPREADSHEET_ID) {
-    throw new Error("Este script só pode ser usado na planilha oficial de B.O.");
+    throw new Error(
+      "Este script só pode ser usado na planilha oficial de B.O.\n\n" +
+      `Esperado: ${BO_APP.SPREADSHEET_ID}\n` +
+      `Encontrado: ${planilha.getId()}\n\n` +
+      "Ajuste SPREADSHEET_ID em BO_APP se esta for a planilha correta.",
+    );
   }
   return planilha;
+}
+
+/**
+ * Quantas das colunas do módulo existem de fato na aba.
+ * Conta pelo cabeçalho, e não por getLastColumn(): dado solto numa coluna
+ * à direita não pode fazer o módulo achar que existe coluna que não existe.
+ */
+function boLargura_(base) {
+  const total = Math.min(Math.max(base.getLastColumn(), 1), BO_APP.HEADERS.length);
+  const cabecalhos = base.getRange(1, 1, 1, total).getDisplayValues()[0];
+  let largura = 0;
+  while (largura < total && String(cabecalhos[largura]).trim()) largura += 1;
+  return largura;
+}
+
+/** A aba tem a coluna STATUS? É a última, e pode ter sido removida. */
+function boTemStatus_(base) {
+  return boLargura_(base) >= BO_APP.HEADERS.length;
 }
 
 function exigirBaseOficial_() {
   const planilha = exigirPlanilhaOficial_();
   const base = planilha.getSheetByName(BO_APP.BASE_SHEET);
-  if (!base) throw new Error(`A aba obrigatória “${BO_APP.BASE_SHEET}” não foi encontrada.`);
+  if (!base) {
+    const abas = planilha.getSheets().map((aba) => `“${aba.getName()}”`).join(", ");
+    throw new Error(
+      `A aba obrigatória “${BO_APP.BASE_SHEET}” não foi encontrada.\n\n` +
+      `Abas existentes: ${abas}\n\n` +
+      "Ajuste BASE_SHEET em BO_APP se a aba tiver outro nome.",
+    );
+  }
 
-  const cabecalhos = base.getRange(1, 1, 1, BO_APP.HEADERS.length).getDisplayValues()[0];
-  BO_APP.HEADERS.forEach((esperado, indice) => {
+  /* Valida só as colunas que existem, na ordem esperada. */
+  const largura = boLargura_(base);
+  if (largura < BO_APP.MINIMO_COLUNAS) {
+    throw new Error(
+      `A aba “${BO_APP.BASE_SHEET}” precisa ter ao menos as colunas ` +
+      `“${BO_APP.HEADERS[0]}” e “${BO_APP.HEADERS[1]}”.`,
+    );
+  }
+
+  const cabecalhos = base.getRange(1, 1, 1, largura).getDisplayValues()[0];
+  BO_APP.HEADERS.slice(0, largura).forEach((esperado, indice) => {
     if (normalizarTexto_(cabecalhos[indice]) !== normalizarTexto_(esperado)) {
       throw new Error(
         `A coluna ${indice + 1} deveria ser “${esperado}”, mas contém “${cabecalhos[indice]}”.`,
@@ -282,7 +349,9 @@ function linhaParaRegistro_(linha, numeroLinha) {
     diligencias: String(linha[2] || "").trim(),
     responsavel: String(linha[3] || "").trim(),
     observacao: String(linha[4] || "").trim(),
-    status: statusLido_(linha[5]),
+    /* Sem coluna STATUS o campo fica vazio de verdade, e não com o padrão:
+       o token de edição compara este valor com o que a tela devolve. */
+    status: linha.length > 5 ? statusLido_(linha[5]) : "",
   };
 }
 
@@ -368,7 +437,7 @@ function impedirNumeroDuplicado_(base, numero, linhaIgnorada) {
 function encontrarLinhaLivre_(base) {
   const ultimaLinha = base.getLastRow();
   if (ultimaLinha >= 2) {
-    const linhas = base.getRange(2, 1, ultimaLinha - 1, BO_APP.HEADERS.length).getDisplayValues();
+    const linhas = base.getRange(2, 1, ultimaLinha - 1, boLargura_(base)).getDisplayValues();
     const vazio = linhas.findIndex((linha) => linha.every((valor) => !String(valor).trim()));
     if (vazio >= 0) return vazio + 2;
   }
@@ -386,7 +455,7 @@ function validarLinha_(linha, base) {
 }
 
 function exigirRegistroInalterado_(base, linha, token) {
-  const valores = base.getRange(linha, 1, 1, BO_APP.HEADERS.length).getDisplayValues()[0];
+  const valores = base.getRange(linha, 1, 1, boLargura_(base)).getDisplayValues()[0];
   const atual = linhaParaRegistro_(valores, linha);
   if (!String(token || "") || gerarToken_(atual) !== String(token)) {
     throw new Error(
@@ -404,7 +473,7 @@ function gerarToken_(registro) {
     registro.diligencias,
     registro.responsavel,
     registro.observacao,
-  ].join("\u241f");
+  ].join("␟");
   return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, conteudo)
     .map((byte) => (byte < 0 ? byte + 256 : byte).toString(16).padStart(2, "0"))
     .join("");
@@ -468,7 +537,7 @@ function registrarSugestoesPersonalizadas_(registro) {
     ? []
     : catalogo.getRange(2, 1, ultimaLinha - 1, 2).getDisplayValues();
   const chaves = new Set(
-    existentes.map(([tipo, valor]) => `${tipo}\u241f${normalizarTexto_(valor)}`),
+    existentes.map(([tipo, valor]) => `${tipo}␟${normalizarTexto_(valor)}`),
   );
   const novasLinhas = [];
 
@@ -477,7 +546,7 @@ function registrarSugestoesPersonalizadas_(registro) {
     ["DILIGÊNCIA", registro.diligencias],
   ].forEach(([tipo, conteudo]) => {
     extrairItensCatalogaveis_(conteudo).forEach((valor) => {
-      const chave = `${tipo}\u241f${normalizarTexto_(valor)}`;
+      const chave = `${tipo}␟${normalizarTexto_(valor)}`;
       if (chaves.has(chave)) return;
       chaves.add(chave);
       novasLinhas.push([tipo, valor, new Date()]);

@@ -322,7 +322,7 @@
             <label for="busca-numero">Nº B.O.</label>
             <input id="busca-numero" placeholder="Ex.: somente os 3 primeiros números">
           </div>
-          <div>
+          <div id="box-busca-status">
             <label for="busca-status">Status</label>
             <select id="busca-status">
               <option value="">Todos os status</option>
@@ -372,7 +372,7 @@
             <label for="form-numero">Nº B.O. *</label>
             <input id="form-numero" maxlength="120" autocomplete="off">
           </div>
-          <div>
+          <div id="box-form-status">
             <label for="form-status">Status *</label>
             <select id="form-status">
               <option>Pendente</option>
@@ -444,7 +444,7 @@
           </div>
         </div>
         <div class="detail-grid">
-          <div class="detail-item">
+          <div class="detail-item" id="box-ficha-status">
             <span>Status</span>
             <div><span id="ficha-status" class="status-chip"></span></div>
           </div>
@@ -491,6 +491,7 @@
       function iniciar() {
         document.getElementById("titulo-app").textContent = CONTEXTO.titulo;
         document.getElementById("versao").textContent = `v${CONTEXTO.versao}`;
+        aplicarPresenca();
         configurarAutocomplete("form-infracao", "sugestoes-infracao", sugestoesInfracoesAtuais);
         configurarAutocomplete("form-diligencias", "sugestoes-diligencias", sugestoesDiligenciasAtuais);
         google.script.run
@@ -510,6 +511,20 @@
           campo.addEventListener("keydown", (evento) => {
             if (evento.key === "Enter") pesquisar();
           });
+        });
+      }
+
+      /* A aba manda: sem a coluna STATUS o campo some da tela em vez de ser
+         preenchido e descartado sem aviso na hora de gravar. */
+      function temStatus() {
+        return !CONTEXTO.presentes || CONTEXTO.presentes.STATUS !== false;
+      }
+
+      function aplicarPresenca() {
+        if (temStatus()) return;
+        ["box-form-status", "box-busca-status", "box-ficha-status"].forEach((id) => {
+          const caixa = document.getElementById(id);
+          if (caixa) caixa.classList.add("hidden");
         });
       }
 
@@ -560,12 +575,12 @@
         const rotulo = CONTEXTO.modo === "editar" ? "Editar" : CONTEXTO.modo === "excluir" ? "Excluir" : "Abrir";
         destino.innerHTML = `
           <table>
-            <thead><tr><th>#</th><th>Nº B.O.</th><th>Status</th><th>Infração penal</th><th>Responsável</th><th>Ação</th></tr></thead>
+            <thead><tr><th>#</th><th>Nº B.O.</th>${temStatus() ? "<th>Status</th>" : ""}<th>Infração penal</th><th>Responsável</th><th>Ação</th></tr></thead>
             <tbody>${resultadosAtuais.map((item, indice) => `
               <tr>
                 <td>${indice + 1}</td>
                 <td><strong>${esc(item.numero)}</strong></td>
-                <td><span class="status-chip ${statusClasse(item.status)}">${esc(item.status || "Pendente")}</span></td>
+                ${temStatus() ? `<td><span class="status-chip ${statusClasse(item.status)}">${esc(item.status || "Pendente")}</span></td>` : ""}
                 <td>${esc(item.infracao)}</td>
                 <td>${esc(item.responsavel || "—")}</td>
                 <td><button class="btn btn-small ${CONTEXTO.modo === "excluir" ? "btn-danger" : ""}" onclick="abrirResultado(${indice})">${rotulo}</button></td>
@@ -629,7 +644,7 @@
       function salvar() {
         const dados = dadosFormulario();
         if (!dados.numero) return aviso("Informe o número do B.O.", true);
-        if (!dados.status) return aviso("Selecione o status do B.O.", true);
+        if (temStatus() && !dados.status) return aviso("Selecione o status do B.O.", true);
         if (!dados.infracao) return aviso("Informe a infração penal.", true);
         carregando(true);
         google.script.run
