@@ -615,6 +615,29 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     box-shadow: 12px 0 32px rgb(15 23 42 / 0.14);
   }
 
+  html[data-theme="light"] .app-layout-inqueritos .sipi-brand-emblem-primary {
+    --sipi-emblem-glow: #ffffff;
+  }
+
+  html[data-theme="light"]
+    .app-layout-inqueritos
+    .sipi-brand-emblem-primary
+    .sipi-brand-emblem-image {
+    filter: drop-shadow(0 0 2px rgb(255 255 255 / 0.95))
+      drop-shadow(0 0 8px rgb(255 255 255 / 0.72))
+      drop-shadow(0 0 18px rgb(255 255 255 / 0.38));
+  }
+
+  html[data-theme="light"]
+    .app-layout-inqueritos
+    .group:hover
+    .sipi-brand-emblem-primary
+    .sipi-brand-emblem-image {
+    filter: drop-shadow(0 0 3px rgb(255 255 255 / 1))
+      drop-shadow(0 0 10px rgb(255 255 255 / 0.86))
+      drop-shadow(0 0 22px rgb(255 255 255 / 0.52));
+  }
+
   html[data-theme="light"] .stat-card {
     box-shadow: 0 1px 3px rgb(23 33 43 / 0.08);
   }
