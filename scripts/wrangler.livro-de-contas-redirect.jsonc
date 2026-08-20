@@ -1,0 +1,6 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "livro-de-contas",
+  "main": "./livro-de-contas-redirect-worker.js",
+  "compatibility_date": "2026-08-07"
+}
