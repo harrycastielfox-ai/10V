@@ -8,10 +8,12 @@ import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
+import { mergeMotivacaoSuggestions } from "@/lib/motivacoes";
 import {
   createInquerito,
   findInqueritosByPpe,
   listKnownInqueritoBairros,
+  listKnownInqueritoMotivacoes,
   replaceInqueritoPessoas,
   updateInquerito,
   type InqueritoLinkOption,
@@ -122,6 +124,9 @@ function NovoCaso() {
   const [distrito, setDistrito] = useState("");
   const [cidade, setCidade] = useState("Itabela");
   const [motivacao, setMotivacao] = useState("");
+  const [motivacaoOptions, setMotivacaoOptions] = useState<string[]>(() =>
+    mergeMotivacaoSuggestions(),
+  );
   const [vinculadoFaccao, setVinculadoFaccao] = useState("");
   const [nomeFaccao, setNomeFaccao] = useState("");
   const [diligenciasPendentes, setDiligenciasPendentes] = useState("");
@@ -241,6 +246,20 @@ function NovoCaso() {
         if (active) setBairroOptions(bairros);
       })
       .catch((error) => console.warn("[novo-caso:bairros]", error));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Junta ao catálogo as motivações já usadas em outros procedimentos, para que
+  // uma motivação nova digitada aqui vire sugestão nos próximos cadastros.
+  useEffect(() => {
+    let active = true;
+    void listKnownInqueritoMotivacoes()
+      .then((motivacoes) => {
+        if (active) setMotivacaoOptions(mergeMotivacaoSuggestions(motivacoes));
+      })
+      .catch((error) => console.warn("[novo-caso:motivacoes]", error));
     return () => {
       active = false;
     };
@@ -844,10 +863,16 @@ function NovoCaso() {
               />
               <Field
                 label="Motivação"
-                placeholder="Motivação principal"
+                placeholder="Digite ou escolha uma motivação sugerida"
+                list="novo-caso-motivacoes"
                 value={motivacao}
                 onChange={(e) => setMotivacao(e.target.value)}
               />
+              <datalist id="novo-caso-motivacoes">
+                {motivacaoOptions.map((option) => (
+                  <option key={option} value={option} />
+                ))}
+              </datalist>
               <Select
                 label="Vinculado a Facção"
                 options={["Sim", "Não", "A definir"]}

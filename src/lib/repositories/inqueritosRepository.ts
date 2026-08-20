@@ -238,6 +238,23 @@ export async function listKnownInqueritoBairros(limit = 500) {
   return [...new Set((rows ?? []).map((row) => row.bairro?.trim()).filter(Boolean) as string[])];
 }
 
+export async function listKnownInqueritoMotivacoes(limit = 500) {
+  const rows = await runSupabaseQuery<Array<{ motivacao: string | null }>>(
+    "motivações dos procedimentos",
+    (signal) =>
+      supabase
+        .from("inqueritos")
+        .select("motivacao")
+        .is("deleted_at", null)
+        .not("motivacao", "is", null)
+        .order("motivacao", { ascending: true })
+        .limit(limit)
+        .abortSignal(signal),
+  );
+
+  return [...new Set((rows ?? []).map((row) => row.motivacao?.trim()).filter(Boolean) as string[])];
+}
+
 export async function searchInqueritosForLink(query: string, limit = 20) {
   const normalizedQuery = query.trim();
   if (normalizedQuery.length < 2) return [];

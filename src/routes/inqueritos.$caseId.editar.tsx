@@ -15,10 +15,12 @@ import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
+import { mergeMotivacaoSuggestions } from "@/lib/motivacoes";
 import {
   getInqueritoById,
   listInqueritoPessoas,
   listKnownInqueritoBairros,
+  listKnownInqueritoMotivacoes,
   replaceInqueritoPessoas,
   updateInquerito,
   type InqueritoPessoaInput,
@@ -136,6 +138,9 @@ function EditarInquerito() {
   const [distrito, setDistrito] = useState("");
   const [cidade, setCidade] = useState("");
   const [motivacao, setMotivacao] = useState("");
+  const [motivacaoOptions, setMotivacaoOptions] = useState<string[]>(() =>
+    mergeMotivacaoSuggestions(),
+  );
   const [vinculadoFaccao, setVinculadoFaccao] = useState("");
   const [nomeFaccao, setNomeFaccao] = useState("");
   const [delegadoResponsavel, setDelegadoResponsavel] = useState("");
@@ -414,6 +419,18 @@ function EditarInquerito() {
         if (active) setBairroOptions(bairros);
       })
       .catch((error) => console.warn("[inqueritos:editar:bairros]", error));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void listKnownInqueritoMotivacoes()
+      .then((motivacoes) => {
+        if (active) setMotivacaoOptions(mergeMotivacaoSuggestions(motivacoes));
+      })
+      .catch((error) => console.warn("[inqueritos:editar:motivacoes]", error));
     return () => {
       active = false;
     };
@@ -829,9 +846,16 @@ function EditarInquerito() {
             <Field label="Cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
             <Field
               label="Motivação"
+              placeholder="Digite ou escolha uma motivação sugerida"
+              list="editar-inquerito-motivacoes"
               value={motivacao}
               onChange={(e) => setMotivacao(e.target.value)}
             />
+            <datalist id="editar-inquerito-motivacoes">
+              {motivacaoOptions.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
             <Select
               label="Vinculado a Facção"
               value={vinculadoFaccao}
