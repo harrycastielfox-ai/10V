@@ -603,6 +603,18 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     box-shadow: 1px 0 3px rgb(23 33 43 / 0.06);
   }
 
+  html[data-theme="light"] .app-layout-inqueritos > aside[class*="bg-sidebar"] {
+    --sidebar: #060a0d;
+    --sidebar-foreground: #eef7f2;
+    --sidebar-primary: #34d17f;
+    --sidebar-primary-foreground: #03120b;
+    --sidebar-accent: #11181d;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1f2a32;
+    --sidebar-ring: #34d17f;
+    box-shadow: 12px 0 32px rgb(15 23 42 / 0.14);
+  }
+
   html[data-theme="light"] .stat-card {
     box-shadow: 0 1px 3px rgb(23 33 43 / 0.08);
   }
