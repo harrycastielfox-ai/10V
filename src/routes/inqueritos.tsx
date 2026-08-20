@@ -1842,7 +1842,9 @@ function Inqueritos() {
                 const numeroPpe = row.numeroPpe || FALLBACK;
                 const tipificacao = row.tipificacao || FALLBACK;
                 const gravidade =
-                  rowGravidadeTags.map((tag) => tag.name).join("; ") || row.gravidade || FALLBACK;
+                  rowGravidadeTags.map((tag) => tag.name).join("; ") ||
+                  row.gravidade ||
+                  "A definir";
                 const tipoProcedimento = row.tipoProcedimento || FALLBACK;
                 const tipoProcedimentoLabel = getProcedureShortLabel(tipoProcedimento);
                 const prioridadeOperacional = calculateOperationalPriority(row);
