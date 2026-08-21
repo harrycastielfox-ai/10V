@@ -68,10 +68,38 @@ describe("isCvliRecord", () => {
     expect(isCvliRecord(makeInquerito({ categoria_criminal: "CVLI" }))).toBe(true);
   });
 
-  it("matches by keyword when categoria_criminal is not set", () => {
+  it("matches by tipificação when categoria_criminal is not set", () => {
     expect(isCvliRecord(makeInquerito({ tipificacao: "Homicídio qualificado" }))).toBe(true);
-    expect(isCvliRecord(makeInquerito({ motivacao: "Latrocínio" }))).toBe(true);
-    expect(isCvliRecord(makeInquerito({ observacoes: "Feminicídio" }))).toBe(true);
+    expect(isCvliRecord(makeInquerito({ tipificacao: "Latrocínio" }))).toBe(true);
+    expect(isCvliRecord(makeInquerito({ tipificacao: "Feminicídio" }))).toBe(true);
+  });
+
+  it("ignores free text: motivação e observações não classificam crime", () => {
+    expect(isCvliRecord(makeInquerito({ motivacao: "Latrocínio" }))).toBe(false);
+    expect(
+      isCvliRecord(makeInquerito({ observacoes: "O autor também responde por homicídio" })),
+    ).toBe(false);
+  });
+
+  it("excludes tentativa e culposo, que não são letais intencionais", () => {
+    expect(
+      isCvliRecord(
+        makeInquerito({ tipificacao: "Tentativa de homicídio (art. 121 c/c art. 14, II)" }),
+      ),
+    ).toBe(false);
+    expect(
+      isCvliRecord(
+        makeInquerito({ tipificacao: "Homicídio culposo na direção de veículo (art. 302 do CTB)" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the official category above the tipificação", () => {
+    expect(
+      isCvliRecord(
+        makeInquerito({ categoria_criminal: "CVLI", tipificacao: "Tentativa de furto" }),
+      ),
+    ).toBe(true);
   });
 
   it("does not match unrelated procedures", () => {

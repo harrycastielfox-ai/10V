@@ -61,33 +61,44 @@ function pickRecordText(record: InqueritoRecord, ...keys: string[]) {
     .join(" ");
 }
 
+const CVLI_TERMS = ["CVLI", "HOMICIDIO", "LATROCINIO", "FEMINICIDIO"] as const;
+
+/**
+ * CVLI é crime violento letal intencional: doloso e consumado. Tentativa e
+ * culposo carregam a mesma palavra na tipificação e não entram na conta.
+ */
+const NAO_CVLI_TERMS = [
+  "TENTATIVA",
+  "TENTADO",
+  "TENTADA",
+  "CULPOSO",
+  "CULPOSA",
+  "ART. 14",
+  "ART 14",
+  "14, II",
+  "ART. 302",
+  "ART 302",
+] as const;
+
 export function isCvliRecord(record: InqueritoRecord) {
-  const normalizedCategory = normalizeText(record.categoria_criminal);
-  if (normalizedCategory === "CVLI") return true;
+  if (normalizeText(record.categoria_criminal) === "CVLI") return true;
 
   const formalCategory = normalizeCaseCategory(
     pickRecordText(record, "categoria_criminal", "categoria_caso", "categoriaCaso", "gravidade"),
     "",
   );
-  const searchable = normalizeText(
-    [
-      formalCategory,
-      pickRecordText(
-        record,
-        "gravidade",
-        "tipificacao",
-        "classificacao",
-        "tipo_penal",
-        "tipo",
-        "motivacao",
-        "observacoes",
-      ),
-    ].join(" "),
-  );
+  if (normalizeText(formalCategory) === "CVLI") return true;
 
-  return ["CVLI", "HOMICIDIO", "LATROCINIO", "FEMINICIDIO"].some((term) =>
-    searchable.includes(term),
+  // Sem categoria oficial, só a tipificação classifica o crime. Motivação e
+  // observações são texto livre: citar "homicídio" ali não torna o
+  // procedimento um CVLI, e era o que inflava o comparativo.
+  const tipificacao = normalizeText(
+    pickRecordText(record, "tipificacao", "tipo_penal", "classificacao"),
   );
+  if (!tipificacao) return false;
+  if (NAO_CVLI_TERMS.some((term) => tipificacao.includes(term))) return false;
+
+  return CVLI_TERMS.some((term) => tipificacao.includes(term));
 }
 
 export function getCvliReferenceDate(record: InqueritoRecord) {
