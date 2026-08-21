@@ -8,7 +8,6 @@ import {
   ExternalLink,
   LoaderCircle,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
@@ -617,6 +616,8 @@ function NovoCaso() {
   };
 
   const handleTipificacaoChange = (next: string[]) => {
+    setGravidadeTouched(false);
+    setPrioridadeTouched(false);
     setSelectedTipificacaoTagIds(next);
   };
 
@@ -948,18 +949,23 @@ function NovoCaso() {
                 <DuplicatePpeNotice matches={ppeMatches} />
               )}
               <Select
-                label="Tipo de Procedimento"
-                value={tipo}
-                onChange={setTipo}
-                options={PROCEDURE_TYPE_OPTIONS.map((option) => option.label)}
-              />
-              <ProcedureTypeGuidance title={procedureGuidance.title} body={procedureGuidance.body} />
-              <Select
                 label="Visibilidade"
                 options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
                 value={visibilidade}
                 onChange={setVisibilidade}
               />
+              <div className="space-y-3">
+                <Select
+                  label="Tipo de Procedimento"
+                  value={tipo}
+                  onChange={setTipo}
+                  options={PROCEDURE_TYPE_OPTIONS.map((option) => option.label)}
+                />
+                <ProcedureTypeGuidance
+                  title={procedureGuidance.title}
+                  body={procedureGuidance.body}
+                />
+              </div>
             </SectionCard>
           )}
 
@@ -982,13 +988,6 @@ function NovoCaso() {
                 canCreate={canManageProceduralTags(profile)}
                 placeholder="Busque ou crie uma tipificação"
               />
-              {cadastroSuggestion && (
-                <SuggestionNotice
-                  reason={cadastroSuggestion.reason}
-                  gravidade={suggestedGravidade?.name}
-                  prioridade={cadastroSuggestion.prioridade}
-                />
-              )}
               <ProceduralTagPicker
                 label="Gravidade do fato"
                 hint="Selecione uma ou mais gravidades. A primeira será a classificação principal do procedimento."
@@ -1285,29 +1284,6 @@ function DuplicatePpeNotice({ matches }: { matches: InqueritoLinkOption[] }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-function SuggestionNotice({
-  reason,
-  gravidade,
-  prioridade,
-}: {
-  reason: string;
-  gravidade?: string;
-  prioridade: string;
-}) {
-  return (
-    <div className="md:col-span-2 lg:col-span-3 rounded-xl border border-primary/30 bg-primary/8 px-4 py-3 text-xs">
-      <p className="flex items-center gap-2 text-sm font-bold text-primary">
-        <Sparkles className="h-4 w-4" />
-        Sugestão aplicada
-      </p>
-      <p className="mt-1 text-muted-foreground">
-        {reason} {gravidade ? `Gravidade: ${gravidade}. ` : ""}Prioridade: {prioridade}. Você pode
-        alterar logo abaixo.
-      </p>
     </div>
   );
 }
