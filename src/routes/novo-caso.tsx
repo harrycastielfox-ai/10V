@@ -14,6 +14,7 @@ import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
 import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
+import { MotivacaoAssistant } from "@/components/MotivacaoAssistant";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import { mergeMotivacaoSuggestions } from "@/lib/motivacoes";
@@ -454,7 +455,8 @@ function NovoCaso() {
   useEffect(() => {
     if (!cadastroSuggestion) return;
     if (!prioridadeTouched) setPrioridade(cadastroSuggestion.prioridade);
-    if (!gravidadeTouched && suggestedGravidade) setSelectedGravidadeTagIds([suggestedGravidade.id]);
+    if (!gravidadeTouched && suggestedGravidade)
+      setSelectedGravidadeTagIds([suggestedGravidade.id]);
   }, [cadastroSuggestion, gravidadeTouched, prioridadeTouched, suggestedGravidade]);
 
   const registrationChecks = useMemo(
@@ -945,9 +947,7 @@ function NovoCaso() {
               {checkingPpe && (
                 <InlineNotice>Verificando ocorrências existentes com este PPE...</InlineNotice>
               )}
-              {!checkingPpe && ppeMatches.length > 0 && (
-                <DuplicatePpeNotice matches={ppeMatches} />
-              )}
+              {!checkingPpe && ppeMatches.length > 0 && <DuplicatePpeNotice matches={ppeMatches} />}
               <Select
                 label="Visibilidade"
                 options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
@@ -1041,18 +1041,12 @@ function NovoCaso() {
                 value={cidade}
                 onChange={(e) => setCidade(e.target.value)}
               />
-              <Field
-                label="Motivação"
-                placeholder="Digite ou escolha uma motivação sugerida"
-                list="novo-caso-motivacoes"
+              <MotivacaoAssistant
                 value={motivacao}
-                onChange={(e) => setMotivacao(e.target.value)}
+                onChange={setMotivacao}
+                options={motivacaoOptions}
+                tipificacoes={selectedTipificacoes.map((tag) => tag.name)}
               />
-              <datalist id="novo-caso-motivacoes">
-                {motivacaoOptions.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
               <Select
                 label="Vinculado a Facção"
                 options={["Sim", "Não", "A definir"]}
@@ -1268,7 +1262,12 @@ function DuplicatePpeNotice({ matches }: { matches: InqueritoLinkOption[] }) {
             <div className="min-w-0">
               <p className="font-bold text-foreground">{match.numero_ppe || "Sem PPE"}</p>
               <p className="truncate text-muted-foreground">
-                {[match.tipo, match.tipificacao, match.situacao, formatShortDate(match.data_instauracao)]
+                {[
+                  match.tipo,
+                  match.tipificacao,
+                  match.situacao,
+                  formatShortDate(match.data_instauracao),
+                ]
                   .filter(Boolean)
                   .join(" • ")}
               </p>
