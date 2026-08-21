@@ -74,7 +74,13 @@ export type InqueritoPayload = Partial<
 
 export type InqueritoLinkOption = Pick<
   InqueritoRecord,
-  "id" | "numero_ppe" | "tipo" | "tipo_procedimento_normalizado" | "data_instauracao" | "situacao"
+  | "id"
+  | "numero_ppe"
+  | "tipo"
+  | "tipo_procedimento_normalizado"
+  | "tipificacao"
+  | "data_instauracao"
+  | "situacao"
 >;
 
 export type InqueritoPessoaPapel = "vitima" | "autor_investigado" | "testemunha" | "outro";
@@ -210,7 +216,9 @@ export async function findInqueritosByPpe(numeroPpe: string, limit = 8) {
   const data = await runSupabaseQuery<InqueritoLinkOption[]>("busca por PPE", (signal) =>
     supabase
       .from("inqueritos")
-      .select("id,numero_ppe,tipo,tipo_procedimento_normalizado,data_instauracao,situacao")
+      .select(
+        "id,numero_ppe,tipo,tipo_procedimento_normalizado,tipificacao,data_instauracao,situacao",
+      )
       .eq("numero_ppe", normalizedPpe)
       .is("deleted_at", null)
       .order("data_instauracao", { ascending: false, nullsFirst: false })
@@ -263,7 +271,9 @@ export async function searchInqueritosForLink(query: string, limit = 20) {
   const data = await runSupabaseQuery<InqueritoLinkOption[]>("vinculo por PPE", (signal) =>
     supabase
       .from("inqueritos")
-      .select("id,numero_ppe,tipo,tipo_procedimento_normalizado,data_instauracao,situacao")
+      .select(
+        "id,numero_ppe,tipo,tipo_procedimento_normalizado,tipificacao,data_instauracao,situacao",
+      )
       .ilike("numero_ppe", `%${safeQuery}%`)
       .is("deleted_at", null)
       .order("data_instauracao", { ascending: false, nullsFirst: false })

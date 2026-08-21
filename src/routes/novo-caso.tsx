@@ -1,6 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, LoaderCircle, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ExternalLink,
+  LoaderCircle,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
@@ -57,6 +66,7 @@ export const Route = createFileRoute("/novo-caso")({
 
 const STEPS = ["Identificação", "Fato", "Local", "Pessoas", "Situação", "Revisar"];
 const REVIEW_STEP = STEPS.length - 1;
+const PRIORITY_OPTIONS = ["BAIXA", "MÉDIA", "ALTA"] as const;
 
 // Cada pendência do contrato operacional aponta para a etapa onde é resolvida,
 // para o resumo final poder levar o usuário direto ao campo que falta.
@@ -84,6 +94,130 @@ const CHECK_STEP: Record<string, number> = {
   prazo: 4,
 };
 
+type CadastroSuggestion = {
+  gravidadeSlug: string;
+  prioridade: (typeof PRIORITY_OPTIONS)[number];
+  reason: string;
+};
+
+function normalizeSuggestionText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function deriveCadastroSuggestion(tipificacoes: string[], tipoProcedimento: string) {
+  const text = normalizeSuggestionText(`${tipificacoes.join(" ")} ${tipoProcedimento}`);
+  const hasAny = (terms: string[]) => terms.some((term) => text.includes(term));
+  const procedureType = normalizeProcedureType(tipoProcedimento);
+
+  if (hasAny(["homicidio", "feminicidio", "latrocinio"])) {
+    return {
+      gravidadeSlug: "cvli",
+      prioridade: "ALTA",
+      reason: "Tipificação indica CVLI.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (hasAny(["trafico", "entorpecente", "drogas"])) {
+    return {
+      gravidadeSlug: "trafico-de-drogas",
+      prioridade: "ALTA",
+      reason: "Tipificação ligada a tráfico de drogas.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (hasAny(["estupro", "importunacao sexual", "assedi", "violacao sexual"])) {
+    return {
+      gravidadeSlug: "sexuais",
+      prioridade: "ALTA",
+      reason: "Tipificação ligada a crime sexual.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (hasAny(["violencia domestica", "maria da penha", "ameaca", "lesao corporal"])) {
+    return {
+      gravidadeSlug: "violencia-domestica-e-familiar",
+      prioridade: "MÉDIA",
+      reason: "Tipificação comum em violência doméstica/familiar.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (hasAny(["roubo", "furto", "receptacao", "estelionato", "dano", "apropriacao"])) {
+    return {
+      gravidadeSlug: "patrimonial",
+      prioridade: hasAny(["roubo"]) ? "ALTA" : "MÉDIA",
+      reason: "Tipificação patrimonial detectada.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (hasAny(["transito", "embriaguez ao volante", "lesao culposa"])) {
+    return {
+      gravidadeSlug: "transito",
+      prioridade: "MÉDIA",
+      reason: "Tipificação relacionada a trânsito.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (procedureType === "APF") {
+    return {
+      gravidadeSlug: "outros",
+      prioridade: "ALTA",
+      reason: "APF costuma exigir acompanhamento operacional mais próximo.",
+    } satisfies CadastroSuggestion;
+  }
+
+  if (procedureType === "TCO") {
+    return {
+      gravidadeSlug: "outros",
+      prioridade: "BAIXA",
+      reason: "TCO costuma ser menos complexo, salvo indicação da tipificação.",
+    } satisfies CadastroSuggestion;
+  }
+
+  return null;
+}
+
+function getProcedureTypeGuidance(value: string) {
+  const type = normalizeProcedureType(value);
+  if (type === "APF") {
+    return {
+      title: "Modelo APF",
+      body: "Dê atenção a conduzido/investigado, réu preso, data de instauração e prazo.",
+    };
+  }
+  if (type === "TCO") {
+    return {
+      title: "Modelo TCO",
+      body: "Priorize tipificação objetiva, partes envolvidas e providências pendentes.",
+    };
+  }
+  if (type === "BOC" || type === "AAFAI" || type === "AIAI") {
+    return {
+      title: "Modelo ato infracional",
+      body: "Confira adolescente envolvido, responsável, vítima e providências específicas.",
+    };
+  }
+  if (type === "IP") {
+    return {
+      title: "Modelo IP",
+      body: "Mantenha tipificação, autoria, prazo e diligências bem definidos para acompanhamento.",
+    };
+  }
+  return {
+    title: "Modelo geral",
+    body: "O cadastro segue completo e você pode ajustar os campos conforme o caso concreto.",
+  };
+}
+
+function formatShortDate(value: string | null | undefined) {
+  if (!value) return "";
+  const [year, month, day] = value.slice(0, 10).split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
 function NovoCaso() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -101,6 +235,7 @@ function NovoCaso() {
   const [selectedTipificacaoTagIds, setSelectedTipificacaoTagIds] = useState<string[]>([]);
   const [selectedStatusTagIds, setSelectedStatusTagIds] = useState<string[]>([]);
   const [selectedGravidadeTagIds, setSelectedGravidadeTagIds] = useState<string[]>([]);
+  const [gravidadeTouched, setGravidadeTouched] = useState(false);
   const [resumoFato, setResumoFato] = useState("");
   const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([]);
   const [numeroBo, setNumeroBo] = useState("");
@@ -114,7 +249,8 @@ function NovoCaso() {
   const [origemRegistro, setOrigemRegistro] = useState<OccurrenceOrigin>("novo");
   const [ppeMatches, setPpeMatches] = useState<InqueritoLinkOption[]>([]);
   const [checkingPpe, setCheckingPpe] = useState(false);
-  const [prioridade] = useState("MÉDIA");
+  const [prioridade, setPrioridade] = useState<(typeof PRIORITY_OPTIONS)[number]>("MÉDIA");
+  const [prioridadeTouched, setPrioridadeTouched] = useState(false);
   const [statusDiligencias, setStatusDiligencias] = useState("Pendente");
   const [delegadoResponsavel, setDelegadoResponsavel] = useState("");
   const [equipe, setEquipe] = useState("");
@@ -178,6 +314,19 @@ function NovoCaso() {
   const situacao = selectedStatusTags[0]?.name ?? "";
   const gravidade = selectedGravidadeTags[0]?.name ?? "";
   const tipificacao = selectedTipificacoes.map((tag) => tag.name).join("; ");
+  const cadastroSuggestion = useMemo(
+    () =>
+      deriveCadastroSuggestion(
+        selectedTipificacoes.map((tag) => tag.name),
+        tipo,
+      ),
+    [selectedTipificacoes, tipo],
+  );
+  const procedureGuidance = useMemo(() => getProcedureTypeGuidance(tipo), [tipo]);
+  const suggestedGravidade = useMemo(() => {
+    if (!cadastroSuggestion) return null;
+    return gravidadeOptions.find((tag) => tag.slug === cadastroSuggestion.gravidadeSlug) ?? null;
+  }, [cadastroSuggestion, gravidadeOptions]);
 
   const createTagOption = async (input: Parameters<typeof createProceduralTag>[0]) => {
     const created = await createProceduralTag(input);
@@ -303,6 +452,12 @@ function NovoCaso() {
     };
   }, [ppe]);
 
+  useEffect(() => {
+    if (!cadastroSuggestion) return;
+    if (!prioridadeTouched) setPrioridade(cadastroSuggestion.prioridade);
+    if (!gravidadeTouched && suggestedGravidade) setSelectedGravidadeTagIds([suggestedGravidade.id]);
+  }, [cadastroSuggestion, gravidadeTouched, prioridadeTouched, suggestedGravidade]);
+
   const registrationChecks = useMemo(
     () =>
       getInquiryRegistrationChecks({
@@ -392,6 +547,8 @@ function NovoCaso() {
     }
     return groups;
   }, [pendingChecks]);
+  const currentStepPendingChecks = pendingByStep[step] ?? [];
+  const pendingPreview = pendingChecks.slice(0, 3);
 
   const reviewGroups: Array<{ step: number; title: string; rows: Array<[string, string]> }> = [
     {
@@ -411,6 +568,7 @@ function NovoCaso() {
         ["Data do fato", dataFato],
         ["Tipificações", selectedTipificacoes.map((tag) => tag.name).join("; ")],
         ["Gravidade", selectedGravidadeTags.map((tag) => tag.name).join("; ")],
+        ["Prioridade", prioridade],
         ["Resumo do fato", resumoFato],
         ["Arma de fogo", houveArmaDeFogo === "Sim" ? armaUtilizada || "Sim" : houveArmaDeFogo],
       ],
@@ -458,6 +616,22 @@ function NovoCaso() {
     setHouveArmaDeFogo(value);
     if (value !== "Sim") {
       setArmaUtilizada("");
+    }
+  };
+
+  const handleTipificacaoChange = (next: string[]) => {
+    setSelectedTipificacaoTagIds(next);
+  };
+
+  const handleGravidadeChange = (next: string[]) => {
+    setGravidadeTouched(true);
+    setSelectedGravidadeTagIds(next);
+  };
+
+  const handlePrioridadeChange = (value: string) => {
+    setPrioridadeTouched(true);
+    if (PRIORITY_OPTIONS.includes(value as (typeof PRIORITY_OPTIONS)[number])) {
+      setPrioridade(value as (typeof PRIORITY_OPTIONS)[number]);
     }
   };
 
@@ -756,6 +930,16 @@ function NovoCaso() {
           className="sipi-wizard-window relative -mt-px space-y-5 rounded-b-3xl border border-border/80 bg-card/75 p-4 pt-5 backdrop-blur-sm md:p-6 md:pt-5"
           onSubmit={handleSubmit}
         >
+          <PendingSummary
+            pending={pendingChecks}
+            currentStepPending={currentStepPendingChecks}
+            preview={pendingPreview}
+            onOpenFirst={() => {
+              const first = pendingChecks[0];
+              if (first) goToStep(CHECK_STEP[first.id] ?? 0);
+            }}
+          />
+
           {step === 0 && (
             <SectionCard title="1. Identificação do Procedimento">
               <Field
@@ -774,11 +958,7 @@ function NovoCaso() {
                 <InlineNotice>Verificando ocorrências existentes com este PPE...</InlineNotice>
               )}
               {!checkingPpe && ppeMatches.length > 0 && (
-                <InlineNotice tone="warning">
-                  Este PPE já aparece em {ppeMatches.length} ocorrência(s) ativa(s). O cadastro
-                  continua permitido para procedimentos migrados; confirme a origem do registro
-                  antes de salvar.
-                </InlineNotice>
+                <DuplicatePpeNotice matches={ppeMatches} />
               )}
               <Select
                 label="Tipo de Procedimento"
@@ -786,6 +966,7 @@ function NovoCaso() {
                 onChange={setTipo}
                 options={PROCEDURE_TYPE_OPTIONS.map((option) => option.label)}
               />
+              <ProcedureTypeGuidance title={procedureGuidance.title} body={procedureGuidance.body} />
               <Select
                 label="Visibilidade"
                 options={canViewPrivateCases(profile) ? ["Público", "Sigiloso"] : ["Público"]}
@@ -808,22 +989,35 @@ function NovoCaso() {
                 hint="Adicione um ou mais crimes. Cada tipificação poderá ser usada em filtros e relatórios."
                 options={tipificacaoOptions}
                 value={selectedTipificacaoTagIds}
-                onChange={setSelectedTipificacaoTagIds}
+                onChange={handleTipificacaoChange}
                 onCreate={createTagOption}
                 createScope="tipificacao"
                 canCreate={canManageProceduralTags(profile)}
                 placeholder="Busque ou crie uma tipificação"
               />
+              {cadastroSuggestion && (
+                <SuggestionNotice
+                  reason={cadastroSuggestion.reason}
+                  gravidade={suggestedGravidade?.name}
+                  prioridade={cadastroSuggestion.prioridade}
+                />
+              )}
               <ProceduralTagPicker
                 label="Gravidade do fato"
                 hint="Selecione uma ou mais gravidades. A primeira será a classificação principal do procedimento."
                 options={gravidadeOptions}
                 value={selectedGravidadeTagIds}
-                onChange={setSelectedGravidadeTagIds}
+                onChange={handleGravidadeChange}
                 onCreate={createTagOption}
                 createScope="inquerito_gravidade"
                 canCreate={canManageProceduralTags(profile)}
                 placeholder="Busque ou crie uma gravidade"
+              />
+              <Select
+                label="Prioridade sugerida"
+                options={PRIORITY_OPTIONS}
+                value={prioridade}
+                onChange={handlePrioridadeChange}
               />
               <TextArea
                 label="Resumo do Fato"
@@ -1061,6 +1255,136 @@ function NovoCaso() {
         </form>
       </div>
     </AppLayout>
+  );
+}
+
+function PendingSummary({
+  pending,
+  currentStepPending,
+  preview,
+  onOpenFirst,
+}: {
+  pending: RegistrationCheck[];
+  currentStepPending: RegistrationCheck[];
+  preview: RegistrationCheck[];
+  onOpenFirst: () => void;
+}) {
+  if (pending.length === 0) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-success/35 bg-success/10 px-4 py-3 text-sm text-success">
+        <Check className="h-4 w-4" />
+        Cadastro sem pendências recomendadas.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-warning/35 bg-warning/[0.07] px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-bold text-warning">
+            <AlertTriangle className="h-4 w-4" />
+            {pending.length === 1
+              ? "Falta 1 informação recomendada"
+              : `Faltam ${pending.length} informações recomendadas`}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Nesta etapa: {currentStepPending.length || "nenhuma"} pendência. O cadastro só bloqueia
+            exigências críticas.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenFirst}
+          className="rounded-lg border border-warning/35 px-3 py-1.5 text-xs font-bold text-warning transition hover:border-warning/70"
+        >
+          Ver primeira
+        </button>
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {preview.map((item) => (
+          <li key={item.id} className="rounded-lg bg-background/55 px-2.5 py-1 text-[11px]">
+            {item.label.replace(/\.$/, "")}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DuplicatePpeNotice({ matches }: { matches: InqueritoLinkOption[] }) {
+  return (
+    <div className="md:col-span-2 lg:col-span-3 rounded-xl border border-amber-500/35 bg-amber-500/8 p-4 text-xs">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-sm font-bold text-amber-200">
+            <AlertTriangle className="h-4 w-4" />
+            Este PPE já aparece em {matches.length} ocorrência(s) ativa(s)
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            Repetição pode acontecer. Confira antes de continuar, principalmente em registro
+            migrado.
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 space-y-2">
+        {matches.slice(0, 3).map((match) => (
+          <div
+            key={match.id}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2"
+          >
+            <div className="min-w-0">
+              <p className="font-bold text-foreground">{match.numero_ppe || "Sem PPE"}</p>
+              <p className="truncate text-muted-foreground">
+                {[match.tipo, match.tipificacao, match.situacao, formatShortDate(match.data_instauracao)]
+                  .filter(Boolean)
+                  .join(" • ")}
+              </p>
+            </div>
+            <a
+              href={`/inqueritos/${match.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-primary/35 px-3 py-1.5 text-xs font-bold text-primary transition hover:border-primary/70"
+            >
+              Abrir <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SuggestionNotice({
+  reason,
+  gravidade,
+  prioridade,
+}: {
+  reason: string;
+  gravidade?: string;
+  prioridade: string;
+}) {
+  return (
+    <div className="md:col-span-2 lg:col-span-3 rounded-xl border border-primary/30 bg-primary/8 px-4 py-3 text-xs">
+      <p className="flex items-center gap-2 text-sm font-bold text-primary">
+        <Sparkles className="h-4 w-4" />
+        Sugestão aplicada
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        {reason} {gravidade ? `Gravidade: ${gravidade}. ` : ""}Prioridade: {prioridade}. Você pode
+        alterar logo abaixo.
+      </p>
+    </div>
+  );
+}
+
+function ProcedureTypeGuidance({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-card/70 px-4 py-3 text-xs">
+      <p className="font-bold text-foreground">{title}</p>
+      <p className="mt-1 text-muted-foreground">{body}</p>
+    </div>
   );
 }
 
