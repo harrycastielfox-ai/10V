@@ -14,6 +14,7 @@ import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
+import { RemessaFinalControl } from "@/components/RemessaFinalControl";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import { mergeMotivacaoSuggestions } from "@/lib/motivacoes";
 import {
@@ -60,6 +61,7 @@ import {
   type ReportStatus,
   type SelectOption,
 } from "@/lib/operationalContracts";
+import { getInqueritoRemessaFinalStatus, type RemessaFinalStatus } from "@/lib/remessaFinal";
 
 export const Route = createFileRoute("/inqueritos/$caseId/editar")({ component: EditarInquerito });
 
@@ -121,7 +123,6 @@ function EditarInquerito() {
   const [prioridade, setPrioridade] = useState("");
   const [situacao, setSituacao] = useState("");
   const [statusDiligencias, setStatusDiligencias] = useState("");
-  const [dataElucidacao, setDataElucidacao] = useState("");
   const [dataFato, setDataFato] = useState("");
   const [dataInstauracao, setDataInstauracao] = useState("");
   const [prazo, setPrazo] = useState("");
@@ -151,6 +152,8 @@ function EditarInquerito() {
   const [relatorioStatus, setRelatorioStatus] = useState<ReportStatus>("pendente");
   const [dataRelatorio, setDataRelatorio] = useState("");
   const [dataEnvioRelatorio, setDataEnvioRelatorio] = useState("");
+  const [remessaFinalStatus, setRemessaFinalStatus] = useState<RemessaFinalStatus>("em_andamento");
+  const [dataRemessaFinal, setDataRemessaFinal] = useState("");
   const [medidaProtetiva, setMedidaProtetiva] = useState("");
   const [numeroProcessoMedida, setNumeroProcessoMedida] = useState("");
   const [representacoesLegais, setRepresentacoesLegais] = useState("");
@@ -322,7 +325,6 @@ function EditarInquerito() {
         setPrioridade(inquerito.prioridade ?? "");
         setSituacao(inquerito.situacao ?? "");
         setStatusDiligencias(inquerito.status_diligencias ?? "");
-        setDataElucidacao(toInputDate(inquerito.data_elucidacao));
         setDataFato(toInputDate(inquerito.data_fato));
         setDataInstauracao(toInputDate(inquerito.data_instauracao));
         setPrazo(toInputDate(inquerito.prazo_data_final ?? inquerito.prazo));
@@ -388,6 +390,8 @@ function EditarInquerito() {
         );
         setDataRelatorio(toInputDate(inquerito.data_relatorio));
         setDataEnvioRelatorio(toInputDate(inquerito.data_envio_relatorio));
+        setRemessaFinalStatus(getInqueritoRemessaFinalStatus(inquerito));
+        setDataRemessaFinal(toInputDate(inquerito.data_remessa_final));
         setMedidaProtetiva(inquerito.medida_protetiva ?? "");
         setNumeroProcessoMedida(inquerito.numero_processo_medida ?? "");
         setRepresentacoesLegais(inquerito.representacoes_legais ?? "");
@@ -490,6 +494,52 @@ function EditarInquerito() {
     }
   };
 
+  const handleRemessaFinalChange = (value: RemessaFinalStatus) => {
+    setRemessaFinalStatus(value);
+    if (value === "em_andamento") setDataRemessaFinal("");
+
+    const targetSlug = value === "remetido" ? "remetido" : "em-andamento";
+    const targetTag = statusOptions.find((tag) => tag.slug === targetSlug);
+    if (!targetTag) return;
+
+    const exclusiveIds = new Set(
+      statusOptions
+        .filter((tag) => tag.slug === "remetido" || tag.slug === "em-andamento")
+        .map((tag) => tag.id),
+    );
+    setSelectedStatusTagIds((current) => [
+      targetTag.id,
+      ...current.filter((id) => id !== targetTag.id && !exclusiveIds.has(id)),
+    ]);
+  };
+
+  const handleStatusTagsChange = (nextIds: string[]) => {
+    const remetidoTag = statusOptions.find((tag) => tag.slug === "remetido");
+    const andamentoTag = statusOptions.find((tag) => tag.slug === "em-andamento");
+    const nextRemessaStatus: RemessaFinalStatus =
+      remetidoTag && nextIds.includes(remetidoTag.id)
+        ? "remetido"
+        : andamentoTag && nextIds.includes(andamentoTag.id)
+          ? "em_andamento"
+          : remessaFinalStatus;
+    const targetTag = nextRemessaStatus === "remetido" ? remetidoTag : andamentoTag;
+
+    setRemessaFinalStatus(nextRemessaStatus);
+    if (nextRemessaStatus === "em_andamento") setDataRemessaFinal("");
+    if (!targetTag) {
+      setSelectedStatusTagIds(nextIds);
+      return;
+    }
+
+    const exclusiveIds = new Set(
+      [remetidoTag?.id, andamentoTag?.id].filter((id): id is string => Boolean(id)),
+    );
+    setSelectedStatusTagIds([
+      targetTag.id,
+      ...nextIds.filter((id) => id !== targetTag.id && !exclusiveIds.has(id)),
+    ]);
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (saving || !canEditCases(profile)) return;
@@ -528,9 +578,17 @@ function EditarInquerito() {
         categoria_criminal: normalizedCategory,
         status_tag_id: statusTagId,
         situacao: statusOptions.find((tag) => tag.id === statusTagId)?.name || situacao || null,
-        elucidado: autoria ? (autoriaDeterminada ? "Sim" : "Não") : null,
-        cvli_elucidado: isCvli && autoria ? autoriaDeterminada : null,
-        data_elucidacao: isCvli && autoriaDeterminada ? dataElucidacao || null : null,
+        elucidado: isCvli
+          ? remessaFinalStatus === "remetido"
+            ? "Sim"
+            : "Não"
+          : autoria
+            ? autoriaDeterminada
+              ? "Sim"
+              : "Não"
+            : null,
+        cvli_elucidado: isCvli ? remessaFinalStatus === "remetido" : null,
+        remessa_final_status: remessaFinalStatus,
         data_fato: dataFato || null,
         data_instauracao: dataInstauracao || null,
         prazo: prazo || null,
@@ -771,11 +829,16 @@ function EditarInquerito() {
               hint="Selecione um ou mais status. O primeiro será o status principal e continuará no histórico."
               options={statusOptions}
               value={selectedStatusTagIds}
-              onChange={setSelectedStatusTagIds}
+              onChange={handleStatusTagsChange}
               onCreate={createTagOption}
               createScope="inquerito_status"
               canCreate={canManageProceduralTags(profile)}
               placeholder="Busque ou crie um status"
+            />
+            <RemessaFinalControl
+              value={remessaFinalStatus}
+              dataRemessa={dataRemessaFinal}
+              onChange={handleRemessaFinalChange}
             />
             <TextArea
               label="Resumo do Fato"
@@ -784,14 +847,6 @@ function EditarInquerito() {
               value={resumoFato}
               onChange={(event) => setResumoFato(event.target.value)}
             />
-            {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
-              <Field
-                label="Data da elucidação"
-                type="date"
-                value={dataElucidacao}
-                onChange={(e) => setDataElucidacao(e.target.value)}
-              />
-            )}
             <SeizedWeaponsField
               checked={isYesValue(houveArmaFogo)}
               onCheckedChange={(checked) => {

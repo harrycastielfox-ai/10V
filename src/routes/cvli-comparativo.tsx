@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { BarChart3, CheckCircle2, FileSpreadsheet, Target, Trophy } from "lucide-react";
+import { BarChart3, CheckCircle2, FileSpreadsheet, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { buildCvliMonthlyComparison, type CvliMetric } from "@/lib/cvliMetrics";
@@ -65,7 +65,6 @@ function CvliComparativoPage() {
       .filter((item): item is { year: number; metric: CvliMetric } => Boolean(item.metric));
     const registros = metrics.reduce((total, item) => total + item.metric.registros, 0);
     const elucidados = metrics.reduce((total, item) => total + item.metric.elucidados, 0);
-    const taxa = registros === 0 ? 0 : Number(((elucidados / registros) * 100).toFixed(1));
     const topYear = metrics.reduce(
       (best, item) =>
         item.metric.registros > best.registros
@@ -79,28 +78,22 @@ function CvliComparativoPage() {
           return {
             year: item.year,
             elucidados: item.metric.elucidados,
-            taxa: item.metric.taxa,
           };
         }
 
-        if (
-          item.metric.elucidados === best.elucidados &&
-          (item.metric.taxa > best.taxa ||
-            (item.metric.taxa === best.taxa && item.year > best.year))
-        ) {
+        if (item.metric.elucidados === best.elucidados && item.year > best.year) {
           return {
             year: item.year,
             elucidados: item.metric.elucidados,
-            taxa: item.metric.taxa,
           };
         }
 
         return best;
       },
-      { year: visibleYears[0] ?? 0, elucidados: 0, taxa: 0 },
+      { year: visibleYears[0] ?? 0, elucidados: 0 },
     );
 
-    return { registros, elucidados, taxa, topYear, bestYear };
+    return { registros, elucidados, topYear, bestYear };
   }, [comparison.totals, visibleYears]);
   const yearRangeLabel =
     visibleYears.length > 1
@@ -119,7 +112,7 @@ function CvliComparativoPage() {
       to: "/inqueritos",
       search: {
         categoria: "cvli",
-        dataCampo: "cvli",
+        dataCampo: mode === "elucidados" ? "remessa_final" : "cvli",
         dataInicial,
         dataFinal,
         ...(mode === "elucidados" ? { elucidado: "sim" } : {}),
@@ -171,7 +164,7 @@ function CvliComparativoPage() {
           </div>
         </header>
 
-        <section className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-5">
+        <section className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SummaryMetric
             label="Total de registros"
             value={summary.registros}
@@ -187,13 +180,6 @@ function CvliComparativoPage() {
             tone="success"
           />
           <SummaryMetric
-            label="Taxa geral de elucidação"
-            value={`${formatRate(summary.taxa)}%`}
-            hint="No período selecionado"
-            icon={<Target className="h-7 w-7" />}
-            tone={getRateTone(summary.taxa)}
-          />
-          <SummaryMetric
             label="Ano com mais registros"
             value={summary.topYear.year || "—"}
             hint={`${summary.topYear.registros} registros`}
@@ -201,11 +187,11 @@ function CvliComparativoPage() {
             tone="info"
           />
           <SummaryMetric
-            label="Melhor desempenho"
+            label="Ano com mais elucidações"
             value={summary.bestYear.elucidados > 0 ? summary.bestYear.year : "—"}
             hint={
               summary.bestYear.elucidados > 0
-                ? `${summary.bestYear.elucidados} eluc. · ${formatRate(summary.bestYear.taxa)}%`
+                ? `${summary.bestYear.elucidados} elucidações`
                 : "Sem elucidações"
             }
             icon={<Trophy className="h-7 w-7" />}
@@ -216,10 +202,8 @@ function CvliComparativoPage() {
         <section className="overflow-hidden rounded-xl border border-info/25 bg-[#080d10] shadow-[0_0_28px_rgba(14,165,233,0.06)]">
           <div className="flex justify-end border-b border-border bg-muted/20 px-5 py-3">
             <div className="flex flex-wrap gap-4 rounded-md border border-border bg-background/70 px-4 py-2 text-xs">
-              <LegendDot color="bg-success" label="100%" />
-              <LegendDot color="bg-warning" label="50% a 99%" />
-              <LegendDot color="bg-destructive" label="Abaixo de 50%" />
-              <LegendDot color="bg-muted-foreground" label="Sem registro" />
+              <LegendDot color="bg-info" label="Registros pela data do fato" />
+              <LegendDot color="bg-success" label="Elucidações pela data da remessa" />
             </div>
           </div>
 
@@ -269,7 +253,7 @@ function CvliComparisonTable({
             {years.map((year, index) => (
               <th
                 key={year}
-                colSpan={3}
+                colSpan={2}
                 className={`bg-[#0a1014] px-4 py-3 text-center text-sm font-black text-foreground ${
                   index > 0
                     ? "cvli-year-divider border-l-2 border-l-slate-100/70"
@@ -301,12 +285,6 @@ function CvliComparisonTable({
                 className="border-r border-info/10 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-success"
               >
                 Elucidados
-              </th>,
-              <th
-                key={`${year}-taxa`}
-                className="border-r border-info/30 px-3 py-2 text-center text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground last:border-r-0"
-              >
-                %
               </th>,
             ])}
           </tr>
@@ -370,7 +348,6 @@ function renderMetricCells(
 ) {
   const { year, isFirstYear, monthIndex, monthLabel, onOpenMetric, emphasized = false } = options;
   const valueClass = emphasized ? "font-black" : "font-semibold";
-  const hasRecord = metric.registros > 0;
   const yearDividerClass = isFirstYear ? "" : "cvli-year-divider border-l-2 border-l-slate-100/70";
 
   return [
@@ -395,14 +372,6 @@ function renderMetricCells(
         title={`Abrir CVLIs elucidados de ${monthLabel} de ${year}`}
         onClick={() => onOpenMetric(year, monthIndex, "elucidados")}
       />
-    </td>,
-    <td
-      key={`${key}-taxa`}
-      className={`border-r border-info/30 px-3 py-3 text-center font-black tabular-nums last:border-r-0 ${
-        hasRecord ? getRateTextClass(metric.taxa) : "text-muted-foreground/55"
-      }`}
-    >
-      {hasRecord ? `${formatRate(metric.taxa)}%` : "—"}
     </td>,
   ];
 }
@@ -520,20 +489,4 @@ function LegendDot({ color, label }: { color: string; label: string }) {
       <span className="font-semibold">{label}</span>
     </span>
   );
-}
-
-function formatRate(rate: number) {
-  return rate.toString().replace(".", ",");
-}
-
-function getRateTone(rate: number) {
-  if (rate >= 70) return "success" as const;
-  if (rate >= 40) return "warning" as const;
-  return "destructive" as const;
-}
-
-function getRateTextClass(rate: number) {
-  if (rate >= 70) return "text-success";
-  if (rate >= 40) return "text-warning";
-  return "text-destructive";
 }

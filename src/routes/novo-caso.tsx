@@ -16,6 +16,7 @@ import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
 import { MotivacaoField, MotivacaoSuggestions } from "@/components/MotivacaoAssistant";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
+import { RemessaFinalControl } from "@/components/RemessaFinalControl";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import { mergeMotivacaoSuggestions } from "@/lib/motivacoes";
 import {
@@ -58,6 +59,7 @@ import {
   type RegistrationCheck,
   type ReportStatus,
 } from "@/lib/operationalContracts";
+import type { RemessaFinalStatus } from "@/lib/remessaFinal";
 
 export const Route = createFileRoute("/novo-caso")({
   head: () => ({ meta: [{ title: "Novo Caso — SIPI" }] }),
@@ -88,7 +90,7 @@ const CHECK_STEP: Record<string, number> = {
   envolvidos: 3,
   autoria: 3,
   "reu-preso": 3,
-  "data-elucidacao": 3,
+  "remessa-final": 4,
   situacao: 4,
   instauracao: 4,
   prazo: 4,
@@ -274,7 +276,7 @@ function NovoCaso() {
   const [relatorioStatus, setRelatorioStatus] = useState<ReportStatus>("pendente");
   const [dataRelatorio, setDataRelatorio] = useState("");
   const [dataEnvioRelatorio, setDataEnvioRelatorio] = useState("");
-  const [dataElucidacao, setDataElucidacao] = useState("");
+  const [remessaFinalStatus, setRemessaFinalStatus] = useState<RemessaFinalStatus>("em_andamento");
   const [representacoesLegais, setRepresentacoesLegais] = useState("");
   const [visibilidade, setVisibilidade] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -487,8 +489,17 @@ function NovoCaso() {
         equipe,
         escrivao,
         statusDiligencias,
-        elucidado: autoria === "Determinada" ? "Sim" : autoria ? "Não" : "",
-        dataElucidacao,
+        elucidado:
+          normalizeCriminalCategory(gravidade) === "CVLI"
+            ? remessaFinalStatus === "remetido"
+              ? "Sim"
+              : "Não"
+            : autoria === "Determinada"
+              ? "Sim"
+              : autoria
+                ? "Não"
+                : "",
+        remessaFinalStatus,
         houveArmaDeFogo,
         armaUtilizada,
         vinculadoFaccao,
@@ -503,7 +514,6 @@ function NovoCaso() {
       armaUtilizada,
       autoria,
       bairro,
-      dataElucidacao,
       dataEnvioRelatorio,
       dataFato,
       dataInstauracao,
@@ -523,6 +533,7 @@ function NovoCaso() {
       ppe,
       prazo,
       reuPreso,
+      remessaFinalStatus,
       relatorioStatus,
       resumoFato,
       situacao,
@@ -596,7 +607,6 @@ function NovoCaso() {
         ],
         ["Autoria", autoria],
         ["Réu preso", reuPreso],
-        ["Data da elucidação", dataElucidacao],
       ],
     },
     {
@@ -604,6 +614,7 @@ function NovoCaso() {
       title: "Situação e prazos",
       rows: [
         ["Status", selectedStatusTags.map((tag) => tag.name).join("; ")],
+        ["Remessa final", remessaFinalStatus === "remetido" ? "Remetido" : "Em andamento"],
         ["Data de instauração", dataInstauracao],
         ["Prazo (dias)", prazoDias],
         ["Data final", prazo],
@@ -655,6 +666,49 @@ function NovoCaso() {
     } else if (value === "relatado") {
       setDataEnvioRelatorio("");
     }
+  };
+
+  const handleRemessaFinalChange = (value: RemessaFinalStatus) => {
+    setRemessaFinalStatus(value);
+    const targetSlug = value === "remetido" ? "remetido" : "em-andamento";
+    const targetTag = statusOptions.find((tag) => tag.slug === targetSlug);
+    if (!targetTag) return;
+
+    const exclusiveIds = new Set(
+      statusOptions
+        .filter((tag) => tag.slug === "remetido" || tag.slug === "em-andamento")
+        .map((tag) => tag.id),
+    );
+    setSelectedStatusTagIds((current) => [
+      targetTag.id,
+      ...current.filter((id) => id !== targetTag.id && !exclusiveIds.has(id)),
+    ]);
+  };
+
+  const handleStatusTagsChange = (nextIds: string[]) => {
+    const remetidoTag = statusOptions.find((tag) => tag.slug === "remetido");
+    const andamentoTag = statusOptions.find((tag) => tag.slug === "em-andamento");
+    const nextRemessaStatus: RemessaFinalStatus =
+      remetidoTag && nextIds.includes(remetidoTag.id)
+        ? "remetido"
+        : andamentoTag && nextIds.includes(andamentoTag.id)
+          ? "em_andamento"
+          : remessaFinalStatus;
+    const targetTag = nextRemessaStatus === "remetido" ? remetidoTag : andamentoTag;
+
+    setRemessaFinalStatus(nextRemessaStatus);
+    if (!targetTag) {
+      setSelectedStatusTagIds(nextIds);
+      return;
+    }
+
+    const exclusiveIds = new Set(
+      [remetidoTag?.id, andamentoTag?.id].filter((id): id is string => Boolean(id)),
+    );
+    setSelectedStatusTagIds([
+      targetTag.id,
+      ...nextIds.filter((id) => id !== targetTag.id && !exclusiveIds.has(id)),
+    ]);
   };
 
   const pendingLinksLabel = [
@@ -803,9 +857,17 @@ function NovoCaso() {
       status_diligencias: null,
       status_tag_id: statusTagId,
       situacao: statusOptions.find((tag) => tag.id === statusTagId)?.name || situacao || null,
-      elucidado: autoria ? (autoriaDeterminada ? "Sim" : "Não") : null,
-      cvli_elucidado: isCvli && autoria ? autoriaDeterminada : null,
-      data_elucidacao: isCvli && autoriaDeterminada ? dataElucidacao || null : null,
+      elucidado: isCvli
+        ? remessaFinalStatus === "remetido"
+          ? "Sim"
+          : "Não"
+        : autoria
+          ? autoriaDeterminada
+            ? "Sim"
+            : "Não"
+          : null,
+      cvli_elucidado: isCvli ? remessaFinalStatus === "remetido" : null,
+      remessa_final_status: remessaFinalStatus,
       houve_arma_fogo: houveArmaDeFogo || null,
       arma_utilizada: armaUtilizada || null,
       delegado_responsavel: null,
@@ -1100,14 +1162,6 @@ function NovoCaso() {
                   </span>
                 </div>
               </div>
-              {normalizeCriminalCategory(gravidade) === "CVLI" && autoria === "Determinada" && (
-                <Field
-                  label="Data da elucidação"
-                  type="date"
-                  value={dataElucidacao}
-                  onChange={(e) => setDataElucidacao(e.target.value)}
-                />
-              )}
             </SectionCard>
           )}
 
@@ -1118,12 +1172,13 @@ function NovoCaso() {
                 hint="Selecione um ou mais status. O primeiro será o status principal e continuará no histórico."
                 options={statusOptions}
                 value={selectedStatusTagIds}
-                onChange={setSelectedStatusTagIds}
+                onChange={handleStatusTagsChange}
                 onCreate={createTagOption}
                 createScope="inquerito_status"
                 canCreate={canManageProceduralTags(profile)}
                 placeholder="Busque ou crie um status"
               />
+              <RemessaFinalControl value={remessaFinalStatus} onChange={handleRemessaFinalChange} />
               <Field
                 label="Data de Instauração"
                 type="date"

@@ -1,6 +1,7 @@
 import { normalizeCaseCategory } from "@/lib/inqueritosPriority";
 import { isYesLike } from "@/lib/operationalMetrics";
 import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
+import { getRemessaFinalDate, isRemessaFinalRemetida } from "@/lib/remessaFinal";
 
 export const CVLI_MONTHS = [
   "Janeiro",
@@ -20,7 +21,6 @@ export const CVLI_MONTHS = [
 export type CvliMetric = {
   registros: number;
   elucidados: number;
-  taxa: number;
 };
 
 export type CvliMonthlyRow = {
@@ -45,7 +45,11 @@ function normalizeText(value: unknown) {
 
 function parseValidDate(value: unknown) {
   if (!value) return null;
-  const date = new Date(String(value));
+  const raw = String(value).trim();
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/u.exec(raw);
+  const date = dateOnly
+    ? new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]), 12))
+    : new Date(raw);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -102,6 +106,7 @@ function isDeterminedAuthorship(value: unknown) {
 }
 
 export function isCvliElucidado(record: InqueritoRecord) {
+  if (isCvliRecord(record) && record.remessa_final_status) return isRemessaFinalRemetida(record);
   if (typeof record.cvli_elucidado === "boolean") return record.cvli_elucidado;
 
   const source = record as unknown as Record<string, unknown>;
@@ -113,18 +118,24 @@ export function isCvliElucidado(record: InqueritoRecord) {
   );
 }
 
-function calculateRate(registros: number, elucidados: number) {
-  return registros === 0 ? 0 : Number(((elucidados / registros) * 100).toFixed(1));
-}
-
 function createEmptyMetric(): CvliMetric {
-  return { registros: 0, elucidados: 0, taxa: 0 };
+  return { registros: 0, elucidados: 0 };
 }
 
 export function buildCvliMonthlyComparison(inqueritos: InqueritoRecord[]): CvliMonthlyComparison {
-  const cvliWithDate = inqueritos
-    .filter(isCvliRecord)
+  const cvliRecords = inqueritos.filter(isCvliRecord);
+  const registrosWithDate = cvliRecords
     .map((record) => ({ record, referenceDate: getCvliReferenceDate(record) }))
+    .filter(
+      (
+        item,
+      ): item is {
+        record: InqueritoRecord;
+        referenceDate: Date;
+      } => item.referenceDate !== null,
+    );
+  const elucidadosWithDate = cvliRecords
+    .map((record) => ({ record, referenceDate: getRemessaFinalDate(record) }))
     .filter(
       (
         item,
@@ -135,7 +146,11 @@ export function buildCvliMonthlyComparison(inqueritos: InqueritoRecord[]): CvliM
     );
 
   const years = Array.from(
-    new Set(cvliWithDate.map(({ referenceDate }) => referenceDate.getFullYear())),
+    new Set(
+      [...registrosWithDate, ...elucidadosWithDate].map(({ referenceDate }) =>
+        referenceDate.getUTCFullYear(),
+      ),
+    ),
   ).sort((a, b) => a - b);
 
   const rows = CVLI_MONTHS.map((month, monthIndex) => ({
@@ -151,30 +166,21 @@ export function buildCvliMonthlyComparison(inqueritos: InqueritoRecord[]): CvliM
     CvliMetric
   >;
 
-  cvliWithDate.forEach(({ record, referenceDate }) => {
-    const year = referenceDate.getFullYear();
-    const monthIndex = referenceDate.getMonth();
+  registrosWithDate.forEach(({ referenceDate }) => {
+    const year = referenceDate.getUTCFullYear();
+    const monthIndex = referenceDate.getUTCMonth();
     const rowMetric = rows[monthIndex].byYear[year];
     const totalMetric = totals[year];
 
     rowMetric.registros += 1;
     totalMetric.registros += 1;
-
-    if (isCvliElucidado(record)) {
-      rowMetric.elucidados += 1;
-      totalMetric.elucidados += 1;
-    }
   });
 
-  rows.forEach((row) => {
-    years.forEach((year) => {
-      const metric = row.byYear[year];
-      metric.taxa = calculateRate(metric.registros, metric.elucidados);
-    });
-  });
-  years.forEach((year) => {
-    const metric = totals[year];
-    metric.taxa = calculateRate(metric.registros, metric.elucidados);
+  elucidadosWithDate.forEach(({ referenceDate }) => {
+    const year = referenceDate.getUTCFullYear();
+    const monthIndex = referenceDate.getUTCMonth();
+    rows[monthIndex].byYear[year].elucidados += 1;
+    totals[year].elucidados += 1;
   });
 
   return { years, rows, totals };

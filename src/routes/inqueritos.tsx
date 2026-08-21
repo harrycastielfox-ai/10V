@@ -59,6 +59,7 @@ import {
   pick,
 } from "@/lib/inqueritosPriority";
 import { getCvliReferenceDate, isCvliElucidado, isCvliRecord } from "@/lib/cvliMetrics";
+import { getRemessaFinalDate } from "@/lib/remessaFinal";
 import {
   hasRelatorioEnviado,
   isInqueritoEmAndamento,
@@ -455,9 +456,13 @@ function dateToUtcDay(value: Date | null) {
 function getCvliDate(row: InqueritoListRow) {
   return dateToUtcDay(getCvliReferenceDate(row.source));
 }
+function getRemessaFinalFilterDate(row: InqueritoListRow) {
+  return dateToUtcDay(getRemessaFinalDate(row.source));
+}
 function getDateByField(row: InqueritoListRow, field: string) {
   const normalized = normalizeText(field);
   if (normalized === "relatorio") return getReportDate(row);
+  if (normalized === "remessa_final") return getRemessaFinalFilterDate(row);
   if (normalized === "cvli") return getCvliDate(row);
   return getEntryDate(row);
 }
@@ -807,7 +812,8 @@ function Inqueritos() {
     )
       setCategoriaFilter(categoria);
     const dataCampo = normalizeText(params.get("dataCampo") ?? "entrada").replace(/-/g, "_");
-    if (["entrada", "relatorio", "cvli"].includes(dataCampo)) setDataFieldFilter(dataCampo);
+    if (["entrada", "relatorio", "cvli", "remessa_final"].includes(dataCampo))
+      setDataFieldFilter(dataCampo);
     const status = normalizeText(params.get("status") ?? "").replace(/-/g, "_");
     if (["em_andamento"].includes(status)) setStatusQueryFilter(status);
     setFilterLogic(params.get("logic") === "or" ? "or" : "and");

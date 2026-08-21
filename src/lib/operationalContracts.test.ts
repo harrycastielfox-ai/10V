@@ -177,17 +177,22 @@ describe("getInquiryRegistrationChecks", () => {
     expect(blockingFailures).toEqual([]);
   });
 
-  it("requires elucidation date only for elucidated CVLI cases", () => {
-    const notCvli = getInquiryRegistrationChecks(
+  it("requires final remittance only for elucidated CVLI cases", () => {
+    const withoutRemittance = getInquiryRegistrationChecks(
       baseInquiry({ gravidade: "CVLI", elucidado: "sim" }),
     );
-    expect(notCvli.some((c) => c.id === "data-elucidacao")).toBe(true);
-    expect(notCvli.find((c) => c.id === "data-elucidacao")?.complete).toBe(false);
+    expect(withoutRemittance.some((c) => c.id === "remessa-final")).toBe(true);
+    expect(withoutRemittance.find((c) => c.id === "remessa-final")?.complete).toBe(false);
+
+    const remitted = getInquiryRegistrationChecks(
+      baseInquiry({ gravidade: "CVLI", elucidado: "sim", remessaFinalStatus: "remetido" }),
+    );
+    expect(remitted.find((c) => c.id === "remessa-final")?.complete).toBe(true);
 
     const nonCvliElucidado = getInquiryRegistrationChecks(
       baseInquiry({ gravidade: "Outro", elucidado: "sim" }),
     );
-    expect(nonCvliElucidado.some((c) => c.id === "data-elucidacao")).toBe(false);
+    expect(nonCvliElucidado.some((c) => c.id === "remessa-final")).toBe(false);
   });
 
   it("requires arma utilizada only when houve arma de fogo", () => {

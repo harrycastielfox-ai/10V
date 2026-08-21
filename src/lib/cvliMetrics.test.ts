@@ -34,6 +34,8 @@ function makeInquerito(overrides: Partial<InqueritoRecord> = {}): InqueritoRecor
     autoria_determinada: null,
     cvli_elucidado: null,
     data_elucidacao: null,
+    remessa_final_status: null,
+    data_remessa_final: null,
     houve_arma_fogo: null,
     arma_utilizada: null,
     faccao: null,
@@ -79,6 +81,39 @@ describe("isCvliRecord", () => {
 });
 
 describe("isCvliElucidado", () => {
+  it("uses final remittance as the operational elucidation rule when available", () => {
+    expect(
+      isCvliElucidado(
+        makeInquerito({
+          categoria_criminal: "CVLI",
+          remessa_final_status: "remetido",
+          cvli_elucidado: false,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isCvliElucidado(
+        makeInquerito({
+          categoria_criminal: "CVLI",
+          remessa_final_status: "em_andamento",
+          cvli_elucidado: true,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps authorship as the fallback outside CVLI", () => {
+    expect(
+      isCvliElucidado(
+        makeInquerito({
+          categoria_criminal: "PATRIMONIAL",
+          remessa_final_status: "em_andamento",
+          elucidado: "sim",
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it("prefers the explicit boolean field when present", () => {
     expect(isCvliElucidado(makeInquerito({ cvli_elucidado: true, elucidado: "nao" }))).toBe(true);
     expect(isCvliElucidado(makeInquerito({ cvli_elucidado: false, elucidado: "sim" }))).toBe(false);
@@ -98,7 +133,12 @@ describe("isCvliElucidado", () => {
 describe("buildCvliMonthlyComparison", () => {
   it("only counts CVLI records with a resolvable reference date", () => {
     const records = [
-      makeInquerito({ categoria_criminal: "CVLI", data_fato: "2026-01-15", cvli_elucidado: true }),
+      makeInquerito({
+        categoria_criminal: "CVLI",
+        data_fato: "2026-01-15",
+        remessa_final_status: "remetido",
+        data_remessa_final: "2026-01-20",
+      }),
       makeInquerito({ categoria_criminal: "CVLI", data_fato: "2026-01-20" }),
       makeInquerito({ categoria_criminal: "PATRIMONIAL", data_fato: "2026-01-10" }),
       makeInquerito({ categoria_criminal: "CVLI", data_fato: null, data_instauracao: null }),
@@ -109,8 +149,8 @@ describe("buildCvliMonthlyComparison", () => {
     expect(result.years).toEqual([2026]);
     const january = result.rows[0];
     expect(january.month).toBe("Janeiro");
-    expect(january.byYear[2026]).toEqual({ registros: 2, elucidados: 1, taxa: 50 });
-    expect(result.totals[2026]).toEqual({ registros: 2, elucidados: 1, taxa: 50 });
+    expect(january.byYear[2026]).toEqual({ registros: 2, elucidados: 1 });
+    expect(result.totals[2026]).toEqual({ registros: 2, elucidados: 1 });
   });
 
   it("prefers data_fato, then data_instauracao, then created_at for the reference date", () => {
@@ -137,11 +177,31 @@ describe("buildCvliMonthlyComparison", () => {
   it("splits registros across different years for the same month", () => {
     const records = [
       makeInquerito({ categoria_criminal: "CVLI", data_fato: "2025-03-05" }),
-      makeInquerito({ categoria_criminal: "CVLI", data_fato: "2026-03-10", cvli_elucidado: true }),
+      makeInquerito({
+        categoria_criminal: "CVLI",
+        data_fato: "2026-03-10",
+        remessa_final_status: "remetido",
+        data_remessa_final: "2026-03-20",
+      }),
     ];
     const result = buildCvliMonthlyComparison(records);
     const march = result.rows[2];
-    expect(march.byYear[2025]).toEqual({ registros: 1, elucidados: 0, taxa: 0 });
-    expect(march.byYear[2026]).toEqual({ registros: 1, elucidados: 1, taxa: 100 });
+    expect(march.byYear[2025]).toEqual({ registros: 1, elucidados: 0 });
+    expect(march.byYear[2026]).toEqual({ registros: 1, elucidados: 1 });
+  });
+
+  it("counts the record by fact date and the elucidation by final remittance date", () => {
+    const result = buildCvliMonthlyComparison([
+      makeInquerito({
+        categoria_criminal: "CVLI",
+        data_fato: "2023-02-10",
+        remessa_final_status: "remetido",
+        data_remessa_final: "2026-08-21",
+      }),
+    ]);
+
+    expect(result.years).toEqual([2023, 2026]);
+    expect(result.rows[1].byYear[2023]).toEqual({ registros: 1, elucidados: 0 });
+    expect(result.rows[7].byYear[2026]).toEqual({ registros: 0, elucidados: 1 });
   });
 });

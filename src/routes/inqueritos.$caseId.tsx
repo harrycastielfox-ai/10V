@@ -39,6 +39,7 @@ import {
   calculateInqueritoOperationalPriorityDetails,
   normalizeCaseCategory,
 } from "@/lib/inqueritosPriority";
+import { isCvliElucidado } from "@/lib/cvliMetrics";
 import {
   getInquiryRegistrationChecks,
   getOccurrenceOriginLabel,
@@ -46,6 +47,7 @@ import {
   REPORT_STATUS_OPTIONS,
   type ReportStatus,
 } from "@/lib/operationalContracts";
+import { getInqueritoRemessaFinalStatus } from "@/lib/remessaFinal";
 import {
   ArrowLeft,
   BookOpen,
@@ -100,7 +102,6 @@ type InqueritoDetalheUI = {
   autoriaDeterminada: string;
   reuPreso: string;
   elucidado: string;
-  dataElucidacao: string;
   houveArmaFogo: string;
   armaUtilizada: string;
   equipe: string;
@@ -112,6 +113,8 @@ type InqueritoDetalheUI = {
   relatorioStatus: string;
   dataRelatorio: string;
   dataEnvioRelatorio: string;
+  remessaFinalStatus: string;
+  dataRemessaFinal: string;
   medidaProtetiva: string;
   numeroProcessoMedida: string;
   motivacao: string;
@@ -175,7 +178,12 @@ function isInqueritoSigiloso(record: InqueritoRecord) {
     String(raw.visibilidade ?? raw.visibility ?? raw.publico_privado ?? ""),
   );
   const sigiloso = normalizeText(String(raw.sigiloso ?? raw.sigiloso_normalizado ?? ""));
-  return visibility.includes("sig") || raw.sigiloso === true || raw.sigiloso_normalizado === true || sigiloso === "sim";
+  return (
+    visibility.includes("sig") ||
+    raw.sigiloso === true ||
+    raw.sigiloso_normalizado === true ||
+    sigiloso === "sim"
+  );
 }
 
 function parsePrazoToUtc(value: string) {
@@ -352,8 +360,7 @@ function normalizeInqueritoForDetail(caso: InqueritoRecord): InqueritoDetalheUI 
     investigado: pick(raw, "investigado", "suspeito", "autor_investigado", "autorInvestigado"),
     autoriaDeterminada: pick(raw, "autoria_determinada", "autoriaDeterminada"),
     reuPreso: pickTextOrBoolean(raw, ["reu_preso", "reuPreso"], ["reu_preso_normalizado"]),
-    elucidado: pickTextOrBoolean(raw, ["elucidado"], ["cvli_elucidado"]),
-    dataElucidacao: pick(raw, "data_elucidacao"),
+    elucidado: isCvliElucidado(caso) ? "Sim" : "Não",
     houveArmaFogo: pick(raw, "houve_arma_fogo", "houveArmaFogo"),
     armaUtilizada: formatSeizedWeaponsForDisplay(pick(raw, "arma_utilizada", "armaUtilizada")),
     equipe: pick(raw, "equipe_responsavel", "equipe", "equipeResponsavel"),
@@ -365,6 +372,9 @@ function normalizeInqueritoForDetail(caso: InqueritoRecord): InqueritoDetalheUI 
     relatorioStatus: getOptionLabel(pick(raw, "relatorio_status"), REPORT_STATUS_OPTIONS),
     dataRelatorio: pick(raw, "data_relatorio"),
     dataEnvioRelatorio: pick(raw, "data_envio_relatorio", "dataEnvioRelatorio"),
+    remessaFinalStatus:
+      getInqueritoRemessaFinalStatus(caso) === "remetido" ? "Remetido" : "Em andamento",
+    dataRemessaFinal: pick(raw, "data_remessa_final"),
     medidaProtetiva: pickTextOrBoolean(
       raw,
       ["medida_protetiva", "medidaProtetiva"],
@@ -511,8 +521,8 @@ function InqueritoDetalhes() {
       equipe: String(raw.equipe_responsavel ?? raw.equipe ?? ""),
       escrivao: String(raw.escrivao ?? ""),
       statusDiligencias: String(raw.status_diligencias ?? ""),
-      elucidado: String(raw.elucidado ?? ""),
-      dataElucidacao: String(raw.data_elucidacao ?? ""),
+      elucidado: isCvliElucidado(caso) ? "Sim" : "Não",
+      remessaFinalStatus: getInqueritoRemessaFinalStatus(caso),
       houveArmaDeFogo: String(raw.houve_arma_fogo ?? ""),
       armaUtilizada: String(raw.arma_utilizada ?? ""),
       vinculadoFaccao: String(raw.faccao ?? ""),
@@ -715,8 +725,10 @@ function InqueritoDetalhes() {
       ],
     },
     {
-      title: "Relatório final",
+      title: "Remessa final",
       fields: [
+        { label: "Situação da remessa", value: detalhe.remessaFinalStatus },
+        { label: "Data da remessa", value: formatDateValue(detalhe.dataRemessaFinal) },
         { label: "Status", value: detalhe.relatorioStatus },
         { label: "Relatório enviado", value: detalhe.relatorioEnviado },
         { label: "Data do relatório", value: formatDateValue(detalhe.dataRelatorio) },
@@ -1141,10 +1153,12 @@ function InqueritoDetalhes() {
               </DetailSection>
             ) : null}
 
-            <DetailSection title="Relatório final" icon={<FileSearch className="h-4 w-4" />}>
+            <DetailSection title="Remessa final" icon={<FileSearch className="h-4 w-4" />}>
               <DetailRows
                 compact
                 items={[
+                  ["Situação da remessa", detalhe.remessaFinalStatus],
+                  ["Data da remessa", formatDateValue(detalhe.dataRemessaFinal)],
                   ["Status", detalhe.relatorioStatus],
                   ["Relatório enviado", detalhe.relatorioEnviado],
                   ["Data do relatório", formatDateValue(detalhe.dataRelatorio)],

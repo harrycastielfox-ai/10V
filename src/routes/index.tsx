@@ -28,7 +28,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Line,
   ComposedChart,
   BarChart,
 } from "recharts";
@@ -596,8 +595,6 @@ function Dashboard() {
         ano,
         registros: metric.registros,
         elucidados: metric.elucidados,
-        pendentes: Math.max(metric.registros - metric.elucidados, 0),
-        taxa: metric.taxa,
       };
     });
   }, [CVLI_COMPARISON]);
@@ -608,9 +605,7 @@ function Dashboard() {
   const CVLI_TOTAL = useMemo(() => {
     const registros = CVLI_ANUAL.reduce((acc, row) => acc + row.registros, 0);
     const elucidados = CVLI_ANUAL.reduce((acc, row) => acc + row.elucidados, 0);
-    const pendentes = Math.max(registros - elucidados, 0);
-    const taxa = registros === 0 ? 0 : Number(((elucidados / registros) * 100).toFixed(1));
-    return { registros, elucidados, pendentes, taxa };
+    return { registros, elucidados };
   }, [CVLI_ANUAL]);
   const CVLI_MENSAL_YEARS = useMemo(
     () => CVLI_COMPARISON.years.slice(-DASHBOARD_CVLI_YEAR_LIMIT),
@@ -1131,15 +1126,6 @@ function Dashboard() {
                         fontSize={11}
                         allowDecimals={false}
                       />
-                      <YAxis
-                        yAxisId="right"
-                        orientation="right"
-                        stroke="var(--muted-foreground)"
-                        fontSize={11}
-                        domain={[0, 100]}
-                        ticks={[0, 25, 50, 75, 100]}
-                        tickFormatter={(v) => `${v}%`}
-                      />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: "var(--card)",
@@ -1162,15 +1148,6 @@ function Dashboard() {
                         fill="var(--success)"
                         radius={[4, 4, 0, 0]}
                       />
-                      <Line
-                        yAxisId="right"
-                        type="linear"
-                        dataKey="taxa"
-                        name="Taxa de elucidação (%)"
-                        stroke="var(--foreground)"
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: "var(--foreground)" }}
-                      />
                     </ComposedChart>
                   </ResponsiveContainer>
                 ) : (
@@ -1182,7 +1159,6 @@ function Dashboard() {
               <div className="mt-2 flex flex-wrap items-center justify-center gap-4 text-[11px]">
                 <Legend color="var(--info)" label="Registros" />
                 <Legend color="var(--success)" label="Elucidados" />
-                <Legend color="var(--foreground)" label="Taxa de elucidação (%)" line />
               </div>
             </Panel>
           </div>
@@ -1206,9 +1182,6 @@ function Dashboard() {
                 <div key={r.ano} className="px-4 py-3">
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-semibold">{r.ano}</span>
-                    <span className="text-success font-black">
-                      {r.taxa.toString().replace(".", ",")}%
-                    </span>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
                     <span>
@@ -1223,9 +1196,6 @@ function Dashboard() {
               <div className="px-4 py-3 bg-muted/30 font-bold">
                 <div className="flex items-center justify-between gap-3">
                   <span>TOTAL</span>
-                  <span className="text-success">
-                    {CVLI_TOTAL.taxa.toString().replace(".", ",")}%
-                  </span>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
                   <span>
@@ -1244,7 +1214,6 @@ function Dashboard() {
                     <th className="text-left px-4 py-3 font-bold">ANO</th>
                     <th className="text-right px-4 py-3 font-bold">REG</th>
                     <th className="text-right px-4 py-3 font-bold">ELUC</th>
-                    <th className="text-right px-4 py-3 font-bold">%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1256,9 +1225,6 @@ function Dashboard() {
                       <td className="px-4 py-3 font-semibold">{r.ano}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{r.registros}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{r.elucidados}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-success font-semibold">
-                        {r.taxa.toString().replace(".", ",")}%
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1269,9 +1235,6 @@ function Dashboard() {
                     <td className="px-4 py-3">TOTAL</td>
                     <td className="px-4 py-3 text-right tabular-nums">{CVLI_TOTAL.registros}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{CVLI_TOTAL.elucidados}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-success">
-                      {CVLI_TOTAL.taxa.toString().replace(".", ",")}%
-                    </td>
                   </tr>
                 </tbody>
               </table>

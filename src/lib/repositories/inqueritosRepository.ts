@@ -42,6 +42,8 @@ export type InqueritoRecord = {
   autoria_determinada: string | null;
   cvli_elucidado: boolean | null;
   data_elucidacao: string | null;
+  remessa_final_status?: string | null;
+  data_remessa_final?: string | null;
   houve_arma_fogo: string | null;
   arma_utilizada: string | null;
   faccao: string | null;

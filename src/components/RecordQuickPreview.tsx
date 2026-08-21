@@ -10,6 +10,7 @@ import type { VehicleListRecord, VehicleRecord } from "@/features/vehicles/vehic
 import { formatVehicleInvolvedPeople } from "@/features/vehicles/vehiclePeople";
 import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import type { RepresentacaoRecord } from "@/lib/repositories/representacoesRepository";
+import { isCvliElucidado } from "@/lib/cvliMetrics";
 
 const FALLBACK = "—";
 
@@ -275,7 +276,7 @@ export function InqueritoQuickPreview({
     { label: "Facção", value: firstValue(record.nome_faccao, record.faccao) },
     {
       label: "Elucidado",
-      value: formatBooleanText(record.cvli_elucidado ?? record.elucidado),
+      value: formatBooleanText(isCvliElucidado(record)),
     },
     { label: "Movimentações processuais", value: linkedRepresentationsLabel },
     {

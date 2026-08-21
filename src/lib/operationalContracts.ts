@@ -211,7 +211,7 @@ export type InquiryRegistrationInput = {
   escrivao?: string;
   statusDiligencias?: string;
   elucidado?: string;
-  dataElucidacao?: string;
+  remessaFinalStatus?: string;
   houveArmaDeFogo?: string;
   armaUtilizada?: string;
   vinculadoFaccao?: string;
@@ -347,9 +347,9 @@ export function getInquiryRegistrationChecks(input: InquiryRegistrationInput): R
   if (isCvli && isYesValue(input.elucidado)) {
     checks.push(
       check(
-        "data-elucidacao",
-        "CVLI elucidado exige data da elucidação",
-        hasValue(input.dataElucidacao),
+        "remessa-final",
+        "CVLI elucidado exige remessa final",
+        normalizedStatus(input.remessaFinalStatus) === "remetido",
         true,
       ),
     );
