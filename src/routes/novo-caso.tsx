@@ -14,7 +14,7 @@ import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { PageHeader } from "@/components/PageHeader";
 import { IncompleteSaveNotice } from "@/components/IncompleteSaveNotice";
 import { InquiryPeopleEditor } from "@/components/InquiryPeopleEditor";
-import { MotivacaoAssistant } from "@/components/MotivacaoAssistant";
+import { MotivacaoField, MotivacaoSuggestions } from "@/components/MotivacaoAssistant";
 import { ProceduralTagPicker } from "@/components/ProceduralTagPicker";
 import { SeizedWeaponsField } from "@/components/SeizedWeaponsField";
 import { mergeMotivacaoSuggestions } from "@/lib/motivacoes";
@@ -260,6 +260,8 @@ function NovoCaso() {
   const [distrito, setDistrito] = useState("");
   const [cidade, setCidade] = useState("Itabela");
   const [motivacao, setMotivacao] = useState("");
+  const [motivacaoQuery, setMotivacaoQuery] = useState("");
+  const [motivacaoSuggestionsOpen, setMotivacaoSuggestionsOpen] = useState(false);
   const [motivacaoOptions, setMotivacaoOptions] = useState<string[]>(() =>
     mergeMotivacaoSuggestions(),
   );
@@ -895,14 +897,26 @@ function NovoCaso() {
     <AppLayout>
       {/* Cabeçalho e janela compartilham a mesma largura e ficam centralizados,
           para o cadastro não ficar colado na borda esquerda em telas largas. */}
-      <div className="mx-auto w-full max-w-6xl">
-        <PageHeader
-          title="Novo Procedimento Policial"
-          subtitle="Identificação, classificação e fluxo operacional"
-          showActions={false}
-        />
+      <div
+        className={`mx-auto w-full ${
+          step === 2
+            ? "max-w-[92rem] lg:grid lg:grid-cols-[minmax(0,72rem)_18rem] lg:items-start lg:gap-x-4"
+            : "max-w-6xl"
+        }`}
+      >
+        <div className={step === 2 ? "lg:col-span-2" : undefined}>
+          <PageHeader
+            title="Novo Procedimento Policial"
+            subtitle="Identificação, classificação e fluxo operacional"
+            showActions={false}
+          />
+        </div>
 
-        <ol className="relative z-10 grid grid-cols-2 gap-2 rounded-t-3xl border border-b-0 border-border/80 bg-card/75 p-3 backdrop-blur-sm sm:grid-cols-3 md:p-4 lg:grid-cols-6">
+        <ol
+          className={`relative z-10 grid grid-cols-2 gap-2 rounded-t-3xl border border-b-0 border-border/80 bg-card/75 p-3 backdrop-blur-sm sm:grid-cols-3 md:p-4 lg:grid-cols-6 ${
+            step === 2 ? "lg:col-start-1 lg:row-start-2" : ""
+          }`}
+        >
           {STEPS.map((label, index) => (
             <li key={label}>
               <button
@@ -927,7 +941,9 @@ function NovoCaso() {
         </ol>
 
         <form
-          className="sipi-wizard-window relative -mt-px space-y-5 rounded-b-3xl border border-border/80 bg-card/75 p-4 pt-5 backdrop-blur-sm md:p-6 md:pt-5"
+          className={`sipi-wizard-window relative -mt-px space-y-5 rounded-b-3xl border border-border/80 bg-card/75 p-4 pt-5 backdrop-blur-sm md:p-6 md:pt-5 ${
+            step === 2 ? "lg:col-start-1 lg:row-start-3" : ""
+          }`}
           onSubmit={handleSubmit}
         >
           {step === 0 && (
@@ -1041,11 +1057,12 @@ function NovoCaso() {
                 value={cidade}
                 onChange={(e) => setCidade(e.target.value)}
               />
-              <MotivacaoAssistant
+              <MotivacaoField
                 value={motivacao}
+                query={motivacaoQuery}
                 onChange={setMotivacao}
-                options={motivacaoOptions}
-                tipificacoes={selectedTipificacoes.map((tag) => tag.name)}
+                onQueryChange={setMotivacaoQuery}
+                onSuggestionsOpenChange={setMotivacaoSuggestionsOpen}
               />
               <Select
                 label="Vinculado a Facção"
@@ -1233,6 +1250,22 @@ function NovoCaso() {
             )}
           </div>
         </form>
+
+        {step === 2 && motivacaoSuggestionsOpen ? (
+          <div className="mt-4 lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:mt-0">
+            <MotivacaoSuggestions
+              value={motivacao}
+              query={motivacaoQuery}
+              options={motivacaoOptions}
+              tipificacoes={selectedTipificacoes.map((tag) => tag.name)}
+              onSelect={(suggestion) => {
+                setMotivacao(suggestion);
+                setMotivacaoQuery("");
+                setMotivacaoSuggestionsOpen(false);
+              }}
+            />
+          </div>
+        ) : null}
       </div>
     </AppLayout>
   );

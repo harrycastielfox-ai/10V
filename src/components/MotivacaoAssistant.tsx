@@ -1,23 +1,98 @@
 import { Check, Lightbulb, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FormFieldLabel } from "@/components/FormFieldLabel";
 import { getContextualMotivacaoSuggestions } from "@/lib/motivacoes";
 import { normalizeProceduralTagSearch } from "@/lib/proceduralTags";
 
-type MotivacaoAssistantProps = {
+type MotivacaoFieldProps = {
   value: string;
-  options: string[];
-  tipificacoes: string[];
+  query: string;
   onChange: (value: string) => void;
+  onQueryChange: (value: string) => void;
+  onSuggestionsOpenChange: (open: boolean) => void;
 };
 
-export function MotivacaoAssistant({
+export function MotivacaoField({
   value,
+  query,
+  onChange,
+  onQueryChange,
+  onSuggestionsOpenChange,
+}: MotivacaoFieldProps) {
+  return (
+    <div className="min-w-0">
+      <FormFieldLabel label="Motivação" />
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
+          aria-hidden="true"
+        />
+        <input
+          value={value}
+          onFocus={() => onSuggestionsOpenChange(true)}
+          onBlur={(event) => {
+            const nextElement = event.relatedTarget as HTMLElement | null;
+            if (!nextElement?.closest("[data-motivacao-suggestions]")) {
+              onSuggestionsOpenChange(false);
+            }
+          }}
+          onChange={(event) => {
+            const nextValue = event.target.value;
+            onChange(nextValue);
+            onQueryChange(nextValue);
+            onSuggestionsOpenChange(true);
+          }}
+          placeholder="Digite livremente ou pesquise no catálogo"
+          autoComplete="off"
+          aria-controls="motivacao-suggestions"
+          className="h-11 w-full rounded-lg border border-border bg-card pl-10 pr-10 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary"
+        />
+        {value ? (
+          <button
+            type="button"
+            onBlur={(event) => {
+              const nextElement = event.relatedTarget as HTMLElement | null;
+              if (!nextElement?.closest("[data-motivacao-suggestions]")) {
+                onSuggestionsOpenChange(false);
+              }
+            }}
+            onClick={() => {
+              onChange("");
+              onQueryChange("");
+              onSuggestionsOpenChange(true);
+            }}
+            className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            aria-label="Limpar motivação"
+            title="Limpar motivação"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+      {value && !query ? (
+        <p className="mt-2 truncate text-xs text-muted-foreground" title={value}>
+          Selecionada: <span className="font-semibold text-foreground">{value}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+type MotivacaoSuggestionsProps = {
+  value: string;
+  query: string;
+  options: string[];
+  tipificacoes: string[];
+  onSelect: (value: string) => void;
+};
+
+export function MotivacaoSuggestions({
+  value,
+  query,
   options,
   tipificacoes,
-  onChange,
-}: MotivacaoAssistantProps) {
-  const [query, setQuery] = useState("");
+  onSelect,
+}: MotivacaoSuggestionsProps) {
   const suggestions = useMemo(
     () => getContextualMotivacaoSuggestions(options, tipificacoes, query),
     [options, query, tipificacoes],
@@ -27,105 +102,63 @@ export function MotivacaoAssistant({
   const extraContextCount = Math.max(0, tipificacoes.length - 2);
 
   return (
-    <div className="grid gap-4 md:col-span-2 lg:col-span-3 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.9fr)] lg:gap-6">
-      <div className="min-w-0">
-        <FormFieldLabel label="Motivação" />
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
-            aria-hidden="true"
-          />
-          <input
-            value={value}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              onChange(nextValue);
-              setQuery(nextValue);
-            }}
-            placeholder="Digite livremente ou pesquise no catálogo"
-            autoComplete="off"
-            className="h-11 w-full rounded-lg border border-border bg-card pl-10 pr-10 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary"
-          />
-          {value ? (
-            <button
-              type="button"
-              onClick={() => {
-                onChange("");
-                setQuery("");
-              }}
-              className="absolute right-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              aria-label="Limpar motivação"
-              title="Limpar motivação"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
+    <aside
+      id="motivacao-suggestions"
+      data-motivacao-suggestions
+      className="rounded-xl border border-border/80 bg-card/90 p-4 shadow-lg backdrop-blur-sm lg:sticky lg:top-5"
+      aria-label="Sugestões de motivação"
+    >
+      <div className="mb-3 flex min-w-0 items-start gap-2.5">
+        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+          <Lightbulb className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-foreground">
+            {query ? "Resultados do catálogo" : "Sugestões para o fato"}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            {query
+              ? `Busca por “${query}”`
+              : contextLabel
+                ? `${contextLabel}${extraContextCount ? ` +${extraContextCount}` : ""}`
+                : "Sugestões gerais até informar a tipificação"}
+          </p>
         </div>
-        {value ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            Motivação registrada: <span className="font-semibold text-foreground">{value}</span>
+      </div>
+
+      <div className="space-y-1" role="listbox" aria-label="Opções de motivação">
+        {suggestions.map((suggestion) => {
+          const selected = selectedKey === normalizeProceduralTagSearch(suggestion);
+          return (
+            <button
+              key={suggestion}
+              type="button"
+              role="option"
+              aria-selected={selected}
+              onClick={() => onSelect(suggestion)}
+              className={`flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-xs font-medium transition ${
+                selected
+                  ? "bg-primary/15 text-primary"
+                  : "text-foreground hover:bg-primary/10 hover:text-primary"
+              }`}
+            >
+              <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center">
+                {selected ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                )}
+              </span>
+              <span className="leading-4">{suggestion}</span>
+            </button>
+          );
+        })}
+        {suggestions.length === 0 ? (
+          <p className="px-2.5 py-3 text-xs leading-5 text-muted-foreground">
+            Nenhuma opção encontrada. O texto digitado ainda pode ser usado.
           </p>
         ) : null}
       </div>
-
-      <div className="min-w-0 lg:border-l lg:border-border/70 lg:pl-6">
-        <div className="mb-2.5 flex min-w-0 items-start gap-2">
-          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-foreground">
-              {query ? "Resultados do catálogo" : "Sugestões para o fato"}
-            </p>
-            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-              {query
-                ? `Busca por “${query}”`
-                : contextLabel
-                  ? `${contextLabel}${extraContextCount ? ` +${extraContextCount}` : ""}`
-                  : "Sugestões gerais até informar a tipificação"}
-            </p>
-          </div>
-        </div>
-
-        <div
-          className="max-h-52 space-y-1 overflow-y-auto pr-1"
-          role="listbox"
-          aria-label="Sugestões de motivação"
-        >
-          {suggestions.map((suggestion) => {
-            const selected = selectedKey === normalizeProceduralTagSearch(suggestion);
-            return (
-              <button
-                key={suggestion}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                onClick={() => {
-                  onChange(suggestion);
-                  setQuery("");
-                }}
-                className={`flex w-full items-start gap-2 rounded-md px-2.5 py-2 text-left text-xs font-medium transition ${
-                  selected
-                    ? "bg-primary/15 text-primary"
-                    : "text-foreground hover:bg-primary/10 hover:text-primary"
-                }`}
-              >
-                <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                  {selected ? (
-                    <Check className="h-3.5 w-3.5" />
-                  ) : (
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
-                  )}
-                </span>
-                <span className="leading-4">{suggestion}</span>
-              </button>
-            );
-          })}
-          {suggestions.length === 0 ? (
-            <p className="px-2.5 py-3 text-xs text-muted-foreground">
-              Nenhuma opção encontrada. O texto digitado ainda pode ser usado.
-            </p>
-          ) : null}
-        </div>
-      </div>
-    </div>
+    </aside>
   );
 }
