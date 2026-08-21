@@ -547,9 +547,6 @@ function NovoCaso() {
     }
     return groups;
   }, [pendingChecks]);
-  const currentStepPendingChecks = pendingByStep[step] ?? [];
-  const pendingPreview = pendingChecks.slice(0, 3);
-
   const reviewGroups: Array<{ step: number; title: string; rows: Array<[string, string]> }> = [
     {
       step: 0,
@@ -930,16 +927,6 @@ function NovoCaso() {
           className="sipi-wizard-window relative -mt-px space-y-5 rounded-b-3xl border border-border/80 bg-card/75 p-4 pt-5 backdrop-blur-sm md:p-6 md:pt-5"
           onSubmit={handleSubmit}
         >
-          <PendingSummary
-            pending={pendingChecks}
-            currentStepPending={currentStepPendingChecks}
-            preview={pendingPreview}
-            onOpenFirst={() => {
-              const first = pendingChecks[0];
-              if (first) goToStep(CHECK_STEP[first.id] ?? 0);
-            }}
-          />
-
           {step === 0 && (
             <SectionCard title="1. Identificação do Procedimento">
               <Field
@@ -1255,60 +1242,6 @@ function NovoCaso() {
         </form>
       </div>
     </AppLayout>
-  );
-}
-
-function PendingSummary({
-  pending,
-  currentStepPending,
-  preview,
-  onOpenFirst,
-}: {
-  pending: RegistrationCheck[];
-  currentStepPending: RegistrationCheck[];
-  preview: RegistrationCheck[];
-  onOpenFirst: () => void;
-}) {
-  if (pending.length === 0) {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-success/35 bg-success/10 px-4 py-3 text-sm text-success">
-        <Check className="h-4 w-4" />
-        Cadastro sem pendências recomendadas.
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-warning/35 bg-warning/[0.07] px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="flex items-center gap-2 text-sm font-bold text-warning">
-            <AlertTriangle className="h-4 w-4" />
-            {pending.length === 1
-              ? "Falta 1 informação recomendada"
-              : `Faltam ${pending.length} informações recomendadas`}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Nesta etapa: {currentStepPending.length || "nenhuma"} pendência. O cadastro só bloqueia
-            exigências críticas.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenFirst}
-          className="rounded-lg border border-warning/35 px-3 py-1.5 text-xs font-bold text-warning transition hover:border-warning/70"
-        >
-          Ver primeira
-        </button>
-      </div>
-      <ul className="mt-2 flex flex-wrap gap-1.5">
-        {preview.map((item) => (
-          <li key={item.id} className="rounded-lg bg-background/55 px-2.5 py-1 text-[11px]">
-            {item.label.replace(/\.$/, "")}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 
