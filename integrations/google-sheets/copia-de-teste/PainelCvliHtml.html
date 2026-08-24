@@ -48,6 +48,14 @@
         cursor: pointer;
       }
 
+      button.verde {
+        border-color: #1b6b45;
+        background: #1b6b45;
+        color: #fff;
+      }
+
+      button.verde:hover { background: #17593a; }
+
       button.primary {
         border-color: var(--azul);
         background: var(--azul);
@@ -164,6 +172,9 @@
       @media print {
         @page { size: A4 portrait; margin: 12mm 12mm 14mm; }
 
+        /* Sem isto o Chrome imprime sem fundo: some o brasao, a faixa azul e o rosa. */
+        * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
         body { background: #fff; padding: 0; }
         .barra, .quadro { display: none !important; }
         .relatorio { display: block; color: #10161f; }
@@ -178,7 +189,7 @@
           border-bottom: 1px solid #b9c6d6;
         }
 
-        .rel-masthead .brasao { width: 22mm; height: 22mm; }
+        .rel-brasao { display: block; width: 22mm; height: auto; }
 
         .rel-orgao {
           margin: 0 0 1mm;
@@ -287,7 +298,7 @@
       <span class="atualizado" id="updated">Carregando dados atualizados...</span>
       <span class="acoes">
         <button type="button" onclick="google.script.host.close()">Fechar</button>
-        <button type="button" id="imprimir" onclick="window.print()">Imprimir relatório</button>
+        <button type="button" class="verde" id="imprimir" onclick="window.print()">Imprimir relatório</button>
         <button class="primary" id="refresh" type="button" onclick="carregar()">Atualizar</button>
       </span>
     </div>
@@ -475,7 +486,7 @@
 
         document.getElementById("relatorio").innerHTML =
           '<header class="rel-masthead">' +
-          '<span class="brasao" aria-hidden="true"></span>' +
+          '<img class="rel-brasao" src="https://sipi-dt-itabela.sipi-dt-itabela.workers.dev/sipi-badge.png" alt="">' +
           "<div>" +
           '<p class="rel-orgao">Polícia Civil da Bahia</p>' +
           "<h1>Relatório Comparativo de CVLI</h1>" +
