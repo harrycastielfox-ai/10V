@@ -51,7 +51,7 @@ describe("proceduralTags", () => {
   });
 
   it("limita o slug ao tamanho aceito pelo banco", () => {
-    expect(slugifyProceduralTag("a".repeat(150))).toHaveLength(120);
+    expect(slugifyProceduralTag("a".repeat(350))).toHaveLength(300);
   });
 
   it("corrige rótulos UTF-8 interpretados como Latin-1 sem alterar textos válidos", () => {

@@ -15,7 +15,7 @@ describe("parseTipificacoes", () => {
     const result = parseTipificacoes(longSingle);
     expect(result).toHaveLength(1);
     expect(result[0].codigo).toBe("20264");
-    expect(result[0].rotulo.length).toBeLessThanOrEqual(120);
+    expect(result[0].rotulo.length).toBeLessThanOrEqual(300);
   });
 
   it("separa somente quando a vírgula é seguida por outro código", () => {
@@ -43,7 +43,7 @@ describe("parseTipificacoes", () => {
   it("mantém todos os rótulos dentro do limite do banco", () => {
     for (const item of [...parseTipificacoes(longSingle), ...parseTipificacoes(combined)]) {
       expect(item.rotulo.length).toBeGreaterThanOrEqual(2);
-      expect(item.rotulo.length).toBeLessThanOrEqual(120);
+      expect(item.rotulo.length).toBeLessThanOrEqual(300);
     }
   });
 });

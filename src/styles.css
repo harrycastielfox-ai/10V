@@ -426,10 +426,38 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     color: color-mix(in oklab, var(--sipi-tag-color) 78%, white 22%);
   }
 
+  /* No claro a letra é preta: a cor fica na borda, no fundo e no brilho em
+     volta do texto. Texto colorido sobre fundo colorido ficava apagado. */
   html[data-theme="light"] .sipi-tag {
     border-color: color-mix(in oklab, var(--sipi-tag-color) 50%, transparent);
     background: color-mix(in oklab, var(--sipi-tag-color) 18%, white 82%);
-    color: color-mix(in oklab, var(--sipi-tag-color) 60%, black 40%);
+    color: color-mix(in oklab, var(--sipi-tag-color) 10%, black 90%);
+    text-shadow: 0 0 7px color-mix(in oklab, var(--sipi-tag-color) 55%, transparent);
+  }
+
+  /* Selo de selecionado e botão de remover: cor própria, independente da cor
+     da tag, para ler como estado (aceito / remover) e não como categoria. */
+  .sipi-tag-check {
+    color: oklch(0.62 0.19 152);
+    filter: drop-shadow(0 0 5px oklch(0.72 0.2 152 / 0.75));
+  }
+
+  .sipi-tag-remove {
+    color: oklch(0.58 0.24 25);
+    filter: drop-shadow(0 0 5px oklch(0.66 0.25 25 / 0.7));
+  }
+
+  .sipi-tag-remove:hover {
+    color: oklch(0.52 0.26 25);
+    filter: drop-shadow(0 0 8px oklch(0.66 0.25 25 / 0.95));
+  }
+
+  html[data-theme="light"] .sipi-tag-check {
+    color: oklch(0.55 0.19 152);
+  }
+
+  html[data-theme="light"] .sipi-tag-remove {
+    color: oklch(0.53 0.24 25);
   }
 
   .sipi-tag-cyan {
@@ -624,8 +652,7 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     .sipi-brand-emblem-primary
     .sipi-brand-emblem-image {
     filter: drop-shadow(0 0 2px rgb(255 255 255 / 0.95))
-      drop-shadow(0 0 8px rgb(255 255 255 / 0.72))
-      drop-shadow(0 0 18px rgb(255 255 255 / 0.38));
+      drop-shadow(0 0 8px rgb(255 255 255 / 0.72)) drop-shadow(0 0 18px rgb(255 255 255 / 0.38));
   }
 
   html[data-theme="light"]
@@ -633,8 +660,7 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     .group:hover
     .sipi-brand-emblem-primary
     .sipi-brand-emblem-image {
-    filter: drop-shadow(0 0 3px rgb(255 255 255 / 1))
-      drop-shadow(0 0 10px rgb(255 255 255 / 0.86))
+    filter: drop-shadow(0 0 3px rgb(255 255 255 / 1)) drop-shadow(0 0 10px rgb(255 255 255 / 0.86))
       drop-shadow(0 0 22px rgb(255 255 255 / 0.52));
   }
 

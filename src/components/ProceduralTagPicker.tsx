@@ -1,4 +1,4 @@
-import { Plus, Search, Tag, X } from "lucide-react";
+import { BadgeCheck, Plus, Search, Tag, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
   getProceduralTagSearchRank,
@@ -116,17 +116,22 @@ export function ProceduralTagPicker({
           {selected.map((tag) => (
             <span
               key={tag.id}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold ${TAG_COLOR_CLASS[tag.color]}`}
+              // Largura cheia: a tag termina na mesma borda do campo de busca,
+              // e nome comprido quebra linha em vez de parar no meio do caminho.
+              className={`flex w-full items-start gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold ${TAG_COLOR_CLASS[tag.color]}`}
             >
-              <Tag className="h-3 w-3" aria-hidden="true" />
-              {tag.name}
+              <BadgeCheck
+                className="sipi-tag-check mt-0.5 h-3.5 w-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              <span className="min-w-0 flex-1 break-words">{tag.name}</span>
               <button
                 type="button"
                 onClick={() => onChange(value.filter((id) => id !== tag.id))}
-                className="ml-0.5 rounded p-0.5 opacity-70 transition hover:bg-white/10 hover:opacity-100"
+                className="sipi-tag-remove mt-0.5 shrink-0 rounded p-0.5 transition"
                 aria-label={`Remover tag ${tag.name}`}
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </span>
           ))}

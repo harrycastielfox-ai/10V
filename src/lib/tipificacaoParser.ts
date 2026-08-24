@@ -17,9 +17,11 @@ function normalizeDescription(value: string) {
     .trim();
 }
 
+// O banco aceita até 300 caracteres no nome da tag. Tipificação de trânsito e
+// de violência doméstica passa fácil de 120, e cortar cedo esconde o essencial.
 function truncateLabel(value: string) {
-  if (value.length <= 120) return value;
-  const candidate = value.slice(0, 119);
+  if (value.length <= 300) return value;
+  const candidate = value.slice(0, 299);
   const lastSpace = candidate.lastIndexOf(" ");
   const truncated = (lastSpace >= 2 ? candidate.slice(0, lastSpace) : candidate).trimEnd();
   return `${truncated}…`;
