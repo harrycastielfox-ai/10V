@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { InqueritoQuickPreview } from "@/components/RecordQuickPreview";
 import {
@@ -651,11 +651,59 @@ function normalizeInqueritoForList(caso: InqueritoRecord, tagIds: string[] = [])
   };
 }
 
+/**
+ * Campo de busca isolado. O texto digitado fica aqui dentro, e não no
+ * componente da lista: sem isso, cada tecla redesenharia as centenas de linhas
+ * da tabela e a letra demoraria a aparecer.
+ *
+ * Enter aplica a busca. Esvaziar o campo aplica na hora, porque nesse caso o
+ * que se quer é a lista inteira de volta.
+ */
+const InquirySearchField = memo(function InquirySearchField({
+  value,
+  onApply,
+}: {
+  value: string;
+  onApply: (term: string) => void;
+}) {
+  const [texto, setTexto] = useState(value);
+
+  useEffect(() => {
+    setTexto(value);
+  }, [value]);
+
+  return (
+    <div className="relative flex-1">
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <input
+        placeholder="Buscar por PPE, vítima, suspeito, observações... e pressionar Enter"
+        value={texto}
+        onChange={(event) => {
+          const proximo = event.target.value;
+          setTexto(proximo);
+          if (!proximo.trim()) onApply("");
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter") return;
+          event.preventDefault();
+          onApply(texto);
+        }}
+        className="h-12 w-full rounded-xl border border-border/90 bg-background/70 pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground/80 focus:border-primary/50"
+      />
+    </div>
+  );
+});
+
 function Inqueritos() {
   const navigate = useNavigate();
   const location = useLocation();
   const isInqueritosIndex = location.pathname === "/inqueritos";
   const [searchTerm, setSearchTerm] = useState("");
+  // A tabela desenha centenas de linhas, então digitar não pode redesenhar esta
+  // tela: o texto vive dentro do próprio campo (InquirySearchField) e só sobe
+  // para cá quando a busca é aplicada. A filtragem ainda entra em prioridade
+  // menor, para o Enter não travar o resto.
+  const deferredSearchTerm = useDeferredValue(searchTerm);
   const [rows, setRows] = useState<InqueritoRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -946,161 +994,158 @@ function Inqueritos() {
     [gravidadeTagOptions],
   );
 
-  const filtered = useMemo(
-    () =>
-      normalizedRows.filter((r) => {
-        const matches: boolean[] = [];
-        const query = normalizeText(searchTerm);
-        const isFallbackSearch = [
-          "nao informado",
-          "nao informados",
-          "vazio",
-          "sem informacao",
-          "sem valor",
-        ].includes(query);
-        if (query) {
-          matches.push(
-            r.fullText.includes(query) ||
-              (isFallbackSearch &&
-                [
-                  r.numeroPpe,
-                  r.tipificacao,
-                  r.vitima,
-                  r.investigado,
-                  r.prioridade,
-                  r.gravidade,
-                  r.situacao,
-                  r.statusDiligencias,
-                  r.prazo,
-                ].some(isEmpty)),
-          );
-        }
-        const situacao = r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias;
-        if (situacaoFilter.length > 0) {
-          matches.push(
-            situacaoFilter.some((filter) => {
-              if (filter === EMPTY_FILTER) return isEmpty(situacao);
-              if (r.tagIds.includes(filter)) return true;
-              const tag = statusTagById.get(filter);
-              return [r.situacao, r.statusDiligencias].some(
-                (value) =>
-                  !isEmpty(value) &&
-                  (tag
-                    ? matchesSituacaoAlias(value, tag.name) ||
-                      normalizeText(value) === normalizeText(tag.name)
-                    : matchesSituacaoAlias(value, filter)),
-              );
-            }),
-          );
-        }
-        if (prioridadeFilter.length > 0) {
-          const prioridadeOperacional = calculateOperationalPriority(r);
-          matches.push(
-            prioridadeFilter.some((filter) =>
-              filter === EMPTY_FILTER
-                ? isEmpty(prioridadeOperacional)
-                : normalizeText(prioridadeOperacional) === normalizeText(filter),
-            ),
-          );
-        }
-        if (gravidadeFilter.length > 0) {
-          matches.push(
-            gravidadeFilter.some((filter) => {
-              if (filter === EMPTY_FILTER) return isEmpty(r.gravidade);
-              if (r.tagIds.includes(filter)) return true;
-              const tag = gravidadeTagById.get(filter);
-              return normalizeText(r.gravidade) === normalizeText(tag?.name ?? filter);
-            }),
-          );
-        }
-        if (tipoFilter.length > 0) {
-          matches.push(
-            tipoFilter.some((filter) =>
-              filter === EMPTY_FILTER
-                ? isEmpty(r.tipoProcedimento)
-                : getProcedureType(r.tipoProcedimento) === getProcedureType(filter),
-            ),
-          );
-        }
-        if (tipificacaoFilter.length > 0) {
-          const linkedMatch = tipificacaoFilter.some((tagId) => r.tagIds.includes(tagId));
-          const parsedSlugs = new Set(
-            parseTipificacoes(
-              r.tipificacao,
-              tipificacaoOptions.map((tag) => tag.name),
-            ).map((item) => item.slug),
-          );
-          const textMatch = [...selectedTipificacaoSlugs].some((slug) => parsedSlugs.has(slug));
-          matches.push(linkedMatch || textMatch);
-        }
-        if (normalizeText(autoriaFilter) !== "todos")
-          matches.push(classifyAuthorship(r.autoria) === autoriaFilter);
-        if (normalizeText(categoriaFilter) !== "todos")
-          matches.push(matchesCategory(r, categoriaFilter));
-        if (normalizeText(relatorioFilter) === "sem_relatar") matches.push(isSemRelatorio(r));
-        if (normalizeText(relatorioFilter) === "enviado") matches.push(isConcluidoCentral(r));
-        if (normalizeText(relatorioFilter) === "relatado_nao_enviado")
-          matches.push(isRelatadoNaoEnviado(r.source));
-        if (normalizeText(statusQueryFilter) === "em_andamento")
-          matches.push(isEmAndamentoCentral(r));
-        if (elucidadoFilter || naoElucidadoFilter) {
-          const elucidado = isCvliElucidado(r.source);
-          matches.push((elucidadoFilter && elucidado) || (naoElucidadoFilter && !elucidado));
-        }
-        if (normalizeText(prazoFilter) !== "todos") {
-          matches.push(
-            (prazoFilter === EMPTY_FILTER && isEmpty(r.prazo)) ||
-              (prazoFilter === "vencido" && isPrazoVencido(r.prazo)) ||
-              (prazoFilter === "critico" && isPrazoCritico(r.prazo)) ||
-              (prazoFilter === "vencendo" && isPrazoVencendo(r.prazo)),
-          );
-        }
-        if (reuPresoFilter)
-          matches.push(reuPresoStrictFilter ? isTruthyLike(r.reuPreso) : hasReuPreso(r));
-        if (medidaProtetivaFilter) matches.push(hasMedidaProtetiva(r));
-        if (diligenciasPendentesFilter)
-          matches.push(hasDiligenciasPendentes(r.diligenciasPendentes));
-        const hasDateFilter = Boolean(dataInicial || dataFinal);
-        if (hasDateFilter) {
-          const ts = getDateByField(r, dataFieldFilter);
-          const start = parseDateToUtc(dataInicial, false);
-          const end = parseDateToUtc(dataFinal, true);
-          matches.push(
-            ts !== null && (start === null || ts >= start) && (end === null || ts <= end),
-          );
-        }
-        if (matches.length === 0) return true;
-        return filterLogic === "or" ? matches.some(Boolean) : matches.every(Boolean);
-      }),
-    [
-      normalizedRows,
-      searchTerm,
-      situacaoFilter,
-      statusTagById,
-      prioridadeFilter,
-      gravidadeFilter,
-      gravidadeTagById,
-      tipoFilter,
-      tipificacaoFilter,
-      tipificacaoOptions,
-      selectedTipificacaoSlugs,
-      autoriaFilter,
-      prazoFilter,
-      dataInicial,
-      dataFinal,
-      dataFieldFilter,
-      relatorioFilter,
-      categoriaFilter,
-      statusQueryFilter,
-      elucidadoFilter,
-      naoElucidadoFilter,
-      reuPresoFilter,
-      reuPresoStrictFilter,
-      medidaProtetivaFilter,
-      diligenciasPendentesFilter,
-      filterLogic,
-    ],
-  );
+  const filtered = useMemo(() => {
+    // Calculado uma vez, e não a cada uma das centenas de linhas.
+    const query = normalizeText(deferredSearchTerm);
+    const isFallbackSearch = [
+      "nao informado",
+      "nao informados",
+      "vazio",
+      "sem informacao",
+      "sem valor",
+    ].includes(query);
+
+    return normalizedRows.filter((r) => {
+      const matches: boolean[] = [];
+      if (query) {
+        matches.push(
+          r.fullText.includes(query) ||
+            (isFallbackSearch &&
+              [
+                r.numeroPpe,
+                r.tipificacao,
+                r.vitima,
+                r.investigado,
+                r.prioridade,
+                r.gravidade,
+                r.situacao,
+                r.statusDiligencias,
+                r.prazo,
+              ].some(isEmpty)),
+        );
+      }
+      const situacao = r.situacao !== FALLBACK ? r.situacao : r.statusDiligencias;
+      if (situacaoFilter.length > 0) {
+        matches.push(
+          situacaoFilter.some((filter) => {
+            if (filter === EMPTY_FILTER) return isEmpty(situacao);
+            if (r.tagIds.includes(filter)) return true;
+            const tag = statusTagById.get(filter);
+            return [r.situacao, r.statusDiligencias].some(
+              (value) =>
+                !isEmpty(value) &&
+                (tag
+                  ? matchesSituacaoAlias(value, tag.name) ||
+                    normalizeText(value) === normalizeText(tag.name)
+                  : matchesSituacaoAlias(value, filter)),
+            );
+          }),
+        );
+      }
+      if (prioridadeFilter.length > 0) {
+        const prioridadeOperacional = calculateOperationalPriority(r);
+        matches.push(
+          prioridadeFilter.some((filter) =>
+            filter === EMPTY_FILTER
+              ? isEmpty(prioridadeOperacional)
+              : normalizeText(prioridadeOperacional) === normalizeText(filter),
+          ),
+        );
+      }
+      if (gravidadeFilter.length > 0) {
+        matches.push(
+          gravidadeFilter.some((filter) => {
+            if (filter === EMPTY_FILTER) return isEmpty(r.gravidade);
+            if (r.tagIds.includes(filter)) return true;
+            const tag = gravidadeTagById.get(filter);
+            return normalizeText(r.gravidade) === normalizeText(tag?.name ?? filter);
+          }),
+        );
+      }
+      if (tipoFilter.length > 0) {
+        matches.push(
+          tipoFilter.some((filter) =>
+            filter === EMPTY_FILTER
+              ? isEmpty(r.tipoProcedimento)
+              : getProcedureType(r.tipoProcedimento) === getProcedureType(filter),
+          ),
+        );
+      }
+      if (tipificacaoFilter.length > 0) {
+        const linkedMatch = tipificacaoFilter.some((tagId) => r.tagIds.includes(tagId));
+        const parsedSlugs = new Set(
+          parseTipificacoes(
+            r.tipificacao,
+            tipificacaoOptions.map((tag) => tag.name),
+          ).map((item) => item.slug),
+        );
+        const textMatch = [...selectedTipificacaoSlugs].some((slug) => parsedSlugs.has(slug));
+        matches.push(linkedMatch || textMatch);
+      }
+      if (normalizeText(autoriaFilter) !== "todos")
+        matches.push(classifyAuthorship(r.autoria) === autoriaFilter);
+      if (normalizeText(categoriaFilter) !== "todos")
+        matches.push(matchesCategory(r, categoriaFilter));
+      if (normalizeText(relatorioFilter) === "sem_relatar") matches.push(isSemRelatorio(r));
+      if (normalizeText(relatorioFilter) === "enviado") matches.push(isConcluidoCentral(r));
+      if (normalizeText(relatorioFilter) === "relatado_nao_enviado")
+        matches.push(isRelatadoNaoEnviado(r.source));
+      if (normalizeText(statusQueryFilter) === "em_andamento")
+        matches.push(isEmAndamentoCentral(r));
+      if (elucidadoFilter || naoElucidadoFilter) {
+        const elucidado = isCvliElucidado(r.source);
+        matches.push((elucidadoFilter && elucidado) || (naoElucidadoFilter && !elucidado));
+      }
+      if (normalizeText(prazoFilter) !== "todos") {
+        matches.push(
+          (prazoFilter === EMPTY_FILTER && isEmpty(r.prazo)) ||
+            (prazoFilter === "vencido" && isPrazoVencido(r.prazo)) ||
+            (prazoFilter === "critico" && isPrazoCritico(r.prazo)) ||
+            (prazoFilter === "vencendo" && isPrazoVencendo(r.prazo)),
+        );
+      }
+      if (reuPresoFilter)
+        matches.push(reuPresoStrictFilter ? isTruthyLike(r.reuPreso) : hasReuPreso(r));
+      if (medidaProtetivaFilter) matches.push(hasMedidaProtetiva(r));
+      if (diligenciasPendentesFilter) matches.push(hasDiligenciasPendentes(r.diligenciasPendentes));
+      const hasDateFilter = Boolean(dataInicial || dataFinal);
+      if (hasDateFilter) {
+        const ts = getDateByField(r, dataFieldFilter);
+        const start = parseDateToUtc(dataInicial, false);
+        const end = parseDateToUtc(dataFinal, true);
+        matches.push(ts !== null && (start === null || ts >= start) && (end === null || ts <= end));
+      }
+      if (matches.length === 0) return true;
+      return filterLogic === "or" ? matches.some(Boolean) : matches.every(Boolean);
+    });
+  }, [
+    normalizedRows,
+    deferredSearchTerm,
+    situacaoFilter,
+    statusTagById,
+    prioridadeFilter,
+    gravidadeFilter,
+    gravidadeTagById,
+    tipoFilter,
+    tipificacaoFilter,
+    tipificacaoOptions,
+    selectedTipificacaoSlugs,
+    autoriaFilter,
+    prazoFilter,
+    dataInicial,
+    dataFinal,
+    dataFieldFilter,
+    relatorioFilter,
+    categoriaFilter,
+    statusQueryFilter,
+    elucidadoFilter,
+    naoElucidadoFilter,
+    reuPresoFilter,
+    reuPresoStrictFilter,
+    medidaProtetivaFilter,
+    diligenciasPendentesFilter,
+    filterLogic,
+  ]);
 
   const displayedRows = useMemo(() => {
     if (!sortState) return filtered;
@@ -1574,15 +1619,7 @@ function Inqueritos() {
         </header>
         <section className="rounded-2xl border border-border/80 bg-card/70 p-4 md:p-5">
           <div className="flex flex-col gap-3 md:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                placeholder="Buscar por PPE, vítima, suspeito, observações, diligências, relatório..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-12 w-full rounded-xl border border-border/90 bg-background/70 pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground/80 focus:border-primary/50"
-              />
-            </div>
+            <InquirySearchField value={searchTerm} onApply={setSearchTerm} />
             <button
               onClick={() => setShowFilters((p) => !p)}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-background/70 px-4 text-sm font-medium transition hover:bg-accent"
@@ -1786,15 +1823,18 @@ function Inqueritos() {
                 onChange={(e) => setDataFinal(e.target.value)}
                 className="h-11 rounded-xl border border-border/90 bg-background/70 px-3 text-sm"
               />
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearInquiryFilters}
-                  className="inline-flex h-11 items-center justify-center rounded-xl border border-border bg-background/70 px-3 text-sm font-medium transition hover:bg-accent md:col-span-4"
-                >
-                  Limpar filtros
-                </button>
-              )}
+              {/* Última célula da grade: limpa tudo e fecha o painel, que é o que
+                  se quer quando a busca acabou. */}
+              <button
+                type="button"
+                onClick={() => {
+                  clearInquiryFilters();
+                  setShowFilters(false);
+                }}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-destructive/45 bg-destructive/10 px-3 text-sm font-semibold text-destructive transition hover:bg-destructive/20 md:col-start-4"
+              >
+                Limpar filtros
+              </button>
             </div>
           )}
         </section>
