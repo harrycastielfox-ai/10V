@@ -116,19 +116,19 @@ export function ProceduralTagPicker({
           {selected.map((tag) => (
             <span
               key={tag.id}
-              // Largura cheia: a tag termina na mesma borda do campo de busca,
-              // e nome comprido quebra linha em vez de parar no meio do caminho.
-              className={`flex w-full items-start gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold ${TAG_COLOR_CLASS[tag.color]}`}
+              // Largura cheia e uma linha só: o texto vai até a borda do campo de
+              // busca e o corte cai onde o espaço acaba, sem número mágico. O
+              // nome inteiro fica no title, para quem precisar conferir.
+              className={`flex w-full items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold ${TAG_COLOR_CLASS[tag.color]}`}
             >
-              <BadgeCheck
-                className="sipi-tag-check mt-0.5 h-3.5 w-3.5 shrink-0"
-                aria-hidden="true"
-              />
-              <span className="min-w-0 flex-1 break-words">{tag.name}</span>
+              <BadgeCheck className="sipi-tag-check h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate" title={tag.name}>
+                {tag.name}
+              </span>
               <button
                 type="button"
                 onClick={() => onChange(value.filter((id) => id !== tag.id))}
-                className="sipi-tag-remove mt-0.5 shrink-0 rounded p-0.5 transition"
+                className="sipi-tag-remove shrink-0 rounded p-0.5 transition"
                 aria-label={`Remover tag ${tag.name}`}
               >
                 <X className="h-3.5 w-3.5" />
