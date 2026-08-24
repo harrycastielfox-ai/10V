@@ -155,6 +155,123 @@
       tbody tr.total td.mes,
       tbody tr.taxa td.mes { padding-left: 10px; }
 
+
+      /* ---------------- Relatório para impressão ----------------
+         Fica fora da tela e só aparece ao imprimir. O cabeçalho repete o das
+         fichas do SIPI: brasão, órgão, título e faixa de uso restrito. */
+      .relatorio { display: none; }
+
+      @media print {
+        @page { size: A4 portrait; margin: 12mm 12mm 14mm; }
+
+        body { background: #fff; padding: 0; }
+        .barra, .quadro { display: none !important; }
+        .relatorio { display: block; color: #10161f; }
+
+        .rel-masthead {
+          display: grid;
+          grid-template-columns: 22mm minmax(0, 1fr) 46mm;
+          align-items: center;
+          gap: 6mm;
+          padding: 4mm 0;
+          border-top: 2mm solid var(--azul);
+          border-bottom: 1px solid #b9c6d6;
+        }
+
+        .rel-masthead .brasao { width: 22mm; height: 22mm; }
+
+        .rel-orgao {
+          margin: 0 0 1mm;
+          color: var(--azul);
+          font-size: 8pt;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+        }
+
+        .rel-masthead h1 { margin: 0; font-size: 17pt; font-weight: 800; }
+        .rel-masthead p { margin: 1mm 0 0; color: #3b4657; font-size: 9pt; }
+        .rel-masthead small { display: block; margin-top: 1mm; color: #6b7686; font-size: 7pt; }
+
+        .rel-id {
+          padding: 3mm;
+          border: 1px solid #9aa8ba;
+          border-radius: 2mm;
+          text-align: right;
+        }
+
+        .rel-id span, .rel-id small {
+          display: block;
+          color: #4a5568;
+          font-size: 7pt;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+
+        .rel-id strong { display: block; margin: 1mm 0; font-size: 13pt; }
+
+        .rel-faixa {
+          display: flex;
+          justify-content: space-between;
+          margin: 3mm 0 5mm;
+          padding: 1.6mm 3mm;
+          border: 1px solid #b9c6d6;
+          border-left: 1.4mm solid var(--azul);
+          background: var(--azul-claro);
+          color: #3b4657;
+          font-size: 7pt;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .relatorio h2 {
+          margin: 0 0 2.5mm;
+          padding-bottom: 1.5mm;
+          border-bottom: 1px solid #cdd8e5;
+          font-size: 11pt;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--azul);
+        }
+
+        .rel-cartoes {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 3mm;
+          margin-bottom: 6mm;
+        }
+
+        .rel-cartao {
+          padding: 3mm;
+          border: 1px solid #b9c6d6;
+          border-top: 1.4mm solid var(--azul);
+          text-align: center;
+        }
+
+        .rel-cartao span { display: block; font-size: 8pt; letter-spacing: 0.1em; color: #4a5568; }
+        .rel-cartao strong { display: block; margin: 1mm 0; font-size: 20pt; color: var(--azul); }
+        .rel-cartao small { display: block; font-size: 8pt; color: #3b4657; }
+
+        .rel-texto { margin-bottom: 6mm; }
+        .rel-texto p { margin: 0 0 2.5mm; font-size: 10pt; line-height: 1.55; text-align: justify; }
+        .rel-texto h3 { margin: 4mm 0 1.5mm; font-size: 10pt; color: var(--azul); }
+
+        .rel-assinatura {
+          margin-top: 12mm;
+          padding-top: 2mm;
+          border-top: 1px solid #10161f;
+          width: 70mm;
+          text-align: center;
+          font-size: 8pt;
+        }
+
+        .rel-folha2 { break-before: page; page-break-before: always; padding-top: 4mm; }
+
+        .rel-folha2 table { margin-top: 3mm; }
+        .rel-folha2 th, .rel-folha2 td { font-size: 9pt; padding: 2mm 1mm; }
+        .rel-folha2 .legenda { margin-top: 3mm; font-size: 8pt; color: #4a5568; }
+      }
+
       .aviso {
         padding: 40px 20px;
         text-align: center;
@@ -170,6 +287,7 @@
       <span class="atualizado" id="updated">Carregando dados atualizados...</span>
       <span class="acoes">
         <button type="button" onclick="google.script.host.close()">Fechar</button>
+        <button type="button" id="imprimir" onclick="window.print()">Imprimir relatório</button>
         <button class="primary" id="refresh" type="button" onclick="carregar()">Atualizar</button>
       </span>
     </div>
@@ -183,6 +301,8 @@
       <div class="titulo-faixa">CVLI'S COMPARATIVO</div>
       <div id="content" class="aviso">Atualizando resumo...</div>
     </div>
+
+    <section class="relatorio" id="relatorio"></section>
 
     <script>
       function escapar(value) {
@@ -248,11 +368,139 @@
           })
           .join("");
 
+        const tabela = "<table>" + cabecalho + "<tbody>" + conteudo + "</tbody></table>";
         const alvo = document.getElementById("content");
         alvo.className = "";
-        alvo.innerHTML = "<table>" + cabecalho + "<tbody>" + conteudo + "</tbody></table>";
+        alvo.innerHTML = tabela;
+        montarRelatorio(payload, anos, tabela);
         document.getElementById("updated").textContent = "Atualizado em " + payload.atualizadoEm;
         document.getElementById("refresh").disabled = false;
+      }
+
+
+      const MESES_INDICE = 2; // as linhas de mês começam aqui dentro de "valores"
+
+      function numero(valor) {
+        const limpo = String(valor == null ? "" : valor).replace(/[^0-9-]/g, "");
+        return limpo ? Number(limpo) : 0;
+      }
+
+      function plural(quantidade, singular, pluralPalavra) {
+        return quantidade === 1 ? singular : pluralPalavra;
+      }
+
+      /** Junta por ano o que a planilha traz espalhado em colunas. */
+      function resumirPorAno(linhas, anos) {
+        const meses = linhas.slice(MESES_INDICE).filter((linha) => {
+          const rotulo = String(linha[0] || "").toUpperCase();
+          return rotulo && rotulo !== "TOTAL" && rotulo.indexOf("ELUCIDA") < 0;
+        });
+
+        return anos.map((ano, indice) => {
+          const colunaRegistros = 1 + indice * 2;
+          const colunaElucidados = 2 + indice * 2;
+          let registros = 0;
+          let elucidados = 0;
+          let picoMes = "";
+          let picoValor = 0;
+
+          meses.forEach((linha) => {
+            const doMes = numero(linha[colunaRegistros]);
+            registros += doMes;
+            elucidados += numero(linha[colunaElucidados]);
+            if (doMes > picoValor) {
+              picoValor = doMes;
+              picoMes = String(linha[0] || "");
+            }
+          });
+
+          const taxa = registros ? Math.round((elucidados / registros) * 100) : 0;
+          return { ano, registros, elucidados, taxa, picoMes, picoValor };
+        });
+      }
+
+      function frasePorAno(atual, anterior) {
+        const partes = [];
+        partes.push(
+          "Em " + atual.ano + " foram registrados " + atual.registros + " " +
+          plural(atual.registros, "crime violento letal intencional", "crimes violentos letais intencionais") +
+          ", com " + atual.elucidados + " " + plural(atual.elucidados, "elucidado", "elucidados") +
+          " — taxa de elucidação de " + atual.taxa + "%."
+        );
+
+        if (atual.picoValor > 0) {
+          partes.push(
+            "O mês de maior incidência foi " + atual.picoMes + ", com " + atual.picoValor + " " +
+            plural(atual.picoValor, "registro", "registros") + "."
+          );
+        }
+
+        if (anterior && anterior.registros > 0) {
+          const diferenca = atual.registros - anterior.registros;
+          const percentual = Math.round(Math.abs(diferenca / anterior.registros) * 100);
+          if (diferenca === 0) {
+            partes.push("O total se manteve igual ao de " + anterior.ano + ".");
+          } else {
+            partes.push(
+              (diferenca > 0 ? "Houve aumento de " : "Houve redução de ") + Math.abs(diferenca) + " " +
+              plural(Math.abs(diferenca), "registro", "registros") + " (" + percentual + "%) em relação a " +
+              anterior.ano + "."
+            );
+          }
+        }
+
+        return partes.join(" ");
+      }
+
+      function montarRelatorio(payload, anos, tabelaHtml) {
+        const resumo = resumirPorAno(payload.valores, anos);
+        const totalRegistros = resumo.reduce((soma, item) => soma + item.registros, 0);
+        const totalElucidados = resumo.reduce((soma, item) => soma + item.elucidados, 0);
+        const taxaGeral = totalRegistros ? Math.round((totalElucidados / totalRegistros) * 100) : 0;
+        const periodo = anos.length ? anos[0] + " a " + anos[anos.length - 1] : "";
+
+        const cartoes = resumo
+          .map((item) =>
+            '<div class="rel-cartao"><span>' + escapar(item.ano) + "</span><strong>" +
+            item.registros + "</strong><small>" + item.elucidados + " elucidados · " +
+            item.taxa + "%</small></div>"
+          )
+          .join("");
+
+        const paragrafos = resumo
+          .map((item, indice) =>
+            "<h3>" + escapar(item.ano) + "</h3><p>" + escapar(frasePorAno(item, resumo[indice - 1])) + "</p>"
+          )
+          .join("");
+
+        document.getElementById("relatorio").innerHTML =
+          '<header class="rel-masthead">' +
+          '<span class="brasao" aria-hidden="true"></span>' +
+          "<div>" +
+          '<p class="rel-orgao">Polícia Civil da Bahia</p>' +
+          "<h1>Relatório Comparativo de CVLI</h1>" +
+          "<p>Crimes violentos letais intencionais — registros e elucidações</p>" +
+          "<small>Delegacia Territorial de Itabela</small>" +
+          "</div>" +
+          '<div class="rel-id"><span>Período</span><strong>' + escapar(periodo) +
+          "</strong><small>Emitido em " + escapar(payload.atualizadoEm) + "</small></div>" +
+          "</header>" +
+          '<div class="rel-faixa"><span>Documento operacional</span><strong>Uso interno e restrito</strong></div>' +
+          "<h2>Resumo do período</h2>" +
+          '<div class="rel-cartoes">' + cartoes + "</div>" +
+          '<section class="rel-texto">' +
+          "<h2>Leitura do período</h2>" +
+          "<p>" +
+          escapar(
+            "No período de " + periodo + " a unidade registrou " + totalRegistros +
+            " crimes violentos letais intencionais, dos quais " + totalElucidados +
+            " foram elucidados, o que corresponde a uma taxa geral de " + taxaGeral + "%."
+          ) +
+          "</p>" + paragrafos + "</section>" +
+          '<div class="rel-assinatura">Delegado(a) de Polícia</div>' +
+          '<section class="rel-folha2"><h2>Quadro comparativo</h2>' + tabelaHtml +
+          '<p class="legenda">Registros e elucidações por mês, conforme a aba Dashborads CVLI. ' +
+          "Emitido em " + escapar(payload.atualizadoEm) + ".</p></section>";
       }
 
       function falhar(error) {
