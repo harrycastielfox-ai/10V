@@ -49,7 +49,7 @@ export function MissingInfoPopover({ items }: MissingInfoPopoverProps) {
         className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition hover:-translate-y-0.5 hover:shadow-lg ${
           hasBlocking
             ? "border-red-500/45 bg-red-500/10 text-red-300 hover:shadow-red-500/10"
-            : "border-amber-400/45 bg-amber-400/10 text-amber-200 hover:shadow-amber-400/10"
+            : "sipi-missing-info-warning border-warning/55 bg-warning/10 text-warning hover:shadow-warning/15"
         }`}
         aria-expanded={open}
       >
@@ -88,12 +88,12 @@ export function MissingInfoPopover({ items }: MissingInfoPopoverProps) {
                 className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${
                   item.blocking
                     ? "border-red-500/30 bg-red-500/8 text-red-100"
-                    : "border-amber-400/25 bg-amber-400/8 text-amber-50"
+                    : "sipi-missing-info-warning border-warning/35 bg-warning/8 text-warning"
                 }`}
               >
                 <Info
                   className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
-                    item.blocking ? "text-red-300" : "text-amber-200"
+                    item.blocking ? "text-red-300" : "sipi-missing-info-warning-icon text-warning"
                   }`}
                 />
                 <span>{item.label}</span>

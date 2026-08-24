@@ -367,6 +367,16 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
     --sipi-field-neon-color: var(--warning);
   }
 
+  html[data-theme="light"] .sipi-missing-info-warning {
+    border-color: #c9860c;
+    background-color: #fff4cf;
+    color: #7a4800;
+  }
+
+  html[data-theme="light"] .sipi-missing-info-warning-icon {
+    color: #7a4800;
+  }
+
   /* Lupa dos campos de busca de tag: o brilho é o que faz o olho achar o campo
      no meio do formulário. */
   /* Brilha na cor que o ícone já tem, para servir a qualquer módulo. */
