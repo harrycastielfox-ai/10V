@@ -28,8 +28,8 @@ function abrirDashboardCVLI() {
   exigirCopiaDeTeste_();
   const html = HtmlService.createTemplateFromFile("PainelCvliHtml")
     .evaluate()
-    .setWidth(1120)
-    .setHeight(720);
+    .setWidth(1240)
+    .setHeight(760);
 
   SpreadsheetApp.getUi().showModalDialog(html, "Resumo atualizado de CVLI");
 }

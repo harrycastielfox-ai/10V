@@ -2,118 +2,270 @@
 <html lang="pt-BR">
   <head>
     <base target="_top">
+    <meta charset="utf-8">
     <style>
       :root {
-        color: #17221c;
-        background: #f5f7f6;
-        font-family: Arial, sans-serif;
+        --tinta: #10161f;
+        --azul: #123a6b;
+        --azul-claro: #d7e4f4;
+        --borda: #0f2a4a;
+        --rosa: #f0d3ce;
+        --papel: #ffffff;
+        --fundo: #eceff3;
       }
 
       * { box-sizing: border-box; }
-      body { margin: 0; padding: 20px; }
-      header {
+
+      body {
+        margin: 0;
+        padding: 18px;
+        background: var(--fundo);
+        color: var(--tinta);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .barra {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 16px;
+        gap: 12px;
+        max-width: 1040px;
+        margin: 0 auto 12px;
       }
-      h1 { margin: 0; font-size: 22px; letter-spacing: 0; }
-      .subtitle { margin: 5px 0 0; color: #526158; font-size: 13px; }
-      .actions { display: flex; gap: 8px; }
+
+      .atualizado { color: #5b6673; font-size: 12px; }
+      .acoes { display: flex; gap: 8px; }
+
       button {
-        min-height: 36px;
-        border: 1px solid #9caaa1;
-        border-radius: 6px;
-        padding: 0 14px;
-        background: #fff;
-        color: #17221c;
-        cursor: pointer;
-        font-weight: 600;
-      }
-      button.primary { border-color: #285943; background: #285943; color: #fff; }
-      button:disabled { cursor: wait; opacity: .65; }
-      .table-wrap {
-        overflow: auto;
-        max-height: 610px;
-        border: 1px solid #c7d0ca;
+        min-height: 34px;
+        padding: 0 16px;
+        border: 1px solid #9aa5b1;
         border-radius: 6px;
         background: #fff;
-      }
-      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-      th, td {
-        border: 1px solid #c7d0ca;
-        padding: 8px 7px;
-        text-align: center;
+        color: var(--tinta);
         font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
       }
-      th:first-child, td:first-child { width: 132px; text-align: left; }
-      thead th { position: sticky; top: 0; z-index: 1; background: #dce9e2; }
-      tbody tr:nth-child(even) { background: #f7faf8; }
-      tbody tr.total { background: #dce9e2; font-weight: 700; }
-      tbody tr.rate { background: #ead5d0; font-weight: 700; }
-      .loading, .error { padding: 48px; text-align: center; color: #526158; }
-      .error { color: #9a2c2c; }
+
+      button.primary {
+        border-color: var(--azul);
+        background: var(--azul);
+        color: #fff;
+      }
+
+      button:disabled { opacity: 0.6; cursor: wait; }
+
+      /* O quadro reproduz o cabeçalho impresso da planilha: faixa preta com o
+         brasão dos dois lados, faixa azul com o título e a tabela emoldurada. */
+      .quadro {
+        max-width: 1040px;
+        margin: 0 auto;
+        border: 2px solid var(--borda);
+        background: var(--papel);
+      }
+
+      .brasao-faixa {
+        display: grid;
+        grid-template-columns: 116px 1fr 116px;
+        align-items: center;
+        padding: 10px 14px;
+        background: #000;
+        border-bottom: 2px solid var(--borda);
+      }
+
+      /* O brasão vem do próprio SIPI. Embutir a imagem em base64 deixaria o
+         arquivo com 126 KB, ruim de colar no editor do Apps Script. */
+      .brasao {
+        display: block;
+        width: 92px;
+        height: 74px;
+        margin: 0 auto;
+        background-image: url("https://sipi-dt-itabela.sipi-dt-itabela.workers.dev/sipi-badge.png");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+      }
+
+      .brasao-faixa h1 {
+        margin: 0;
+        color: #fff;
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.25;
+        text-align: center;
+      }
+
+      .brasao-faixa h1 span { display: block; font-size: 20px; }
+
+      .titulo-faixa {
+        padding: 7px 10px;
+        border-bottom: 2px solid var(--borda);
+        background: var(--azul-claro);
+        color: var(--azul);
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-align: center;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th, td {
+        border: 1px solid var(--borda);
+        padding: 6px 4px;
+        font-size: 14px;
+        text-align: center;
+        color: var(--azul);
+      }
+
+      thead th {
+        background: var(--papel);
+        color: var(--tinta);
+        font-weight: 700;
+      }
+
+      th.mes {
+        width: 132px;
+        font-size: 15px;
+      }
+
+      td.mes {
+        text-align: left;
+        padding-left: 10px;
+        color: var(--tinta);
+      }
+
+      tbody tr.total td {
+        background: var(--rosa);
+        color: var(--tinta);
+        font-weight: 700;
+      }
+
+      tbody tr.taxa td {
+        background: var(--rosa);
+        color: var(--tinta);
+        font-weight: 700;
+      }
+
+      tbody tr.total td.mes,
+      tbody tr.taxa td.mes { padding-left: 10px; }
+
+      .aviso {
+        padding: 40px 20px;
+        text-align: center;
+        color: #5b6673;
+        font-size: 14px;
+      }
+
+      .aviso.erro { color: #8f2318; font-weight: 700; }
     </style>
   </head>
   <body>
-    <header>
-      <div>
-        <h1>CVLI - Comparativo anual</h1>
-        <p class="subtitle" id="updated">Carregando dados atualizados...</p>
-      </div>
-      <div class="actions">
+    <div class="barra">
+      <span class="atualizado" id="updated">Carregando dados atualizados...</span>
+      <span class="acoes">
         <button type="button" onclick="google.script.host.close()">Fechar</button>
         <button class="primary" id="refresh" type="button" onclick="carregar()">Atualizar</button>
+      </span>
+    </div>
+
+    <div class="quadro">
+      <div class="brasao-faixa">
+        <span class="brasao" aria-hidden="true"></span>
+        <h1>POLÍCIA CIVIL<span>Delegacia Territorial de Itabela</span></h1>
+        <span class="brasao" aria-hidden="true"></span>
       </div>
-    </header>
-    <main id="content" class="loading">Atualizando resumo...</main>
+      <div class="titulo-faixa">CVLI'S COMPARATIVO</div>
+      <div id="content" class="aviso">Atualizando resumo...</div>
+    </div>
 
     <script>
-      function texto(value) {
+      function escapar(value) {
         const node = document.createElement("span");
         node.textContent = value == null ? "" : String(value);
         return node.innerHTML;
       }
 
-      function renderizar(payload) {
-        const rows = payload.valores || [];
-        if (rows.length < 3) throw new Error("Dashboard sem dados suficientes.");
+      function ehTaxa(label) {
+        return label.indexOf("Elucida") >= 0 && label.indexOf("%") >= 0;
+      }
 
-        const years = rows[0];
-        const metrics = rows[1];
-        const body = rows.slice(2);
-        const headers = ["Mes"];
-        for (let col = 1; col < 9; col += 2) {
-          headers.push(`${years[col]} - ${metrics[col]}`);
-          headers.push(`${years[col]} - ${metrics[col + 1]}`);
+      function renderizar(payload) {
+        const linhas = payload.valores || [];
+        if (linhas.length < 3) throw new Error("Dashboard sem dados suficientes.");
+
+        // A primeira linha traz os anos em células mescladas: só a primeira das
+        // duas colunas do ano tem texto.
+        const anos = [];
+        for (let col = 1; col < linhas[0].length; col += 2) {
+          anos.push(String(linhas[0][col] || "").trim());
         }
 
-        const head = `<thead><tr>${headers.map((item) => `<th>${texto(item)}</th>`).join("")}</tr></thead>`;
-        const content = body.map((row) => {
-          const label = String(row[0] || "");
-          const className = label === "TOTAL" ? "total" : label.indexOf("Elucidacao") >= 0 || label.indexOf("Elucidação") >= 0 ? "rate" : "";
-          return `<tr class="${className}">${row.map((item) => `<td>${texto(item)}</td>`).join("")}</tr>`;
-        }).join("");
+        const metricas = linhas[1];
+        const corpo = linhas.slice(2);
 
-        document.getElementById("content").className = "table-wrap";
-        document.getElementById("content").innerHTML = `<table>${head}<tbody>${content}</tbody></table>`;
-        document.getElementById("updated").textContent = `Atualizado em ${payload.atualizadoEm}`;
+        const cabecalho =
+          "<thead>" +
+          "<tr>" +
+          '<th class="mes" rowspan="2">' + escapar(linhas[0][0] || "MÊS") + "</th>" +
+          anos.map((ano) => '<th colspan="2">' + escapar(ano) + "</th>").join("") +
+          "</tr>" +
+          "<tr>" +
+          anos
+            .map((ano, indice) => {
+              const registros = metricas[1 + indice * 2] || "Registros";
+              const elucidados = metricas[2 + indice * 2] || "Elucidados";
+              return "<th>" + escapar(registros) + "</th><th>" + escapar(elucidados) + "</th>";
+            })
+            .join("") +
+          "</tr>" +
+          "</thead>";
+
+        const conteudo = corpo
+          .map((linha) => {
+            const rotulo = String(linha[0] || "");
+            if (!rotulo && linha.every((item) => !String(item || "").trim())) return "";
+
+            if (ehTaxa(rotulo)) {
+              // A porcentagem vale para o ano inteiro: ocupa as duas colunas.
+              const celulas = anos
+                .map((ano, indice) => '<td colspan="2">' + escapar(linha[1 + indice * 2]) + "</td>")
+                .join("");
+              return '<tr class="taxa"><td class="mes">' + escapar(rotulo) + "</td>" + celulas + "</tr>";
+            }
+
+            const classe = rotulo.toUpperCase() === "TOTAL" ? "total" : "";
+            const celulas = linha
+              .slice(1)
+              .map((item) => "<td>" + escapar(item) + "</td>")
+              .join("");
+            return '<tr class="' + classe + '"><td class="mes">' + escapar(rotulo) + "</td>" + celulas + "</tr>";
+          })
+          .join("");
+
+        const alvo = document.getElementById("content");
+        alvo.className = "";
+        alvo.innerHTML = "<table>" + cabecalho + "<tbody>" + conteudo + "</tbody></table>";
+        document.getElementById("updated").textContent = "Atualizado em " + payload.atualizadoEm;
         document.getElementById("refresh").disabled = false;
       }
 
       function falhar(error) {
-        document.getElementById("content").className = "error";
-        document.getElementById("content").textContent = error && error.message ? error.message : "Nao foi possivel carregar o dashboard.";
+        const alvo = document.getElementById("content");
+        alvo.className = "aviso erro";
+        alvo.textContent =
+          error && error.message ? error.message : "Não foi possível carregar o dashboard.";
         document.getElementById("refresh").disabled = false;
       }
 
       function carregar() {
         document.getElementById("refresh").disabled = true;
-        google.script.run
-          .withSuccessHandler(renderizar)
-          .withFailureHandler(falhar)
-          .obterDashboardCvli();
+        google.script.run.withSuccessHandler(renderizar).withFailureHandler(falhar).obterDashboardCvli();
       }
 
       carregar();
