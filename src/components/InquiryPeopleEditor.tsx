@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Pencil, Plus, Trash2, UserRound, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   createInquiryPerson,
   INQUIRY_PERSON_ROLE_OPTIONS,
@@ -122,6 +122,21 @@ export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProp
     setOpen(false);
   };
 
+  // Aponta o botão nos primeiros segundos da etapa, enquanto não há ninguém na
+  // lista. Some sozinha para não virar enfeite permanente.
+  const [mostrarDica, setMostrarDica] = useState(false);
+
+  useEffect(() => {
+    if (value.length > 0) {
+      setMostrarDica(false);
+      return;
+    }
+
+    setMostrarDica(true);
+    const timer = window.setTimeout(() => setMostrarDica(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [value.length]);
+
   const updateDraft = (patch: Partial<InquiryPersonFormValue>) => {
     setDraft((current) => ({ ...current, ...patch }));
     if (patch.nome?.trim()) setError("");
@@ -138,14 +153,22 @@ export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProp
             A autoria e a prisão do procedimento vêm do que for informado aqui.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openNewPerson}
-          className="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-primary/45 bg-primary/15 px-3 text-xs font-bold text-primary transition-colors hover:bg-primary/25"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          Adicionar pessoa
-        </button>
+        <div className="flex items-center gap-1.5">
+          {mostrarDica ? (
+            <ArrowRight
+              className="sipi-hint-arrow size-7 shrink-0 text-primary"
+              aria-hidden="true"
+            />
+          ) : null}
+          <button
+            type="button"
+            onClick={openNewPerson}
+            className="inline-flex h-9 w-fit items-center gap-2 rounded-lg border border-primary/45 bg-primary/15 px-3 text-xs font-bold text-primary transition-colors hover:bg-primary/25"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Adicionar pessoa
+          </button>
+        </div>
       </div>
 
       {value.length === 0 ? (

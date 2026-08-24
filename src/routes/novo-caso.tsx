@@ -955,18 +955,22 @@ function NovoCaso() {
       </AppLayout>
     );
 
+  // A coluna lateral só existe quando o painel de motivação está aberto. Reservá-la
+  // o tempo todo deixava o formulário encostado à esquerda, com um vão vazio ao lado.
+  const painelMotivacaoAberto = step === 2 && motivacaoSuggestionsOpen;
+
   return (
     <AppLayout>
       {/* Cabeçalho e janela compartilham a mesma largura e ficam centralizados,
           para o cadastro não ficar colado na borda esquerda em telas largas. */}
       <div
         className={`mx-auto w-full ${
-          step === 2
+          painelMotivacaoAberto
             ? "max-w-[92rem] lg:grid lg:grid-cols-[minmax(0,72rem)_18rem] lg:items-start lg:gap-x-4"
             : "max-w-6xl"
         }`}
       >
-        <div className={step === 2 ? "lg:col-span-2" : undefined}>
+        <div className={painelMotivacaoAberto ? "lg:col-span-2" : undefined}>
           <PageHeader
             title="Novo Procedimento Policial"
             subtitle="Identificação, classificação e fluxo operacional"
@@ -976,7 +980,7 @@ function NovoCaso() {
 
         <ol
           className={`relative z-10 grid grid-cols-2 gap-2 rounded-t-3xl border border-b-0 border-border/80 bg-card/75 p-3 backdrop-blur-sm sm:grid-cols-3 md:p-4 lg:grid-cols-6 ${
-            step === 2 ? "lg:col-start-1 lg:row-start-2" : ""
+            painelMotivacaoAberto ? "lg:col-start-1 lg:row-start-2" : ""
           }`}
         >
           {STEPS.map((label, index) => (
@@ -1004,7 +1008,7 @@ function NovoCaso() {
 
         <form
           className={`sipi-wizard-window relative -mt-px space-y-5 rounded-b-3xl border border-border/80 bg-card/75 p-4 pt-5 backdrop-blur-sm md:p-6 md:pt-5 ${
-            step === 2 ? "lg:col-start-1 lg:row-start-3" : ""
+            painelMotivacaoAberto ? "lg:col-start-1 lg:row-start-3" : ""
           }`}
           onSubmit={handleSubmit}
         >
@@ -1306,7 +1310,7 @@ function NovoCaso() {
           </div>
         </form>
 
-        {step === 2 && motivacaoSuggestionsOpen ? (
+        {painelMotivacaoAberto ? (
           <div className="mt-4 lg:col-start-2 lg:row-start-2 lg:row-span-2 lg:mt-0">
             <MotivacaoSuggestions
               value={motivacao}

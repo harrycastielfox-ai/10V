@@ -1220,6 +1220,31 @@ html[data-theme="light"] .sipi-bairro-name {
   }
 }
 
+/* Seta que aponta um botão por alguns segundos. Só transform e opacity, para
+   a animação ficar na GPU e não custar nada. */
+@keyframes sipi-hint-nudge {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: translateX(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(6px);
+  }
+}
+
+.sipi-hint-arrow {
+  animation: sipi-hint-nudge 900ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sipi-hint-arrow {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
 @keyframes sipi-route-flow {
   to {
     stroke-dashoffset: -20;
