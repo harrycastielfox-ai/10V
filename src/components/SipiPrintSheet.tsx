@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 export type SipiPrintField = {
+  id?: string;
   label: string;
   value?: string | null;
   wide?: boolean;
@@ -8,11 +9,14 @@ export type SipiPrintField = {
 };
 
 export type SipiPrintSection = {
+  id?: string;
   title: string;
   fields: SipiPrintField[];
   wide?: boolean;
   narrative?: boolean;
   signatures?: boolean;
+  pageBreakBefore?: boolean;
+  breakable?: boolean;
 };
 
 type SipiPrintSheetProps = {
@@ -20,7 +24,7 @@ type SipiPrintSheetProps = {
   documentSubtitle: string;
   identifierLabel: string;
   identifier: string;
-  variant?: "default" | "inquiry" | "vehicle" | "term" | "summary";
+  variant?: "default" | "inquiry" | "dossier" | "vehicle" | "term" | "summary";
   summary?: SipiPrintField[];
   sections: SipiPrintSection[];
 };
@@ -112,14 +116,14 @@ export function SipiPrintSheet({
       <main className="sipi-print-sections">
         {visibleSections.map((section) => (
           <section
-            key={section.title}
-            className={`sipi-print-section${section.wide ? " sipi-print-section-wide" : ""}${section.narrative ? " sipi-print-section-flow" : ""}${section.signatures ? " sipi-print-section-signatures" : ""}`}
+            key={section.id ?? section.title}
+            className={`sipi-print-section${section.wide ? " sipi-print-section-wide" : ""}${section.narrative ? " sipi-print-section-flow" : ""}${section.signatures ? " sipi-print-section-signatures" : ""}${section.pageBreakBefore ? " sipi-print-section-page-break" : ""}${section.breakable ? " sipi-print-section-breakable" : ""}`}
           >
             <h2>{section.title}</h2>
             <dl className={section.narrative ? "sipi-print-narrative-list" : ""}>
               {section.fields.map((field) => (
                 <div
-                  key={`${section.title}-${field.label}`}
+                  key={field.id ?? `${section.id ?? section.title}-${field.label}`}
                   className={`${field.wide ? "sipi-print-field-wide" : ""}${field.manualLine ? " sipi-print-field-manual" : ""}`.trim()}
                 >
                   <dt>{field.label}</dt>

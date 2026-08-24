@@ -1563,6 +1563,11 @@ html[data-theme="light"] .sipi-bairro-name {
     color: #111827 !important;
   }
 
+  .sipi-print-document .sipi-print-sheet-dossier {
+    --sipi-print-accent: #1f4f7a;
+    --sipi-print-accent-soft: #eef5fa;
+  }
+
   .sipi-print-document .sipi-print-sheet-vehicle {
     --sipi-print-accent: #0b6fa4;
     --sipi-print-accent-soft: #edf7fc;
@@ -1874,6 +1879,29 @@ html[data-theme="light"] .sipi-bairro-name {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     align-items: stretch !important;
     gap: 3mm !important;
+  }
+
+  .sipi-print-sheet-dossier .sipi-print-sections {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3mm !important;
+  }
+
+  .sipi-print-document .sipi-print-sheet-dossier .sipi-print-section {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .sipi-print-document .sipi-print-section-page-break {
+    break-before: page !important;
+    page-break-before: always !important;
+    margin-top: 8mm !important;
+  }
+
+  .sipi-print-document .sipi-print-section-breakable {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    overflow: visible !important;
   }
 
   .sipi-print-document .sipi-print-sheet-inquiry .sipi-print-section {

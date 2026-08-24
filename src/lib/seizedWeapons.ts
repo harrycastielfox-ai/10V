@@ -83,14 +83,22 @@ export function serializeSeizedWeapons(weapons: readonly SeizedWeapon[]): string
 
 export function formatSeizedWeaponsForDisplay(value: string | null | undefined): string {
   return parseSeizedWeapons(value)
-    .map((weapon) => {
+    .map((weapon, index) => {
       const details = [
         weapon.marcaModelo,
         weapon.calibre ? `calibre ${weapon.calibre}` : "",
         weapon.numeroSerie ? `nº ${weapon.numeroSerie}` : "",
-        weapon.observacoes,
       ].filter(Boolean);
-      return details.length ? `${weapon.nome} — ${details.join("; ")}` : weapon.nome;
+      const description = details.length ? `${weapon.nome} — ${details.join("; ")}` : weapon.nome;
+      return `${index + 1} - ${description}`;
     })
+    .join("\n");
+}
+
+export function formatSeizedWeaponObservationsForDisplay(value: string | null | undefined): string {
+  return parseSeizedWeapons(value)
+    .map((weapon, index) => ({ index, observation: weapon.observacoes.trim() }))
+    .filter(({ observation }) => Boolean(observation))
+    .map(({ index, observation }) => `${index + 1} - ${observation}`)
     .join("\n");
 }

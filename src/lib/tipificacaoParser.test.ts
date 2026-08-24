@@ -26,6 +26,21 @@ describe("parseTipificacoes", () => {
     expect(parseTipificacoes("ROUBO")).toMatchObject([{ codigo: null, descricao: "ROUBO" }]);
   });
 
+  it("separa as tipificações salvas pelo formulário com ponto e vírgula", () => {
+    const result = parseTipificacoes("ROUBO; FURTO QUALIFICADO; 1: HOMICÍDIO SIMPLES");
+    expect(result.map((item) => item.descricao)).toEqual([
+      "ROUBO",
+      "FURTO QUALIFICADO",
+      "HOMICÍDIO SIMPLES",
+    ]);
+  });
+
+  it("remove dois-pontos soltos no início de descrições antigas", () => {
+    expect(parseTipificacoes(": LESÃO CORPORAL")).toMatchObject([
+      { codigo: null, descricao: "LESÃO CORPORAL" },
+    ]);
+  });
+
   it("deduplica pelo código e mantém a ordem", () => {
     const result = parseTipificacoes("57: AMEAÇA, 21: LESÃO, 57: AMEAÇA REPETIDA");
     expect(result.map((item) => item.slug)).toEqual(["tip-57", "tip-21"]);
@@ -45,5 +60,12 @@ describe("parseTipificacoes", () => {
       expect(item.rotulo.length).toBeGreaterThanOrEqual(2);
       expect(item.rotulo.length).toBeLessThanOrEqual(300);
     }
+  });
+
+  it("mantém a descrição completa mesmo quando o rótulo precisa respeitar o banco", () => {
+    const oversized = `999: ${"DESCRIÇÃO COMPLETA ".repeat(30)}FINAL`;
+    const [item] = parseTipificacoes(oversized);
+    expect(item.descricao.endsWith("FINAL")).toBe(true);
+    expect(item.rotulo.length).toBeLessThanOrEqual(300);
   });
 });

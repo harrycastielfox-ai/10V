@@ -197,6 +197,8 @@ export async function replaceInqueritoPessoas(
       papel: person.papel,
       nome: person.nome.trim(),
       observacao: person.observacao?.trim() || null,
+      autoria_determinada: person.autoria_determinada ?? null,
+      preso: person.preso ?? null,
       ordem: index,
     }))
     .filter((person) => person.nome.length > 0);

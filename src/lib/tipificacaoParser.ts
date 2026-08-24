@@ -8,11 +8,13 @@ export type TipificacaoItem = {
 };
 
 const NUMBERED_SEPARATOR = /,\s*(?=\+?\s*\d{1,5}\s*:\s*)/gu;
+const FORM_SEPARATOR = /\s*;\s*/gu;
 const NUMBERED_ITEM = /^\s*\+?\s*(\d{1,5})\s*:\s*([\s\S]+)$/u;
 
 function normalizeDescription(value: string) {
   return value
     .replace(/\s+/gu, " ")
+    .replace(/^:\s*/u, "")
     .replace(/[;.,\s]+$/gu, "")
     .trim();
 }
@@ -77,7 +79,7 @@ export function parseTipificacoes(
   knownLabels: readonly string[] = [],
 ): TipificacaoItem[] {
   if (!raw?.trim()) return [];
-  const numberedParts = raw.split(NUMBERED_SEPARATOR);
+  const numberedParts = raw.split(FORM_SEPARATOR).flatMap((part) => part.split(NUMBERED_SEPARATOR));
   const catalogParts =
     numberedParts.length === 1 && !NUMBERED_ITEM.test(numberedParts[0])
       ? matchKnownCatalog(raw, knownLabels)

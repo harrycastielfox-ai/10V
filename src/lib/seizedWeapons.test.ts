@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatSeizedWeaponObservationsForDisplay,
   formatSeizedWeaponsForDisplay,
   parseSeizedWeapons,
   serializeSeizedWeapons,
@@ -36,8 +37,14 @@ describe("seizedWeapons", () => {
 
   it("gera uma descrição humana para detalhes e impressão", () => {
     expect(formatSeizedWeaponsForDisplay(serializeSeizedWeapons(weapons))).toBe(
-      "Revólver — Taurus 82; calibre .38; nº ABC123; Cabo de madeira\n" +
-        "Pistola — Glock G17; calibre 9 mm; nº XYZ789",
+      "1 - Revólver — Taurus 82; calibre .38; nº ABC123\n" +
+        "2 - Pistola — Glock G17; calibre 9 mm; nº XYZ789",
+    );
+  });
+
+  it("separa as observações mantendo o número da arma correspondente", () => {
+    expect(formatSeizedWeaponObservationsForDisplay(serializeSeizedWeapons(weapons))).toBe(
+      "1 - Cabo de madeira",
     );
   });
 });

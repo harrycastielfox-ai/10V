@@ -213,6 +213,23 @@ export async function listRepresentacaoPessoas(representacaoId: string) {
   return (data ?? []) as RepresentacaoPessoaRecord[];
 }
 
+export async function listRepresentacaoPessoasByRepresentacaoIds(representacaoIds: string[]) {
+  const uniqueIds = [...new Set(representacaoIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return [];
+
+  const data = await runSupabaseQuery<RepresentacaoPessoaRecord[]>(
+    "pessoas das representações vinculadas",
+    (signal) =>
+      supabase
+        .from("representacao_pessoas")
+        .select("id, representacao_id, papel, nome, observacao, ordem, created_at, updated_at")
+        .in("representacao_id", uniqueIds)
+        .order("ordem", { ascending: true })
+        .abortSignal(signal),
+  );
+  return (data ?? []) as RepresentacaoPessoaRecord[];
+}
+
 export async function replaceRepresentacaoPessoas(
   representacaoId: string,
   pessoas: RepresentacaoPessoaInput[],
