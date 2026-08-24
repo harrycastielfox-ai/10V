@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <style>
+      :root {
+        color: #17221c;
+        background: #f5f7f6;
+        font-family: Arial, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 20px; }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      h1 { margin: 0; font-size: 22px; letter-spacing: 0; }
+      .subtitle { margin: 5px 0 0; color: #526158; font-size: 13px; }
+      .actions { display: flex; gap: 8px; }
+      button {
+        min-height: 36px;
+        border: 1px solid #9caaa1;
+        border-radius: 6px;
+        padding: 0 14px;
+        background: #fff;
+        color: #17221c;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button.primary { border-color: #285943; background: #285943; color: #fff; }
+      button:disabled { cursor: wait; opacity: .65; }
+      .table-wrap {
+        overflow: auto;
+        max-height: 610px;
+        border: 1px solid #c7d0ca;
+        border-radius: 6px;
+        background: #fff;
+      }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      th, td {
+        border: 1px solid #c7d0ca;
+        padding: 8px 7px;
+        text-align: center;
+        font-size: 13px;
+      }
+      th:first-child, td:first-child { width: 132px; text-align: left; }
+      thead th { position: sticky; top: 0; z-index: 1; background: #dce9e2; }
+      tbody tr:nth-child(even) { background: #f7faf8; }
+      tbody tr.total { background: #dce9e2; font-weight: 700; }
+      tbody tr.rate { background: #ead5d0; font-weight: 700; }
+      .loading, .error { padding: 48px; text-align: center; color: #526158; }
+      .error { color: #9a2c2c; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>CVLI - Comparativo anual</h1>
+        <p class="subtitle" id="updated">Carregando dados atualizados...</p>
+      </div>
+      <div class="actions">
+        <button type="button" onclick="google.script.host.close()">Fechar</button>
+        <button class="primary" id="refresh" type="button" onclick="carregar()">Atualizar</button>
+      </div>
+    </header>
+    <main id="content" class="loading">Atualizando resumo...</main>
+
+    <script>
+      function texto(value) {
+        const node = document.createElement("span");
+        node.textContent = value == null ? "" : String(value);
+        return node.innerHTML;
+      }
+
+      function renderizar(payload) {
+        const rows = payload.valores || [];
+        if (rows.length < 3) throw new Error("Dashboard sem dados suficientes.");
+
+        const years = rows[0];
+        const metrics = rows[1];
+        const body = rows.slice(2);
+        const headers = ["Mes"];
+        for (let col = 1; col < 9; col += 2) {
+          headers.push(`${years[col]} - ${metrics[col]}`);
+          headers.push(`${years[col]} - ${metrics[col + 1]}`);
+        }
+
+        const head = `<thead><tr>${headers.map((item) => `<th>${texto(item)}</th>`).join("")}</tr></thead>`;
+        const content = body.map((row) => {
+          const label = String(row[0] || "");
+          const className = label === "TOTAL" ? "total" : label.indexOf("Elucidacao") >= 0 || label.indexOf("Elucidação") >= 0 ? "rate" : "";
+          return `<tr class="${className}">${row.map((item) => `<td>${texto(item)}</td>`).join("")}</tr>`;
+        }).join("");
+
+        document.getElementById("content").className = "table-wrap";
+        document.getElementById("content").innerHTML = `<table>${head}<tbody>${content}</tbody></table>`;
+        document.getElementById("updated").textContent = `Atualizado em ${payload.atualizadoEm}`;
+        document.getElementById("refresh").disabled = false;
+      }
+
+      function falhar(error) {
+        document.getElementById("content").className = "error";
+        document.getElementById("content").textContent = error && error.message ? error.message : "Nao foi possivel carregar o dashboard.";
+        document.getElementById("refresh").disabled = false;
+      }
+
+      function carregar() {
+        document.getElementById("refresh").disabled = true;
+        google.script.run
+          .withSuccessHandler(renderizar)
+          .withFailureHandler(falhar)
+          .obterDashboardCvli();
+      }
+
+      carregar();
+    </script>
+  </body>
+</html>
