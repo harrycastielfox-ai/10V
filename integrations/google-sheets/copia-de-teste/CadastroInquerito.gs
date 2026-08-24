@@ -17,13 +17,13 @@ const CABECALHOS_INQUERITO_COPIA = Object.freeze([
   "MOTIVAÇÃO",
   "Equipe respónsavel",
   "ESCRIVÃO",
-  "STATUS\nDO PROCEDIMENTO",
-  "DILIGÊNCIAS",
+  "STATUS\nDE DILIGÊNCIAS",
   "Diligências pendentes",
-  "Nº PROCESSO\nMEDIDA",
+  "PROCESSO MEDIDA",
   "RELATÓRIO\nENVIADO?",
   "DATA ENVIO\nRELATÓRIO",
   "OBSERVAÇÕES",
+  "STATUS\nDO PROCEDIMENTO",
 ]);
 
 function cadastrarInqueritoCopia(dados) {
@@ -70,13 +70,14 @@ function cadastrarInqueritoCopia(dados) {
     texto_(dados.motivacao),
     texto_(dados.equipe),
     texto_(dados.escrivao),
-    "Andamento",
     texto_(dados.diligencias),
     texto_(dados.diligenciasPendentes),
     medidaProtetiva ? texto_(dados.numeroProcessoMedida) : "",
     "Não",
     "",
     texto_(dados.observacoes),
+    // O status do procedimento passou a ser a última coluna da aba.
+    "Andamento",
   ];
 
   const lastRow = sheet.getLastRow();
@@ -105,10 +106,36 @@ function marcarInqueritoComoRemetido(numeroPpe, dataEnvio, numeroFisico) {
   }
 
   const rowNumber = matches[0].index + 2;
-  sheet.getRange(rowNumber, 19).setValue("Remetido");
-  sheet.getRange(rowNumber, 23).setValue("Sim");
-  sheet.getRange(rowNumber, 24).setValue(dataEnvio ? dataValida_(dataEnvio) : new Date());
+  // Pelo nome do cabeçalho, e não pela letra: a coluna de status já mudou de
+  // lugar uma vez e levou o script junto.
+  const colunaStatus = colunaPorCabecalho_(sheet, "STATUS\nDO PROCEDIMENTO");
+  const colunaRelatorio = colunaPorCabecalho_(sheet, "RELATÓRIO\nENVIADO?");
+  const colunaDataEnvio = colunaPorCabecalho_(sheet, "DATA ENVIO\nRELATÓRIO");
+
+  sheet.getRange(rowNumber, colunaStatus).setValue("Remetido");
+  sheet.getRange(rowNumber, colunaRelatorio).setValue("Sim");
+  sheet
+    .getRange(rowNumber, colunaDataEnvio)
+    .setValue(dataEnvio ? dataValida_(dataEnvio) : new Date());
   return rowNumber;
+}
+
+/** Numero da coluna (1 = A) a partir do texto do cabecalho. */
+function colunaPorCabecalho_(sheet, titulo) {
+  const alvo = normalizarCabecalho_(titulo);
+  const cabecalhos = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+  const indice = cabecalhos.findIndex((item) => normalizarCabecalho_(item) === alvo);
+  if (indice < 0) throw new Error("Coluna ausente: " + titulo.replace(/\n/g, " "));
+  return indice + 1;
+}
+
+function normalizarCabecalho_(valor) {
+  return String(valor == null ? "" : valor)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }
 
 function somarDias_(date, days) {
