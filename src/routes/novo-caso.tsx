@@ -237,7 +237,6 @@ function NovoCaso() {
   const [selectedTipificacaoTagIds, setSelectedTipificacaoTagIds] = useState<string[]>([]);
   const [selectedStatusTagIds, setSelectedStatusTagIds] = useState<string[]>([]);
   const [selectedGravidadeTagIds, setSelectedGravidadeTagIds] = useState<string[]>([]);
-  const [gravidadeTouched, setGravidadeTouched] = useState(false);
   const [resumoFato, setResumoFato] = useState("");
   const [pessoas, setPessoas] = useState<InquiryPersonFormValue[]>([]);
   const [numeroBo, setNumeroBo] = useState("");
@@ -327,11 +326,6 @@ function NovoCaso() {
     [selectedTipificacoes, tipo],
   );
   const procedureGuidance = useMemo(() => getProcedureTypeGuidance(tipo), [tipo]);
-  const suggestedGravidade = useMemo(() => {
-    if (!cadastroSuggestion) return null;
-    return gravidadeOptions.find((tag) => tag.slug === cadastroSuggestion.gravidadeSlug) ?? null;
-  }, [cadastroSuggestion, gravidadeOptions]);
-
   const createTagOption = async (input: Parameters<typeof createProceduralTag>[0]) => {
     const created = await createProceduralTag(input);
     setTagOptions((current) =>
@@ -458,10 +452,11 @@ function NovoCaso() {
 
   useEffect(() => {
     if (!cadastroSuggestion) return;
+    // Só a prioridade é sugerida. A gravidade fica em branco até alguém
+    // escolher: marcada sozinha, "Outros" virava a classificação principal do
+    // procedimento sem ninguém ter decidido nada.
     if (!prioridadeTouched) setPrioridade(cadastroSuggestion.prioridade);
-    if (!gravidadeTouched && suggestedGravidade)
-      setSelectedGravidadeTagIds([suggestedGravidade.id]);
-  }, [cadastroSuggestion, gravidadeTouched, prioridadeTouched, suggestedGravidade]);
+  }, [cadastroSuggestion, prioridadeTouched]);
 
   const registrationChecks = useMemo(
     () =>
@@ -631,13 +626,11 @@ function NovoCaso() {
   };
 
   const handleTipificacaoChange = (next: string[]) => {
-    setGravidadeTouched(false);
     setPrioridadeTouched(false);
     setSelectedTipificacaoTagIds(next);
   };
 
   const handleGravidadeChange = (next: string[]) => {
-    setGravidadeTouched(true);
     setSelectedGravidadeTagIds(next);
   };
 
