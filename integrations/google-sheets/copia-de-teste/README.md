@@ -15,15 +15,15 @@ Ao criar o arquivo HTML no editor do Apps Script, digite apenas
 `PainelCvli.html` cria `PainelCvli.html.html`, e `abrirDashboardCVLI` nao
 encontra o arquivo.
 
-Depois de adicionar os arquivos ao projeto vinculado, execute uma vez
-`instalarPainelCvli`. O menu **Painel CVLI** passara a abrir o comparativo em
-uma janela grande. Para usar um desenho como botao, atribua a ele a funcao
-`abrirDashboardCVLI`.
+O `Code.gs` do projeto vinculado deve criar um menu unico chamado
+**⚖️ DASHBOARD E CADASTRO**, com **🖥️ DASHBOARD CVLI** no topo e os cadastros
+logo abaixo. O `PainelCvli.gs` nao cria mais um menu separado; qualquer
+acionador antigo de `criarMenuPainelCvli_` passa a chamar o menu unificado.
 
 `cadastrarInqueritoCopia(dados)` e chamada pelo formulario e espera o objeto
 com os campos preenchidos. Executa-la a mao no editor da erro, porque `dados`
-chega vazio; para testar o painel, use o menu **Painel CVLI > Abrir dashboard**
-na planilha.
+chega vazio; para testar o painel, use o menu
+**⚖️ DASHBOARD E CADASTRO > 🖥️ DASHBOARD CVLI** na planilha.
 
 O cadastro novo deve chamar `cadastrarInqueritoCopia(dados)`. O campo
 `prazoDias` e usado apenas para calcular `DATA LIMITE`; ele nao e gravado na

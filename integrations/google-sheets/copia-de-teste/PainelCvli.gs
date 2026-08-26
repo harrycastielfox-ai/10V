@@ -8,19 +8,11 @@ function instalarPainelCvli() {
     .filter((trigger) => trigger.getHandlerFunction() === "criarMenuPainelCvli_")
     .forEach((trigger) => ScriptApp.deleteTrigger(trigger));
 
-  ScriptApp.newTrigger("criarMenuPainelCvli_")
-    .forSpreadsheet(SpreadsheetApp.getActive())
-    .onOpen()
-    .create();
-
-  criarMenuPainelCvli_();
+  createCustomMenu();
 }
 
 function criarMenuPainelCvli_() {
-  SpreadsheetApp.getUi()
-    .createMenu("Painel CVLI")
-    .addItem("Abrir dashboard", "abrirDashboardCVLI")
-    .addToUi();
+  createCustomMenu();
 }
 
 function abrirDashboardCVLI() {
@@ -105,6 +97,7 @@ function obterDashboardCvli() {
   const colunaData = acharColuna_(cabecalhos, "DATA DO FATO");
   const colunaGravidade = acharColuna_(cabecalhos, "GRAVIDADE");
   const colunaStatus = acharColuna_(cabecalhos, "STATUS DO PROCEDIMENTO");
+  const colunaEnvio = acharColuna_(cabecalhos, "DATA ENVIO RELATORIO");
 
   const linhas =
     ultimaLinha < 2 ? [] : sheet.getRange(2, 1, ultimaLinha - 1, ultimaColuna).getValues();
@@ -125,7 +118,15 @@ function obterDashboardCvli() {
 
     porAno[quando.ano].registros[quando.mes] += 1;
     if (normalizarTexto_(linha[colunaStatus]) === "REMETIDO") {
-      porAno[quando.ano].elucidados[quando.mes] += 1;
+      // O elucidado conta no mes da remessa. Sem data de envio, cai no mes do fato.
+      const remessa = anoEMesDoValor_(linha[colunaEnvio]) || quando;
+      if (!porAno[remessa.ano]) {
+        porAno[remessa.ano] = {
+          registros: CVLI_MESES.map(() => 0),
+          elucidados: CVLI_MESES.map(() => 0),
+        };
+      }
+      porAno[remessa.ano].elucidados[remessa.mes] += 1;
     }
   });
 
@@ -166,6 +167,40 @@ function obterDashboardCvli() {
       "dd/MM/yyyy 'as' HH:mm",
     ),
   };
+}
+
+/**
+ * Carimba a data em que alguem marcou o procedimento como Remetido.
+ *
+ * A planilha nao guarda quando o status mudou, e o painel precisa disso: o
+ * elucidado conta no mes da remessa, nao no mes do fato. Ao marcar Remetido,
+ * grava hoje em DATA ENVIO RELATORIO e "Sim" em RELATORIO ENVIADO?. Ao tirar,
+ * limpa os dois.
+ */
+function onEdit(e) {
+  if (!e || !e.range) return;
+  const sheet = e.range.getSheet();
+  if (sheet.getName() !== COPIA_TESTE.DATA_SHEET) return;
+  if (e.range.getNumRows() !== 1 || e.range.getNumColumns() !== 1) return;
+  const linha = e.range.getRow();
+  if (linha < 2) return;
+
+  const cabecalhos = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getDisplayValues()[0];
+  const colunaStatus = acharColuna_(cabecalhos, "STATUS DO PROCEDIMENTO") + 1;
+  if (e.range.getColumn() !== colunaStatus) return;
+
+  const colunaEnvio = acharColuna_(cabecalhos, "DATA ENVIO RELATORIO") + 1;
+  const colunaRelatorio = acharColuna_(cabecalhos, "RELATORIO ENVIADO?") + 1;
+  const remetido = normalizarTexto_(e.range.getValue()) === "REMETIDO";
+
+  if (remetido) {
+    const hoje = new Date();
+    sheet.getRange(linha, colunaEnvio).setValue(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()));
+    sheet.getRange(linha, colunaRelatorio).setValue("Sim");
+  } else {
+    sheet.getRange(linha, colunaEnvio).clearContent();
+    sheet.getRange(linha, colunaRelatorio).setValue("Nao");
+  }
 }
 
 function exigirCopiaDeTeste_() {
