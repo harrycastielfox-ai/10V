@@ -281,7 +281,7 @@ const TONE_STYLES: Record<
     iconBg: "bg-indigo-500/12",
     iconBorder: "border-indigo-400/25",
     iconText: "text-indigo-300/90",
-    ring: "",
+    ring: "hover:border-indigo-400/50 hover:shadow-indigo-400/10",
     chip: "bg-indigo-500/12 text-indigo-100/85 border-indigo-300/25",
   },
 };
@@ -289,33 +289,16 @@ const TONE_STYLES: Record<
 function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel: () => void }) {
   const Icon = modulo.icon;
   const styles = TONE_STYLES[modulo.tone];
-  const isBoletim = modulo.id === "boletim-ocorrencia";
   const cardContent = (
     <div
-      className={`group relative h-full overflow-hidden rounded-xl border p-6 flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${styles.ring} ${
-        isBoletim
-          ? "border-indigo-400/30 bg-[linear-gradient(140deg,#2E1065_0%,#1E1348_46%,#0A0713_100%)] shadow-[0_0_16px_rgba(129,140,248,0.10),inset_0_1px_0_rgba(255,255,255,0.06)] group-hover:border-indigo-400/55 group-focus-visible:border-indigo-400/55 group-hover:shadow-[0_0_28px_rgba(129,140,248,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] group-focus-visible:shadow-[0_0_28px_rgba(129,140,248,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
-          : "border-border bg-card"
-      } ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}
+      className={`group relative h-full overflow-hidden rounded-xl border border-border bg-card p-6 flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${styles.ring} ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}
     >
-      {isBoletim && <BoletimBackdrop />}
-
       <div className="relative z-10 flex h-full flex-col">
         <div className="flex items-start justify-between gap-3 mb-5">
           <div
-            className={`h-14 w-14 rounded-xl border ${styles.iconBg} ${styles.iconBorder} flex items-center justify-center ${
-              isBoletim
-                ? "transition-all duration-200 group-hover:border-indigo-300/40 group-focus-visible:border-indigo-300/40 group-hover:bg-indigo-400/15 group-focus-visible:bg-indigo-400/15 group-hover:shadow-[0_0_14px_rgba(129,140,248,0.16)] group-focus-visible:shadow-[0_0_14px_rgba(129,140,248,0.16)]"
-                : ""
-            }`}
+            className={`h-14 w-14 rounded-xl border ${styles.iconBg} ${styles.iconBorder} flex items-center justify-center`}
           >
-            <Icon
-              className={`h-7 w-7 ${styles.iconText} ${
-                isBoletim
-                  ? "transition-all duration-200 group-hover:text-indigo-200 group-focus-visible:text-indigo-200 group-hover:drop-shadow-[0_0_8px_rgba(129,140,248,0.28)] group-focus-visible:drop-shadow-[0_0_8px_rgba(129,140,248,0.28)]"
-                  : ""
-              }`}
-            />
+            <Icon className={`h-7 w-7 ${styles.iconText}`} />
           </div>
         </div>
         <div
@@ -323,36 +306,14 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
         >
           {modulo.hint}
         </div>
-        <h3
-          className={`text-lg font-bold tracking-wide mb-2 ${isBoletim ? "text-white" : "text-foreground"}`}
-        >
-          {modulo.titulo}
-        </h3>
-        <p
-          className={`text-sm leading-relaxed flex-1 ${isBoletim ? "text-indigo-100/65" : "text-muted-foreground"}`}
-        >
-          {modulo.descricao}
-        </p>
-        <div
-          className={`mt-6 pt-4 border-t flex items-center justify-between ${isBoletim ? "border-white/10" : "border-border"}`}
-        >
-          <span
-            className={`text-xs font-semibold tracking-wider uppercase transition-colors ${
-              isBoletim
-                ? "text-indigo-200/70 group-hover:text-indigo-100"
-                : "text-muted-foreground group-hover:text-foreground"
-            }`}
-          >
+        <h3 className="text-lg font-bold tracking-wide mb-2 text-foreground">{modulo.titulo}</h3>
+        <p className="text-sm leading-relaxed flex-1 text-muted-foreground">{modulo.descricao}</p>
+        <div className="mt-6 pt-4 border-t border-border flex items-center justify-between">
+          <span className="text-xs font-semibold tracking-wider uppercase transition-colors text-muted-foreground group-hover:text-foreground">
             {modulo.disponivel ? "Acessar módulo" : "Em desenvolvimento"}
           </span>
           <ArrowRight
-            className={`h-4 w-4 ${styles.iconText} transition-all ${
-              modulo.disponivel ? "group-hover:translate-x-1" : "opacity-60"
-            } ${
-              isBoletim
-                ? "group-hover:text-indigo-200 group-focus-visible:text-indigo-200 group-hover:drop-shadow-[0_0_6px_rgba(129,140,248,0.24)] group-focus-visible:drop-shadow-[0_0_6px_rgba(129,140,248,0.24)]"
-                : ""
-            }`}
+            className={`h-4 w-4 ${styles.iconText} transition-all ${modulo.disponivel ? "group-hover:translate-x-1" : "opacity-60"}`}
           />
         </div>
       </div>
@@ -373,117 +334,5 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
     >
       {cardContent}
     </button>
-  );
-}
-
-function BoletimBackdrop() {
-  return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_16%,rgba(129,140,248,0.05),transparent_38%),radial-gradient(circle_at_12%_88%,rgba(99,102,241,0.035),transparent_34%),linear-gradient(135deg,rgba(2,6,23,0.28),rgba(30,27,75,0.05)_52%,rgba(2,6,23,0.66))] opacity-90 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
-      <svg
-        className="absolute inset-0 h-full w-full opacity-40 transition-opacity duration-200 group-hover:opacity-60 group-focus-visible:opacity-60"
-        viewBox="0 0 420 260"
-        preserveAspectRatio="none"
-        role="presentation"
-      >
-        <defs>
-          <filter id="boletim-stamp-glow" x="-70%" y="-70%" width="240%" height="240%">
-            <feGaussianBlur stdDeviation="2.6" result="blur" />
-            <feColorMatrix
-              in="blur"
-              type="matrix"
-              values="0 0 0 0 0.51 0 0 0 0 0.55 0 0 0 0 0.97 0 0 0 0.40 0"
-            />
-            <feMerge>
-              <feMergeNode />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* folha de trás, sugerindo pilha de registros */}
-        <rect
-          x="212"
-          y="52"
-          width="140"
-          height="188"
-          rx="6"
-          transform="rotate(-13 282 146)"
-          fill="rgba(99,102,241,0.012)"
-          stroke="rgba(129,140,248,0.045)"
-          strokeWidth="1"
-        />
-
-        {/* folha do boletim, levemente inclinada */}
-        <g transform="rotate(-7 300 130)">
-          <rect
-            x="238"
-            y="26"
-            width="150"
-            height="200"
-            rx="6"
-            fill="rgba(129,140,248,0.022)"
-            stroke="rgba(129,140,248,0.09)"
-            strokeWidth="1"
-            className="transition-all duration-200 group-hover:stroke-[rgba(129,140,248,0.18)] group-focus-visible:stroke-[rgba(129,140,248,0.18)]"
-          />
-          {/* cabeçalho */}
-          <rect x="256" y="44" width="58" height="6" rx="3" fill="rgba(165,180,252,0.13)" />
-          <rect x="256" y="56" width="94" height="4" rx="2" fill="rgba(148,163,184,0.07)" />
-          <line x1="256" y1="70" x2="370" y2="70" stroke="rgba(129,140,248,0.08)" strokeWidth="1" />
-          {/* linhas do relato */}
-          <g fill="rgba(148,163,184,0.06)">
-            <rect x="256" y="82" width="114" height="4" rx="2" />
-            <rect x="256" y="94" width="100" height="4" rx="2" />
-            <rect x="256" y="106" width="110" height="4" rx="2" />
-            <rect x="256" y="118" width="78" height="4" rx="2" />
-            <rect x="256" y="136" width="114" height="4" rx="2" />
-            <rect x="256" y="148" width="92" height="4" rx="2" />
-            <rect x="256" y="160" width="106" height="4" rx="2" />
-            <rect x="256" y="172" width="64" height="4" rx="2" />
-          </g>
-          {/* linha de assinatura */}
-          <line
-            x1="256"
-            y1="204"
-            x2="332"
-            y2="204"
-            stroke="rgba(148,163,184,0.10)"
-            strokeWidth="1"
-          />
-          <path
-            d="M260 200 c8 -8 12 6 19 -2 s9 5 15 -3 s10 6 16 -1"
-            fill="none"
-            stroke="rgba(165,180,252,0.13)"
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          />
-          {/* carimbo */}
-          <g filter="url(#boletim-stamp-glow)">
-            <circle
-              cx="352"
-              cy="192"
-              r="19"
-              fill="none"
-              stroke="rgba(129,140,248,0.14)"
-              strokeWidth="2"
-              className="transition-all duration-200 group-hover:stroke-[rgba(129,140,248,0.26)] group-focus-visible:stroke-[rgba(129,140,248,0.26)]"
-            />
-            <circle
-              cx="352"
-              cy="192"
-              r="13"
-              fill="none"
-              stroke="rgba(165,180,252,0.10)"
-              strokeWidth="1"
-              strokeDasharray="3 3"
-            />
-            <rect x="343" y="189" width="18" height="3" rx="1.5" fill="rgba(165,180,252,0.14)" />
-          </g>
-        </g>
-      </svg>
-      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/86 via-slate-950/66 to-slate-950/40" />
-      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/5" />
-    </div>
   );
 }
