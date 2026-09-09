@@ -1123,7 +1123,7 @@ function InqueritoDetalhes() {
       <div className="sipi-print-document mx-auto w-full max-w-[1480px] space-y-4 px-1 lg:px-2">
         <SipiPrintSheet
           variant="dossier"
-          documentTitle="Dossiê de Procedimento Policial"
+          documentTitle="Relatório de Procedimento Policial"
           documentSubtitle="Procedimento, pessoas, remessa e movimentações vinculadas em documento único"
           identifierLabel={detalhe.numeroPpe !== FALLBACK ? "PPE" : "Identificação"}
           identifier={headerIdentifier}
