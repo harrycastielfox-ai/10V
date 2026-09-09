@@ -6,7 +6,7 @@ import {
   useMatchRoute,
   useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { SipiPrintSheet, type SipiPrintSection } from "@/components/SipiPrintSheet";
 import {
@@ -15,7 +15,12 @@ import {
   type RepresentacaoRecord,
 } from "@/lib/repositories/representacoesRepository";
 import { getCurrentProfile } from "@/lib/auth";
-import { canViewRepresentacoes } from "@/lib/authz";
+import {
+  canDeleteRepresentacoes,
+  canEditRepresentacoes,
+  canViewRepresentacoes,
+  type UserProfile,
+} from "@/lib/authz";
 import { isMobileViewport } from "@/lib/mobileExperience";
 import {
   listMovimentacaoStatusHistory,
@@ -23,7 +28,21 @@ import {
 } from "@/lib/repositories/proceduralTagsRepository";
 import type { ProceduralStatusHistory, ProceduralTag } from "@/lib/proceduralTags";
 import { canAccessSigilosa, isRepresentacaoSigilosa } from "@/lib/representacoesSigilo";
-import { Scale, BellRing, Gavel, ShieldCheck, Clock3 } from "lucide-react";
+import {
+  ArrowLeft,
+  BellRing,
+  Check,
+  Clock3,
+  Copy,
+  Gavel,
+  Lock,
+  MoreVertical,
+  Pencil,
+  Printer,
+  Scale,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 
 export const Route = createFileRoute("/representacoes/$representacaoId")({
   component: DetalheRepresentacao,
@@ -63,32 +82,28 @@ function getSituacaoOperacional(status?: string | null) {
 function getStatusBadgeClass(status?: string | null) {
   const normalized = normalizeText(status);
   if (normalized.includes("deferida") || normalized.includes("cumprida")) {
-    return "border-emerald-300/55 bg-emerald-400/20 text-emerald-50";
+    return "border-primary/35 bg-primary/10 text-primary";
   }
   if (normalized.includes("indeferida")) {
-    return "border-rose-300/55 bg-rose-400/20 text-rose-50";
+    return "border-destructive/35 bg-destructive/10 text-destructive";
   }
   if (normalized.includes("aguardando") || normalized.includes("pendente")) {
-    return "border-amber-300/60 bg-amber-400/22 text-amber-50";
+    return "border-warning/40 bg-warning/10 text-warning";
   }
   if (normalized.includes("enviada") || normalized.includes("analise")) {
-    return "border-sky-300/55 bg-sky-400/18 text-sky-50";
+    return "border-info/35 bg-info/10 text-info";
   }
-  return "border-zinc-300/45 bg-zinc-500/16 text-zinc-50";
+  return "border-border bg-muted/40 text-muted-foreground";
 }
 
 function getPrioridadeBadgeClass(prioridade?: string | null) {
-  const normalized =
-    prioridade
-      ?.toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") ?? "";
-  if (normalized.includes("urgente")) return "border-rose-300/60 bg-rose-400/22 text-rose-50";
-  if (normalized.includes("alta")) return "border-amber-300/60 bg-amber-400/22 text-amber-50";
-  if (normalized.includes("media")) return "border-amber-300/60 bg-amber-400/22 text-amber-50";
+  const normalized = normalizeText(prioridade);
+  if (normalized.includes("urgente")) return "border-destructive/35 bg-destructive/10 text-destructive";
+  if (normalized.includes("alta")) return "border-warning/40 bg-warning/10 text-warning";
+  if (normalized.includes("media")) return "border-warning/40 bg-warning/10 text-warning";
   if (normalized.includes("baixa") || normalized.includes("normal"))
-    return "border-emerald-300/55 bg-emerald-400/20 text-emerald-50";
-  return "border-zinc-300/45 bg-zinc-600/30 text-zinc-50";
+    return "border-primary/35 bg-primary/10 text-primary";
+  return "border-border bg-muted/40 text-muted-foreground";
 }
 function isEmptyValue(value?: string | null) {
   return !value?.trim();
@@ -158,27 +173,25 @@ function formatDateBR(value?: string | null) {
 }
 
 function getTimelineToneClass(tone: TimelineTone) {
-  if (tone === "success") return "border-emerald-400/30 bg-emerald-400/12 text-emerald-200";
-  if (tone === "warning") return "border-amber-300/35 bg-amber-300/12 text-amber-100";
-  if (tone === "danger") return "border-rose-400/35 bg-rose-400/12 text-rose-200";
-  return "border-zinc-500/45 bg-zinc-700/25 text-zinc-200";
+  if (tone === "success") return "border-primary/35 bg-primary/10 text-primary";
+  if (tone === "warning") return "border-warning/40 bg-warning/10 text-warning";
+  if (tone === "danger") return "border-destructive/35 bg-destructive/10 text-destructive";
+  return "border-border bg-muted/40 text-muted-foreground";
 }
 function getTimelineIconCircleClass(event: TimelineEvent) {
-  if (event.key === "created") return "border-blue-400/35 bg-blue-500/15 text-blue-200";
-  if (event.key === "sent-judiciary")
-    return "border-indigo-400/35 bg-indigo-500/15 text-indigo-200";
+  if (event.key === "created") return "border-info/35 bg-info/10 text-info";
+  if (event.key === "sent-judiciary") return "border-info/35 bg-info/10 text-info";
   if (event.key === "deadline") {
-    if (event.tone === "danger") return "border-rose-400/40 bg-rose-500/15 text-rose-200";
-    if (event.tone === "success") return "border-emerald-400/35 bg-emerald-500/15 text-emerald-200";
-    return "border-amber-300/45 bg-amber-400/15 text-amber-100";
+    if (event.tone === "danger") return "border-destructive/40 bg-destructive/10 text-destructive";
+    if (event.tone === "success") return "border-primary/35 bg-primary/10 text-primary";
+    return "border-warning/40 bg-warning/10 text-warning";
   }
-  if (event.key === "judicial-decision") return "border-zinc-400/45 bg-zinc-700/35 text-zinc-100";
-  if (event.key === "special-tracking")
-    return "border-violet-400/35 bg-violet-500/15 text-violet-200";
-  if (event.tone === "success") return "border-emerald-400/35 bg-emerald-500/15 text-emerald-200";
-  if (event.tone === "danger") return "border-rose-400/40 bg-rose-500/15 text-rose-200";
-  if (event.tone === "warning") return "border-amber-300/45 bg-amber-400/15 text-amber-100";
-  return "border-zinc-500/45 bg-zinc-700/35 text-zinc-100";
+  if (event.key === "judicial-decision") return "border-border bg-muted/40 text-foreground";
+  if (event.key === "special-tracking") return "border-violet-400/35 bg-violet-500/10 text-violet-500";
+  if (event.tone === "success") return "border-primary/35 bg-primary/10 text-primary";
+  if (event.tone === "danger") return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (event.tone === "warning") return "border-warning/40 bg-warning/10 text-warning";
+  return "border-border bg-muted/40 text-muted-foreground";
 }
 
 function buildTimelineEvents(item: RepresentacaoRecord): TimelineEvent[] {
@@ -280,31 +293,32 @@ function buildTimelineEvents(item: RepresentacaoRecord): TimelineEvent[] {
   return events.sort((a, b) => a.sortTime - b.sortTime).map(({ sortTime, ...event }) => event);
 }
 
-function getTopIndicatorBadgeClass(label: string, value?: string | null) {
-  const normalized = normalizeText(value);
-  if (label === "Situação") {
-    if (normalized.includes("indefer")) return "border-rose-300/55 bg-rose-400/20 text-rose-50";
-    if (normalized.includes("defer") || normalized.includes("cumpr"))
-      return "border-emerald-300/55 bg-emerald-400/20 text-emerald-50";
-    return "border-amber-300/60 bg-amber-400/22 text-amber-50";
+function getOperationalTone(
+  label: "Status" | "Prazo" | "Prioridade" | "Sigilo",
+  item: RepresentacaoRecord,
+): keyof typeof OPERATIONAL_TONES {
+  if (label === "Status") {
+    const n = normalizeText(item.status);
+    if (n.includes("indefer")) return "red";
+    if (n.includes("defer") || n.includes("cumpr")) return "emerald";
+    return "amber";
   }
   if (label === "Prazo") {
-    if (normalized.includes("vencida")) return "border-rose-300/60 bg-rose-400/22 text-rose-50";
-    if (normalized.includes("cumprida"))
-      return "border-emerald-300/55 bg-emerald-400/20 text-emerald-50";
-    return "border-sky-300/55 bg-sky-400/18 text-sky-50";
+    if (item.data_cumprimento) return "emerald";
+    if (!item.data_vencimento) return "slate";
+    const due = new Date(item.data_vencimento);
+    const today = new Date();
+    return due.getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+      ? "red"
+      : "amber";
   }
-  if (label === "Acomp. especial") {
-    if (normalized === "sim") return "border-violet-300/55 bg-violet-400/20 text-violet-50";
-    if (normalized === "nao") return "border-zinc-300/45 bg-zinc-500/14 text-zinc-100";
+  if (label === "Prioridade") {
+    const n = normalizeText(item.prioridade_operacional);
+    if (n.includes("urgente")) return "red";
+    if (n.includes("alta") || n.includes("media")) return "amber";
+    return "slate";
   }
-  if (label === "Sigilosa") {
-    if (normalized.includes("sim") || normalized.includes("sigil"))
-      return "border-amber-300/55 bg-amber-400/18 text-amber-50";
-    if (normalized.includes("nao") || normalized.includes("não"))
-      return "border-zinc-300/45 bg-zinc-500/14 text-zinc-100";
-  }
-  return "border-zinc-300/45 bg-zinc-600/24 text-zinc-50";
+  return isRepresentacaoSigilosa(item) ? "violet" : "slate";
 }
 
 function DetalheRepresentacao() {
@@ -316,6 +330,7 @@ function DetalheRepresentacao() {
     matchRoute({ to: "/representacoes/$representacaoId/editar", params: { representacaoId } }),
   );
   const [item, setItem] = useState<RepresentacaoRecord | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -334,6 +349,7 @@ function DetalheRepresentacao() {
       setSigiloRestricted(false);
 
       const currentProfile = await getCurrentProfile();
+      if (active) setProfile(currentProfile);
       if (!canViewRepresentacoes(currentProfile)) {
         if (active) setRestricted(true);
         if (active) setLoading(false);
@@ -451,17 +467,11 @@ function DetalheRepresentacao() {
     }
   };
 
-  const subtitleParts = [
-    item.tipo,
-    item.processo_judicial ? `Processo: ${item.processo_judicial}` : "",
-  ].filter(Boolean);
+  const sigiloso = isRepresentacaoSigilosa(item);
+  const headerIdentifier = item.numero_ppe || item.processo_judicial || "Sem identificação";
   const statusAlias = getStatusAlias(item.status);
   const situacaoOperacional = getSituacaoOperacional(item.status);
   const prioridadeText = withFallback(item.prioridade_operacional);
-  const sectionCardClass = "self-start rounded-xl border border-border/60 bg-card/80 p-4 lg:p-5";
-  const sectionTitleClass = "text-xs font-extrabold uppercase tracking-[0.16em] text-primary";
-  const infoRowClass = "grid gap-1 py-2.5 sm:grid-cols-[190px_1fr] sm:gap-3";
-  const summaryCardClass = "self-start rounded-md border border-border/70 bg-card/65 px-3 py-2.5";
   const cardSections: Array<{ title: string; items: Array<[string, string | null | undefined]> }> =
     [
       {
@@ -489,27 +499,19 @@ function DetalheRepresentacao() {
           ["Data de cumprimento", item.data_cumprimento],
           ["Situação do cumprimento", item.cumprimento_status],
           ["Resultado do cumprimento", item.resultado_cumprimento],
-          ["Observações do cumprimento", item.observacoes_cumprimento],
-          ["Observações da decisão", item.observacoes_decisao],
-        ],
-      },
-      {
-        title: "Classificação e observações",
-        items: [
-          ["Prioridade", item.prioridade_operacional],
-          ["Sigilo", item.pedido_sigiloso],
-          [
-            "Observações",
-            item.observacoes_movimentacao ??
-              item.observacoes_decisao ??
-              item.observacoes_cumprimento,
-          ],
         ],
       },
     ];
   const visibleCardSections = cardSections
     .map((section) => ({ ...section, items: onlyPopulatedItems(section.items) }))
     .filter((section) => section.items.length > 0);
+  const observacoesTexto =
+    item.observacoes_movimentacao ?? item.observacoes_decisao ?? item.observacoes_cumprimento;
+  const classificacaoItems = onlyPopulatedItems([
+    ["Prioridade", item.prioridade_operacional],
+    ["Sigilo", item.pedido_sigiloso],
+  ]);
+
   const summaryItems: Array<[string, string]> = [];
   if (hasPrintableRepresentacaoValue(item.status)) {
     summaryItems.push(
@@ -536,6 +538,13 @@ function DetalheRepresentacao() {
         .map(([label, value]) => ({ label, value })),
     })),
     {
+      title: "Classificação e observações",
+      fields: [
+        ...classificacaoItems.map(([label, value]) => ({ label, value })),
+        { label: "Observações", value: observacoesTexto, wide: true },
+      ],
+    },
+    {
       title: "Vínculo com o procedimento",
       fields: [
         { label: "PPE / Procedimento relacionado", value: item.numero_ppe },
@@ -550,7 +559,7 @@ function DetalheRepresentacao() {
 
   return (
     <AppLayout>
-      <div className="sipi-print-document mx-auto w-full max-w-[1480px] space-y-4 px-1 lg:px-2">
+      <div className="sipi-print-document mx-auto w-full max-w-[1480px] space-y-3 px-1 lg:px-2">
         <SipiPrintSheet
           documentTitle="Ficha de Movimentação Processual"
           documentSubtitle="Conferência, tramitação e acompanhamento da medida"
@@ -563,281 +572,257 @@ function DetalheRepresentacao() {
             { label: "Prazo", value: item.data_vencimento ? formatPrazoStatus(item) : null },
             {
               label: "Sigilo",
-              value: isRepresentacaoSigilosa(item) ? "Movimentação sigilosa" : null,
+              value: sigiloso ? "Movimentação sigilosa" : null,
             },
           ]}
           sections={printSections}
         />
-        <header className="sipi-print-hidden rounded-xl border border-border/70 bg-card/65 p-4 lg:p-5">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold break-words text-zinc-100">
-                  {isRepresentacaoSigilosa(item)
-                    ? "Movimentação sigilosa"
-                    : "Movimentação Processual"}
-                </h1>
-                {isRepresentacaoSigilosa(item) ? (
-                  <span className="inline-flex items-center rounded-full border border-amber-300/55 bg-amber-400/18 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-50 shadow-[0_0_0_1px_rgba(251,191,36,0.12)]">
-                    Sigilo ativo
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-1 text-sm break-words text-muted-foreground">
-                {subtitleParts.length > 0
-                  ? subtitleParts.join(" • ")
-                  : "Detalhes da movimentação processual cadastrada"}
-              </p>
-              {item.numero_ppe || item.processo_judicial ? (
-                <p className="sipi-print-hidden mt-2 text-sm break-words text-foreground">
-                  {item.numero_ppe
-                    ? `PPE/Procedimento: ${item.numero_ppe}`
-                    : `Processo/PPE: ${item.processo_judicial}`}
-                </p>
-              ) : null}
-            </div>
 
-            <div className="sipi-print-actions flex flex-wrap items-center gap-2 xl:justify-end">
-              <button
-                onClick={() => window.print()}
-                className="px-3.5 py-2 text-xs rounded-md border border-border bg-card hover:bg-accent"
+        <header className="sipi-print-hidden flex flex-col gap-3 rounded-lg border border-border/70 bg-card/80 p-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="h-10 w-1 shrink-0 rounded-full bg-primary shadow-[0_0_14px_rgba(52,211,153,0.45)]" />
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <Link
+                to="/representacoes"
+                aria-label="Voltar para movimentações processuais"
+                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 text-xs font-bold text-primary transition-colors hover:border-primary/45 hover:bg-primary/10"
               >
-                Gerar PDF
-              </button>
+                <ArrowLeft className="h-4 w-4" /> Voltar
+              </Link>
+              <span className="hidden h-9 w-px shrink-0 bg-border/70 sm:block" />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-sm font-extrabold text-muted-foreground sm:text-base">
+                    Movimentação Nº:
+                  </span>
+                  <h1 className="min-w-0 max-w-full font-mono text-base font-black tracking-tight text-foreground sm:max-w-[min(42vw,34rem)] sm:text-lg">
+                    <CopyableDetailValue value={headerIdentifier} />
+                  </h1>
+                </div>
+                <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-muted-foreground">
+                  <span className="truncate">{withFallback(item.tipo)}</span>
+                  <span className="text-border">•</span>
+                  <span className="truncate">{statusAlias}</span>
+                  {sigiloso ? (
+                    <>
+                      <span className="text-border">•</span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-purple-400/40 bg-purple-500/10 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-purple-500">
+                        <Lock className="h-3 w-3" />
+                        Sigiloso
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="sipi-print-actions flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-xs font-semibold transition-colors hover:bg-accent"
+            >
+              <Printer className="h-4 w-4" /> Gerar PDF
+            </button>
+            {canEditRepresentacoes(profile) ? (
               <button
+                type="button"
                 onClick={() =>
                   navigate({
                     to: "/representacoes/$representacaoId/editar",
                     params: { representacaoId: item.id },
                   })
                 }
-                className="hidden rounded-md bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground md:inline-flex"
+                className="hidden h-10 items-center gap-2 rounded-md bg-primary px-4 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary/90 md:inline-flex"
               >
-                Editar
+                <Pencil className="h-4 w-4" /> Editar
               </button>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="hidden rounded-md border border-destructive/30 bg-destructive/10 px-3.5 py-2 text-xs text-destructive md:inline-flex"
-              >
-                Excluir
-              </button>
-            </div>
+            ) : null}
+            {canDeleteRepresentacoes(profile) ? (
+              <details className="group relative hidden md:block">
+                <summary
+                  aria-label="Mais ações"
+                  title="Mais ações"
+                  className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-foreground [&::-webkit-details-marker]:hidden"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </summary>
+                <div className="absolute right-0 top-12 z-20 min-w-40 rounded-md border border-border bg-popover p-1 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    disabled={isDeleting}
+                    className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-60"
+                  >
+                    <Trash2 className="h-4 w-4" />{" "}
+                    {isDeleting ? "Excluindo..." : "Excluir movimentação"}
+                  </button>
+                </div>
+              </details>
+            ) : null}
           </div>
         </header>
 
         {summaryItems.length > 0 ? (
-          <section className="grid items-start gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-            {summaryItems.map(([label, value]) => (
-              <article key={label} className={summaryCardClass}>
-                <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                  {label}
-                </p>
-                {label === "Status judicial" ? (
-                  <span
-                    className={`mt-1 inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${getStatusBadgeClass(item.status)}`}
-                  >
-                    {value}
-                  </span>
-                ) : label === "Prioridade" ? (
-                  <span
-                    className={`mt-1 inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${getPrioridadeBadgeClass(item.prioridade_operacional)}`}
-                  >
-                    {value}
-                  </span>
-                ) : (
-                  <span
-                    className={`mt-1 inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${getTopIndicatorBadgeClass(label, value)}`}
-                  >
-                    {value}
-                  </span>
-                )}
-              </article>
-            ))}
+          <section className="sipi-print-hidden grid overflow-hidden rounded-lg border border-border/65 bg-card/55 sm:grid-cols-2 xl:grid-cols-4">
+            <OperationalMetric
+              icon={<Scale className="h-5 w-5" />}
+              label="Status"
+              value={statusAlias}
+              tone={getOperationalTone("Status", item)}
+            />
+            <OperationalMetric
+              icon={<Clock3 className="h-5 w-5" />}
+              label="Prazo"
+              value={formatPrazoStatus(item)}
+              tone={getOperationalTone("Prazo", item)}
+            />
+            <OperationalMetric
+              icon={<BellRing className="h-5 w-5" />}
+              label="Prioridade"
+              value={prioridadeText}
+              tone={getOperationalTone("Prioridade", item)}
+            />
+            <OperationalMetric
+              icon={<ShieldCheck className="h-5 w-5" />}
+              label="Sigilo"
+              value={sigiloso ? "Sigilosa" : "Não"}
+              tone={getOperationalTone("Sigilo", item)}
+            />
           </section>
         ) : null}
 
-        <section className="grid items-start gap-4 xl:grid-cols-2">
-          <div className="space-y-4 self-start">
-            {visibleCardSections
-              .filter(({ title }) => title === "Identificação Judicial")
-              .map(({ title, items }) => (
-                <article
-                  key={title}
-                  className={`${hasPrintableRepresentacaoSection(items) ? "" : "sipi-print-empty-card "}${sectionCardClass}`}
-                >
-                  <div className="flex items-center gap-2 pb-2">
-                    <Scale className="h-4 w-4 text-primary" />
-                    <h2 className={sectionTitleClass}>{title}</h2>
-                  </div>
-                  <div className="mb-3 h-px w-full bg-border/70" />
-                  <div className="divide-y divide-border/60">
-                    {items.map(([label, value]) => (
-                      <div
-                        key={label}
-                        className={`${getPrintRepresentacaoFieldClass(label, value)}${infoRowClass}`}
-                      >
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                          {label}
-                        </p>
-                        <p
-                          className={`text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${isEmptyValue(value) ? "text-zinc-500" : "text-foreground"}`}
-                        >
-                          {withFallback(value)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            {hasOperationalAlerts ? (
-              <article className={sectionCardClass}>
-                <div className="flex items-center gap-2 pb-2">
-                  <BellRing className="h-4 w-4 text-primary" />
-                  <h2 className={sectionTitleClass}>Pendências e Alertas</h2>
-                </div>
-                <div className="mb-3 h-px w-full bg-border/70" />
-                <div className="space-y-2">
-                  {item.data_vencimento ? (
-                    <div className="rounded-lg border border-border/60 bg-background/30 px-3 py-2.5">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                        Prazo operacional
-                      </p>
-                      <p className="mt-1 text-sm text-foreground">{formatPrazoStatus(item)}</p>
-                    </div>
-                  ) : null}
-                </div>
-              </article>
+        <section className="space-y-3">
+          <div className="grid items-start gap-3">
+            {visibleCardSections.map(({ title, items }) => (
+              <DetailSection
+                key={title}
+                title={title}
+                icon={title === "Identificação Judicial" ? <Scale className="h-4 w-4" /> : <Gavel className="h-4 w-4" />}
+                contentClassName="p-0"
+                className={hasPrintableRepresentacaoSection(items) ? "" : "sipi-print-empty-card"}
+              >
+                <ProcedureDataGrid
+                  columns={3}
+                  items={items
+                    .filter(([label]) => !isPrintHiddenRepresentacaoLabel(label))
+                    .map(([label, value]) => ({
+                      label,
+                      value: withFallback(value),
+                      tone:
+                        title === "Tramitação Judicial" && label === "Status"
+                          ? getStatusTone(item.status)
+                          : "slate",
+                    }))}
+                />
+              </DetailSection>
+            ))}
+          </div>
+
+          <DetailSection title="Classificação e observações" icon={<ShieldCheck className="h-4 w-4" />}>
+            {classificacaoItems.length > 0 ? (
+              <div className="mb-3 border-b border-border/55 pb-3">
+                <ProcedureDataGrid
+                  columns={2}
+                  items={classificacaoItems.map(([label, value]) => ({
+                    label,
+                    value: withFallback(value),
+                  }))}
+                />
+              </div>
             ) : null}
-          </div>
+            {hasPrintableRepresentacaoValue(observacoesTexto) ? (
+              <p className="max-w-[110ch] whitespace-pre-wrap break-words text-sm font-medium leading-7 text-foreground [overflow-wrap:anywhere]">
+                {observacoesTexto}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhuma observação informada.</p>
+            )}
+          </DetailSection>
 
-          <div className="space-y-4 self-start">
-            {visibleCardSections
-              .filter(
-                ({ title }) =>
-                  title === "Tramitação Judicial" || title === "Classificação e observações",
-              )
-              .map(({ title, items }) => (
-                <article
-                  key={title}
-                  className={`${hasPrintableRepresentacaoSection(items) ? "" : "sipi-print-empty-card "}${sectionCardClass}`}
-                >
-                  <div className="flex items-center gap-2 pb-2">
-                    {title === "Tramitação Judicial" ? (
-                      <Gavel className="h-4 w-4 text-primary" />
-                    ) : (
-                      <ShieldCheck className="h-4 w-4 text-primary" />
-                    )}
-                    <h2 className={sectionTitleClass}>{title}</h2>
-                  </div>
-                  <div className="mb-3 h-px w-full bg-border/70" />
-                  <div className="divide-y divide-border/60">
-                    {items.map(([label, value]) => (
-                      <div
-                        key={label}
-                        className={`${getPrintRepresentacaoFieldClass(label, value)}grid gap-1 py-2.5 sm:grid-cols-[170px_1fr] sm:gap-3`}
-                      >
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                          {label}
-                        </p>
-                        {title === "Tramitação Judicial" && label === "Status" ? (
-                          <span
-                            className={`mt-0.5 inline-flex w-fit items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${getStatusBadgeClass(item.status)}`}
-                          >
-                            {withFallback(value)}
-                          </span>
-                        ) : (
-                          <p
-                            className={`text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${isEmptyValue(value) ? "text-zinc-500" : "text-foreground"}`}
-                          >
-                            {withFallback(value)}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </article>
-              ))}
-          </div>
-        </section>
+          {hasOperationalAlerts ? (
+            <DetailSection title="Pendências e Alertas" icon={<BellRing className="h-4 w-4" />}>
+              <div className="rounded-lg border border-border/60 bg-background/30 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  Prazo operacional
+                </p>
+                <p className="mt-1 text-sm text-foreground">{formatPrazoStatus(item)}</p>
+              </div>
+            </DetailSection>
+          ) : null}
 
-        <section className={`${sectionCardClass} sipi-print-hidden`}>
-          <div className="flex items-center gap-2 pb-2">
-            <Clock3 className="h-4 w-4 text-primary" />
-            <h2 className={sectionTitleClass}>Histórico de status</h2>
-          </div>
-          <div className="mb-3 h-px w-full bg-border/70" />
-          {statusHistory.length > 0 ? (
-            <div className="grid gap-2 md:grid-cols-2">
-              {statusHistory.slice(0, 8).map((event) => (
-                <div
-                  key={event.id}
-                  className="rounded-lg border border-border/60 bg-background/30 px-3 py-2.5"
-                >
-                  <p className="text-xs font-semibold text-foreground">
-                    {event.previous_status_tag_id
-                      ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
-                      : ""}
-                    {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
-                  </p>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    {formatDateBR(event.changed_at) ?? "Data não informada"}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              O histórico será formado automaticamente nas próximas mudanças de status.
-            </p>
-          )}
-        </section>
-
-        <section className={sectionCardClass}>
-          <div className="flex items-center gap-2 pb-2">
-            <Clock3 className="h-4 w-4 text-primary" />
-            <h2 className={sectionTitleClass}>Linha do Tempo Operacional</h2>
-          </div>
-          <div className="mb-3 h-px w-full bg-border/70" />
-          {timelineEvents.length === 0 ? (
-            <div className="rounded-lg border border-border/40 bg-muted/5 px-4 py-3 text-sm text-zinc-400">
-              Sem eventos operacionais automáticos disponíveis para esta representação.
-            </div>
-          ) : (
-            <ol className="relative ml-1 space-y-4 border-l border-border/60 pl-5">
-              {timelineEvents.map((event) => {
-                const dateLabel = formatDateBR(event.date);
-                const isCritical =
-                  event.tone === "danger" &&
-                  event.key === "deadline" &&
-                  Boolean(event.badge?.toLowerCase().includes("vencida"));
-                return (
-                  <li key={event.key} className="relative pl-6">
-                    <span
-                      className={`absolute -left-[1.64rem] top-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm shadow-[0_0_0_1px_rgba(0,0,0,0.45),0_8px_18px_rgba(0,0,0,0.35)] ${getTimelineIconCircleClass(event)}`}
-                    >
-                      {event.icon}
-                    </span>
-                    <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
-                      <p className="text-sm font-semibold text-zinc-100">{event.title}</p>
-                      {event.badge ? (
-                        <span
-                          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${getTimelineToneClass(event.tone)}`}
-                        >
-                          {event.badge}
-                        </span>
-                      ) : null}
-                    </div>
-                    {event.description ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{event.description}</p>
-                    ) : null}
-                    <p className={`mt-1 text-xs ${isCritical ? "text-rose-300" : "text-zinc-400"}`}>
-                      {dateLabel ?? "Data não informada"}
+          <DetailSection title="Histórico de status" icon={<Clock3 className="h-4 w-4" />} className="sipi-print-hidden">
+            {statusHistory.length > 0 ? (
+              <div className="grid gap-2 md:grid-cols-2">
+                {statusHistory.slice(0, 8).map((event) => (
+                  <div
+                    key={event.id}
+                    className="rounded-lg border border-border/60 bg-background/30 px-3 py-2.5"
+                  >
+                    <p className="text-xs font-semibold text-foreground">
+                      {event.previous_status_tag_id
+                        ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
+                        : ""}
+                      {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
                     </p>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {formatDateBR(event.changed_at) ?? "Data não informada"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                O histórico será formado automaticamente nas próximas mudanças de status.
+              </p>
+            )}
+          </DetailSection>
+
+          <DetailSection title="Linha do Tempo Operacional" icon={<Clock3 className="h-4 w-4" />}>
+            {timelineEvents.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                Sem eventos operacionais automáticos disponíveis para esta representação.
+              </div>
+            ) : (
+              <ol className="relative ml-1 space-y-4 border-l border-border/60 pl-5">
+                {timelineEvents.map((event) => {
+                  const dateLabel = formatDateBR(event.date);
+                  const isCritical =
+                    event.tone === "danger" &&
+                    event.key === "deadline" &&
+                    Boolean(event.badge?.toLowerCase().includes("vencida"));
+                  return (
+                    <li key={event.key} className="relative pl-6">
+                      <span
+                        className={`absolute -left-[1.64rem] top-0.5 inline-flex h-9 w-9 items-center justify-center rounded-full border text-sm ${getTimelineIconCircleClass(event)}`}
+                      >
+                        {event.icon}
+                      </span>
+                      <div className="flex flex-wrap items-start gap-x-2 gap-y-1">
+                        <p className="text-sm font-semibold text-foreground">{event.title}</p>
+                        {event.badge ? (
+                          <span
+                            className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${getTimelineToneClass(event.tone)}`}
+                          >
+                            {event.badge}
+                          </span>
+                        ) : null}
+                      </div>
+                      {event.description ? (
+                        <p className="mt-1 text-xs text-muted-foreground">{event.description}</p>
+                      ) : null}
+                      <p
+                        className={`mt-1 text-xs ${isCritical ? "text-destructive" : "text-muted-foreground"}`}
+                      >
+                        {dateLabel ?? "Data não informada"}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </DetailSection>
         </section>
       </div>
 
@@ -871,5 +856,151 @@ function DetalheRepresentacao() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+function getStatusTone(status?: string | null): "emerald" | "amber" | "slate" {
+  const n = normalizeText(status);
+  if (n.includes("defer") || n.includes("cumpr")) return "emerald";
+  if (n.includes("aguard") || n.includes("pendente") || n.includes("indefer")) return "amber";
+  return "slate";
+}
+
+const OPERATIONAL_TONES = {
+  emerald: "text-primary",
+  red: "text-destructive",
+  amber: "text-warning",
+  violet: "text-violet-500",
+  slate: "text-foreground",
+} as const;
+
+function OperationalMetric({
+  icon,
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  detail?: string;
+  tone: keyof typeof OPERATIONAL_TONES;
+}) {
+  return (
+    <div className="grid min-h-[6.5rem] min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-border/60 px-4 py-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r xl:border-b-0 xl:border-r xl:last:border-r-0">
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-current/20 bg-current/5 ${OPERATIONAL_TONES[tone]}`}
+      >
+        {icon}
+      </span>
+      <div className="grid min-h-[3.75rem] min-w-0 grid-rows-[1rem_minmax(1.5rem,auto)_1rem] content-center">
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+          {label}
+        </p>
+        <p className={`self-center break-words text-sm font-bold leading-5 ${OPERATIONAL_TONES[tone]}`}>
+          {value}
+        </p>
+        <p
+          aria-hidden={!detail}
+          className={`truncate text-[10px] leading-4 text-muted-foreground ${detail ? "" : "invisible"}`}
+        >
+          {detail || "Sem detalhe"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+type ProcedureDataItem = {
+  label: string;
+  value: string;
+  copyValue?: string;
+  tone?: "emerald" | "amber" | "slate";
+};
+
+const PROCEDURE_VALUE_TONES = {
+  emerald: "text-primary",
+  amber: "text-warning",
+  slate: "text-foreground",
+} as const;
+
+function ProcedureDataGrid({ items, columns = 3 }: { items: ProcedureDataItem[]; columns?: 2 | 3 }) {
+  return (
+    <dl className={`grid ${columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
+      {items.map(({ label, value, copyValue, tone = "slate" }) => (
+        <div
+          key={label}
+          className="min-w-0 border-b border-border/50 px-4 py-3 sm:border-r sm:last:border-r-0"
+        >
+          <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            {label}
+          </dt>
+          <dd className={`mt-1 min-w-0 text-sm font-semibold leading-5 ${PROCEDURE_VALUE_TONES[tone]}`}>
+            {copyValue ? (
+              <CopyableDetailValue value={copyValue} />
+            ) : (
+              <span className="whitespace-pre-line [overflow-wrap:anywhere]">{value}</span>
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function DetailSection({
+  title,
+  icon,
+  children,
+  className = "",
+  contentClassName = "p-3",
+}: {
+  title: string;
+  icon: ReactNode;
+  children: ReactNode;
+  className?: string;
+  contentClassName?: string;
+}) {
+  return (
+    <article
+      className={`self-start overflow-hidden rounded-lg border border-border/60 bg-card/70 ${className}`}
+    >
+      <div className="flex items-center gap-2 border-b border-border/55 px-4 py-2.5 text-primary">
+        {icon}
+        <h2 className="text-xs font-extrabold uppercase tracking-[0.16em]">{title}</h2>
+      </div>
+      <div className={contentClassName}>{children}</div>
+    </article>
+  );
+}
+
+function CopyableDetailValue({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyValue = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copyValue}
+      title={`${value} — clique para copiar`}
+      className="group inline-flex min-w-0 max-w-full items-start gap-2 text-left"
+    >
+      <span className="[overflow-wrap:anywhere]">{value}</span>
+      {copied ? (
+        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+      ) : (
+        <Copy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-60 transition group-hover:opacity-100" />
+      )}
+    </button>
   );
 }

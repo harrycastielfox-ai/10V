@@ -27,16 +27,12 @@ import {
   hasDiligenciasPendentes,
   hasRelatorioEnviado,
   isInqueritoEmAndamento,
-  isOperationalDateDueWithin,
-  isOperationalDateOverdue,
   isRelatadoNaoEnviado as isRelatadoNaoEnviadoMetric,
   isRepresentacaoCumprida,
   isRepresentacaoDeferida,
   isRepresentacaoIndeferida,
   isRepresentacaoPendente,
   isRepresentacaoSigilosaValue,
-  isRepresentacaoVencendo,
-  isRepresentacaoVencida,
 } from "@/lib/operationalMetrics";
 
 export const Route = createFileRoute("/alertas")({
@@ -675,7 +671,6 @@ export function Alertas({ mode = "alertas" }: { mode?: "alertas" | "estatisticas
   }, [dataFinal, dataInicial, filteredInqueritos, filteredRepresentacoes, inqueritos]);
 
   const managementViews = useMemo(() => {
-    const now = Date.now();
     const inqueritosAtivos = filteredInqueritos.filter(isInqueritoEmAndamento);
     const periodSearch = {
       ...(dataInicial ? { dataInicial } : {}),
@@ -789,68 +784,7 @@ export function Alertas({ mode = "alertas" }: { mode?: "alertas" | "estatisticas
       },
     ] satisfies OperationalRow[];
 
-    const urgencia = [
-      {
-        label: "Prazo vencido",
-        value: inqueritosAtivos.filter((item) => isOperationalDateOverdue(item.prazo, now)).length,
-        desc: "Procedimentos ativos com prazo vencido",
-        target: {
-          to: "/inqueritos",
-          search: { ...periodSearch, prazo: "vencido", status: "em_andamento" },
-        },
-      },
-      {
-        label: "Vencendo em 7 dias",
-        value: inqueritosAtivos.filter((item) => isOperationalDateDueWithin(item.prazo, 7, now))
-          .length,
-        desc: "Procedimentos ativos próximos do vencimento",
-        target: {
-          to: "/inqueritos",
-          search: { ...periodSearch, prazo: "vencendo", status: "em_andamento" },
-        },
-      },
-      {
-        label: "Prazo crítico (0-3 dias)",
-        value: inqueritosAtivos.filter((item) => isOperationalDateDueWithin(item.prazo, 3, now))
-          .length,
-        desc: "Procedimentos ativos em janela crítica",
-        target: {
-          to: "/inqueritos",
-          search: { ...periodSearch, prazo: "critico", status: "em_andamento" },
-        },
-      },
-      {
-        label: "Representações vencidas",
-        value: filteredRepresentacoes.filter((item) => isRepresentacaoVencida(item, now)).length,
-        desc: "Representações com prazo vencido",
-        target: {
-          to: "/representacoes",
-          search: { ...periodSearch, operationalFilter: "vencidas" },
-        },
-      },
-      {
-        label: "Representações vencendo (7 dias)",
-        value: filteredRepresentacoes.filter((item) => isRepresentacaoVencendo(item, 7, now))
-          .length,
-        desc: "Representações próximas do vencimento",
-        target: {
-          to: "/representacoes",
-          search: { ...periodSearch, operationalFilter: "vencendo" },
-        },
-      },
-      {
-        label: "Acompanhamento especial",
-        value: filteredRepresentacoes.filter((item) => isYesLike(item.acompanhamento_especial))
-          .length,
-        desc: "Representações marcadas para acompanhamento especial",
-        target: {
-          to: "/representacoes",
-          search: { ...periodSearch, operationalFilter: "especial" },
-        },
-      },
-    ] satisfies OperationalRow[];
-
-    return { operacional, judicial, urgencia };
+    return { operacional, judicial };
   }, [dataFinal, dataInicial, filteredInqueritos, filteredRepresentacoes]);
 
   const hasActiveFilters = Boolean(dataInicial) || Boolean(dataFinal);
@@ -1086,7 +1020,7 @@ export function Alertas({ mode = "alertas" }: { mode?: "alertas" | "estatisticas
                   Visões gerenciais
                 </h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Resumos operacional, judicial e de urgência conforme o período selecionado.
+                  Resumos operacional e judicial conforme o período selecionado.
                 </p>
               </div>
               <OperationalTable
@@ -1099,12 +1033,6 @@ export function Alertas({ mode = "alertas" }: { mode?: "alertas" | "estatisticas
                 title="Visão Judicial"
                 accent="info"
                 rows={managementViews.judicial}
-                onOpen={openTableTarget}
-              />
-              <OperationalTable
-                title="Visão de Urgência"
-                accent="destructive"
-                rows={managementViews.urgencia}
                 onOpen={openTableTarget}
               />
             </section>

@@ -1513,6 +1513,15 @@ html[data-theme="light"] .sipi-bairro-name {
     margin: 10mm 10mm 15mm;
   }
 
+  /* Documentos longos (dossiê) que estouram uma página: sem isso, a 2ª
+     folha em diante nasce colada na borda, porque a margem "de verdade"
+     vinha só do padding do .sipi-print-document — e esse padding existe
+     uma única vez, não se repete a cada folha impressa. */
+  @page sipi-print-dossier-page {
+    size: A4 portrait;
+    margin: 14mm 10mm 15mm;
+  }
+
   @page {
     size: A4 portrait;
     margin: 0;
@@ -1566,6 +1575,17 @@ html[data-theme="light"] .sipi-bairro-name {
   .sipi-print-document .sipi-print-sheet-dossier {
     --sipi-print-accent: #1f4f7a;
     --sipi-print-accent-soft: #eef5fa;
+    page: sipi-print-dossier-page;
+  }
+
+  .sipi-print-document:has(.sipi-print-sheet-dossier) {
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+
+  .sipi-print-document:has(.sipi-print-sheet-dossier)::before {
+    display: none !important;
   }
 
   .sipi-print-document .sipi-print-sheet-vehicle {
