@@ -1442,6 +1442,25 @@ function InqueritoDetalhes() {
             </div>
           </DetailSection>
 
+          {hasComplementaryProcedureData ? (
+            <DetailSection
+              title="Informações complementares"
+              icon={<ShieldAlert className="h-4 w-4" />}
+              contentClassName="p-0"
+            >
+              <ProcedureDataGrid
+                items={[
+                  { label: "Bairro", value: detalhe.bairro },
+                  { label: "Vinculado à facção", value: detalhe.vinculadoFaccao },
+                  { label: "Nome da facção", value: detalhe.nomeFaccao },
+                  { label: "Houve arma de fogo", value: detalhe.houveArmaFogo },
+                  { label: "Arma utilizada", value: detalhe.armaUtilizada },
+                  { label: "Observações das armas", value: detalhe.observacoesArmas },
+                ]}
+              />
+            </DetailSection>
+          ) : null}
+
           <DetailSection
             title="Histórico de movimentações processuais"
             icon={<Gavel className="h-4 w-4" />}
@@ -1569,25 +1588,6 @@ function InqueritoDetalhes() {
               />
             </div>
           </DetailSection>
-
-          {hasComplementaryProcedureData ? (
-            <DetailSection
-              title="Informações complementares"
-              icon={<ShieldAlert className="h-4 w-4" />}
-              contentClassName="p-0"
-            >
-              <ProcedureDataGrid
-                items={[
-                  { label: "Bairro", value: detalhe.bairro },
-                  { label: "Vinculado à facção", value: detalhe.vinculadoFaccao },
-                  { label: "Nome da facção", value: detalhe.nomeFaccao },
-                  { label: "Houve arma de fogo", value: detalhe.houveArmaFogo },
-                  { label: "Arma utilizada", value: detalhe.armaUtilizada },
-                  { label: "Observações das armas", value: detalhe.observacoesArmas },
-                ]}
-              />
-            </DetailSection>
-          ) : null}
 
           <DetailSection
             title="Histórico de status"

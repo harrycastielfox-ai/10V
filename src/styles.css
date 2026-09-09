@@ -35,7 +35,7 @@
 }
 
 .sipi-brand-emblem-bo {
-  --sipi-emblem-glow: #a78bfa;
+  --sipi-emblem-glow: var(--purple);
 }
 
 .sipi-brand-emblem-image {

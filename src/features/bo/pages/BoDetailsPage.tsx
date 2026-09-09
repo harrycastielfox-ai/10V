@@ -65,6 +65,14 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
     };
   }, [boId]);
 
+  useEffect(() => {
+    if (loading || !record) return;
+    if (new URLSearchParams(window.location.search).get("print") !== "1") return;
+    window.history.replaceState(null, "", window.location.pathname);
+    const timer = window.setTimeout(() => window.print(), 150);
+    return () => window.clearTimeout(timer);
+  }, [loading, record]);
+
   const remove = async () => {
     if (
       !record ||
@@ -84,13 +92,15 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
   };
 
   if (loading)
-    return <div className="bo-muted py-16 text-center text-sm">Carregando detalhes...</div>;
+    return (
+      <div className="py-16 text-center text-sm text-muted-foreground">Carregando detalhes...</div>
+    );
   if (!record) {
     return (
-      <section className="bo-surface mx-auto max-w-xl rounded-2xl p-6 text-center">
-        <h1 className="bo-title text-xl font-black">B.O. indisponível</h1>
-        <p className="bo-muted mt-2 text-sm">{error}</p>
-        <Link to="/bo/boletins" className="mt-5 inline-block text-sm font-bold text-violet-400">
+      <section className="mx-auto max-w-xl rounded-2xl border border-border bg-card p-6 text-center">
+        <h1 className="text-xl font-black text-foreground">B.O. indisponível</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+        <Link to="/bo/boletins" className="mt-5 inline-block text-sm font-bold text-purple">
           Voltar aos boletins
         </Link>
       </section>
@@ -169,10 +179,10 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
         ]}
         sections={printSections}
       />
-      <div className="bo-print-hide mb-4 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <Link
           to="/bo/boletins"
-          className="bo-muted inline-flex items-center gap-2 text-xs font-bold hover:text-[var(--bo-text)]"
+          className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar aos boletins
         </Link>
@@ -180,7 +190,7 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="bo-control inline-flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-bold hover:border-purple/40"
           >
             <Printer className="h-4 w-4" /> Imprimir
           </button>
@@ -189,7 +199,7 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
               <Link
                 to="/bo/$boId/editar"
                 params={{ boId: record.id }}
-                className="bo-control inline-flex h-10 items-center gap-2 rounded-xl px-4 text-xs font-bold"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-4 text-xs font-bold hover:border-purple/40"
               >
                 <Pencil className="h-4 w-4" /> Editar
               </Link>
@@ -197,7 +207,7 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
                 type="button"
                 onClick={remove}
                 disabled={deleting}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/10 px-4 text-xs font-bold text-red-400"
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 text-xs font-bold text-destructive"
               >
                 <Trash2 className="h-4 w-4" /> {deleting ? "Excluindo..." : "Excluir"}
               </button>
@@ -207,25 +217,25 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
       </div>
 
       {error ? (
-        <div className="bo-print-hide mb-4 rounded-xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-300">
+        <div className="mb-4 rounded-xl border border-destructive/25 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       ) : null}
 
-      <header className="bo-detail-hero overflow-hidden rounded-2xl border border-violet-400/20 p-6 text-white shadow-2xl">
+      <header className="overflow-hidden rounded-2xl border border-border bg-card p-6">
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
           <div className="flex items-start gap-4">
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/10">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-purple/25 bg-purple/12 text-purple">
               <ClipboardList className="h-6 w-6" />
             </span>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-200/70">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple">
                 Boletim de Ocorrência
               </p>
-              <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-foreground sm:text-3xl">
                 B.O. {record.numero_bo}
               </h1>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-violet-100/75">
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">
                 {record.infracao_penal}
               </p>
             </div>
@@ -297,7 +307,9 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
                 ) : null}
               </div>
             ) : (
-              <p className="bo-muted text-xs">Este B.O. não possui procedimento vinculado.</p>
+              <p className="text-xs text-muted-foreground">
+                Este B.O. não possui procedimento vinculado.
+              </p>
             )}
           </DetailSection>
 
@@ -324,12 +336,12 @@ function DetailSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bo-surface rounded-2xl p-5">
-      <div className="mb-4 flex items-center gap-3 border-b border-[var(--bo-border)] pb-4">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
+    <section className="rounded-2xl border border-border bg-card p-5">
+      <div className="mb-4 flex items-center gap-3 border-b border-border pb-4">
+        <span className="flex size-9 items-center justify-center rounded-xl bg-purple/10 text-purple">
           <Icon className="h-4 w-4" />
         </span>
-        <h2 className="bo-section-title text-sm font-black">{title}</h2>
+        <h2 className="text-sm font-black text-foreground">{title}</h2>
       </div>
       {children}
     </section>
@@ -348,9 +360,11 @@ function DetailField({
   wide?: boolean;
 }) {
   return (
-    <div className={`bo-flat-surface rounded-xl p-4 ${wide ? "sm:col-span-2" : ""}`}>
-      <span className="bo-kicker block">{label}</span>
-      <p className="bo-strong mt-2 whitespace-pre-wrap text-sm font-semibold leading-relaxed">
+    <div className={`rounded-xl border border-border bg-muted/40 p-4 ${wide ? "sm:col-span-2" : ""}`}>
+      <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </span>
+      <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-relaxed text-foreground">
         {value?.trim() || empty}
       </p>
     </div>
@@ -376,17 +390,19 @@ function LinkedCard({
     <Link
       to={to as never}
       params={params as never}
-      className="bo-flat-surface flex gap-3 rounded-xl p-4"
+      className="flex gap-3 rounded-xl border border-border bg-muted/40 p-4 transition hover:border-purple/40"
     >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-purple/10 text-purple">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0">
-        <small className="bo-faint block text-[9px] font-black uppercase tracking-[0.12em]">
+        <small className="block text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
           {label}
         </small>
-        <strong className="bo-strong mt-1 block truncate text-sm">{title}</strong>
-        <span className="bo-muted mt-1 block text-xs">{subtitle || "Abrir detalhes"}</span>
+        <strong className="mt-1 block truncate text-sm text-foreground">{title}</strong>
+        <span className="mt-1 block text-xs text-muted-foreground">
+          {subtitle || "Abrir detalhes"}
+        </span>
       </span>
     </Link>
   );

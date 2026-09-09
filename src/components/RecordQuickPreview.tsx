@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowUpRight, FileText, Pencil, Printer, Scale, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { calculateInqueritoOperationalPriority } from "@/lib/inqueritosPriority";
 import {
@@ -11,6 +11,7 @@ import { formatVehicleInvolvedPeople } from "@/features/vehicles/vehiclePeople";
 import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import type { RepresentacaoRecord } from "@/lib/repositories/representacoesRepository";
 import { isCvliElucidado } from "@/lib/cvliMetrics";
+import { getBoStatusLabel, type BoRecord } from "@/features/bo/boTypes";
 
 const FALLBACK = "—";
 
@@ -33,7 +34,8 @@ type RecordQuickPreviewProps = {
   identifier: string;
   title: string;
   badges: PreviewBadge[];
-  onOpenFull: () => void;
+  onOpenFull?: () => void;
+  footer?: ReactNode;
   children: ReactNode;
 };
 
@@ -136,6 +138,7 @@ function RecordQuickPreview({
   title,
   badges,
   onOpenFull,
+  footer,
   children,
 }: RecordQuickPreviewProps) {
   return (
@@ -181,14 +184,16 @@ function RecordQuickPreview({
           </div>
 
           <footer className="record-quick-preview-footer shrink-0 border-t border-white/10 bg-[#090b0d]/95 p-4 backdrop-blur sm:px-6">
-            <button
-              type="button"
-              onClick={onOpenFull}
-              className="flex h-13 w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 text-xs font-black uppercase tracking-[0.12em] text-emerald-950 shadow-[0_0_24px_rgba(52,211,153,0.2)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-[#090b0d]"
-            >
-              Abrir detalhe completo
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
+            {footer ?? (
+              <button
+                type="button"
+                onClick={onOpenFull}
+                className="flex h-13 w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 text-xs font-black uppercase tracking-[0.12em] text-emerald-950 shadow-[0_0_24px_rgba(52,211,153,0.2)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-[#090b0d]"
+              >
+                Abrir detalhe completo
+                <ArrowUpRight className="h-4 w-4" />
+              </button>
+            )}
           </footer>
         </Dialog.Content>
       </Dialog.Portal>
@@ -453,5 +458,143 @@ export function VehicleQuickPreview({
       ) : null}
       {error ? <p className="text-xs font-medium text-amber-300">{error}</p> : null}
     </RecordQuickPreview>
+  );
+}
+
+export type BoQuickPreviewLink = {
+  type: "inquerito" | "representacao" | "none";
+  label: string;
+};
+
+export function BoQuickPreview({
+  record,
+  link,
+  canManage,
+  deleting = false,
+  onClose,
+  onOpenFull,
+  onPrint,
+  onEdit,
+  onDelete,
+}: {
+  record: BoRecord | null;
+  link: BoQuickPreviewLink;
+  canManage: boolean;
+  deleting?: boolean;
+  onClose: () => void;
+  onOpenFull: () => void;
+  onPrint: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  if (!record) return null;
+
+  const statusLabel = getBoStatusLabel(record.status);
+  const badges: PreviewBadge[] = [{ label: statusLabel, tone: statusTone(statusLabel) }];
+  if (link.type !== "none") {
+    badges.push({ label: link.label, tone: link.type === "representacao" ? "violet" : "emerald" });
+  }
+
+  const mainItems: SummaryItem[] = [
+    { label: "Responsável", value: displayValue(record.responsavel_nome) },
+    { label: "Infração penal", value: displayValue(record.infracao_penal) },
+    { label: "Diligências pendentes", value: displayValue(record.diligencias_pendentes) },
+    { label: "Observação", value: displayValue(record.observacao) },
+    { label: "Cadastrado em", value: formatDate(record.created_at) },
+  ].filter((item) => item.value !== FALLBACK);
+
+  const LinkIcon = link.type === "representacao" ? Scale : FileText;
+
+  return (
+    <RecordQuickPreview
+      open
+      onOpenChange={(open) => !open && onClose()}
+      eyebrow="Visualização rápida · Boletim de Ocorrência"
+      identifier={record.numero_bo}
+      title={displayValue(record.infracao_penal)}
+      badges={badges}
+      footer={
+        <div className="space-y-2">
+          <div className={`grid gap-2 ${canManage ? "grid-cols-3" : "grid-cols-1"}`}>
+            <QuickPreviewActionButton icon={Printer} label="Imprimir" onClick={onPrint} />
+            {canManage ? (
+              <>
+                <QuickPreviewActionButton icon={Pencil} label="Editar" onClick={onEdit} />
+                <QuickPreviewActionButton
+                  icon={Trash2}
+                  label={deleting ? "Excluindo..." : "Excluir"}
+                  onClick={onDelete}
+                  disabled={deleting}
+                  tone="danger"
+                />
+              </>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={onOpenFull}
+            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/10 text-xs font-bold uppercase tracking-[0.1em] text-zinc-300 transition hover:border-white/20 hover:text-white"
+          >
+            Ver ficha completa <ArrowUpRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      }
+    >
+      <PreviewSection title="Informações principais" items={mainItems} />
+      <section>
+        <h3 className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-zinc-500">
+          Vínculo com procedimento
+        </h3>
+        {link.type === "none" ? (
+          <p className="rounded-lg border border-dashed border-white/10 p-3 text-xs text-zinc-500">
+            Este B.O. não possui procedimento vinculado.
+          </p>
+        ) : (
+          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10 text-violet-300">
+              <LinkIcon className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-zinc-100">
+                {link.label}
+              </span>
+              <span className="block text-[10px] uppercase tracking-[0.1em] text-zinc-500">
+                {link.type === "representacao" ? "Representação" : "Inquérito"}
+              </span>
+            </span>
+          </div>
+        )}
+      </section>
+    </RecordQuickPreview>
+  );
+}
+
+function QuickPreviewActionButton({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  tone = "default",
+}: {
+  icon: typeof Printer;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "default" | "danger";
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex h-11 flex-col items-center justify-center gap-1 rounded-lg border text-[10px] font-bold uppercase tracking-[0.08em] transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        tone === "danger"
+          ? "border-rose-400/25 bg-rose-400/10 text-rose-300 hover:bg-rose-400/15"
+          : "border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.08]"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </button>
   );
 }
