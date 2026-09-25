@@ -20,6 +20,11 @@
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
 }
 
+html[data-theme="light"] .bo-module-shell {
+  background:
+    radial-gradient(circle at 70% 0%, rgb(229 240 252 / 0.72), transparent 34rem), #f8fbff;
+}
+
 .bo-surface {
   border: 1px solid var(--bo-border);
   background: var(--bo-surface);

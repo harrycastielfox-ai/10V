@@ -254,7 +254,14 @@ function ModulosPage() {
 
 const TONE_STYLES: Record<
   ModuloTone,
-  { iconBg: string; iconBorder: string; iconText: string; ring: string; chip: string }
+  {
+    iconBg: string;
+    iconBorder: string;
+    iconText: string;
+    ring: string;
+    chip: string;
+    rail: string;
+  }
 > = {
   success: {
     iconBg: "bg-success/15",
@@ -262,6 +269,7 @@ const TONE_STYLES: Record<
     iconText: "text-success",
     ring: "hover:border-success/50 hover:shadow-success/10",
     chip: "bg-success/15 text-success border-success/30",
+    rail: "bg-success",
   },
   info: {
     iconBg: "bg-info/15",
@@ -269,6 +277,7 @@ const TONE_STYLES: Record<
     iconText: "text-info",
     ring: "hover:border-info/50 hover:shadow-info/10",
     chip: "bg-info/15 text-info border-info/30",
+    rail: "bg-info",
   },
   warning: {
     iconBg: "bg-warning/15",
@@ -276,13 +285,15 @@ const TONE_STYLES: Record<
     iconText: "text-warning",
     ring: "hover:border-warning/50 hover:shadow-warning/10",
     chip: "bg-warning/15 text-warning border-warning/30",
+    rail: "bg-warning",
   },
   report: {
-    iconBg: "bg-indigo-500/12",
-    iconBorder: "border-indigo-400/25",
-    iconText: "text-indigo-300/90",
-    ring: "hover:border-indigo-400/50 hover:shadow-indigo-400/10",
-    chip: "bg-indigo-500/12 text-indigo-100/85 border-indigo-300/25",
+    iconBg: "bg-indigo-500/15",
+    iconBorder: "border-indigo-500/40 dark:border-indigo-400/30",
+    iconText: "text-indigo-600 dark:text-indigo-300",
+    ring: "hover:border-indigo-500/60 hover:shadow-indigo-500/15",
+    chip: "bg-indigo-500/15 text-indigo-700 border-indigo-500/40 dark:text-indigo-200 dark:border-indigo-400/30",
+    rail: "bg-indigo-500",
   },
 };
 
@@ -291,8 +302,12 @@ function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel
   const styles = TONE_STYLES[modulo.tone];
   const cardContent = (
     <div
-      className={`group relative h-full overflow-hidden rounded-xl border border-border bg-card p-6 flex flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${styles.ring} ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}
+      className={`group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/90 bg-card/95 p-6 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.5)] ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:ring-white/[0.025] ${styles.ring} ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}
     >
+      <span
+        aria-hidden="true"
+        className={`absolute inset-x-0 top-0 h-1 opacity-70 transition-opacity duration-200 group-hover:opacity-100 ${styles.rail}`}
+      />
       <div className="relative z-10 flex h-full flex-col">
         <div className="flex items-start justify-between gap-3 mb-5">
           <div

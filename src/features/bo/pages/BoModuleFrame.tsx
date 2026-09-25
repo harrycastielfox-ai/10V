@@ -29,7 +29,7 @@ function BoModuleContent() {
     );
   }
   return (
-    <div className="bo-module-shell -m-4 min-h-screen px-4 pb-10 pt-4 md:-m-6 md:px-6 md:pt-5 lg:-m-8 lg:px-8 lg:pt-6">
+    <div className="bo-module-shell -m-4 min-h-screen px-4 pb-10 pt-4 md:-m-6 md:px-6 md:pt-5 lg:-m-8 lg:px-6 lg:pt-6">
       <Outlet />
     </div>
   );

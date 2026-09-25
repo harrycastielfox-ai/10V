@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowUpRight, FileText, Pencil, Printer, Scale, Trash2, X } from "lucide-react";
+import { ArrowUpRight, FileText, Scale, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { calculateInqueritoOperationalPriority } from "@/lib/inqueritosPriority";
 import {
@@ -473,8 +473,6 @@ export function BoQuickPreview({
   deleting = false,
   onClose,
   onOpenFull,
-  onPrint,
-  onEdit,
   onDelete,
 }: {
   record: BoRecord | null;
@@ -483,8 +481,6 @@ export function BoQuickPreview({
   deleting?: boolean;
   onClose: () => void;
   onOpenFull: () => void;
-  onPrint: () => void;
-  onEdit: () => void;
   onDelete: () => void;
 }) {
   if (!record) return null;
@@ -514,29 +510,27 @@ export function BoQuickPreview({
       title={displayValue(record.infracao_penal)}
       badges={badges}
       footer={
-        <div className="space-y-2">
-          <div className={`grid gap-2 ${canManage ? "grid-cols-3" : "grid-cols-1"}`}>
-            <QuickPreviewActionButton icon={Printer} label="Imprimir" onClick={onPrint} />
-            {canManage ? (
-              <>
-                <QuickPreviewActionButton icon={Pencil} label="Editar" onClick={onEdit} />
-                <QuickPreviewActionButton
-                  icon={Trash2}
-                  label={deleting ? "Excluindo..." : "Excluir"}
-                  onClick={onDelete}
-                  disabled={deleting}
-                  tone="danger"
-                />
-              </>
-            ) : null}
-          </div>
+        <div
+          className={`grid gap-2 ${canManage ? "grid-cols-[minmax(0,1fr)_120px]" : "grid-cols-1"}`}
+        >
           <button
             type="button"
             onClick={onOpenFull}
-            className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/10 text-xs font-bold uppercase tracking-[0.1em] text-zinc-300 transition hover:border-white/20 hover:text-white"
+            className="flex h-13 w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-4 text-xs font-black uppercase tracking-[0.12em] text-emerald-950 shadow-[0_0_24px_rgba(52,211,153,0.2)] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-[#090b0d]"
           >
             Ver ficha completa <ArrowUpRight className="h-3.5 w-3.5" />
           </button>
+          {canManage ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={deleting}
+              className="flex h-13 items-center justify-center gap-2 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 text-[10px] font-bold uppercase tracking-[0.08em] text-rose-300 transition hover:bg-rose-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleting ? "Excluindo..." : "Excluir"}
+            </button>
+          ) : null}
         </div>
       }
     >
@@ -566,35 +560,5 @@ export function BoQuickPreview({
         )}
       </section>
     </RecordQuickPreview>
-  );
-}
-
-function QuickPreviewActionButton({
-  icon: Icon,
-  label,
-  onClick,
-  disabled,
-  tone = "default",
-}: {
-  icon: typeof Printer;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-  tone?: "default" | "danger";
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex h-11 flex-col items-center justify-center gap-1 rounded-lg border text-[10px] font-bold uppercase tracking-[0.08em] transition disabled:cursor-not-allowed disabled:opacity-50 ${
-        tone === "danger"
-          ? "border-rose-400/25 bg-rose-400/10 text-rose-300 hover:bg-rose-400/15"
-          : "border-white/10 bg-white/[0.03] text-zinc-200 hover:bg-white/[0.08]"
-      }`}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
   );
 }
