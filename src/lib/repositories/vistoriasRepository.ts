@@ -101,6 +101,56 @@ export async function createVehicleInspection(input: CreateVehicleInspectionInpu
   return data;
 }
 
+export async function updateVehicleInspection(
+  inspectionId: string,
+  input: CreateVehicleInspectionInput,
+  changeReason: string,
+) {
+  const data = await runSupabaseMutation<VehicleInspection>("nova versão da vistoria", (signal) =>
+    supabase
+      .rpc("update_vehicle_inspection", {
+        p_inspection_id: inspectionId,
+        p_inspection_date: input.inspection_date,
+        p_location: input.location?.trim() || null,
+        p_inspector_notes: input.inspector_notes?.trim() || null,
+        p_findings: input.findings ?? {},
+        p_change_reason: changeReason.trim() || "Revisão do relatório",
+      })
+      .abortSignal(signal),
+  );
+
+  return data as VehicleInspection;
+}
+
+export type VehicleInspectionVersion = {
+  id: string;
+  inspection_id: string;
+  version: number;
+  snapshot: Record<string, unknown>;
+  change_reason: string | null;
+  pdf_storage_path: string | null;
+  pdf_sha256: string | null;
+  created_at: string;
+  created_by: string | null;
+};
+
+export async function listVehicleInspectionVersions(inspectionId: string) {
+  const data = await runSupabaseQuery<VehicleInspectionVersion[]>(
+    "histórico da vistoria",
+    (signal) =>
+      supabase
+        .from("vehicle_inspection_versions")
+        .select(
+          "id,inspection_id,version,snapshot,change_reason,pdf_storage_path,pdf_sha256,created_at,created_by",
+        )
+        .eq("inspection_id", inspectionId)
+        .order("version", { ascending: false })
+        .abortSignal(signal),
+  );
+
+  return data ?? [];
+}
+
 export async function uploadVehicleInspectionPdf(
   inspectionId: string,
   version: number,

@@ -134,6 +134,88 @@ comment on table public.vehicle_inspections is
 comment on table public.vehicle_inspection_versions is
   'Historico imutavel de snapshots e documentos derivados de uma vistoria.';
 
+create or replace function public.update_vehicle_inspection(
+  p_inspection_id uuid,
+  p_inspection_date date,
+  p_location text,
+  p_inspector_notes text,
+  p_findings jsonb,
+  p_change_reason text
+)
+returns public.vehicle_inspections
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_current public.vehicle_inspections;
+  v_next_version integer;
+begin
+  if auth.uid() is null then
+    raise exception 'AUTH_REQUIRED';
+  end if;
+
+  if not exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.status_autorizacao = 'autorizado'
+  ) then
+    raise exception 'ACCESS_DENIED';
+  end if;
+
+  select * into v_current
+  from public.vehicle_inspections
+  where id = p_inspection_id
+  for update;
+
+  if not found then
+    raise exception 'INSPECTION_NOT_FOUND';
+  end if;
+
+  v_next_version := v_current.current_version + 1;
+
+  update public.vehicle_inspections
+  set inspection_date = coalesce(p_inspection_date, inspection_date),
+      location = nullif(btrim(p_location), ''),
+      inspector_notes = nullif(btrim(p_inspector_notes), ''),
+      findings = coalesce(p_findings, '{}'::jsonb),
+      current_version = v_next_version,
+      status = 'rascunho',
+      updated_by = auth.uid()
+  where id = p_inspection_id;
+
+  insert into public.vehicle_inspection_versions (
+    inspection_id,
+    version,
+    snapshot,
+    change_reason,
+    created_by
+  )
+  select
+    p_inspection_id,
+    v_next_version,
+    jsonb_build_object(
+      'vehicle_id', vehicle_id,
+      'inspection_date', inspection_date,
+      'location', location,
+      'inspector_notes', inspector_notes,
+      'findings', findings
+    ),
+    nullif(btrim(p_change_reason), ''),
+    auth.uid()
+  from public.vehicle_inspections
+  where id = p_inspection_id;
+
+  select * into v_current
+  from public.vehicle_inspections
+  where id = p_inspection_id;
+
+  return v_current;
+end;
+$$;
+
+revoke all on function public.update_vehicle_inspection(uuid, date, text, text, jsonb, text) from public, anon;
+grant execute on function public.update_vehicle_inspection(uuid, date, text, text, jsonb, text) to authenticated;
+
 insert into storage.buckets (id, name, public)
 values ('vehicle-inspection-pdfs', 'vehicle-inspection-pdfs', false)
 on conflict (id) do nothing;

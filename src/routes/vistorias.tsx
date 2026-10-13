@@ -17,7 +17,9 @@ import {
   attachVehicleInspectionPdf,
   createVehicleInspection,
   listVehicleInspections,
+  listVehicleInspectionVersions,
   listVehiclesForInspection,
+  updateVehicleInspection,
   uploadVehicleInspectionPdf,
 } from "@/lib/repositories/vistoriasRepository";
 import type { VehicleInspection } from "@/features/vistorias/vistoriaTypes";
@@ -50,6 +52,12 @@ function VistoriasRoute() {
   const [notes, setNotes] = useState("");
   const [printInspection, setPrintInspection] = useState<VehicleInspection | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [editingInspection, setEditingInspection] = useState<VehicleInspection | null>(null);
+  const [changeReason, setChangeReason] = useState("");
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [history, setHistory] = useState<
+    Record<string, Awaited<ReturnType<typeof listVehicleInspectionVersions>>>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
@@ -78,21 +86,55 @@ function VistoriasRoute() {
     setSaving(true);
     setError(null);
     try {
-      const created = await createVehicleInspection({
+      const input = {
         vehicle_id: vehicleId,
         inspection_date: inspectionDate,
         location,
         inspector_notes: notes,
-      });
-      setInspections((current) => [created, ...current]);
+      };
+      const saved = editingInspection
+        ? await updateVehicleInspection(editingInspection.id, input, changeReason)
+        : await createVehicleInspection(input);
+      setInspections((current) =>
+        editingInspection
+          ? current.map((item) => (item.id === saved.id ? saved : item))
+          : [saved, ...current],
+      );
       setShowForm(false);
+      setEditingInspection(null);
       setVehicleId("");
       setLocation("");
       setNotes("");
+      setChangeReason("");
     } catch {
       setError("Não foi possível salvar a vistoria. Verifique sua autorização e tente novamente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  function beginEdit(inspection: VehicleInspection) {
+    setEditingInspection(inspection);
+    setShowForm(true);
+    setVehicleId(inspection.vehicle_id);
+    setInspectionDate(inspection.inspection_date);
+    setLocation(inspection.location ?? "");
+    setNotes(inspection.inspector_notes ?? "");
+    setChangeReason("");
+  }
+
+  async function toggleHistory(inspectionId: string) {
+    if (expandedHistoryId === inspectionId) {
+      setExpandedHistoryId(null);
+      return;
+    }
+    setExpandedHistoryId(inspectionId);
+    if (history[inspectionId]) return;
+    try {
+      const versions = await listVehicleInspectionVersions(inspectionId);
+      setHistory((current) => ({ ...current, [inspectionId]: versions }));
+    } catch {
+      setError("Não foi possível carregar o histórico da vistoria.");
     }
   }
 
@@ -166,11 +208,16 @@ function VistoriasRoute() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
                   Novo registro
                 </p>
-                <h2 className="mt-1 text-lg font-bold">Dados da vistoria</h2>
+                <h2 className="mt-1 text-lg font-bold">
+                  {editingInspection ? "Criar nova versão" : "Dados da vistoria"}
+                </h2>
               </div>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingInspection(null);
+                }}
                 className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               >
                 Cancelar
@@ -221,6 +268,17 @@ function VistoriasRoute() {
                   className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
                 />
               </label>
+              {editingInspection ? (
+                <label className="space-y-2 text-sm font-semibold md:col-span-2">
+                  Motivo da alteração
+                  <input
+                    value={changeReason}
+                    onChange={(event) => setChangeReason(event.target.value)}
+                    placeholder="Ex.: correção da identificação do chassi"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                  />
+                </label>
+              ) : null}
             </div>
             <button
               type="button"
@@ -310,6 +368,20 @@ function VistoriasRoute() {
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
+                      onClick={() => beginEdit(inspection)}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
+                    >
+                      Nova versão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void toggleHistory(inspection.id)}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
+                    >
+                      {expandedHistoryId === inspection.id ? "Ocultar histórico" : "Ver histórico"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setPrintInspection(inspection);
                         window.setTimeout(() => window.print(), 120);
@@ -344,6 +416,32 @@ function VistoriasRoute() {
                       </span>
                     )}
                   </div>
+                  {expandedHistoryId === inspection.id ? (
+                    <div className="mt-4 space-y-2 border-t border-border pt-4">
+                      {(history[inspection.id] ?? []).map((version) => (
+                        <div
+                          key={version.id}
+                          className="flex flex-wrap items-center justify-between gap-2 text-xs"
+                        >
+                          <span className="font-semibold">Versão {version.version}</span>
+                          <span className="text-muted-foreground">
+                            {version.change_reason || "Criação do relatório"} ·{" "}
+                            {new Intl.DateTimeFormat("pt-BR").format(new Date(version.created_at))}
+                          </span>
+                          <span
+                            className={
+                              version.pdf_sha256 ? "text-success" : "text-muted-foreground"
+                            }
+                          >
+                            {version.pdf_sha256 ? "PDF com hash" : "Sem PDF"}
+                          </span>
+                        </div>
+                      ))}
+                      {(history[inspection.id] ?? []).length === 0 ? (
+                        <p className="text-xs text-muted-foreground">Nenhuma versão encontrada.</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </article>
               ))}
             </div>
