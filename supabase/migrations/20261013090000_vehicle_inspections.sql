@@ -85,7 +85,12 @@ using (
     where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
   )
 )
-with check (updated_by = (select auth.uid()));
+with check (
+  exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
+  )
+);
 
 drop policy if exists vehicle_inspection_versions_select_authorized on public.vehicle_inspection_versions;
 create policy vehicle_inspection_versions_select_authorized
@@ -103,6 +108,22 @@ on public.vehicle_inspection_versions for insert to authenticated
 with check (
   created_by = (select auth.uid())
   and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
+  )
+);
+
+drop policy if exists vehicle_inspection_versions_update_authorized on public.vehicle_inspection_versions;
+create policy vehicle_inspection_versions_update_authorized
+on public.vehicle_inspection_versions for update to authenticated
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
+  )
+)
+with check (
+  exists (
     select 1 from public.profiles p
     where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
   )
@@ -138,3 +159,15 @@ with check (
     where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
   )
 );
+
+drop policy if exists vehicle_inspection_pdfs_update_authorized on storage.objects;
+create policy vehicle_inspection_pdfs_update_authorized
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'vehicle-inspection-pdfs'
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.status_autorizacao = 'autorizado'
+  )
+)
+with check (bucket_id = 'vehicle-inspection-pdfs');

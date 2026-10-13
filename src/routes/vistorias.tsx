@@ -12,10 +12,13 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { SipiPrintSheet } from "@/components/SipiPrintSheet";
 import {
+  attachVehicleInspectionPdf,
   createVehicleInspection,
   listVehicleInspections,
   listVehiclesForInspection,
+  uploadVehicleInspectionPdf,
 } from "@/lib/repositories/vistoriasRepository";
 import type { VehicleInspection } from "@/features/vistorias/vistoriaTypes";
 
@@ -45,6 +48,8 @@ function VistoriasRoute() {
   const [inspectionDate, setInspectionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [printInspection, setPrintInspection] = useState<VehicleInspection | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +93,38 @@ function VistoriasRoute() {
       setError("Não foi possível salvar a vistoria. Verifique sua autorização e tente novamente.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePdfUpload(inspection: VehicleInspection, file: File | undefined) {
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setError("Selecione um arquivo PDF para anexar ao relatório.");
+      return;
+    }
+    setUploadingId(inspection.id);
+    setError(null);
+    try {
+      const uploaded = await uploadVehicleInspectionPdf(
+        inspection.id,
+        inspection.current_version,
+        file,
+      );
+      const updated = await attachVehicleInspectionPdf(
+        inspection.id,
+        inspection.current_version,
+        uploaded.path,
+        uploaded.pdfSha256,
+      );
+      if (updated) {
+        setInspections((current) =>
+          current.map((item) => (item.id === inspection.id ? updated : item)),
+        );
+      }
+    } catch {
+      setError("Não foi possível anexar o PDF da vistoria.");
+    } finally {
+      setUploadingId(null);
     }
   }
 
@@ -270,6 +307,43 @@ function VistoriasRoute() {
                     )}{" "}
                     · versão {inspection.current_version}
                   </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPrintInspection(inspection);
+                        window.setTimeout(() => window.print(), 120);
+                      }}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
+                    >
+                      Gerar impressão/PDF
+                    </button>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15">
+                      {uploadingId === inspection.id ? (
+                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                      ) : null}
+                      Anexar PDF assinado
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        className="sr-only"
+                        disabled={uploadingId !== null}
+                        onChange={(event) => {
+                          void handlePdfUpload(inspection, event.target.files?.[0]);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                    {inspection.pdf_sha256 ? (
+                      <span className="text-[11px] text-success">
+                        PDF anexado · SHA-256 registrado
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">
+                        PDF ainda não anexado
+                      </span>
+                    )}
+                  </div>
                 </article>
               ))}
             </div>
@@ -293,6 +367,35 @@ function VistoriasRoute() {
             </div>
           )}
         </section>
+        {printInspection ? (
+          <SipiPrintSheet
+            documentTitle="Relatório de Vistoria Veicular"
+            documentSubtitle="Registro operacional de vistoria"
+            identifierLabel="ID DA VISTORIA"
+            identifier={printInspection.id}
+            variant="vehicle"
+            summary={[
+              { label: "Veículo", value: printInspection.vehicle?.internal_id },
+              { label: "Placa", value: printInspection.vehicle?.plate },
+              { label: "Data", value: printInspection.inspection_date },
+              { label: "Local", value: printInspection.location },
+            ]}
+            sections={[
+              {
+                title: "Observações",
+                narrative: true,
+                fields: [
+                  {
+                    label: "Registro do vistoriador",
+                    value: printInspection.inspector_notes,
+                    wide: true,
+                    manualLine: true,
+                  },
+                ],
+              },
+            ]}
+          />
+        ) : null}
       </div>
     </AppLayout>
   );

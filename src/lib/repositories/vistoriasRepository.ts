@@ -111,7 +111,11 @@ export async function uploadVehicleInspectionPdf(
     .from(INSPECTION_PDF_BUCKET)
     .upload(path, file, { upsert: true, contentType: "application/pdf" });
   if (error) throw error;
-  return path;
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  const pdfSha256 = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  return { path, pdfSha256 };
 }
 
 export async function attachVehicleInspectionPdf(
