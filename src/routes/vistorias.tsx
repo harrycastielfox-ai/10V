@@ -75,6 +75,22 @@ const CHECKLIST_ITEMS = [
   ["quilometragem", "Quilometragem"],
 ] as const;
 
+const CHECKLIST_STATUS_LABELS: Record<VehicleInspectionChecklist[string], string> = {
+  presente: "Presente",
+  ausente: "Ausente",
+  nao_informado: "Não informado",
+};
+
+function formatChecklist(checklist: VehicleInspectionChecklist): string | null {
+  const entries = CHECKLIST_ITEMS.map(([key, label]) => {
+    const value = checklist[key];
+    return value && value !== "nao_informado"
+      ? `${label}: ${CHECKLIST_STATUS_LABELS[value]}`
+      : null;
+  }).filter((entry): entry is string => Boolean(entry));
+  return entries.length ? entries.join(" · ") : null;
+}
+
 export const Route = createFileRoute("/vistorias")({
   head: () => ({
     meta: [
@@ -108,6 +124,7 @@ function VistoriasRoute() {
   const [yardLocation, setYardLocation] = useState("");
   const [deliveryRestricted, setDeliveryRestricted] = useState(false);
   const [checklist, setChecklist] = useState<VehicleInspectionChecklist>({});
+  const [linkedPeopleText, setLinkedPeopleText] = useState("");
   const [printInspection, setPrintInspection] = useState<VehicleInspection | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [editingInspection, setEditingInspection] = useState<VehicleInspection | null>(null);
@@ -157,6 +174,10 @@ function VistoriasRoute() {
         yard_location: yardLocation,
         delivery_restricted: deliveryRestricted,
         checklist,
+        linked_people: linkedPeopleText
+          .split("\n")
+          .map((person) => person.trim())
+          .filter(Boolean),
       };
       const saved = editingInspection
         ? await updateVehicleInspection(editingInspection.id, input, changeReason)
@@ -178,6 +199,7 @@ function VistoriasRoute() {
       setYardLocation("");
       setDeliveryRestricted(false);
       setChecklist({});
+      setLinkedPeopleText("");
       setChangeReason("");
     } catch {
       setError("Não foi possível salvar a vistoria. Verifique sua autorização e tente novamente.");
@@ -200,6 +222,7 @@ function VistoriasRoute() {
     setYardLocation(inspection.yard_location ?? "");
     setDeliveryRestricted(inspection.delivery_restricted);
     setChecklist(inspection.checklist ?? {});
+    setLinkedPeopleText((inspection.linked_people ?? []).join("\n"));
     setChangeReason("");
   }
 
@@ -435,6 +458,20 @@ function VistoriasRoute() {
                 </div>
               </fieldset>
               <label className="space-y-2 text-sm font-semibold md:col-span-2">
+                Pessoas vinculadas
+                <textarea
+                  value={linkedPeopleText}
+                  onChange={(event) => setLinkedPeopleText(event.target.value)}
+                  rows={3}
+                  placeholder="Uma pessoa por linha, com o vínculo. Ex.: João da Silva — proprietário"
+                  className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm font-normal"
+                />
+                <span className="block text-xs font-normal text-muted-foreground">
+                  Registre apenas a identificação e o vínculo informados no atendimento; isso não
+                  substitui o cadastro de pessoas do SIPI.
+                </span>
+              </label>
+              <label className="space-y-2 text-sm font-semibold md:col-span-2">
                 Observações do vistoriador
                 <textarea
                   value={notes}
@@ -663,8 +700,59 @@ function VistoriasRoute() {
               { label: "Placa", value: printInspection.vehicle?.plate },
               { label: "Data", value: printInspection.inspection_date },
               { label: "Local", value: printInspection.location },
+              { label: "B.O./Ocorrência", value: printInspection.police_report_number },
             ]}
             sections={[
+              {
+                title: "Da apresentação",
+                fields: [
+                  {
+                    label: "Motivo",
+                    value: printInspection.presentation_reason
+                      ? PRESENTATION_REASON_LABELS[printInspection.presentation_reason]
+                      : null,
+                  },
+                  {
+                    label: "Instituição apresentante",
+                    value: printInspection.presenting_institution
+                      ? INSTITUTION_LABELS[printInspection.presenting_institution]
+                      : null,
+                  },
+                  {
+                    label: "Pátio/destino",
+                    value: printInspection.yard_type
+                      ? YARD_LABELS[printInspection.yard_type]
+                      : null,
+                  },
+                  { label: "Local do pátio", value: printInspection.yard_location },
+                  {
+                    label: "Restrição de entrega",
+                    value: printInspection.delivery_restricted ? "Sim" : "Não",
+                  },
+                ],
+              },
+              {
+                title: "Checklist observado",
+                narrative: true,
+                fields: [
+                  {
+                    label: "Itens",
+                    value: formatChecklist(printInspection.checklist),
+                    wide: true,
+                  },
+                ],
+              },
+              {
+                title: "Pessoas vinculadas",
+                narrative: true,
+                fields: [
+                  {
+                    label: "Identificação e vínculo",
+                    value: printInspection.linked_people?.join("\n"),
+                    wide: true,
+                  },
+                ],
+              },
               {
                 title: "Observações",
                 narrative: true,
