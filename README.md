@@ -12,6 +12,17 @@ Uso restrito a agentes autorizados. Não é um projeto de código aberto.
 - Deploy via Cloudflare (Wrangler / Nitro `cloudflare-pages` preset)
 - Gerenciador de pacotes: `pnpm`
 
+## Modelo de distribuição
+
+O SIPI/10V é um **sistema web interno**, acessado por navegador corporativo e mantido
+centralmente. Essa decisão evita dependência de instalação local, permissões de
+administrador e ciclos de atualização de executáveis nos computadores institucionais.
+
+Quando a infraestrutura autorizar, o mesmo sistema poderá oferecer instalação como PWA
+para atalhos e abertura em janela, sem criar uma segunda aplicação nem duplicar regras
+de negócio. Um aplicativo nativo só será avaliado para recursos que realmente dependam
+de hardware ou integração local especializada.
+
 ## Pré-requisitos
 
 - Node.js 20+
