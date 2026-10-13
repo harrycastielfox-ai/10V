@@ -174,8 +174,8 @@ function PendingAuthorizationPage() {
         <div className="relative z-10 mx-auto flex w-fit items-center justify-center">
           <div className="pending-auth-orbit absolute h-44 w-44 rounded-full border border-primary/10 border-t-primary/45" />
           <img
-            src="/sipi-logo.png"
-            alt="Logo SIPI"
+            src="/sied-mark.svg"
+            alt="Logo SIED"
             className="relative h-32 w-32 object-contain drop-shadow-[0_0_24px_rgba(34,197,94,0.18)]"
           />
         </div>
@@ -193,7 +193,7 @@ function PendingAuthorizationPage() {
         </h1>
         <p className="relative z-10 mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
           Seu cadastro foi recebido com sucesso. A liberação de acesso será concluída por um
-          administrador autorizado antes da entrada nos módulos do SIPI.
+          administrador autorizado antes da entrada nos módulos do SIED.
         </p>
 
         <div className="relative z-10 mt-8 grid gap-3 text-left sm:grid-cols-3">

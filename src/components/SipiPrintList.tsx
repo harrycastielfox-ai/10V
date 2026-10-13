@@ -36,12 +36,12 @@ export function SipiPrintList({
   return (
     <div className="print-only sipi-print-sheet sipi-print-list" aria-hidden="true">
       <header className="sipi-print-masthead">
-        <img className="sipi-print-logo" src="/sipi-logo.png" alt="" />
+        <img className="sipi-print-logo" src="/sied-mark.svg" alt="" />
         <div className="sipi-print-heading">
           <p className="sipi-print-agency">Polícia Civil da Bahia</p>
           <h1>{documentTitle}</h1>
           <p>{documentSubtitle}</p>
-          <small>SIPI - Sistema de Inquéritos Policiais</small>
+          <small>SIED - Sistema Integrado de Evidências e Dados</small>
         </div>
         <div className="sipi-print-identifier">
           <span>Total filtrado</span>
@@ -124,7 +124,7 @@ export function SipiPrintList({
       </table>
 
       <footer className="sipi-print-footer sipi-print-list-footer">
-        <span>SIPI - Polícia Civil da Bahia</span>
+        <span>SIED - Polícia Civil da Bahia</span>
         <span>Documento confidencial - acesso e tratamento sujeitos à auditoria</span>
       </footer>
     </div>

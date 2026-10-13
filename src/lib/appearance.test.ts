@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { APPEARANCE_OPTIONS, isAppearance } from "./appearance";
 
-describe("aparências do SIPI", () => {
+describe("aparências do SIED", () => {
   it("mantém somente Escuro, Claro e Mesclar", () => {
     expect(APPEARANCE_OPTIONS).toEqual(["default", "light", "mixed"]);
   });

@@ -6,7 +6,7 @@ import { isValidModulo } from "@/lib/alertasInteligentes";
 
 export const Route = createFileRoute("/alertas/$modulo")({
   component: AlertasModuloRoute,
-  head: () => ({ meta: [{ title: "Módulo de Alertas - SIPI" }] }),
+  head: () => ({ meta: [{ title: "Módulo de Alertas - SIED" }] }),
 });
 
 function AlertasModuloRoute() {

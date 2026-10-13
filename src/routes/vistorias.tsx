@@ -108,7 +108,7 @@ function formatChecklist(checklist: VehicleInspectionChecklist): string | null {
 export const Route = createFileRoute("/vistorias")({
   head: () => ({
     meta: [
-      { title: "Relatórios de Vistoria — SIPI" },
+      { title: "Relatórios de Vistoria — SIED" },
       {
         name: "description",
         content: "Vistorias de veículos com histórico, versões e rastreabilidade.",
@@ -528,7 +528,7 @@ function VistoriasRoute() {
                 />
                 <span className="block text-xs font-normal text-muted-foreground">
                   Registre apenas a identificação e o vínculo informados no atendimento; isso não
-                  substitui o cadastro de pessoas do SIPI.
+                  substitui o cadastro de pessoas do SIED.
                 </span>
               </label>
               <label className="space-y-2 text-sm font-semibold md:col-span-2">

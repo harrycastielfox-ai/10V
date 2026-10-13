@@ -9,10 +9,10 @@ export const Route = createFileRoute("/estatisticas")({
   component: EstatisticasPage,
   head: () => ({
     meta: [
-      { title: "Estatísticas Operacionais - SIPI" },
+      { title: "Estatísticas Operacionais - SIED" },
       {
         name: "description",
-        content: "Panorama geral e estatísticas operacionais do SIPI.",
+        content: "Panorama geral e estatísticas operacionais do SIED.",
       },
     ],
   }),

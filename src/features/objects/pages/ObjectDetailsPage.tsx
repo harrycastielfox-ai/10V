@@ -351,7 +351,7 @@ export default function ObjectDetailsPage() {
                   params={{ caseId: object.inquerito_id }}
                   className="mt-1 flex items-center gap-2 text-sm font-semibold text-warning hover:underline"
                 >
-                  <Link2 className="h-4 w-4" /> Abrir procedimento no SIPI
+                  <Link2 className="h-4 w-4" /> Abrir procedimento no SIED
                 </Link>
               </div>
             ) : null}

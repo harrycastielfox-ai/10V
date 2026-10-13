@@ -7,7 +7,7 @@ const ObjectsModuleFrame = lazy(() => import("@/features/objects/pages/ObjectsMo
 export const Route = createFileRoute("/objetos")({
   head: () => ({
     meta: [
-      { title: "Objetos Apreendidos — SIPI" },
+      { title: "Objetos Apreendidos — SIED" },
       {
         name: "description",
         content: "Cadastro, custódia e rastreio de objetos apreendidos.",

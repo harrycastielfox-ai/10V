@@ -7,7 +7,7 @@ const BoModuleFrame = lazy(() => import("@/features/bo/pages/BoModuleFrame"));
 export const Route = createFileRoute("/bo")({
   head: () => ({
     meta: [
-      { title: "Boletim de Ocorrência — SIPI" },
+      { title: "Boletim de Ocorrência — SIED" },
       {
         name: "description",
         content: "Módulo operacional para gestão de boletins de ocorrência.",

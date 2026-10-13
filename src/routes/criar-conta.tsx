@@ -80,7 +80,7 @@ function CreateAccountPage() {
     e.preventDefault();
     setError(null);
     if (!acceptedAccessTerms) {
-      setError("Leia e aceite os Termos de Acesso do SIPI para continuar.");
+      setError("Leia e aceite os Termos de Acesso do SIED para continuar.");
       return;
     }
     if (!funcaoInstitucional) {
@@ -110,9 +110,9 @@ function CreateAccountPage() {
       });
       const message = result.avatarUploadWarning
         ? result.avatarUploadWarningReason === "NO_ACTIVE_SESSION"
-          ? "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIPI. A foto não foi salva agora porque não houve sessão ativa após o cadastro; você poderá adicionar a foto depois no perfil."
-          : "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIPI. Não foi possível salvar a foto de perfil neste momento; você poderá adicionar a foto depois no perfil."
-        : "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIPI.";
+          ? "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIED. A foto não foi salva agora porque não houve sessão ativa após o cadastro; você poderá adicionar a foto depois no perfil."
+          : "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIED. Não foi possível salvar a foto de perfil neste momento; você poderá adicionar a foto depois no perfil."
+        : "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIED.";
 
       sessionStorage.setItem(POST_SIGNUP_LOGIN_KEY, JSON.stringify({ login: cleanLogin, message }));
       navigate({ to: "/login", replace: true });
@@ -153,8 +153,8 @@ function CreateAccountPage() {
       >
         <header className="border-b border-border bg-gradient-to-b from-primary/8 to-transparent px-6 pb-5 pt-6 text-center sm:px-8">
           <img
-            src="/sipi-logo.png"
-            alt="Logo SIPI"
+            src="/sied-mark.svg"
+            alt="Logo SIED"
             className="mx-auto mb-3 block h-[96px] w-auto object-contain"
           />
           <div className="mb-2 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-[0.24em] text-primary/80">
@@ -162,8 +162,8 @@ function CreateAccountPage() {
             Cadastro institucional
             <span className="h-px w-8 bg-primary/35" />
           </div>
-          <h1 className="text-2xl font-black tracking-wide text-foreground">SIPI</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sistema de Inquéritos Policiais</p>
+          <h1 className="text-2xl font-black tracking-wide text-foreground">SIED</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sistema Integrado de Evidências e Dados</p>
         </header>
 
         <div className="space-y-6 px-5 py-6 sm:px-8">
@@ -305,7 +305,7 @@ function CreateAccountPage() {
               required
             />
             <span className="leading-5">
-              Li e concordo com os Termos de Acesso do SIPI e autorizo o registro deste dispositivo,
+              Li e concordo com os Termos de Acesso do SIED e autorizo o registro deste dispositivo,
               IP e localização para fins de segurança e auditoria.
               <span className="mt-1 block text-[11px] text-muted-foreground/80">
                 A localização precisa depende da permissão do navegador e pode ser recusada sem

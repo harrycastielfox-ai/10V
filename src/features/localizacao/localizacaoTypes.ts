@@ -102,7 +102,7 @@ export interface PessoaAlvoRecord {
   /** Lista completa de contatos telefônicos, com nome de quem atende cada um. */
   telefones: PessoaTelefoneContato[];
   numero_bo: string | null;
-  /** Número do procedimento policial usado para cruzar o cadastro com o SIPI. */
+  /** Número do procedimento policial usado para cruzar o cadastro com o SIED. */
   numero_procedimento: string | null;
   endereco_id: string | null;
   inquerito_id: string | null;

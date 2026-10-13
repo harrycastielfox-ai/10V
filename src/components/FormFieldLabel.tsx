@@ -14,7 +14,7 @@ const FIELD_HINTS: Record<string, string> = {
   "Data de Instauração": "Data em que o procedimento foi formalmente instaurado.",
   Prazo: "Data limite prevista para acompanhamento ou conclusão do procedimento.",
   Tipificação: "Enquadramento penal ou descrição jurídica principal do fato.",
-  "Categoria do Caso": "Classificação criminal usada nos painéis, estatísticas e alertas do SIPI.",
+  "Categoria do Caso": "Classificação criminal usada nos painéis, estatísticas e alertas do SIED.",
   Situação: "Etapa administrativa atual do procedimento.",
   Elucidado:
     "Indica se a autoria do fato foi esclarecida. Não é sinônimo de relatório enviado ou procedimento concluído.",
@@ -46,7 +46,7 @@ const FIELD_HINTS: Record<string, string> = {
   "Observação da pessoa": "Informação específica sobre a participação desta pessoa no fato.",
   "Observação opcional": "Alcunha, condição ou outro detalhe relevante sobre esta pessoa.",
   "Possui inquérito vinculado?":
-    "Selecione Sim quando a representação estiver ligada a um inquérito já cadastrado no SIPI.",
+    "Selecione Sim quando a representação estiver ligada a um inquérito já cadastrado no SIED.",
   "PPE vinculado / Procedimento relacionado":
     "Pesquise e selecione o procedimento ao qual esta representação pertence.",
   "Justificativa para representação sem inquérito vinculado":

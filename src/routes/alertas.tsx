@@ -1,4 +1,4 @@
-﻿import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -37,7 +37,7 @@ import {
 
 export const Route = createFileRoute("/alertas")({
   component: Alertas,
-  head: () => ({ meta: [{ title: "Central Operacional de Pendências - SIPI" }] }),
+  head: () => ({ meta: [{ title: "Central Operacional de Pendências - SIED" }] }),
 });
 
 const icons: Record<ModuleKey, typeof AlertTriangle> = {

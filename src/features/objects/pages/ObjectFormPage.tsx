@@ -149,7 +149,7 @@ const OBJECT_FIELD_HINTS: Record<string, string> = {
   "Nome no documento": "Nome da pessoa identificada no documento apreendido.",
   "Número do documento": "Número do RG, CNH, passaporte ou outro documento apreendido.",
   "Órgão emissor / UF": "Órgão que emitiu o documento e a unidade da federação, ex.: SSP/BA.",
-  "Vincular a Inquérito do SIPI":
+  "Vincular a Inquérito do SIED":
     "Pesquise e selecione um procedimento já cadastrado para criar o vínculo direto com o objeto.",
   "Data da apreensão": "Data em que o objeto entrou em apreensão ou custódia policial.",
   "Local da apreensão": "Local onde o objeto foi localizado ou formalmente apreendido.",
@@ -609,7 +609,7 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
             onChange={(value) => update("courtProcessNumber", value)}
           />
           <div className="relative md:col-span-2">
-            <ObjectFieldLabel label="Vincular a Inquérito do SIPI" />
+            <ObjectFieldLabel label="Vincular a Inquérito do SIED" />
             {form.inqueritoId ? (
               <div className="flex h-11 items-center justify-between rounded-xl border border-warning/35 bg-warning/10 px-3 text-sm">
                 <span className="flex min-w-0 items-center gap-2">

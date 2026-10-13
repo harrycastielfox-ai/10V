@@ -72,7 +72,7 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Duas origens: quem tem login no SIPI e quem já foi responsável por algum
+  // Duas origens: quem tem login no SIED e quem já foi responsável por algum
   // B.O. Só a primeira deixava de fora servidor sem usuário no sistema.
   useEffect(() => {
     void Promise.all([

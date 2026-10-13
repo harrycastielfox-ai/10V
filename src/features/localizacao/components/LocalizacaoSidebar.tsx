@@ -36,14 +36,14 @@ export function LocalizacaoSidebar({ profile }: { profile: UserProfile }) {
         >
           <span className="localizacao-sidebar-brand-icon sipi-brand-emblem sipi-brand-emblem-operational sipi-brand-emblem-desktop flex h-12 w-12 shrink-0 items-center justify-center">
             <img
-              src="/sipi-badge.png"
-              alt="Logo SIPI"
+              src="/sied-mark.svg"
+              alt="Logo SIED"
               className="sipi-brand-emblem-image h-[92%] w-auto object-contain"
             />
           </span>
           <span className="localizacao-sidebar-brand-copy min-w-0">
             <strong className="block font-bold tracking-[0.12em] text-sidebar-foreground group-hover:text-operational">
-              SIPI
+              SIED
             </strong>
             <span className="block truncate text-[11px] text-muted-foreground">
               Contato Operacional

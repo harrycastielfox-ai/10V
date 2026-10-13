@@ -10,7 +10,7 @@ import { listInqueritos, type InqueritoRecord } from "@/lib/repositories/inqueri
 export const Route = createFileRoute("/localidades")({
   head: () => ({
     meta: [
-      { title: "Análise por Localidade — SIPI" },
+      { title: "Análise por Localidade — SIED" },
       {
         name: "description",
         content: "Lista operacional de procedimentos agrupados por bairro e localidade.",

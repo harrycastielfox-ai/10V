@@ -1567,7 +1567,7 @@ function Inqueritos() {
     if (filtered.length === 0) return;
     const originalTitle = document.title;
     const date = new Intl.DateTimeFormat("pt-BR").format(new Date()).replaceAll("/", "-");
-    document.title = `SIPI - Resumo ${printProcedureLabel} - ${date}`;
+    document.title = `SIED - Resumo ${printProcedureLabel} - ${date}`;
     window.addEventListener("afterprint", () => (document.title = originalTitle), { once: true });
     window.setTimeout(() => window.print(), 0);
   };

@@ -95,7 +95,7 @@ function formatActorRole(value: string | null) {
   const labels: Record<string, string> = {
     admin: "Administrador",
     delegado: "Delegado",
-    sipi_access: "Acesso SIPI",
+    sipi_access: "Acesso SIED",
     atlas_access: "Acesso Atlas",
     agente_policia: "Agente de Polícia",
     investigador: "Investigador",

@@ -92,14 +92,14 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
         >
           <div className="sipi-brand-emblem sipi-brand-emblem-primary sipi-brand-emblem-desktop flex h-14 w-14 items-center justify-center">
             <img
-              src="/sipi-logo.png"
-              alt="Logo SIPI"
+              src="/sied-mark.svg"
+              alt="Logo SIED"
               className="sipi-brand-emblem-image h-[92%] w-auto shrink-0 object-contain"
             />
           </div>
           <div className="min-w-0 flex-1">
             <div className="font-bold tracking-wide text-sidebar-foreground transition-colors group-hover:text-primary">
-              SIPI
+              SIED
             </div>
             <div className="-mt-0.5 truncate text-xs text-muted-foreground">
               Procedimentos Policiais
@@ -174,7 +174,7 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
         </button>
       </div>
       <div className="shrink-0 px-4 pb-3 text-[10px] text-muted-foreground">
-        v2.0.0 · SIPI © 2026
+        v2.0.0 · SIED © 2026
       </div>
     </aside>
   );

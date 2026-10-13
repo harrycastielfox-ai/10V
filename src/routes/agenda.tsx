@@ -7,7 +7,7 @@ const AgendaModuleFrame = lazy(() => import("@/features/agenda/pages/AgendaModul
 export const Route = createFileRoute("/agenda")({
   head: () => ({
     meta: [
-      { title: "Agendamento — SIPI" },
+      { title: "Agendamento — SIED" },
       {
         name: "description",
         content: "Convocações para oitiva: quem foi chamado, para quando e por qual fato.",

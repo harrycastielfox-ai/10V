@@ -36,7 +36,7 @@ type IconType = ComponentType<{ className?: string }>;
 
 const ROLE_OPTIONS: Array<{ value: UserRole; label: string }> = [
   { value: "membro", label: "Membro" },
-  { value: "sipi_access", label: "SIPI Access" },
+  { value: "sipi_access", label: "SIED Access" },
   { value: "atlas_access", label: "Atlas Access" },
   { value: "delegado", label: "Delegado" },
   { value: "admin", label: "Admin" },
@@ -393,7 +393,7 @@ function AdminUsuariosPage() {
               </p>
               <h1 className="mt-2 text-2xl font-bold tracking-wide">Administração de Usuários</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Controle institucional de acesso, cargos e autorizações do SIPI.
+                Controle institucional de acesso, cargos e autorizações do SIED.
               </p>
             </div>
             <div className="hidden rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-medium text-primary/85 md:block">
@@ -464,7 +464,7 @@ function AdminUsuariosPage() {
 
         <UsersSection
           title="Todos os usuários"
-          description="Relação completa de perfis cadastrados no SIPI."
+          description="Relação completa de perfis cadastrados no SIED."
           loading={loadingUsers}
           error={error}
           users={usuarios}

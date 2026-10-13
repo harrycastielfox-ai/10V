@@ -423,7 +423,7 @@ export default function VehicleDetailsPage() {
                   params={{ caseId: vehicle.inquerito_id }}
                   className="mt-1 flex items-center gap-2 text-sm font-semibold text-info hover:underline"
                 >
-                  <Link2 className="h-4 w-4" /> Abrir procedimento no SIPI
+                  <Link2 className="h-4 w-4" /> Abrir procedimento no SIED
                 </Link>
               </div>
             ) : null}
@@ -534,7 +534,7 @@ export default function VehicleDetailsPage() {
         identifier={vehicle.police_report_number?.trim() || "NÃO INFORMADO"}
         variant={printMode === "ficha" ? "vehicle" : "term"}
         summary={[
-          { label: "Cadastro SIPI", value: vehicle.internal_id },
+          { label: "Cadastro SIED", value: vehicle.internal_id },
           { label: "Placa", value: vehicle.plate },
           { label: "Veículo", value: vehicle.brand_model },
           {

@@ -10,7 +10,7 @@ const YEAR_PAGE_SIZE = 6;
 export const Route = createFileRoute("/cvli-comparativo")({
   head: () => ({
     meta: [
-      { title: "CVLI — Comparativo Mensal — SIPI" },
+      { title: "CVLI — Comparativo Mensal — SIED" },
       {
         name: "description",
         content: "Comparativo mensal de registros e elucidações de CVLI por ano.",

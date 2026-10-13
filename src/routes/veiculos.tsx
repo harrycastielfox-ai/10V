@@ -7,7 +7,7 @@ const VehiclesModuleFrame = lazy(() => import("@/features/vehicles/pages/Vehicle
 export const Route = createFileRoute("/veiculos")({
   head: () => ({
     meta: [
-      { title: "Veículos Apreendidos — SIPI" },
+      { title: "Veículos Apreendidos — SIED" },
       {
         name: "description",
         content: "Cadastro, identificação, custódia e acompanhamento de veículos apreendidos.",

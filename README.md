@@ -1,4 +1,4 @@
-# SIPI — Sistema de Inquéritos Policiais
+# SIED — Sistema Integrado de Evidências e Dados
 
 Sistema operacional interno para acompanhamento de inquéritos, representações judiciais, CVLI, medidas protetivas, auditoria e indicadores da unidade (DT Itabela / 23ª COORPIN).
 
@@ -14,7 +14,7 @@ Uso restrito a agentes autorizados. Não é um projeto de código aberto.
 
 ## Modelo de distribuição
 
-O SIPI/10V é um **sistema web interno**, acessado por navegador corporativo e mantido
+O SIED/10V é um **sistema web interno**, acessado por navegador corporativo e mantido
 centralmente. Essa decisão evita dependência de instalação local, permissões de
 administrador e ciclos de atualização de executáveis nos computadores institucionais.
 
@@ -81,4 +81,4 @@ docs/            # decisões de produto, contratos de dados, diagnósticos de se
 - Operações críticas (procedimentos, representações, usuários, permissões) devem gerar registro em auditoria.
 - Indicadores exibidos no sistema não devem ser inventados — a classificação de cada indicador (real, aproximado, heurístico) está documentada em `docs/central-pendencias-contrato-indicadores.md`.
 
-Para mais contexto de produto e decisões arquiteturais, veja a pasta [`docs/`](docs/), especialmente [`docs/visao-produto-sipi.md`](docs/visao-produto-sipi.md).
+Para mais contexto de produto e decisões arquiteturais, veja a pasta [`docs/`](docs/), especialmente [`docs/visao-produto-sied.md`](docs/visao-produto-sied.md) e [`docs/identidade-sied.md`](docs/identidade-sied.md).

@@ -62,7 +62,7 @@ import {
 import type { RemessaFinalStatus } from "@/lib/remessaFinal";
 
 export const Route = createFileRoute("/novo-caso")({
-  head: () => ({ meta: [{ title: "Novo Caso — SIPI" }] }),
+  head: () => ({ meta: [{ title: "Novo Caso — SIED" }] }),
   component: NovoCaso,
 });
 

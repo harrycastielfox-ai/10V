@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SIED</title>
+  <desc id="desc">Marca do Sistema Integrado de Evidências e Dados</desc>
+  <defs>
+    <linearGradient id="shield" x1="42" y1="25" x2="214" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A2942"/>
+      <stop offset=".54" stop-color="#0B5870"/>
+      <stop offset="1" stop-color="#06364C"/>
+    </linearGradient>
+    <linearGradient id="core" x1="95" y1="69" x2="163" y2="177" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DF3CD"/>
+      <stop offset="1" stop-color="#39AEE8"/>
+    </linearGradient>
+    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path d="M128 14 217 50v63c0 55-34 100-89 129C73 213 39 168 39 113V50l89-36Z" fill="url(#shield)" stroke="#6EE7D3" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M128 39v22M77 68l18 16M179 68l-18 16M66 126h25M190 126h-25M85 186l18-18M171 186l-18-18" fill="none" stroke="#5FDCC2" stroke-width="6" stroke-linecap="round" opacity=".78"/>
+  <circle cx="128" cy="61" r="6" fill="#8AF6D0"/>
+  <circle cx="95" cy="84" r="6" fill="#69DCEC"/>
+  <circle cx="161" cy="84" r="6" fill="#69DCEC"/>
+  <circle cx="91" cy="126" r="6" fill="#8AF6D0"/>
+  <circle cx="165" cy="126" r="6" fill="#8AF6D0"/>
+  <path d="m128 69 39 28-15 55-24 22-24-22-15-55 39-28Z" fill="#082435" stroke="url(#core)" stroke-width="6" stroke-linejoin="round"/>
+  <path d="m128 92 19 14-7 27-12 11-12-11-7-27 19-14Z" fill="url(#core)" filter="url(#glow)"/>
+  <path d="M117 119h22M128 108v22" stroke="#D7FFF2" stroke-width="5" stroke-linecap="round"/>
+</svg>

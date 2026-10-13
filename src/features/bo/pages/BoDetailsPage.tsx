@@ -26,7 +26,7 @@ import { getBoStatusLabel, type BoRecord } from "../boTypes";
 import { BoStatusBadge } from "../components/BoStatusBadge";
 
 const BO_ORIGEM_LABELS: Record<BoRecord["origem_registro"], string> = {
-  sipi: "SIPI",
+  sipi: "SIED",
   google_sheets: "Planilha oficial",
   migrado: "Procedimento migrado",
 };
@@ -108,7 +108,7 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
   }
 
   const statusLabel = getBoStatusLabel(record.status);
-  const origemLabel = BO_ORIGEM_LABELS[record.origem_registro] ?? "SIPI";
+  const origemLabel = BO_ORIGEM_LABELS[record.origem_registro] ?? "SIED";
   const inqueritoResumo = inquerito
     ? [
         inquerito.numero_ppe || "Sem número PPE",
@@ -169,7 +169,7 @@ export default function BoDetailsPage({ boId }: { boId: string }) {
       <SipiPrintSheet
         variant="summary"
         documentTitle="Ficha de Boletim de Ocorrência"
-        documentSubtitle="Cadastro, acompanhamento e vínculos com procedimentos do SIPI"
+        documentSubtitle="Cadastro, acompanhamento e vínculos com procedimentos do SIED"
         identifierLabel="B.O."
         identifier={record.numero_bo}
         summary={[

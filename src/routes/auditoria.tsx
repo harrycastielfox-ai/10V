@@ -17,7 +17,7 @@ import { canViewAuditoria } from "@/lib/authz";
 import { listAuditoria, type AuditoriaEvent } from "@/lib/repositories/auditoriaRepository";
 
 export const Route = createFileRoute("/auditoria")({
-  head: () => ({ meta: [{ title: "Auditoria — SIPI" }] }),
+  head: () => ({ meta: [{ title: "Auditoria — SIED" }] }),
   component: Auditoria,
 });
 

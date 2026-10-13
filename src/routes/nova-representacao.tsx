@@ -41,7 +41,7 @@ import {
 } from "@/lib/operationalContracts";
 
 export const Route = createFileRoute("/nova-representacao")({
-  head: () => ({ meta: [{ title: "Cadastrar Movimentação Processual — SIPI" }] }),
+  head: () => ({ meta: [{ title: "Cadastrar Movimentação Processual — SIED" }] }),
   component: NovaRepresentacao,
 });
 

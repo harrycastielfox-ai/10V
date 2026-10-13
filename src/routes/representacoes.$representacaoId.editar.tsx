@@ -56,7 +56,7 @@ import {
 } from "@/lib/operationalContracts";
 
 export const Route = createFileRoute("/representacoes/$representacaoId/editar")({
-  head: () => ({ meta: [{ title: "Editar Movimentação Processual — SIPI" }] }),
+  head: () => ({ meta: [{ title: "Editar Movimentação Processual — SIED" }] }),
   component: EditarRepresentacao,
 });
 

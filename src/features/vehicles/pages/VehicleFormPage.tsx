@@ -190,7 +190,7 @@ const VEHICLE_FIELD_HINTS: Record<string, string> = {
   "Processo judicial": "Número do processo judicial relacionado, quando existir.",
   Envolvidos:
     "Pessoas relacionadas ao veículo, como proprietário, condutor, possuidor, vítima ou investigado.",
-  "Vincular a Inquérito do SIPI":
+  "Vincular a Inquérito do SIED":
     "Pesquise e selecione um procedimento já cadastrado para criar o vínculo direto com o veículo.",
   "Data da apreensão": "Data em que o veículo entrou em apreensão ou custódia policial.",
   "Local da apreensão": "Local onde o veículo foi localizado ou formalmente apreendido.",
@@ -850,7 +850,7 @@ export function VehicleFormPage({ mode, vehicleId }: { mode: FormMode; vehicleId
               onChange={(value) => update("courtProcessNumber", value)}
             />
             <div className="relative md:col-span-2">
-              <VehicleFieldLabel label="Vincular a Inquérito do SIPI" />
+              <VehicleFieldLabel label="Vincular a Inquérito do SIED" />
               {form.inqueritoId ? (
                 <div className="flex h-11 items-center justify-between rounded-xl border border-info/35 bg-info/10 px-3 text-sm">
                   <span className="flex min-w-0 items-center gap-2">

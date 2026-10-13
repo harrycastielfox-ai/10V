@@ -205,7 +205,7 @@ describe("vehicle permissions", () => {
     expect(canViewVehicles(makeProfile({ cargo: "admin" }))).toBe(true);
   });
 
-  it("allows operational vehicle writes to SIPI, delegado and admin roles", () => {
+  it("allows operational vehicle writes to SIED, delegado and admin roles", () => {
     for (const cargo of ["sipi_access", "delegado", "admin"] as const) {
       const profile = makeProfile({ cargo });
       expect(canCreateVehicles(profile)).toBe(true);

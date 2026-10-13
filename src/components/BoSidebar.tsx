@@ -27,14 +27,14 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
         >
           <span className="sipi-brand-emblem sipi-brand-emblem-bo sipi-brand-emblem-desktop flex h-14 w-14 shrink-0 items-center justify-center">
             <img
-              src="/sipi-logo.png"
-              alt="Logo SIPI-B.O"
+              src="/sied-mark.svg"
+              alt="Logo SIED-B.O"
               className="sipi-brand-emblem-image h-[92%] w-auto object-contain"
             />
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-bold tracking-wide text-zinc-100 transition-colors group-hover:text-purple-300">
-              SIPI-B.O
+              SIED-B.O
             </div>
             <div className="-mt-0.5 truncate text-xs text-zinc-500">Módulo de Boletins</div>
           </div>

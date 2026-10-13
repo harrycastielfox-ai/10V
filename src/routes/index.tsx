@@ -676,20 +676,20 @@ function Dashboard() {
       <div className="relative">
         <PageHeader
           title="Painel de Controle"
-          subtitle={`SIPI — atualizado em ${updatedAtLabel || "—"}`}
+          subtitle={`SIED — atualizado em ${updatedAtLabel || "—"}`}
           showActions={false}
         />
         <div
           className="absolute right-1 top-0 hidden select-none items-center gap-2.5 text-success lg:flex"
-          aria-label="SIPI"
+          aria-label="SIED"
         >
           <img
-            src="/sipi-dashboard-shield.svg"
+            src="/sied-mark.svg"
             alt=""
             className="h-11 w-11 object-contain drop-shadow-[0_0_7px_rgba(57,229,111,0.5)]"
           />
           <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_8px_rgba(34,197,94,0.35)]">
-            SIPI
+            SIED
           </span>
         </div>
       </div>

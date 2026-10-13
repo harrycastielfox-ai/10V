@@ -18,7 +18,7 @@ const options: Array<{
   {
     value: "default",
     label: "Escuro",
-    description: "Visual escuro original do SIPI",
+    description: "Visual escuro original do SIED",
     icon: Moon,
   },
   {

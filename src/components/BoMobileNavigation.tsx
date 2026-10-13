@@ -21,13 +21,13 @@ export function BoMobileNavigation({ profile }: { profile: UserProfile }) {
           <Link to="/bo" className="flex min-w-0 items-center gap-2">
             <span className="sipi-brand-emblem sipi-brand-emblem-bo flex h-10 w-10 shrink-0 items-center justify-center">
               <img
-                src="/sipi-logo.png"
+                src="/sied-mark.svg"
                 alt=""
                 className="sipi-brand-emblem-image h-[92%] w-auto max-w-none object-contain"
               />
             </span>
             <span className="min-w-0">
-              <strong className="block text-sm font-black text-foreground">SIPI-B.O</strong>
+              <strong className="block text-sm font-black text-foreground">SIED-B.O</strong>
               <small className="block max-w-40 truncate text-[9px] text-muted-foreground">
                 Boletins de Ocorrência
               </small>

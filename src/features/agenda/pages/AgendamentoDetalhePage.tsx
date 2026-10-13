@@ -328,7 +328,7 @@ export default function AgendamentoDetalhePage() {
                     params={{ caseId: agendamento.inquerito_id }}
                     className="mt-1 block text-sm font-semibold text-info hover:underline"
                   >
-                    Abrir procedimento no SIPI →
+                    Abrir procedimento no SIED →
                   </Link>
                 </div>
               ) : null}

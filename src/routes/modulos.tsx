@@ -9,7 +9,6 @@ import {
   ClipboardList,
   ClipboardCheck,
   Construction,
-  Shield,
   LogOut,
   Phone,
 } from "lucide-react";
@@ -21,8 +20,8 @@ import { AppearanceSwitcher } from "@/components/AppearanceSwitcher";
 export const Route = createFileRoute("/modulos")({
   head: () => ({
     meta: [
-      { title: "Módulos do Sistema — SIPI" },
-      { name: "description", content: "Selecione um módulo do Sistema de Inquéritos Policiais." },
+      { title: "Módulos do Sistema — SIED" },
+      { name: "description", content: "Selecione um módulo do Sistema Integrado de Evidências e Dados." },
     ],
   }),
   component: ModulosPage,
@@ -185,26 +184,28 @@ function ModulosPage() {
   const profileInitial = (profile.nome?.trim().charAt(0) || "?").toUpperCase();
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground px-4 py-6 sm:px-6 lg:px-8">
+    <div className="sied-identity-surface min-h-screen w-full text-foreground px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold tracking-wide text-foreground">Módulos do Sistema</h1>
+          <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED · Módulos do Sistema</h1>
           <p className="text-sm text-muted-foreground">
             Selecione um módulo para acessar suas funcionalidades
           </p>
         </div>
 
-        <div className="mb-5 rounded-xl border border-border bg-card/70 backdrop-blur-sm px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <Shield className="h-5 w-5 text-primary" />
-            </div>
+        <div className="mb-5 overflow-hidden rounded-xl border border-border bg-card/70 backdrop-blur-sm">
+          <div className="sied-brand-line h-px" aria-hidden="true" />
+          <div className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-xl border border-primary/30 bg-primary/10 p-1.5 shadow-[0_0_22px_rgba(45,212,191,0.15)]">
+                <img src="/sied-mark.svg" alt="Marca SIED" className="h-full w-full object-contain" />
+              </div>
             <div>
-              <div className="text-sm font-bold tracking-wide">SIPI</div>
+              <div className="text-sm font-bold tracking-wide">SIED</div>
               <div className="text-xs text-muted-foreground">DT Itabela — 23ª COORPIN</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
             <AppearanceSwitcher />
             {avatarUrl ? (
               <img
@@ -230,6 +231,7 @@ function ModulosPage() {
             >
               <LogOut className="h-3.5 w-3.5" /> Sair
             </button>
+            </div>
           </div>
         </div>
 

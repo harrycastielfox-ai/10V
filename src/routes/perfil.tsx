@@ -12,8 +12,8 @@ import {
 export const Route = createFileRoute("/perfil")({
   head: () => ({
     meta: [
-      { title: "Meu Perfil — SIPI" },
-      { name: "description", content: "Dados do usuário autenticado no SIPI." },
+      { title: "Meu Perfil — SIED" },
+      { name: "description", content: "Dados do usuário autenticado no SIED." },
     ],
   }),
   loader: async () => {
@@ -303,7 +303,7 @@ function PerfilPage() {
         <div className="rounded-xl border border-primary/30 bg-card/80 p-5">
           <h1 className="text-xl font-bold tracking-wide text-foreground">Meu Perfil</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Dados institucionais da sua conta no SIPI.
+            Dados institucionais da sua conta no SIED.
           </p>
         </div>
 

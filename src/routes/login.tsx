@@ -33,11 +33,11 @@ const LOGIN_SPLASH_DURATION_MS = 2200;
 
 const POST_SIGNUP_LOGIN_KEY = "sipi:post-signup-login";
 const POST_SIGNUP_MESSAGE =
-  "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIPI.";
+  "Conta criada com sucesso. Aguarde autorização de um administrador para acessar o SIED.";
 
 const PASSWORD_RECOVERY_WHATSAPP_NUMBER = "5573981907374";
 const PASSWORD_RECOVERY_WHATSAPP_MESSAGE =
-  "Olá, infelizmente esqueci ou perdi minha senha do SIPI, vou fornecer meu e-mail e nome para recuperar minha senha.";
+  "Olá, infelizmente esqueci ou perdi minha senha do SIED, vou fornecer meu e-mail e nome para recuperar minha senha.";
 const PASSWORD_RECOVERY_WHATSAPP_URL = `https://wa.me/${PASSWORD_RECOVERY_WHATSAPP_NUMBER}?text=${encodeURIComponent(PASSWORD_RECOVERY_WHATSAPP_MESSAGE)}`;
 
 const PROFILE_RETRY_DELAYS_MS = [0, 200, 500, 900];
@@ -84,8 +84,8 @@ function registerAccessContextInBackground() {
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Acesso Restrito — SIPI" },
-      { name: "description", content: "Tela de autenticação do Sistema de Inquéritos Policiais." },
+      { title: "Acesso Restrito — SIED" },
+      { name: "description", content: "Tela de autenticação do Sistema Integrado de Evidências e Dados." },
     ],
   }),
   component: LoginPage,
@@ -167,7 +167,7 @@ function PostSignupWelcomeOverlay({ message }: { message: string }) {
         />
 
         <div className="relative z-10 mx-auto h-36 w-36 overflow-hidden drop-shadow-[0_0_30px_rgba(34,197,94,0.2)]">
-          <img src="/sipi-badge.png" alt="Logo SIPI" className="h-full w-full object-contain" />
+          <img src="/sied-mark.svg" alt="Logo SIED" className="h-full w-full object-contain" />
         </div>
 
         <div
@@ -185,7 +185,7 @@ function PostSignupWelcomeOverlay({ message }: { message: string }) {
           Solicitação registrada
         </p>
         <h2 className="relative z-10 mt-3 text-3xl font-black tracking-tight text-foreground">
-          Bem-vindo ao SIPI
+          Bem-vindo ao SIED
         </h2>
         <p className="relative z-10 mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">
           {message}
@@ -361,7 +361,7 @@ function LoginSplash() {
         <span className="login-splash-ring login-splash-ring-1 pointer-events-none absolute" />
         <span className="login-splash-ring login-splash-ring-2 pointer-events-none absolute" />
         <img
-          src="/sipi-badge.png"
+          src="/sied-mark.svg"
           alt="Polícia Civil"
           className="relative h-60 w-60 object-contain drop-shadow-[0_0_50px_rgba(34,197,94,0.5)] sm:h-80 sm:w-80"
         />
@@ -605,8 +605,8 @@ function LoginPage() {
           <div className="px-8 pt-8 pb-6 text-center border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
             <div className="relative mx-auto -mt-2 h-[85px] w-[88px] rounded-lg bg-primary/12 border border-primary/25 shadow-[0_0_12px_rgba(34,197,94,0.16)] flex items-center justify-center mb-3">
               <img
-                src="/sipi-badge.png"
-                alt="Logo SIPI"
+                src="/sied-mark.svg"
+                alt="Logo SIED"
                 className="mx-auto h-[118px] w-auto object-contain"
                 style={{ transform: "translateY(2px)" }}
               />
@@ -615,8 +615,8 @@ function LoginPage() {
                 className="sipi-logo-sheen pointer-events-none absolute inset-y-[-20%] left-[-35%] w-[48%] bg-gradient-to-r from-transparent via-primary/45 to-transparent blur-[1px]"
               />
             </div>
-            <h1 className="text-2xl font-bold tracking-wide text-foreground">SIPI</h1>
-            <p className="text-xs text-muted-foreground mt-1">Sistema de Inquéritos Policiais</p>
+            <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED</h1>
+            <p className="text-xs text-muted-foreground mt-1">Sistema Integrado de Evidências e Dados</p>
             <p className="text-[10px] text-muted-foreground/80 mt-1 tracking-wider uppercase">
               DT Itabela · 23ª COORPIN
             </p>

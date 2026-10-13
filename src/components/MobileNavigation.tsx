@@ -50,13 +50,13 @@ export function MobileNavigation({ profile }: { profile: UserProfile }) {
           >
             <span className="sipi-brand-emblem sipi-brand-emblem-primary flex h-10 w-10 shrink-0 items-center justify-center">
               <img
-                src="/sipi-logo.png"
+                src="/sied-mark.svg"
                 alt=""
                 className="sipi-brand-emblem-image h-[92%] w-auto max-w-none object-contain"
               />
             </span>
             <span className="min-w-0">
-              <span className="block text-sm font-black tracking-wide text-foreground">SIPI</span>
+              <span className="block text-sm font-black tracking-wide text-foreground">SIED</span>
               <span className="block truncate text-[10px] text-muted-foreground">
                 Consulta móvel
               </span>

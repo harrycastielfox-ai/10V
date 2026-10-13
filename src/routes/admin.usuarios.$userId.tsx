@@ -1104,7 +1104,7 @@ function formatPhone(value?: string | null) {
 function formatRole(role: UserRole) {
   const labels: Record<UserRole, string> = {
     membro: "Membro",
-    sipi_access: "SIPI Access",
+    sipi_access: "SIED Access",
     atlas_access: "Atlas Access",
     delegado: "Delegado",
     admin: "Admin",

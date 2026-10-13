@@ -4,7 +4,7 @@
 
 ## Decisão
 
-O SIPI/10V será desenvolvido e distribuído como sistema web interno. A aplicação deve
+O SIED/10V será desenvolvido e distribuído como sistema web interno. A aplicação deve
 ser acessada por navegador corporativo, com autenticação, autorização e persistência
 centralizadas no Supabase e publicação controlada na infraestrutura Cloudflare.
 
@@ -18,7 +18,7 @@ centralizadas no Supabase e publicação controlada na infraestrutura Cloudflare
 
 ## Diretrizes
 
-- O sistema não deve depender de aplicativo Windows para os módulos SIPI: procedimentos,
+- O sistema não deve depender de aplicativo Windows para os módulos SIED: procedimentos,
   B.O., veículos, objetos, agenda, vistorias, relatórios e auditoria.
 - A interface deve continuar com experiência de produto: login, módulos, rotas diretas,
   design responsivo e atalhos de uso frequente.
