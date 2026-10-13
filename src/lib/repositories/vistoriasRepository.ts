@@ -67,58 +67,25 @@ export async function createVehicleInspection(input: CreateVehicleInspectionInpu
   const data = await runSupabaseMutation<VehicleInspection>(
     "criação do relatório de vistoria",
     (signal) =>
-      supabase
-        .from("vehicle_inspections")
-        .insert({
-          vehicle_id: input.vehicle_id,
-          inspection_date: input.inspection_date,
-          location: input.location?.trim() || null,
-          inspector_notes: input.inspector_notes?.trim() || null,
-          police_report_number: input.police_report_number?.trim() || null,
-          presentation_reason: input.presentation_reason || null,
-          presenting_institution: input.presenting_institution || null,
-          yard_type: input.yard_type || null,
-          yard_location: input.yard_location?.trim() || null,
-          delivery_restricted: input.delivery_restricted ?? false,
-          checklist: input.checklist ?? {},
-          linked_people: input.linked_people ?? [],
-          original_vehicle_data: input.original_vehicle_data ?? {},
-          findings: input.findings ?? {},
-        })
-        .select(INSPECTION_SELECT)
-        .abortSignal(signal)
-        .single(),
+      supabase.rpc("create_vehicle_inspection", {
+        p_vehicle_id: input.vehicle_id,
+        p_inspection_date: input.inspection_date,
+        p_location: input.location?.trim() || null,
+        p_inspector_notes: input.inspector_notes?.trim() || null,
+        p_findings: input.findings ?? {},
+        p_police_report_number: input.police_report_number?.trim() || null,
+        p_presentation_reason: input.presentation_reason || null,
+        p_presenting_institution: input.presenting_institution || null,
+        p_yard_type: input.yard_type || null,
+        p_yard_location: input.yard_location?.trim() || null,
+        p_delivery_restricted: input.delivery_restricted ?? false,
+        p_checklist: input.checklist ?? {},
+        p_linked_people: input.linked_people ?? [],
+        p_original_vehicle_data: input.original_vehicle_data ?? {},
+      }).abortSignal(signal),
   );
 
   if (!data) throw new Error("Não foi possível criar o relatório de vistoria.");
-
-  await runSupabaseMutation("registro da primeira versão da vistoria", (signal) =>
-    supabase
-      .from("vehicle_inspection_versions")
-      .insert({
-        inspection_id: data.id,
-        version: 1,
-        snapshot: {
-          vehicle_id: data.vehicle_id,
-          inspection_date: data.inspection_date,
-          location: data.location,
-          inspector_notes: data.inspector_notes,
-          police_report_number: data.police_report_number,
-          presentation_reason: data.presentation_reason,
-          presenting_institution: data.presenting_institution,
-          yard_type: data.yard_type,
-          yard_location: data.yard_location,
-          delivery_restricted: data.delivery_restricted,
-          checklist: data.checklist,
-          linked_people: data.linked_people,
-          original_vehicle_data: data.original_vehicle_data,
-          findings: data.findings,
-        },
-        change_reason: "Criação do relatório",
-      })
-      .abortSignal(signal),
-  );
-
   return data;
 }
 
@@ -261,10 +228,10 @@ export async function uploadVehicleInspectionPdf(
   version: number,
   file: File,
 ) {
-  const path = `${inspectionId}/v${version}.pdf`;
+  const path = `${inspectionId}/v${version}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const { error } = await supabase.storage
     .from(INSPECTION_PDF_BUCKET)
-    .upload(path, file, { upsert: true, contentType: "application/pdf" });
+    .upload(path, file, { upsert: false, contentType: "application/pdf" });
   if (error) throw error;
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
   const pdfSha256 = Array.from(new Uint8Array(digest))
@@ -283,21 +250,13 @@ export async function attachVehicleInspectionPdf(
     "vinculação do PDF da vistoria",
     (signal) =>
       supabase
-        .from("vehicle_inspections")
-        .update({ pdf_storage_path: storagePath, pdf_sha256: pdfSha256, status: "emitido" })
-        .eq("id", inspectionId)
-        .select(INSPECTION_SELECT)
-        .abortSignal(signal)
-        .single(),
-  );
-
-  await runSupabaseMutation("atualização da versão PDF da vistoria", (signal) =>
-    supabase
-      .from("vehicle_inspection_versions")
-      .update({ pdf_storage_path: storagePath, pdf_sha256: pdfSha256 })
-      .eq("inspection_id", inspectionId)
-      .eq("version", version)
-      .abortSignal(signal),
+        .rpc("attach_vehicle_inspection_pdf", {
+          p_inspection_id: inspectionId,
+          p_version: version,
+          p_storage_path: storagePath,
+          p_pdf_sha256: pdfSha256,
+        })
+        .abortSignal(signal),
   );
 
   return data;
