@@ -23,6 +23,57 @@ import {
   uploadVehicleInspectionPdf,
 } from "@/lib/repositories/vistoriasRepository";
 import type { VehicleInspection } from "@/features/vistorias/vistoriaTypes";
+import {
+  INSPECTION_PRESENTATION_REASONS,
+  INSPECTION_PRESENTING_INSTITUTIONS,
+  INSPECTION_YARD_TYPES,
+  type InspectionPresentationReason,
+  type InspectionPresentingInstitution,
+  type InspectionYardType,
+  type VehicleInspectionChecklist,
+} from "@/features/vistorias/vistoriaTypes";
+
+const PRESENTATION_REASON_LABELS: Record<string, string> = {
+  suspeita_adulteracao_sinais: "Suspeita de adulteração de sinais",
+  suspeita_clonagem: "Suspeita de clonagem",
+  recuperacao_furto_roubo: "Recuperação (furto/roubo)",
+  trafico_drogas: "Tráfico de drogas",
+  acidente: "Acidente",
+  local_crime: "Local de crime",
+  verificacao: "Verificação",
+  condutor_nao_habilitado: "Condutor não habilitado",
+  instrumento_crime: "Instrumento de crime",
+  veiculo_abandonado: "Veículo abandonado",
+  outros: "Outros",
+};
+const INSTITUTION_LABELS: Record<string, string> = {
+  policia_militar: "Polícia Militar",
+  policia_civil: "Polícia Civil",
+  policia_rodoviaria_federal: "Polícia Rodoviária Federal",
+  policia_federal: "Polícia Federal",
+  guarda_municipal: "Guarda Municipal",
+  outros: "Outros",
+};
+const YARD_LABELS: Record<string, string> = {
+  pericia: "Perícia",
+  guincho: "Guincho",
+  prf: "PRF",
+  detran: "DETRAN",
+  delegacia: "Delegacia",
+  disep: "DISEP",
+  outros: "Outros",
+};
+const CHECKLIST_ITEMS = [
+  ["estepe", "Estepe"],
+  ["chave_de_rodas", "Chave de rodas"],
+  ["triangulo", "Triângulo"],
+  ["macaco", "Macaco"],
+  ["tapetes", "Tapetes"],
+  ["chave_crv_crlv", "Chave/CRV/CRLV"],
+  ["nivel_oleo", "Nível/óleo"],
+  ["rodas_aro", "Rodas/aro"],
+  ["quilometragem", "Quilometragem"],
+] as const;
 
 export const Route = createFileRoute("/vistorias")({
   head: () => ({
@@ -50,6 +101,13 @@ function VistoriasRoute() {
   const [inspectionDate, setInspectionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [policeReportNumber, setPoliceReportNumber] = useState("");
+  const [presentationReason, setPresentationReason] = useState("");
+  const [presentingInstitution, setPresentingInstitution] = useState("");
+  const [yardType, setYardType] = useState("");
+  const [yardLocation, setYardLocation] = useState("");
+  const [deliveryRestricted, setDeliveryRestricted] = useState(false);
+  const [checklist, setChecklist] = useState<VehicleInspectionChecklist>({});
   const [printInspection, setPrintInspection] = useState<VehicleInspection | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [editingInspection, setEditingInspection] = useState<VehicleInspection | null>(null);
@@ -91,6 +149,14 @@ function VistoriasRoute() {
         inspection_date: inspectionDate,
         location,
         inspector_notes: notes,
+        police_report_number: policeReportNumber,
+        presentation_reason: (presentationReason || null) as InspectionPresentationReason | null,
+        presenting_institution: (presentingInstitution ||
+          null) as InspectionPresentingInstitution | null,
+        yard_type: (yardType || null) as InspectionYardType | null,
+        yard_location: yardLocation,
+        delivery_restricted: deliveryRestricted,
+        checklist,
       };
       const saved = editingInspection
         ? await updateVehicleInspection(editingInspection.id, input, changeReason)
@@ -105,6 +171,13 @@ function VistoriasRoute() {
       setVehicleId("");
       setLocation("");
       setNotes("");
+      setPoliceReportNumber("");
+      setPresentationReason("");
+      setPresentingInstitution("");
+      setYardType("");
+      setYardLocation("");
+      setDeliveryRestricted(false);
+      setChecklist({});
       setChangeReason("");
     } catch {
       setError("Não foi possível salvar a vistoria. Verifique sua autorização e tente novamente.");
@@ -120,6 +193,13 @@ function VistoriasRoute() {
     setInspectionDate(inspection.inspection_date);
     setLocation(inspection.location ?? "");
     setNotes(inspection.inspector_notes ?? "");
+    setPoliceReportNumber(inspection.police_report_number ?? "");
+    setPresentationReason(inspection.presentation_reason ?? "");
+    setPresentingInstitution(inspection.presenting_institution ?? "");
+    setYardType(inspection.yard_type ?? "");
+    setYardLocation(inspection.yard_location ?? "");
+    setDeliveryRestricted(inspection.delivery_restricted);
+    setChecklist(inspection.checklist ?? {});
     setChangeReason("");
   }
 
@@ -258,6 +338,102 @@ function VistoriasRoute() {
                   className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
                 />
               </label>
+              <label className="space-y-2 text-sm font-semibold">
+                Número do B.O. / ocorrência
+                <input
+                  value={policeReportNumber}
+                  onChange={(event) => setPoliceReportNumber(event.target.value)}
+                  placeholder="Ex.: 26-00705653"
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                />
+              </label>
+              <label className="space-y-2 text-sm font-semibold">
+                Motivo da apresentação
+                <select
+                  value={presentationReason}
+                  onChange={(event) => setPresentationReason(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="">Selecione...</option>
+                  {INSPECTION_PRESENTATION_REASONS.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {PRESENTATION_REASON_LABELS[reason]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2 text-sm font-semibold">
+                Instituição que apresentou
+                <select
+                  value={presentingInstitution}
+                  onChange={(event) => setPresentingInstitution(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="">Selecione...</option>
+                  {INSPECTION_PRESENTING_INSTITUTIONS.map((institution) => (
+                    <option key={institution} value={institution}>
+                      {INSTITUTION_LABELS[institution]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2 text-sm font-semibold">
+                Pátio / destino
+                <select
+                  value={yardType}
+                  onChange={(event) => setYardType(event.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                >
+                  <option value="">Selecione...</option>
+                  {INSPECTION_YARD_TYPES.map((yard) => (
+                    <option key={yard} value={yard}>
+                      {YARD_LABELS[yard]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2 text-sm font-semibold">
+                Local do pátio
+                <input
+                  value={yardLocation}
+                  onChange={(event) => setYardLocation(event.target.value)}
+                  placeholder="Endereço ou identificação do pátio"
+                  className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm font-normal"
+                />
+              </label>
+              <label className="flex items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  checked={deliveryRestricted}
+                  onChange={(event) => setDeliveryRestricted(event.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                Restrição de entrega
+              </label>
+              <fieldset className="rounded-xl border border-border bg-background/40 p-4 md:col-span-2">
+                <legend className="px-1 text-sm font-bold">Checklist observado</legend>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {CHECKLIST_ITEMS.map(([key, label]) => (
+                    <label key={key} className="flex items-center justify-between gap-3 text-sm">
+                      <span>{label}</span>
+                      <select
+                        value={checklist[key] ?? "nao_informado"}
+                        onChange={(event) =>
+                          setChecklist((current) => ({
+                            ...current,
+                            [key]: event.target.value as VehicleInspectionChecklist[string],
+                          }))
+                        }
+                        className="h-9 rounded-lg border border-input bg-background px-2 text-xs"
+                      >
+                        <option value="nao_informado">Não informado</option>
+                        <option value="presente">Presente</option>
+                        <option value="ausente">Ausente</option>
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label className="space-y-2 text-sm font-semibold md:col-span-2">
                 Observações do vistoriador
                 <textarea
@@ -365,6 +541,16 @@ function VistoriasRoute() {
                     )}{" "}
                     · versão {inspection.current_version}
                   </p>
+                  {inspection.police_report_number || inspection.presentation_reason ? (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {inspection.police_report_number
+                        ? `B.O. ${inspection.police_report_number}`
+                        : "B.O. não informado"}
+                      {inspection.presentation_reason
+                        ? ` · ${PRESENTATION_REASON_LABELS[inspection.presentation_reason] ?? inspection.presentation_reason}`
+                        : ""}
+                    </p>
+                  ) : null}
                   <div className="mt-4 flex flex-wrap items-center gap-2">
                     <button
                       type="button"

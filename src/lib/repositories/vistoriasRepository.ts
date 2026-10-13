@@ -20,7 +20,7 @@ type RawVehicleInspection = Omit<VehicleInspection, "vehicle"> & {
 const INSPECTION_PDF_BUCKET = "vehicle-inspection-pdfs";
 
 const INSPECTION_SELECT =
-  "id,vehicle_id,status,inspection_date,location,inspector_notes,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,brand_model,plate)";
+  "id,vehicle_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,brand_model,plate)";
 
 export async function listVehicleInspections(limit = 50) {
   const data = await runSupabaseQuery<RawVehicleInspection[]>("relatórios de vistoria", (signal) =>
@@ -71,6 +71,15 @@ export async function createVehicleInspection(input: CreateVehicleInspectionInpu
           inspection_date: input.inspection_date,
           location: input.location?.trim() || null,
           inspector_notes: input.inspector_notes?.trim() || null,
+          police_report_number: input.police_report_number?.trim() || null,
+          presentation_reason: input.presentation_reason || null,
+          presenting_institution: input.presenting_institution || null,
+          yard_type: input.yard_type || null,
+          yard_location: input.yard_location?.trim() || null,
+          delivery_restricted: input.delivery_restricted ?? false,
+          checklist: input.checklist ?? {},
+          linked_people: input.linked_people ?? [],
+          original_vehicle_data: input.original_vehicle_data ?? {},
           findings: input.findings ?? {},
         })
         .select(INSPECTION_SELECT)
@@ -91,6 +100,15 @@ export async function createVehicleInspection(input: CreateVehicleInspectionInpu
           inspection_date: data.inspection_date,
           location: data.location,
           inspector_notes: data.inspector_notes,
+          police_report_number: data.police_report_number,
+          presentation_reason: data.presentation_reason,
+          presenting_institution: data.presenting_institution,
+          yard_type: data.yard_type,
+          yard_location: data.yard_location,
+          delivery_restricted: data.delivery_restricted,
+          checklist: data.checklist,
+          linked_people: data.linked_people,
+          original_vehicle_data: data.original_vehicle_data,
           findings: data.findings,
         },
         change_reason: "Criação do relatório",
@@ -115,6 +133,15 @@ export async function updateVehicleInspection(
         p_inspector_notes: input.inspector_notes?.trim() || null,
         p_findings: input.findings ?? {},
         p_change_reason: changeReason.trim() || "Revisão do relatório",
+        p_police_report_number: input.police_report_number?.trim() || null,
+        p_presentation_reason: input.presentation_reason || null,
+        p_presenting_institution: input.presenting_institution || null,
+        p_yard_type: input.yard_type || null,
+        p_yard_location: input.yard_location?.trim() || null,
+        p_delivery_restricted: input.delivery_restricted ?? false,
+        p_checklist: input.checklist ?? {},
+        p_linked_people: input.linked_people ?? [],
+        p_original_vehicle_data: input.original_vehicle_data ?? {},
       })
       .abortSignal(signal),
   );
