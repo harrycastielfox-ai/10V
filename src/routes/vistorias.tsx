@@ -333,6 +333,13 @@ function VistoriasRoute() {
     }
   }
 
+  const completedReports = inspections.filter((inspection) => Boolean(inspection.pdf_sha256)).length;
+  const reportsAwaitingPdf = inspections.length - completedReports;
+  const recordedVersions = inspections.reduce(
+    (total, inspection) => total + inspection.current_version,
+    0,
+  );
+
   return (
     <AppLayout module="vistorias">
       <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -579,22 +586,26 @@ function VistoriasRoute() {
           <SummaryCard
             icon={FileCheck2}
             label="Relatórios emitidos"
-            value="—"
-            hint="Aguardando o primeiro registro"
+            value={String(completedReports)}
+            hint={
+              inspections.length
+                ? `${inspections.length} vistoria(s) registrada(s)`
+                : "Aguardando o primeiro registro"
+            }
             tone="text-primary"
           />
           <SummaryCard
             icon={FileClock}
             label="Em revisão"
-            value="—"
-            hint="As versões ficam preservadas"
+            value={String(reportsAwaitingPdf)}
+            hint="Aguardando anexo do PDF assinado"
             tone="text-warning"
           />
           <SummaryCard
             icon={ShieldCheck}
             label="Rastreabilidade"
-            value="Ativa"
-            hint="Autor, data e versão em cada alteração"
+            value={`${recordedVersions} versão(ões)`}
+            hint="Autor, data, hash e histórico preservados"
             tone="text-success"
           />
         </section>
