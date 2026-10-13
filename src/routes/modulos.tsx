@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CalendarDays,
   ClipboardList,
+  ClipboardCheck,
   Construction,
   Shield,
   LogOut,
@@ -70,6 +71,17 @@ const MODULOS: Modulo[] = [
     icon: Car,
     tone: "info",
     to: "/veiculos",
+    disponivel: true,
+  },
+  {
+    id: "vistorias",
+    titulo: "RELATÓRIO DE VISTORIA",
+    hint: "Vistoria de veículos",
+    descricao:
+      "Registre a vistoria do veículo, preserve versões do relatório e mantenha o histórico vinculado ao cadastro.",
+    icon: ClipboardCheck,
+    tone: "report",
+    to: "/vistorias",
     disponivel: true,
   },
   {

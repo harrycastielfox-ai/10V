@@ -7,7 +7,7 @@ import { getMobileRouteRedirect, MOBILE_VIEWPORT_QUERY } from "@/lib/mobileExper
 import { AppProfileContext } from "./AppProfileContext";
 import { MobileNavigation } from "./MobileNavigation";
 
-type AppModule = "inqueritos" | "veiculos" | "objetos" | "agenda" | "bo";
+type AppModule = "inqueritos" | "veiculos" | "vistorias" | "objetos" | "agenda" | "bo";
 
 const AppSidebar = lazy(() =>
   import("./AppSidebar").then((module) => ({ default: module.AppSidebar })),

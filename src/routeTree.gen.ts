@@ -29,6 +29,7 @@ import { Route as ObjetosRouteImport } from './routes/objetos'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as RepresentacoesRouteImport } from './routes/representacoes'
 import { Route as VeiculosRouteImport } from './routes/veiculos'
+import { Route as VistoriasRouteImport } from './routes/vistorias'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AgendaIndexRouteImport } from './routes/agenda.index'
 import { Route as AgendaAgendamentoIdRouteImport } from './routes/agenda.$agendamentoId'
@@ -172,6 +173,11 @@ const RepresentacoesRoute = RepresentacoesRouteImport.update({
 const VeiculosRoute = VeiculosRouteImport.update({
   id: '/veiculos',
   path: '/veiculos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VistoriasRoute = VistoriasRouteImport.update({
+  id: '/vistorias',
+  path: '/vistorias',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
@@ -419,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof PerfilRoute
   '/representacoes': typeof RepresentacoesRouteWithChildren
   '/veiculos': typeof VeiculosRouteWithChildren
+  '/vistorias': typeof VistoriasRoute
   '/admin/usuarios': typeof AdminUsuariosRouteWithChildren
   '/agenda/$agendamentoId': typeof AgendaAgendamentoIdRoute
   '/agenda/cronograma': typeof AgendaCronogramaRoute
@@ -480,6 +487,7 @@ export interface FileRoutesByTo {
   '/novo-caso': typeof NovoCasoRoute
   '/perfil': typeof PerfilRoute
   '/representacoes': typeof RepresentacoesRouteWithChildren
+  '/vistorias': typeof VistoriasRoute
   '/admin/usuarios': typeof AdminUsuariosRouteWithChildren
   '/agenda/$agendamentoId': typeof AgendaAgendamentoIdRoute
   '/agenda/cronograma': typeof AgendaCronogramaRoute
@@ -547,6 +555,7 @@ export interface FileRoutesById {
   '/perfil': typeof PerfilRoute
   '/representacoes': typeof RepresentacoesRouteWithChildren
   '/veiculos': typeof VeiculosRouteWithChildren
+  '/vistorias': typeof VistoriasRoute
   '/admin/usuarios': typeof AdminUsuariosRouteWithChildren
   '/agenda/$agendamentoId': typeof AgendaAgendamentoIdRoute
   '/agenda/cronograma': typeof AgendaCronogramaRoute
@@ -615,6 +624,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/representacoes'
     | '/veiculos'
+    | '/vistorias'
     | '/admin/usuarios'
     | '/agenda/$agendamentoId'
     | '/agenda/cronograma'
@@ -676,6 +686,7 @@ export interface FileRouteTypes {
     | '/novo-caso'
     | '/perfil'
     | '/representacoes'
+    | '/vistorias'
     | '/admin/usuarios'
     | '/agenda/$agendamentoId'
     | '/agenda/cronograma'
@@ -742,6 +753,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/representacoes'
     | '/veiculos'
+    | '/vistorias'
     | '/admin/usuarios'
     | '/agenda/$agendamentoId'
     | '/agenda/cronograma'
@@ -809,6 +821,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   RepresentacoesRoute: typeof RepresentacoesRouteWithChildren
   VeiculosRoute: typeof VeiculosRouteWithChildren
+  VistoriasRoute: typeof VistoriasRoute
   AdminUsuariosRoute: typeof AdminUsuariosRouteWithChildren
   ApiSheetSyncRoute: typeof ApiSheetSyncRoute
 }
@@ -953,6 +966,13 @@ declare module '@tanstack/react-router' {
       path: '/veiculos'
       fullPath: '/veiculos'
       preLoaderRoute: typeof VeiculosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vistorias': {
+      id: '/vistorias'
+      path: '/vistorias'
+      fullPath: '/vistorias'
+      preLoaderRoute: typeof VistoriasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/usuarios': {
@@ -1498,6 +1518,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   RepresentacoesRoute: RepresentacoesRouteWithChildren,
   VeiculosRoute: VeiculosRouteWithChildren,
+  VistoriasRoute: VistoriasRoute,
   AdminUsuariosRoute: AdminUsuariosRouteWithChildren,
   ApiSheetSyncRoute: ApiSheetSyncRoute,
 }
