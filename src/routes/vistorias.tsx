@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   CarFront,
+  Camera,
   CheckCircle2,
   ClipboardCheck,
   FileCheck2,
@@ -18,17 +19,21 @@ import {
   createVehicleInspection,
   listVehicleInspections,
   listVehicleInspectionVersions,
+  listVehicleInspectionPhotos,
   listVehiclesForInspection,
   updateVehicleInspection,
+  uploadVehicleInspectionPhotos,
   uploadVehicleInspectionPdf,
 } from "@/lib/repositories/vistoriasRepository";
 import type { VehicleInspection } from "@/features/vistorias/vistoriaTypes";
 import {
   INSPECTION_PRESENTATION_REASONS,
   INSPECTION_PRESENTING_INSTITUTIONS,
+  INSPECTION_PHOTO_CATEGORIES,
   INSPECTION_YARD_TYPES,
   type InspectionPresentationReason,
   type InspectionPresentingInstitution,
+  type InspectionPhotoCategory,
   type InspectionYardType,
   type VehicleInspectionChecklist,
 } from "@/features/vistorias/vistoriaTypes";
@@ -61,6 +66,15 @@ const YARD_LABELS: Record<string, string> = {
   detran: "DETRAN",
   delegacia: "Delegacia",
   disep: "DISEP",
+  outros: "Outros",
+};
+const PHOTO_CATEGORY_LABELS: Record<InspectionPhotoCategory, string> = {
+  veiculo: "Veículo",
+  chassi: "Chassi",
+  motor: "Motor",
+  etiqueta_seguranca: "Etiqueta de segurança",
+  placa: "Placa",
+  sinal_identificador: "Outro sinal identificador",
   outros: "Outros",
 };
 const CHECKLIST_ITEMS = [
@@ -133,6 +147,12 @@ function VistoriasRoute() {
   const [history, setHistory] = useState<
     Record<string, Awaited<ReturnType<typeof listVehicleInspectionVersions>>>
   >({});
+  const [expandedPhotosId, setExpandedPhotosId] = useState<string | null>(null);
+  const [inspectionPhotos, setInspectionPhotos] = useState<
+    Record<string, Awaited<ReturnType<typeof listVehicleInspectionPhotos>>>
+  >({});
+  const [photoCategory, setPhotoCategory] = useState<InspectionPhotoCategory>("veiculo");
+  const [uploadingPhotosId, setUploadingPhotosId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,6 +290,46 @@ function VistoriasRoute() {
       setError("Não foi possível anexar o PDF da vistoria.");
     } finally {
       setUploadingId(null);
+    }
+  }
+
+  async function togglePhotos(inspectionId: string) {
+    if (expandedPhotosId === inspectionId) {
+      setExpandedPhotosId(null);
+      return;
+    }
+    setExpandedPhotosId(inspectionId);
+    if (inspectionPhotos[inspectionId]) return;
+    try {
+      const photos = await listVehicleInspectionPhotos(inspectionId);
+      setInspectionPhotos((current) => ({ ...current, [inspectionId]: photos }));
+    } catch {
+      setError("Não foi possível carregar as fotografias técnicas da vistoria.");
+    }
+  }
+
+  async function handlePhotoUpload(inspection: VehicleInspection, files: FileList | null) {
+    const selected = Array.from(files ?? []);
+    if (!selected.length) return;
+    setUploadingPhotosId(inspection.id);
+    setError(null);
+    try {
+      const result = await uploadVehicleInspectionPhotos({
+        inspectionId: inspection.id,
+        vehicleId: inspection.vehicle_id,
+        category: photoCategory,
+        files: selected,
+      });
+      const refreshed = await listVehicleInspectionPhotos(inspection.id);
+      setInspectionPhotos((current) => ({ ...current, [inspection.id]: refreshed }));
+      setExpandedPhotosId(inspection.id);
+      if (result.failed.length) {
+        setError(`${result.failed.length} fotografia(s) não puderam ser processadas.`);
+      }
+    } catch {
+      setError("Não foi possível vincular as fotografias técnicas à vistoria.");
+    } finally {
+      setUploadingPhotosId(null);
     }
   }
 
@@ -613,6 +673,46 @@ function VistoriasRoute() {
                     >
                       Gerar impressão/PDF
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => void togglePhotos(inspection.id)}
+                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
+                    >
+                      {expandedPhotosId === inspection.id ? "Ocultar fotos" : "Ver fotos técnicas"}
+                    </button>
+                    <select
+                      value={photoCategory}
+                      onChange={(event) =>
+                        setPhotoCategory(event.target.value as InspectionPhotoCategory)
+                      }
+                      aria-label="Categoria da fotografia técnica"
+                      className="h-9 rounded-lg border border-input bg-background px-2 text-xs font-semibold"
+                    >
+                      {INSPECTION_PHOTO_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {PHOTO_CATEGORY_LABELS[category]}
+                        </option>
+                      ))}
+                    </select>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15">
+                      {uploadingPhotosId === inspection.id ? (
+                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Camera className="h-3.5 w-3.5" />
+                      )}
+                      Adicionar fotos
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        className="sr-only"
+                        disabled={uploadingPhotosId !== null}
+                        onChange={(event) => {
+                          void handlePhotoUpload(inspection, event.target.files);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15">
                       {uploadingId === inspection.id ? (
                         <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
@@ -663,6 +763,49 @@ function VistoriasRoute() {
                       {(history[inspection.id] ?? []).length === 0 ? (
                         <p className="text-xs text-muted-foreground">Nenhuma versão encontrada.</p>
                       ) : null}
+                    </div>
+                  ) : null}
+                  {expandedPhotosId === inspection.id ? (
+                    <div className="mt-4 border-t border-border pt-4">
+                      {(inspectionPhotos[inspection.id] ?? []).length ? (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          {(inspectionPhotos[inspection.id] ?? []).map((photo) => (
+                            <figure
+                              key={photo.id}
+                              className="overflow-hidden rounded-lg border border-border bg-background"
+                            >
+                              {photo.vehicle_photo?.thumbnail_url ? (
+                                <a
+                                  href={
+                                    photo.vehicle_photo.original_url ??
+                                    photo.vehicle_photo.thumbnail_url
+                                  }
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block aspect-video bg-muted"
+                                >
+                                  <img
+                                    src={photo.vehicle_photo.thumbnail_url}
+                                    alt={`Fotografia técnica: ${PHOTO_CATEGORY_LABELS[photo.category]}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </a>
+                              ) : (
+                                <div className="flex aspect-video items-center justify-center bg-muted text-xs text-muted-foreground">
+                                  Prévia indisponível
+                                </div>
+                              )}
+                              <figcaption className="px-3 py-2 text-xs font-semibold">
+                                {PHOTO_CATEGORY_LABELS[photo.category]}
+                              </figcaption>
+                            </figure>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Nenhuma fotografia técnica vinculada a esta vistoria.
+                        </p>
+                      )}
                     </div>
                   ) : null}
                 </article>

@@ -1,9 +1,12 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseMutation, runSupabaseQuery } from "@/lib/repositories/supabaseQuery";
+import { uploadVehiclePhotos } from "@/lib/repositories/vehiclesRepository";
 import type {
   CreateVehicleInspectionInput,
+  InspectionPhotoCategory,
   VehicleInspection,
   VehicleInspectionFindings,
+  VehicleInspectionPhoto,
 } from "@/features/vistorias/vistoriaTypes";
 
 type InspectionVehicle = {
@@ -176,6 +179,81 @@ export async function listVehicleInspectionVersions(inspectionId: string) {
   );
 
   return data ?? [];
+}
+
+type RawVehicleInspectionPhoto = Omit<VehicleInspectionPhoto, "vehicle_photo"> & {
+  vehicle_photo:
+    | {
+        id: string;
+        storage_path: string;
+        thumbnail_path: string;
+      }
+    | {
+        id: string;
+        storage_path: string;
+        thumbnail_path: string;
+      }[]
+    | null;
+};
+
+export async function listVehicleInspectionPhotos(inspectionId: string) {
+  const data = await runSupabaseQuery<RawVehicleInspectionPhoto[]>(
+    "fotografias técnicas da vistoria",
+    (signal) =>
+      supabase
+        .from("vehicle_inspection_photos")
+        .select(
+          "id,inspection_id,vehicle_photo_id,category,caption,created_at,vehicle_photo:vehicle_photos(id,storage_path,thumbnail_path)",
+        )
+        .eq("inspection_id", inspectionId)
+        .order("created_at", { ascending: true })
+        .abortSignal(signal),
+  );
+
+  return Promise.all(
+    (data ?? []).map(async (entry) => {
+      const rawPhoto = Array.isArray(entry.vehicle_photo)
+        ? entry.vehicle_photo[0]
+        : entry.vehicle_photo;
+      if (!rawPhoto) return { ...entry, vehicle_photo: null } as VehicleInspectionPhoto;
+      const [original, thumbnail] = await Promise.all([
+        supabase.storage.from("vehicle-photos").createSignedUrl(rawPhoto.storage_path, 3600),
+        supabase.storage.from("vehicle-photos").createSignedUrl(rawPhoto.thumbnail_path, 3600),
+      ]);
+      return {
+        ...entry,
+        vehicle_photo: {
+          id: rawPhoto.id,
+          original_url: original.data?.signedUrl ?? null,
+          thumbnail_url: thumbnail.data?.signedUrl ?? null,
+        },
+      } as VehicleInspectionPhoto;
+    }),
+  );
+}
+
+export async function uploadVehicleInspectionPhotos(input: {
+  inspectionId: string;
+  vehicleId: string;
+  category: InspectionPhotoCategory;
+  files: File[];
+}) {
+  const { created, failed } = await uploadVehiclePhotos(input.vehicleId, input.files);
+  if (created.length) {
+    await runSupabaseMutation("vínculo das fotografias técnicas", (signal) =>
+      supabase
+        .from("vehicle_inspection_photos")
+        .insert(
+          created.map((photo) => ({
+            inspection_id: input.inspectionId,
+            vehicle_photo_id: photo.id,
+            category: input.category,
+          })),
+        )
+        .abortSignal(signal),
+    );
+  }
+  return { created, failed };
 }
 
 export async function uploadVehicleInspectionPdf(

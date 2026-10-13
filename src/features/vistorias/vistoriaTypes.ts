@@ -49,6 +49,32 @@ export type InspectionYardType = (typeof INSPECTION_YARD_TYPES)[number];
 
 export type VehicleInspectionChecklist = Record<string, "presente" | "ausente" | "nao_informado">;
 
+export const INSPECTION_PHOTO_CATEGORIES = [
+  "veiculo",
+  "chassi",
+  "motor",
+  "etiqueta_seguranca",
+  "placa",
+  "sinal_identificador",
+  "outros",
+] as const;
+
+export type InspectionPhotoCategory = (typeof INSPECTION_PHOTO_CATEGORIES)[number];
+
+export type VehicleInspectionPhoto = {
+  id: string;
+  inspection_id: string;
+  vehicle_photo_id: string;
+  category: InspectionPhotoCategory;
+  caption: string | null;
+  created_at: string;
+  vehicle_photo: {
+    id: string;
+    thumbnail_url: string | null;
+    original_url: string | null;
+  } | null;
+};
+
 export type VehicleInspection = {
   id: string;
   vehicle_id: string;
