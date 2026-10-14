@@ -474,36 +474,7 @@ function LoginPage() {
   return (
     <div className="sied-login-shell relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-10">
       <style>{`
-        .sipi-logo-sheen {
-          transform: translateX(-180%) skewX(-18deg);
-          animation: sipiLogoSheen 4.8s ease-in-out infinite;
-          will-change: transform, opacity;
-        }
-
-        @keyframes sipiLogoSheen {
-          0%, 58% {
-            transform: translateX(-180%) skewX(-18deg);
-            opacity: 0;
-          }
-          65% {
-            opacity: 0.33;
-          }
-          78% {
-            transform: translateX(210%) skewX(-18deg);
-            opacity: 0;
-          }
-          100% {
-            transform: translateX(210%) skewX(-18deg);
-            opacity: 0;
-          }
-        }
-
         @media (prefers-reduced-motion: reduce) {
-          .sipi-logo-sheen {
-            animation: none;
-            opacity: 0;
-          }
-
           .post-signup-welcome,
           .post-signup-welcome-card,
           .post-signup-panel-sheen,
@@ -603,16 +574,20 @@ function LoginPage() {
 
         <div className="bg-card border border-border rounded-2xl shadow-2xl shadow-black/40">
           <div className="px-8 pt-8 pb-6 text-center border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-            <div className="relative isolate mx-auto -mt-2 mb-3 flex h-[85px] w-[88px] items-center justify-center rounded-lg border border-primary/25 bg-primary/12 shadow-[0_0_16px_rgba(56,189,248,0.22)]">
-              <img
-                src="/sied-mark.svg"
-                alt="Logo SIED"
-                className="relative z-10 mx-auto h-[118px] w-auto object-contain drop-shadow-[0_8px_12px_rgba(2,12,27,0.55)]"
-                style={{ transform: "translateY(2px)" }}
+            <div className="relative isolate mx-auto -mt-3 mb-4 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-4 z-0 rounded-[2rem] bg-primary/16 blur-2xl"
               />
               <span
                 aria-hidden="true"
-                className="sipi-logo-sheen pointer-events-none absolute inset-y-[-20%] left-[-35%] z-0 w-[48%] bg-gradient-to-r from-transparent via-primary/45 to-transparent blur-[1px]"
+                className="pointer-events-none absolute inset-2 z-0 rounded-[1.35rem] border border-primary/20 bg-primary/5"
+              />
+              <img
+                src="/sied-mark.svg"
+                alt="Logo SIED"
+                className="relative z-10 mx-auto h-[134px] w-auto object-contain drop-shadow-[0_12px_18px_rgba(2,12,27,0.72)]"
+                style={{ transform: "translateY(1px)" }}
               />
             </div>
             <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED</h1>
