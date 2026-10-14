@@ -603,16 +603,16 @@ function LoginPage() {
 
         <div className="bg-card border border-border rounded-2xl shadow-2xl shadow-black/40">
           <div className="px-8 pt-8 pb-6 text-center border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-            <div className="relative mx-auto -mt-2 h-[85px] w-[88px] rounded-lg bg-primary/12 border border-primary/25 shadow-[0_0_12px_rgba(34,197,94,0.16)] flex items-center justify-center mb-3">
+            <div className="relative isolate mx-auto -mt-2 mb-3 flex h-[85px] w-[88px] items-center justify-center rounded-lg border border-primary/25 bg-primary/12 shadow-[0_0_16px_rgba(56,189,248,0.22)]">
               <img
                 src="/sied-mark.svg"
                 alt="Logo SIED"
-                className="mx-auto h-[118px] w-auto object-contain"
+                className="relative z-10 mx-auto h-[118px] w-auto object-contain drop-shadow-[0_8px_12px_rgba(2,12,27,0.55)]"
                 style={{ transform: "translateY(2px)" }}
               />
               <span
                 aria-hidden="true"
-                className="sipi-logo-sheen pointer-events-none absolute inset-y-[-20%] left-[-35%] w-[48%] bg-gradient-to-r from-transparent via-primary/45 to-transparent blur-[1px]"
+                className="sipi-logo-sheen pointer-events-none absolute inset-y-[-20%] left-[-35%] z-0 w-[48%] bg-gradient-to-r from-transparent via-primary/45 to-transparent blur-[1px]"
               />
             </div>
             <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED</h1>
