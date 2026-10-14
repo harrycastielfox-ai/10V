@@ -565,142 +565,157 @@ function LoginPage() {
         <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-success/20 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md">
-        <div className="mb-4 flex items-center justify-center gap-2 text-[10px] tracking-[0.25em] font-bold text-destructive">
-          <span className="h-px w-8 bg-destructive/50" />
-          ACESSO RESTRITO
-          <span className="h-px w-8 bg-destructive/50" />
-        </div>
-
-        <div className="overflow-hidden rounded-[18px] border border-primary/60 bg-card/95 shadow-[0_24px_72px_rgba(0,0,0,0.48),0_0_32px_rgba(14,165,233,0.1)]">
-          <div className="px-8 pb-7 pt-9 text-center">
-            <div className="relative isolate mx-auto -mt-2 mb-5 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-4 z-0 rounded-[2rem] bg-primary/16 blur-2xl"
-              />
-              <img
-                src="/sied-mark.svg?v=2"
-                alt="Logo SIED"
-                className="relative z-10 mx-auto h-[134px] w-auto object-contain drop-shadow-[0_12px_18px_rgba(2,12,27,0.72)]"
-                style={{ transform: "translateY(1px)" }}
-              />
+      <div className="relative w-full max-w-6xl">
+        <section className="overflow-hidden rounded-2xl border border-primary/35 bg-card/75 p-4 shadow-[0_28px_80px_rgba(0,0,0,0.42),0_0_36px_rgba(14,165,233,0.08)] backdrop-blur-sm sm:p-6">
+          <header className="flex items-center justify-between border-b border-primary/20 pb-4">
+            <div className="flex items-center gap-2.5 text-sm font-bold tracking-wide text-foreground">
+              <img src="/sied-mark.svg?v=2" alt="" className="h-6 w-6 object-contain" />
+              <span>SIED</span>
             </div>
-            <h1 className="text-4xl font-black tracking-[0.1em] text-foreground">SIED</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sistema Integrado de Evidências e Dados</p>
-            <p className="mt-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/80">
-              DT Itabela · 23ª COORPIN
-            </p>
-          </div>
+            <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-primary/85 sm:text-[10px]">
+              Sistema institucional
+            </span>
+          </header>
 
-          <form onSubmit={handleSubmit} className="px-8 py-7 space-y-5">
-            <div className="space-y-2">
-              <Label
-                htmlFor="usuario"
-                className="text-xs tracking-wider uppercase text-muted-foreground font-semibold"
-              >
-                E-mail ou login
-              </Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="usuario"
-                  autoComplete="username"
-                  value={usuario}
-                  onChange={(e) => setUsuario(e.target.value)}
-                  placeholder="Digite seu e-mail ou login"
-                  className="h-12 border-primary/55 bg-background/45 pl-9 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
-                  required
+          <div className="grid min-h-[430px] items-center gap-10 py-8 lg:grid-cols-[minmax(0,1fr)_366px] lg:gap-16 lg:py-10">
+            <div className="hidden lg:block lg:pl-3">
+              <div className="relative mb-6 flex h-24 w-24 items-center justify-center">
+                <span
+                  aria-hidden="true"
+                  className="absolute -inset-5 rounded-full bg-primary/10 blur-2xl"
+                />
+                <img
+                  src="/sied-mark.svg?v=2"
+                  alt="Logo SIED"
+                  className="relative h-28 w-28 object-contain drop-shadow-[0_10px_18px_rgba(2,12,27,0.55)]"
                 />
               </div>
+              <h1 className="text-4xl font-black tracking-[0.08em] text-foreground">SIED</h1>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                Sistema Integrado de Evidências e Dados
+              </p>
+              <div className="mt-5 h-px w-10 bg-primary/70" />
+              <p className="mt-3 text-[10px] uppercase tracking-[0.12em] text-primary/85">
+                DT Itabela · 23ª COORPIN
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label
-                  htmlFor="senha"
-                  className="text-xs tracking-wider uppercase text-muted-foreground font-semibold"
+            <div className="rounded-xl border border-primary/45 bg-[#071521]/90 p-5 shadow-[0_16px_40px_rgba(0,0,0,0.28)] sm:p-6">
+              <div className="mb-6">
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-destructive">
+                  <Lock className="h-3 w-3" />
+                  Acesso restrito
+                </div>
+                <h2 className="mt-4 text-xl font-bold text-foreground">Bem-vindo de volta.</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Entre com suas credenciais.</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="usuario"
+                    className="text-xs tracking-wider uppercase text-muted-foreground font-semibold"
+                  >
+                    E-mail ou login
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="usuario"
+                      autoComplete="username"
+                      value={usuario}
+                      onChange={(e) => setUsuario(e.target.value)}
+                      placeholder="Digite seu e-mail ou login"
+                      className="h-11 border-primary/55 bg-background/55 pl-9 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="senha"
+                    className="text-xs tracking-wider uppercase text-muted-foreground font-semibold"
+                  >
+                    Senha
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="senha"
+                      type={showSenha ? "text" : "password"}
+                      autoComplete="current-password"
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
+                      placeholder="Digite sua senha"
+                      className="h-11 border-primary/55 bg-background/55 pl-9 pr-10 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSenha((v) => !v)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
+                      aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {postSignupMessage && (
+                  <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs text-primary">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{postSignupMessage}</span>
+                  </div>
+                )}
+
+                {erro && (
+                  <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>{erro}</span>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="h-11 w-full rounded-md bg-primary text-xs font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:bg-primary/90"
                 >
-                  Senha
-                </Label>
+                  {loading ? (
+                    "Verificando…"
+                  ) : (
+                    <>
+                      <LogIn className="h-4 w-4 mr-2" /> Entrar
+                    </>
+                  )}
+                </Button>
+
                 <a
                   href={PASSWORD_RECOVERY_WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] font-medium text-primary underline-offset-2 hover:underline"
+                  className="block text-center text-[11px] font-medium text-primary underline-offset-2 hover:underline"
                 >
-                  Recuperar senha
+                  Esqueceu sua senha?
                 </a>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="senha"
-                  type={showSenha ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="Digite sua senha"
-                  className="h-12 border-primary/55 bg-background/45 pl-9 pr-10 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSenha((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
-                  aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
-                >
-                  {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+
+                <p className="text-xs text-center">
+                  Não tem conta?{" "}
+                  <Link to="/criar-conta" className="underline">
+                    Criar conta
+                  </Link>
+                </p>
+              </form>
             </div>
-
-            {postSignupMessage && (
-              <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 text-xs text-primary">
-                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{postSignupMessage}</span>
-              </div>
-            )}
-
-            {erro && (
-              <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-xs text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{erro}</span>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="h-12 w-full rounded-md bg-primary text-xs font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:bg-primary/90"
-            >
-              {loading ? (
-                "Verificando…"
-              ) : (
-                <>
-                  <LogIn className="h-4 w-4 mr-2" /> Entrar
-                </>
-              )}
-            </Button>
-
-            <p className="text-center text-[10px] text-muted-foreground leading-relaxed">
-              Uso exclusivo de servidores autorizados.
-              <br />
-              Acessos são monitorados e registrados em auditoria.
-            </p>
-
-            <p className="text-xs text-center">
-              Não tem conta?{" "}
-              <Link to="/criar-conta" className="underline">
-                Criar conta
-              </Link>
-            </p>
-          </form>
-
-          <div className="border-t border-primary/20 px-8 py-3 text-center text-[10px] tracking-wider text-muted-foreground">
-            © 2026 Polícia Civil — Uso restrito a agentes autorizados
           </div>
-        </div>
+
+          <footer className="flex flex-col gap-2 border-t border-primary/20 pt-4 text-[10px] tracking-wide text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+            <span>© 2026 SIED · Uso autorizado</span>
+            <span className="flex items-center gap-1.5 text-primary/90">
+              <ShieldCheck className="h-3.5 w-3.5" /> Ambiente protegido
+            </span>
+          </footer>
+        </section>
       </div>
     </div>
   );
