@@ -4,13 +4,14 @@ interface Props {
   title: string;
   subtitle: string;
   showActions?: boolean;
+  accentClassName?: string;
 }
 
-export function PageHeader({ title, subtitle, showActions = true }: Props) {
+export function PageHeader({ title, subtitle, showActions = true, accentClassName }: Props) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-start gap-4 mb-6">
       <div className="flex items-start gap-3 flex-1">
-        <Activity className="h-7 w-7 text-primary mt-1" />
+        <Activity className={`mt-1 h-7 w-7 ${accentClassName ?? "text-primary"}`} />
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">{title}</h1>
           <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>

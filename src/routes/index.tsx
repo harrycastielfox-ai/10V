@@ -678,17 +678,18 @@ function Dashboard() {
           title="Painel de Controle"
           subtitle={`SIED — atualizado em ${updatedAtLabel || "—"}`}
           showActions={false}
+          accentClassName="text-[#2cddf6] drop-shadow-[0_0_8px_rgba(44,221,246,0.6)]"
         />
         <div
-          className="absolute right-1 top-0 hidden select-none items-center gap-2.5 text-success lg:flex"
+          className="absolute right-1 top-0 hidden select-none items-center gap-2.5 text-[#35ddf5] lg:flex"
           aria-label="SIED"
         >
           <img
             src="/sied-mark.svg?v=2"
             alt=""
-            className="h-11 w-11 object-contain drop-shadow-[0_0_7px_rgba(57,229,111,0.5)]"
+            className="h-11 w-11 object-contain drop-shadow-[0_0_10px_rgba(45,211,238,0.65)]"
           />
-          <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_8px_rgba(34,197,94,0.35)]">
+          <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_10px_rgba(45,211,238,0.48)]">
             SIED
           </span>
         </div>
