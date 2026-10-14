@@ -174,7 +174,7 @@ function PendingAuthorizationPage() {
         <div className="relative z-10 mx-auto flex w-fit items-center justify-center">
           <div className="pending-auth-orbit absolute h-44 w-44 rounded-full border border-primary/10 border-t-primary/45" />
           <img
-            src="/sied-mark.svg"
+            src="/sied-mark.svg?v=2"
             alt="Logo SIED"
             className="relative h-32 w-32 object-contain drop-shadow-[0_0_24px_rgba(34,197,94,0.18)]"
           />

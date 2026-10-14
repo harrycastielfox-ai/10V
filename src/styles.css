@@ -1372,7 +1372,7 @@ html[data-theme="light"] .sipi-bairro-name {
     inset: 0 !important;
     z-index: 0 !important;
     pointer-events: none !important;
-    background-image: url("/sied-mark.svg") !important;
+    background-image: url("/sied-mark.svg?v=2") !important;
     background-repeat: no-repeat !important;
     background-position: center 54% !important;
     background-size: min(150vw, 1080px) auto !important;

@@ -61,8 +61,8 @@ export const Route = createRootRoute({
       { property: "og:type", content: "website" },
     ],
     links: [
-      { rel: "icon", type: "image/svg+xml", href: "/sied-mark.svg?v=1" },
-      { rel: "apple-touch-icon", href: "/sied-mark.svg?v=original" },
+      { rel: "icon", type: "image/svg+xml", href: "/sied-mark.svg?v=2" },
+      { rel: "apple-touch-icon", href: "/sied-mark.svg?v=2" },
       { rel: "stylesheet", href: appCss },
     ],
   }),

@@ -83,7 +83,7 @@ export function SipiPrintSheet({
   return (
     <div className={`print-only sipi-print-sheet sipi-print-sheet-${variant}`} aria-hidden="true">
       <header className="sipi-print-masthead">
-        <img className="sipi-print-logo" src="/sied-mark.svg" alt="" />
+        <img className="sipi-print-logo" src="/sied-mark.svg?v=2" alt="" />
         <div className="sipi-print-heading">
           <p className="sipi-print-agency">Polícia Civil da Bahia</p>
           <h1>{documentTitle}</h1>

@@ -1,29 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">SIED</title>
-  <desc id="desc">Marca do Sistema Integrado de Evidências e Dados</desc>
+  <desc id="desc">Marca do Sistema Integrado de Evidências e Dados: escudo digital azul com núcleo de evidência</desc>
   <defs>
-    <linearGradient id="shield" x1="42" y1="25" x2="214" y2="232" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0A2942"/>
-      <stop offset=".54" stop-color="#0B5870"/>
-      <stop offset="1" stop-color="#06364C"/>
+    <linearGradient id="outer" x1="42" y1="16" x2="219" y2="244" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8BE4FF"/><stop offset=".42" stop-color="#42BDEB"/><stop offset="1" stop-color="#397BDE"/>
     </linearGradient>
-    <linearGradient id="core" x1="95" y1="69" x2="163" y2="177" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7DF3CD"/>
-      <stop offset="1" stop-color="#39AEE8"/>
+    <linearGradient id="shield" x1="71" y1="43" x2="189" y2="215" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#133F5C"/><stop offset=".56" stop-color="#0A263B"/><stop offset="1" stop-color="#071928"/>
     </linearGradient>
-    <filter id="glow" x="-35%" y="-35%" width="170%" height="170%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <linearGradient id="core" x1="105" y1="95" x2="151" y2="158" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C1F4FF"/><stop offset=".4" stop-color="#56D8FF"/><stop offset="1" stop-color="#2684E8"/>
+    </linearGradient>
+    <filter id="coreGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <clipPath id="shieldClip"><path d="M128 38 201 68v48c0 46-28 85-73 107-45-22-73-61-73-107V68l73-30Z"/></clipPath>
   </defs>
-  <path d="M128 14 217 50v63c0 55-34 100-89 129C73 213 39 168 39 113V50l89-36Z" fill="url(#shield)" stroke="#6EE7D3" stroke-width="7" stroke-linejoin="round"/>
-  <path d="M128 39v22M77 68l18 16M179 68l-18 16M66 126h25M190 126h-25M85 186l18-18M171 186l-18-18" fill="none" stroke="#5FDCC2" stroke-width="6" stroke-linecap="round" opacity=".78"/>
-  <circle cx="128" cy="61" r="6" fill="#8AF6D0"/>
-  <circle cx="95" cy="84" r="6" fill="#69DCEC"/>
-  <circle cx="161" cy="84" r="6" fill="#69DCEC"/>
-  <circle cx="91" cy="126" r="6" fill="#8AF6D0"/>
-  <circle cx="165" cy="126" r="6" fill="#8AF6D0"/>
-  <path d="m128 69 39 28-15 55-24 22-24-22-15-55 39-28Z" fill="#082435" stroke="url(#core)" stroke-width="6" stroke-linejoin="round"/>
-  <path d="m128 92 19 14-7 27-12 11-12-11-7-27 19-14Z" fill="url(#core)" filter="url(#glow)"/>
-  <path d="M117 119h22M128 108v22" stroke="#D7FFF2" stroke-width="5" stroke-linecap="round"/>
+  <path d="M128 12 222 51v67c0 57-35 103-94 132-59-29-94-75-94-132V51l94-39Z" fill="#071827"/>
+  <path d="M128 16 217 53v63c0 54-33 98-89 126-56-28-89-72-89-126V53l89-37Z" fill="url(#shield)" stroke="url(#outer)" stroke-width="8" stroke-linejoin="round"/>
+  <g clip-path="url(#shieldClip)" opacity=".22" stroke="#75DFFF" stroke-width="2">
+    <path d="M41 88h174M37 110h182M35 132h186M42 154h172"/><path d="M75 42v141M105 28v185M151 28v185M181 42v141"/>
+  </g>
+  <path d="M128 45v18M75 83l14 14M181 83l-14 14M62 130h22M194 130h-22M82 182l15-15M174 182l-15-15" fill="none" stroke="#63D4F5" stroke-width="6" stroke-linecap="round" opacity=".92"/>
+  <circle cx="128" cy="63" r="6" fill="#A6EDFF"/><circle cx="89" cy="97" r="6" fill="#67D9FF"/><circle cx="167" cy="97" r="6" fill="#67D9FF"/><circle cx="84" cy="130" r="6" fill="#67D9FF"/><circle cx="172" cy="130" r="6" fill="#67D9FF"/>
+  <path d="m128 76 47 35-18 65-29 27-29-27-18-65 47-35Z" fill="#081E31" stroke="#4CCBF1" stroke-width="7" stroke-linejoin="round"/>
+  <path d="m128 93 30 23-11 42-19 18-19-18-11-42 30-23Z" fill="url(#core)" filter="url(#coreGlow)"/>
+  <path d="M128 111v41M108 132h40" stroke="#E8FBFF" stroke-width="7" stroke-linecap="round"/>
+  <path d="M113 101h30M108 166h40" stroke="#B0EDFF" stroke-width="3" stroke-linecap="round" opacity=".9"/>
 </svg>

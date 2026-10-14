@@ -153,7 +153,7 @@ function CreateAccountPage() {
       >
         <header className="border-b border-border bg-gradient-to-b from-primary/8 to-transparent px-6 pb-5 pt-6 text-center sm:px-8">
           <img
-            src="/sied-mark.svg"
+            src="/sied-mark.svg?v=2"
             alt="Logo SIED"
             className="mx-auto mb-3 block h-[96px] w-auto object-contain"
           />

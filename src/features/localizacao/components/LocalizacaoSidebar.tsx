@@ -36,7 +36,7 @@ export function LocalizacaoSidebar({ profile }: { profile: UserProfile }) {
         >
           <span className="localizacao-sidebar-brand-icon sipi-brand-emblem sipi-brand-emblem-operational sipi-brand-emblem-desktop flex h-12 w-12 shrink-0 items-center justify-center">
             <img
-              src="/sied-mark.svg"
+              src="/sied-mark.svg?v=2"
               alt="Logo SIED"
               className="sipi-brand-emblem-image h-[92%] w-auto object-contain"
             />

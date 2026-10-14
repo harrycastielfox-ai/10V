@@ -28,7 +28,7 @@ export function VehiclesMobileNavigation({ profile }: { profile: UserProfile }) 
           >
             <span className="sipi-brand-emblem sipi-brand-emblem-info flex h-10 w-10 items-center justify-center">
               <img
-                src="/sied-mark.svg"
+                src="/sied-mark.svg?v=2"
                 alt=""
                 className="sipi-brand-emblem-image h-[92%] w-auto max-w-none object-contain"
               />

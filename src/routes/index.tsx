@@ -684,7 +684,7 @@ function Dashboard() {
           aria-label="SIED"
         >
           <img
-            src="/sied-mark.svg"
+            src="/sied-mark.svg?v=2"
             alt=""
             className="h-11 w-11 object-contain drop-shadow-[0_0_7px_rgba(57,229,111,0.5)]"
           />

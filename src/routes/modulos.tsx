@@ -198,7 +198,7 @@ function ModulosPage() {
           <div className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-xl border border-primary/30 bg-primary/10 p-1.5 shadow-[0_0_22px_rgba(45,212,191,0.15)]">
-                <img src="/sied-mark.svg" alt="Marca SIED" className="h-full w-full object-contain" />
+                <img src="/sied-mark.svg?v=2" alt="Marca SIED" className="h-full w-full object-contain" />
               </div>
             <div>
               <div className="text-sm font-bold tracking-wide">SIED</div>

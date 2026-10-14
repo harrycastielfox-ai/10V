@@ -167,7 +167,7 @@ function PostSignupWelcomeOverlay({ message }: { message: string }) {
         />
 
         <div className="relative z-10 mx-auto h-36 w-36 overflow-hidden drop-shadow-[0_0_30px_rgba(34,197,94,0.2)]">
-          <img src="/sied-mark.svg" alt="Logo SIED" className="h-full w-full object-contain" />
+          <img src="/sied-mark.svg?v=2" alt="Logo SIED" className="h-full w-full object-contain" />
         </div>
 
         <div
@@ -361,7 +361,7 @@ function LoginSplash() {
         <span className="login-splash-ring login-splash-ring-1 pointer-events-none absolute" />
         <span className="login-splash-ring login-splash-ring-2 pointer-events-none absolute" />
         <img
-          src="/sied-mark.svg"
+          src="/sied-mark.svg?v=2"
           alt="Polícia Civil"
           className="relative h-60 w-60 object-contain drop-shadow-[0_0_50px_rgba(34,197,94,0.5)] sm:h-80 sm:w-80"
         />
@@ -584,7 +584,7 @@ function LoginPage() {
                 className="pointer-events-none absolute inset-2 z-0 rounded-[1.35rem] border border-primary/20 bg-primary/5"
               />
               <img
-                src="/sied-mark.svg"
+                src="/sied-mark.svg?v=2"
                 alt="Logo SIED"
                 className="relative z-10 mx-auto h-[134px] w-auto object-contain drop-shadow-[0_12px_18px_rgba(2,12,27,0.72)]"
                 style={{ transform: "translateY(1px)" }}

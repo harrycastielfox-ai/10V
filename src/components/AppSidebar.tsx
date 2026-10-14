@@ -92,7 +92,7 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
         >
           <div className="sipi-brand-emblem sipi-brand-emblem-primary sipi-brand-emblem-desktop flex h-14 w-14 items-center justify-center">
             <img
-              src="/sied-mark.svg"
+              src="/sied-mark.svg?v=2"
               alt="Logo SIED"
               className="sipi-brand-emblem-image h-[92%] w-auto shrink-0 object-contain"
             />

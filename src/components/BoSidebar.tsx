@@ -27,7 +27,7 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
         >
           <span className="sipi-brand-emblem sipi-brand-emblem-bo sipi-brand-emblem-desktop flex h-14 w-14 shrink-0 items-center justify-center">
             <img
-              src="/sied-mark.svg"
+              src="/sied-mark.svg?v=2"
               alt="Logo SIED-B.O"
               className="sipi-brand-emblem-image h-[92%] w-auto object-contain"
             />
