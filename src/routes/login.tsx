@@ -566,25 +566,23 @@ function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-lg">
-        <div className="overflow-hidden rounded-[14px] border border-primary/70 bg-[#061521]/94 shadow-[0_24px_72px_rgba(0,0,0,0.48),0_0_32px_rgba(14,165,233,0.1)]">
-          <div className="border-b border-primary/15 px-8 pb-6 pt-9 text-center sm:px-10">
-            <div className="relative isolate mx-auto -mt-1 mb-5 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-4 z-0 rounded-[2rem] bg-primary/16 blur-2xl"
-              />
+        <div className="sied-login-card overflow-hidden rounded-[12px]">
+          <div className="px-8 pb-6 pt-10 text-center sm:px-10">
+            <div className="relative isolate mx-auto mb-5 flex h-[110px] w-[118px] items-center justify-center overflow-visible">
               <img
                 src="/sied-mark.svg?v=2"
                 alt="Logo SIED"
-                className="relative z-10 mx-auto h-[124px] w-auto object-contain drop-shadow-[0_12px_18px_rgba(2,12,27,0.72)]"
+                className="relative z-10 mx-auto h-[120px] w-auto object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.44)]"
                 style={{ transform: "translateY(1px)" }}
               />
             </div>
-            <h1 className="text-5xl font-black tracking-[0.1em] text-foreground">SIED</h1>
-            <p className="mt-2 text-base text-muted-foreground">
+            <h1 className="text-5xl font-black tracking-[0.1em] text-[#effaff] drop-shadow-[0_3px_8px_rgba(71,190,255,0.18)]">
+              SIED
+            </h1>
+            <p className="mt-2 text-base text-[#93bfd8]">
               Sistema Integrado de Evidências e Dados
             </p>
-            <p className="mt-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/80">
+            <p className="mt-1.5 text-[10px] uppercase tracking-wider text-[#6d98b2]">
               DT Itabela · 23ª COORPIN
             </p>
           </div>
@@ -595,14 +593,14 @@ function LoginPage() {
                 E-mail ou login
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8baec3]" />
                 <Input
                   id="usuario"
                   autoComplete="username"
                   value={usuario}
                   onChange={(e) => setUsuario(e.target.value)}
                   placeholder="E-mail ou login"
-                  className="h-14 rounded-md border-primary/65 bg-transparent pl-11 transition-colors placeholder:font-medium placeholder:uppercase placeholder:tracking-[0.12em] placeholder:text-muted-foreground/85 hover:border-primary/90 focus-visible:border-primary focus-visible:ring-primary"
+                  className="sied-login-control h-14 rounded-md pl-11 transition-colors placeholder:font-medium placeholder:uppercase placeholder:tracking-[0.12em] focus-visible:ring-primary"
                   required
                 />
               </div>
@@ -623,7 +621,7 @@ function LoginPage() {
                 </a>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#8baec3]" />
                 <Input
                   id="senha"
                   type={showSenha ? "text" : "password"}
@@ -631,13 +629,13 @@ function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="Senha"
-                  className="h-14 rounded-md border-primary/65 bg-transparent pl-11 pr-10 transition-colors placeholder:font-medium placeholder:uppercase placeholder:tracking-[0.12em] placeholder:text-muted-foreground/85 hover:border-primary/90 focus-visible:border-primary focus-visible:ring-primary"
+                  className="sied-login-control h-14 rounded-md pl-11 pr-10 transition-colors placeholder:font-medium placeholder:uppercase placeholder:tracking-[0.12em] focus-visible:ring-primary"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowSenha((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-muted-foreground hover:text-foreground rounded transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-[#8baec3] transition-colors hover:text-[#effaff]"
                   aria-label={showSenha ? "Ocultar senha" : "Mostrar senha"}
                 >
                   {showSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -662,7 +660,7 @@ function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="h-14 w-full rounded-md bg-primary text-sm font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:bg-primary/90"
+              className="sied-login-action h-14 w-full rounded-md text-sm font-black uppercase tracking-[0.18em] hover:brightness-105"
             >
               {loading ? (
                 "Verificando…"
@@ -673,7 +671,7 @@ function LoginPage() {
               )}
             </Button>
 
-            <p className="text-center text-[10px] text-muted-foreground leading-relaxed">
+            <p className="text-center text-[10px] leading-relaxed text-[#7ca6bd]">
               Uso exclusivo de servidores autorizados.
               <br />
               Acessos são monitorados e registrados em auditoria.
@@ -687,7 +685,7 @@ function LoginPage() {
             </p>
           </form>
 
-          <div className="border-t border-primary/20 px-8 py-3 text-center text-[10px] tracking-wider text-muted-foreground">
+          <div className="border-t border-[#15425e]/60 px-8 py-3 text-center text-[10px] tracking-wider text-[#7199af]">
             © 2026 Polícia Civil — Uso restrito a agentes autorizados
           </div>
         </div>

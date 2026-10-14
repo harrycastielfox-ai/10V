@@ -48,6 +48,37 @@
     linear-gradient(145deg, oklch(0.13 0.024 225), oklch(0.145 0.014 235) 48%, oklch(0.11 0.02 230));
 }
 
+/* Cartao de credenciais: paleta fixa da identidade SIED, sem depender do tema
+   escolhido para os modulos autenticados. */
+.sied-login-card {
+  background: linear-gradient(180deg, #02121f 0%, #000d18 56%, #000a13 100%);
+  border: 1px solid rgba(16, 177, 229, 0.72);
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(105, 222, 255, 0.08);
+}
+
+.sied-login-control {
+  background: #000c16 !important;
+  border-color: #154a68 !important;
+  color: #effaff !important;
+}
+
+.sied-login-control::placeholder {
+  color: #8baec3 !important;
+}
+
+.sied-login-control:hover,
+.sied-login-control:focus-visible {
+  border-color: #24c7f5 !important;
+}
+
+.sied-login-action {
+  background: linear-gradient(180deg, #23e5fc 0%, #1dd8ef 100%) !important;
+  color: #00111d !important;
+  box-shadow: 0 8px 20px rgba(29, 224, 243, 0.14) !important;
+}
+
 .sipi-brand-emblem {
   --sipi-emblem-glow: var(--primary);
   background: transparent !important;
