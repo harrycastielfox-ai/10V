@@ -565,16 +565,10 @@ function LoginPage() {
         <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-success/20 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md">
-        <div className="mb-4 flex items-center justify-center gap-2 text-[10px] tracking-[0.25em] font-bold text-destructive">
-          <span className="h-px w-8 bg-destructive/50" />
-          ACESSO RESTRITO
-          <span className="h-px w-8 bg-destructive/50" />
-        </div>
-
-        <div className="overflow-hidden rounded-[18px] border border-primary/60 bg-card/95 shadow-[0_24px_72px_rgba(0,0,0,0.48),0_0_32px_rgba(14,165,233,0.1)]">
-          <div className="px-8 pb-7 pt-9 text-center">
-            <div className="relative isolate mx-auto -mt-2 mb-5 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
+      <div className="relative w-full max-w-lg">
+        <div className="overflow-hidden rounded-[14px] border border-primary/70 bg-[#061521]/94 shadow-[0_24px_72px_rgba(0,0,0,0.48),0_0_32px_rgba(14,165,233,0.1)]">
+          <div className="border-b border-primary/15 px-8 pb-6 pt-9 text-center sm:px-10">
+            <div className="relative isolate mx-auto -mt-1 mb-5 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute -inset-4 z-0 rounded-[2rem] bg-primary/16 blur-2xl"
@@ -582,23 +576,22 @@ function LoginPage() {
               <img
                 src="/sied-mark.svg?v=2"
                 alt="Logo SIED"
-                className="relative z-10 mx-auto h-[134px] w-auto object-contain drop-shadow-[0_12px_18px_rgba(2,12,27,0.72)]"
+                className="relative z-10 mx-auto h-[124px] w-auto object-contain drop-shadow-[0_12px_18px_rgba(2,12,27,0.72)]"
                 style={{ transform: "translateY(1px)" }}
               />
             </div>
-            <h1 className="text-4xl font-black tracking-[0.1em] text-foreground">SIED</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Sistema Integrado de Evidências e Dados</p>
+            <h1 className="text-5xl font-black tracking-[0.1em] text-foreground">SIED</h1>
+            <p className="mt-2 text-base text-muted-foreground">
+              Sistema Integrado de Evidências e Dados
+            </p>
             <p className="mt-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/80">
               DT Itabela · 23ª COORPIN
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="px-8 py-7 space-y-5">
+          <form onSubmit={handleSubmit} className="px-8 py-7 space-y-5 sm:px-10">
             <div className="space-y-2">
-              <Label
-                htmlFor="usuario"
-                className="text-xs tracking-wider uppercase text-muted-foreground font-semibold"
-              >
+              <Label htmlFor="usuario" className="sr-only">
                 E-mail ou login
               </Label>
               <div className="relative">
@@ -608,8 +601,8 @@ function LoginPage() {
                   autoComplete="username"
                   value={usuario}
                   onChange={(e) => setUsuario(e.target.value)}
-                  placeholder="Digite seu e-mail ou login"
-                  className="h-12 border-primary/55 bg-background/45 pl-9 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
+                  placeholder="E-mail ou login"
+                  className="h-14 rounded-md border-primary/65 bg-transparent pl-11 transition-colors placeholder:font-medium placeholder:uppercase placeholder:tracking-[0.12em] placeholder:text-muted-foreground/85 hover:border-primary/90 focus-visible:border-primary focus-visible:ring-primary"
                   required
                 />
               </div>
@@ -617,10 +610,7 @@ function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <Label
-                  htmlFor="senha"
-                  className="text-xs tracking-wider uppercase text-muted-foreground font-semibold"
-                >
+                <Label htmlFor="senha" className="sr-only">
                   Senha
                 </Label>
                 <a
@@ -640,8 +630,8 @@ function LoginPage() {
                   autoComplete="current-password"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  placeholder="Digite sua senha"
-                  className="h-12 border-primary/55 bg-background/45 pl-9 pr-10 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
+                  placeholder="Senha"
+                  className="h-14 rounded-md border-primary/65 bg-transparent pl-11 pr-10 transition-colors placeholder:font-medium placeholder:uppercase placeholder:tracking-[0.12em] placeholder:text-muted-foreground/85 hover:border-primary/90 focus-visible:border-primary focus-visible:ring-primary"
                   required
                 />
                 <button
@@ -672,7 +662,7 @@ function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="h-12 w-full rounded-md bg-primary text-xs font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:bg-primary/90"
+              className="h-14 w-full rounded-md bg-primary text-sm font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:bg-primary/90"
             >
               {loading ? (
                 "Verificando…"
