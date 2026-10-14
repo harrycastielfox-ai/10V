@@ -671,12 +671,14 @@ function Dashboard() {
   return (
     <AppLayout>
       <div className="relative">
-        <PageHeader
-          title="Painel de Controle"
-          subtitle="SIED — Procedimentos Policiais"
-          showActions={false}
-          accentClassName="text-[#2cddf6] drop-shadow-[0_0_8px_rgba(44,221,246,0.6)]"
-        />
+        <div className="pt-1">
+          <PageHeader
+            title="Painel de Controle"
+            subtitle="SIED — Procedimentos Policiais"
+            showActions={false}
+            accentClassName="text-[#2cddf6] drop-shadow-[0_0_8px_rgba(44,221,246,0.6)]"
+          />
+        </div>
         <div
           className="absolute -top-3 right-1 hidden select-none items-center gap-3 text-[#35ddf5] lg:flex"
           aria-label="SIED"
