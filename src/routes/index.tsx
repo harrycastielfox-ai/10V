@@ -680,10 +680,10 @@ function Dashboard() {
           />
         </div>
         <div
-          className="absolute -top-3 right-1 hidden select-none items-center gap-3 text-[#35ddf5] lg:flex"
+          className="absolute -top-2 right-1 hidden select-none items-center gap-3 text-[#35ddf5] lg:flex"
           aria-label="SIED"
         >
-          <span className="flex h-14 w-10 items-center justify-center" aria-hidden="true">
+          <span className="flex h-12 w-9 items-center justify-center" aria-hidden="true">
             <img
               src="/sied-core-mark.svg?v=1"
               alt=""
