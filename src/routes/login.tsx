@@ -615,6 +615,10 @@ function LoginPage() {
         <div className="sied-login-card overflow-hidden rounded-[12px]">
           <div className="px-8 pb-6 pt-10 text-center sm:px-10">
             <div className="relative isolate mx-auto mb-5 flex h-[110px] w-[118px] items-center justify-center overflow-visible">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute z-0 h-10 w-10 rounded-full bg-[#3be7ff]/55 blur-xl"
+              />
               <img
                 src="/sied-mark.svg?v=2"
                 alt="Logo SIED"
