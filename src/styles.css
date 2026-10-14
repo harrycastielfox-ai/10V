@@ -37,6 +37,39 @@
   --ring: oklch(0.78 0.18 152);
 }
 
+/* Faixa institucional do painel: colore apenas o cabecalho, sem alterar os
+   indicadores e cartoes operacionais abaixo. */
+.app-layout-inqueritos > main {
+  position: relative;
+}
+
+.app-layout-inqueritos > main::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: 106px;
+  content: "";
+  border-bottom: 1px solid rgba(45, 211, 238, 0.7);
+  background:
+    radial-gradient(circle at 70% -30%, rgba(34, 211, 238, 0.18), transparent 42%),
+    linear-gradient(105deg, #082f49 0%, #063451 52%, #08263d 100%);
+  box-shadow: inset 0 -1px 0 rgba(153, 246, 255, 0.08);
+}
+
+.app-layout-inqueritos > main > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app-layout-inqueritos > aside > div:first-child {
+  border-bottom-color: rgba(45, 211, 238, 0.7);
+  background:
+    radial-gradient(circle at 18% -45%, rgba(34, 211, 238, 0.24), transparent 62%),
+    linear-gradient(135deg, #08334f, #06253b);
+}
+
 .sied-brand-line {
   position: relative;
   overflow: hidden;
