@@ -30,8 +30,7 @@ import {
   registerOwnAccessContext,
 } from "@/lib/accessContext";
 
-const LOGIN_SPLASH_KEY = "sipi:login-splash-shown";
-const LOGIN_SPLASH_DURATION_MS = 2200;
+const LOGIN_SPLASH_DURATION_MS = 4000;
 
 const POST_SIGNUP_LOGIN_KEY = "sipi:post-signup-login";
 const POST_SIGNUP_MESSAGE =
@@ -205,28 +204,25 @@ function PostSignupWelcomeOverlay({ message }: { message: string }) {
   );
 }
 
-function LoginSplash() {
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === "undefined") return false;
-    if (sessionStorage.getItem(LOGIN_SPLASH_KEY)) return false;
-
-    sessionStorage.setItem(LOGIN_SPLASH_KEY, "1");
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-    return true;
-  });
+function LoginSplash({ active }: { active: boolean }) {
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!active || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVisible(false);
+      return;
+    }
+
+    setVisible(true);
     const timeoutId = window.setTimeout(() => setVisible(false), LOGIN_SPLASH_DURATION_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [visible]);
+  }, [active]);
 
   if (!visible) return null;
 
   return (
     <div
-      className="login-splash pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-background/75 backdrop-blur-2xl"
+      className="login-splash pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-[#020b13]/72 px-6 backdrop-blur-xl"
       aria-hidden="true"
     >
       <style>{`
@@ -255,16 +251,31 @@ function LoginSplash() {
 
         .login-splash-ring-1 {
           inset: -16%;
-          border: 2px solid rgba(250, 204, 21, 0.75);
-          box-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
+          border: 2px solid rgba(233, 253, 255, 0.9);
+          box-shadow: 0 0 16px rgba(235, 253, 255, 0.42), 0 0 34px rgba(31, 218, 248, 0.24);
           animation: loginSplashRing1 ${LOGIN_SPLASH_DURATION_MS}ms ease forwards;
         }
 
         .login-splash-ring-2 {
           inset: -32%;
-          border: 1.5px solid rgba(234, 179, 8, 0.55);
+          border: 1.5px solid rgba(43, 218, 247, 0.56);
+          box-shadow: 0 0 22px rgba(31, 218, 248, 0.1);
           animation: loginSplashRing2 ${LOGIN_SPLASH_DURATION_MS}ms ease forwards;
         }
+
+        .login-splash-copy {
+          animation: loginSplashCopy ${LOGIN_SPLASH_DURATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        .login-splash-word span {
+          display: inline-block;
+          animation: loginSplashLetter 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .login-splash-word span:nth-child(1) { animation-delay: 450ms; }
+        .login-splash-word span:nth-child(2) { animation-delay: 540ms; }
+        .login-splash-word span:nth-child(3) { animation-delay: 630ms; }
+        .login-splash-word span:nth-child(4) { animation-delay: 720ms; }
 
         @keyframes loginSplashRing1 {
           0% {
@@ -313,12 +324,12 @@ function LoginSplash() {
             transform: scale(1);
             opacity: 1;
           }
-          70% {
+          76% {
             transform: scale(1) translateY(0);
             opacity: 1;
           }
           100% {
-            transform: scale(0.22) translateY(-32vh);
+            transform: scale(0.72) translateY(-18px);
             opacity: 0;
           }
         }
@@ -330,7 +341,7 @@ function LoginSplash() {
           30% {
             opacity: 0.9;
           }
-          70% {
+          76% {
             opacity: 0.55;
           }
           100% {
@@ -339,11 +350,39 @@ function LoginSplash() {
         }
 
         @keyframes loginSplashBackdrop {
-          0%, 68% {
+          0%, 78% {
             opacity: 1;
           }
           100% {
             opacity: 0;
+          }
+        }
+
+        @keyframes loginSplashCopy {
+          0%, 18% {
+            opacity: 0;
+            transform: translateX(16px);
+          }
+          34%, 76% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(8px);
+          }
+        }
+
+        @keyframes loginSplashLetter {
+          from {
+            opacity: 0;
+            transform: translateY(14px);
+            filter: blur(5px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
           }
         }
 
@@ -352,21 +391,40 @@ function LoginSplash() {
           .login-splash-badge,
           .login-splash-glow,
           .login-splash-ring-1,
-          .login-splash-ring-2 {
+          .login-splash-ring-2,
+          .login-splash-copy,
+          .login-splash-word span {
             animation: none;
           }
         }
       `}</style>
 
-      <div className="login-splash-badge relative">
-        <span className="login-splash-glow pointer-events-none absolute inset-0 rounded-full blur-3xl" />
-        <span className="login-splash-ring login-splash-ring-1 pointer-events-none absolute" />
-        <span className="login-splash-ring login-splash-ring-2 pointer-events-none absolute" />
-        <img
-          src="/sied-mark.svg?v=3"
-          alt="Polícia Civil"
-          className="relative h-60 w-60 object-contain drop-shadow-[0_0_50px_rgba(34,197,94,0.5)] sm:h-80 sm:w-80"
-        />
+      <div className="relative flex max-w-4xl flex-col items-center gap-10 sm:flex-row sm:gap-14">
+        <div className="login-splash-badge relative shrink-0">
+          <span className="login-splash-glow pointer-events-none absolute inset-0 rounded-full blur-3xl" />
+          <span className="login-splash-ring login-splash-ring-1 pointer-events-none absolute" />
+          <span className="login-splash-ring login-splash-ring-2 pointer-events-none absolute" />
+          <img
+            src="/sied-mark.svg?v=3"
+            alt="Logo SIED"
+            className="relative h-52 w-52 object-contain drop-shadow-[0_0_42px_rgba(52,221,248,0.42)] sm:h-64 sm:w-64"
+          />
+        </div>
+        <div className="login-splash-copy text-center sm:text-left">
+          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#71dff7]">
+            Identidade institucional
+          </p>
+          <h2 className="login-splash-word mt-3 text-5xl font-black tracking-[0.14em] text-[#effcff] drop-shadow-[0_0_16px_rgba(214,251,255,0.22)] sm:text-6xl">
+            <span>S</span><span>I</span><span>E</span><span>D</span>
+          </h2>
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#9ac7da]">
+            Sistema Integrado de Evidências e Dados
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-3 sm:justify-start">
+            <span className="h-px w-9 bg-[#45dff7]/70" />
+            <span className="text-[10px] uppercase tracking-[0.17em] text-[#70abc3]">Inicializando ambiente seguro</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -380,6 +438,7 @@ function LoginPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [postSignupMessage, setPostSignupMessage] = useState<string | null>(null);
   const [showSignupWelcome, setShowSignupWelcome] = useState(false);
+  const [showLoginSplash, setShowLoginSplash] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -400,7 +459,10 @@ function LoginPage() {
     void (async () => {
       try {
         const session = await getSession();
-        if (!session) return;
+        if (!session) {
+          setShowLoginSplash(true);
+          return;
+        }
         const profile = await getCurrentProfileWithRetry();
         if (!profile) return;
 
@@ -559,7 +621,7 @@ function LoginPage() {
       {showSignupWelcome ? (
         <PostSignupWelcomeOverlay message={postSignupMessage ?? POST_SIGNUP_MESSAGE} />
       ) : (
-        <LoginSplash />
+        <LoginSplash active={showLoginSplash} />
       )}
 
       <div className="pointer-events-none absolute inset-0 opacity-60">
