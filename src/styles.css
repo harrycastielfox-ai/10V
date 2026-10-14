@@ -15,6 +15,39 @@
   box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 38%, transparent);
 }
 
+/* A autenticação é uma fronteira visual do sistema. Ela não deve herdar a
+   preferência de aparência escolhida depois do login, para evitar contraste
+   variável em credenciais, avisos de acesso restrito e recuperação de senha. */
+.sied-login-shell {
+  color-scheme: dark;
+  --background: oklch(0.145 0.014 235);
+  --foreground: oklch(0.975 0.008 215);
+  --card: oklch(0.19 0.016 230);
+  --card-foreground: oklch(0.975 0.008 215);
+  --popover: oklch(0.19 0.016 230);
+  --popover-foreground: oklch(0.975 0.008 215);
+  --primary: oklch(0.79 0.15 165);
+  --primary-foreground: oklch(0.16 0.018 225);
+  --secondary: oklch(0.245 0.018 230);
+  --secondary-foreground: oklch(0.95 0.012 215);
+  --muted: oklch(0.225 0.016 230);
+  --muted-foreground: oklch(0.71 0.026 220);
+  --accent: oklch(0.275 0.025 225);
+  --accent-foreground: oklch(0.975 0.008 215);
+  --destructive: oklch(0.69 0.2 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.79 0.15 165);
+  --warning: oklch(0.84 0.16 85);
+  --info: oklch(0.74 0.14 220);
+  --border: oklch(0.32 0.026 220);
+  --input: oklch(0.29 0.024 222);
+  --ring: oklch(0.79 0.15 165);
+  background-image:
+    radial-gradient(circle at 8% 8%, oklch(0.4 0.08 175 / 0.2), transparent 31%),
+    radial-gradient(circle at 92% 88%, oklch(0.4 0.08 220 / 0.18), transparent 28%),
+    linear-gradient(145deg, oklch(0.13 0.024 225), oklch(0.145 0.014 235) 48%, oklch(0.11 0.02 230));
+}
+
 .sipi-brand-emblem {
   --sipi-emblem-glow: var(--primary);
   background: transparent !important;

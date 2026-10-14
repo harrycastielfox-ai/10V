@@ -472,7 +472,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background px-4 py-10 relative overflow-hidden">
+    <div className="sied-login-shell relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-background px-4 py-10">
       <style>{`
         .sipi-logo-sheen {
           transform: translateX(-180%) skewX(-18deg);
