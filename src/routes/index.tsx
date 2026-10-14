@@ -721,8 +721,7 @@ function Dashboard() {
           <StatCard
             label="CONCLUÍDOS"
             value={finalizados}
-            hint={`${taxaConclusao}% taxa atual`}
-            secondaryHint="Relatórios enviados"
+            hint="Relatórios enviados"
             icon={CheckCircle2}
             tone="primary"
             onClick={() => goTo("/inqueritos", { relatorio: "enviado" })}
