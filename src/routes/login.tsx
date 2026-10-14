@@ -9,6 +9,8 @@ import {
   AlertCircle,
   CheckCircle2,
   ShieldCheck,
+  FileText,
+  Database,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -689,6 +691,35 @@ function LoginPage() {
             © 2026 Polícia Civil — Uso restrito a agentes autorizados
           </div>
         </div>
+
+        <aside
+          aria-label="Garantias da plataforma"
+          className="sied-login-trust-rail absolute left-[calc(100%+3rem)] top-1/2 hidden w-64 -translate-y-1/2 xl:block"
+        >
+          <div className="space-y-5">
+            <div className="sied-login-trust-item">
+              <ShieldCheck className="h-8 w-8 shrink-0 text-[#20d8f2]" aria-hidden="true" />
+              <div>
+                <p>Conexão segura</p>
+                <span />
+              </div>
+            </div>
+            <div className="sied-login-trust-item">
+              <FileText className="h-8 w-8 shrink-0 text-[#20d8f2]" aria-hidden="true" />
+              <div>
+                <p>Acesso auditado</p>
+                <span />
+              </div>
+            </div>
+            <div className="sied-login-trust-item">
+              <Database className="h-8 w-8 shrink-0 text-[#20d8f2]" aria-hidden="true" />
+              <div>
+                <p>Dados institucionais</p>
+                <span />
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
