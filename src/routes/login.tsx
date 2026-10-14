@@ -570,9 +570,9 @@ function LoginPage() {
       <div className="relative w-full max-w-lg">
         <aside
           aria-hidden="true"
-          className="sied-login-network absolute right-[calc(100%+4rem)] top-1/2 hidden w-[390px] -translate-y-1/2 min-[1400px]:block"
+          className="sied-login-network absolute right-[calc(100%+4rem)] top-1/2 hidden w-[540px] -translate-y-1/2 min-[1400px]:block"
         >
-          <svg viewBox="0 0 390 610" role="presentation" className="h-auto w-full">
+          <svg viewBox="-150 0 540 610" role="presentation" className="h-auto w-full">
             <defs>
               <linearGradient id="sied-network-gradient" x1="0" x2="1" y1="0" y2="1">
                 <stop offset="0" stopColor="#0d6f96" stopOpacity="0.08" />
@@ -588,7 +588,7 @@ function LoginPage() {
               </filter>
             </defs>
             <path
-              d="M24 418 C72 364 72 248 138 220 S232 250 280 164 S330 80 378 52"
+              d="M-130 610 L24 418 C72 364 72 248 138 220 S232 250 280 164 S330 80 378 52"
               className="sied-network-path"
             />
             <path
@@ -604,7 +604,7 @@ function LoginPage() {
               className="sied-network-path sied-network-path-muted"
             />
             <path
-              d="M24 418 C72 364 72 248 138 220 S232 250 280 164 S330 80 378 52"
+              d="M-130 610 L24 418 C72 364 72 248 138 220 S232 250 280 164 S330 80 378 52"
               className="sied-network-flow"
               filter="url(#sied-network-glow)"
             />
