@@ -568,6 +568,50 @@ function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-lg">
+        <aside
+          aria-hidden="true"
+          className="sied-login-network absolute right-[calc(100%+4rem)] top-1/2 hidden w-[360px] -translate-y-1/2 min-[1400px]:block"
+        >
+          <svg viewBox="0 0 360 430" role="presentation" className="h-auto w-full">
+            <defs>
+              <linearGradient id="sied-network-gradient" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0" stopColor="#0d6f96" stopOpacity="0.08" />
+                <stop offset="0.5" stopColor="#24dff6" stopOpacity="0.7" />
+                <stop offset="1" stopColor="#0d6f96" stopOpacity="0.08" />
+              </linearGradient>
+              <filter id="sied-network-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2.2" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <path
+              d="M24 338 C72 292 72 200 138 178 S232 208 280 138 S320 66 348 44"
+              className="sied-network-path"
+            />
+            <path
+              d="M2 282 C64 254 100 300 160 276 S236 224 344 246"
+              className="sied-network-path sied-network-path-muted"
+            />
+            <path
+              d="M66 408 C86 350 148 354 187 304 S242 268 314 298"
+              className="sied-network-path sied-network-path-muted"
+            />
+            <path
+              d="M24 338 C72 292 72 200 138 178 S232 208 280 138 S320 66 348 44"
+              className="sied-network-flow"
+              filter="url(#sied-network-glow)"
+            />
+            <circle cx="24" cy="338" r="4" className="sied-network-node" />
+            <circle cx="138" cy="178" r="5" className="sied-network-node sied-network-node-delay" />
+            <circle cx="280" cy="138" r="4" className="sied-network-node sied-network-node-slow" />
+            <circle cx="160" cy="276" r="3" className="sied-network-node sied-network-node-slow" />
+            <circle cx="314" cy="298" r="3" className="sied-network-node sied-network-node-delay" />
+          </svg>
+        </aside>
+
         <div className="sied-login-card overflow-hidden rounded-[12px]">
           <div className="px-8 pb-6 pt-10 text-center sm:px-10">
             <div className="relative isolate mx-auto mb-5 flex h-[110px] w-[118px] items-center justify-center overflow-visible">

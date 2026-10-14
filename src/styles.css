@@ -153,6 +153,75 @@
   opacity: 0.86;
 }
 
+/* Rede de evidencias no espaco lateral do acesso. O movimento e lento e
+   ornamental; usuarios que preferem menos movimento recebem a versao fixa. */
+.sied-login-network {
+  pointer-events: none;
+  opacity: 0.72;
+}
+
+.sied-network-path {
+  fill: none;
+  stroke: url(#sied-network-gradient);
+  stroke-width: 1;
+}
+
+.sied-network-path-muted {
+  opacity: 0.42;
+}
+
+.sied-network-flow {
+  fill: none;
+  stroke: #35dff5;
+  stroke-dasharray: 2 24;
+  stroke-linecap: round;
+  stroke-width: 1.35;
+  animation: sied-network-flow 9s linear infinite;
+}
+
+.sied-network-node {
+  fill: #35dff5;
+  opacity: 0.52;
+  filter: drop-shadow(0 0 5px rgba(53, 223, 245, 0.68));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sied-network-node 4.8s ease-in-out infinite;
+}
+
+.sied-network-node-delay {
+  animation-delay: -1.6s;
+}
+
+.sied-network-node-slow {
+  animation-delay: -3.1s;
+  animation-duration: 6.4s;
+}
+
+@keyframes sied-network-flow {
+  to {
+    stroke-dashoffset: -130;
+  }
+}
+
+@keyframes sied-network-node {
+  0%,
+  100% {
+    opacity: 0.26;
+    transform: scale(0.76);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sied-network-flow,
+  .sied-network-node {
+    animation: none;
+  }
+}
+
 .sipi-brand-emblem {
   --sipi-emblem-glow: var(--primary);
   background: transparent !important;
