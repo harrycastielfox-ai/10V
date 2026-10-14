@@ -24,11 +24,10 @@ const BO_APP = Object.freeze({
    */
   HEADERS: Object.freeze([
     "Nº B.O.",
-    "INFRAÇÃO PENAL",
+    "INFRAÇÂO PENAL",
     "DILIGÊNCIAS PENDENTES",
-    "RESPONSÁVEL PELO PROCEDIMENTO",
-    "OBSERVAÇÃO",
-    "STATUS",
+    "RESPONSAVEL PELO PROCEDIMENTO",
+    "OBSERVAÇÂO",
   ]),
 
   /** Sem estas duas não há registro que se sustente. */
@@ -44,7 +43,7 @@ const BO_APP = Object.freeze({
     "Suspensa",
     "Aguardando Aprovação/Revisão",
   ]),
-  DEFAULT_STATUS: "Pendente",
+  DEFAULT_STATUS: "Pendente", // compatibilidade com telas antigas; nao existe coluna STATUS na aba atual.
   DATA_ROW_HEIGHT: 28,
   MAX_RESULTS: 100,
 });
@@ -378,7 +377,7 @@ function validarDadosBo_(dados) {
     linha: fonte.linha ? Number(fonte.linha) : null,
     token: String(fonte.token || ""),
     numero: limparCampo_(fonte.numero, 120),
-    status: validarStatus_(fonte.status),
+    status: BO_APP.DEFAULT_STATUS,
     infracao: limparCampo_(fonte.infracao, 1000),
     diligencias: limparCampo_(fonte.diligencias, 5000),
     responsavel: limparCampo_(fonte.responsavel, 300),
@@ -468,7 +467,6 @@ function gerarToken_(registro) {
   const conteudo = [
     registro.linha,
     registro.numero,
-    registro.status,
     registro.infracao,
     registro.diligencias,
     registro.responsavel,

@@ -531,7 +531,6 @@
       function filtrosBusca() {
         return {
           numero: valor("busca-numero"),
-          status: valor("busca-status"),
           infracao: valor("busca-infracao"),
           diligencias: valor("busca-diligencias"),
           responsavel: valor("busca-responsavel"),
@@ -621,7 +620,6 @@
 
       function preencherFormulario(registro) {
         definir("form-numero", registro.numero);
-        definir("form-status", registro.status || "Pendente");
         definir("form-infracao", registro.infracao);
         definir("form-diligencias", registro.diligencias);
         definirResponsavel(registro.responsavel);
@@ -633,7 +631,7 @@
           linha: registroAtual && registroAtual.linha,
           token: registroAtual && registroAtual.token,
           numero: valor("form-numero"),
-          status: valor("form-status"),
+          status: "Pendente",
           infracao: valor("form-infracao"),
           diligencias: valor("form-diligencias"),
           responsavel: valor("form-responsavel"),
@@ -670,9 +668,6 @@
         ocultar("formulario");
         mostrar("ficha");
         texto("ficha-numero", `B.O. ${registro.numero}`);
-        const statusFicha = document.getElementById("ficha-status");
-        statusFicha.textContent = registro.status || "Pendente";
-        statusFicha.className = `status-chip ${statusClasse(registro.status)}`;
         texto("ficha-infracao", registro.infracao || "—");
         texto("ficha-diligencias", registro.diligencias || "Nenhuma diligência informada.");
         texto("ficha-responsavel", registro.responsavel || "Não informado.");
@@ -732,7 +727,7 @@
       }
 
       function limparBusca() {
-        ["busca-numero", "busca-status", "busca-infracao", "busca-diligencias", "busca-responsavel", "busca-observacao"]
+        ["busca-numero", "busca-infracao", "busca-diligencias", "busca-responsavel", "busca-observacao"]
           .forEach((id) => definir(id, ""));
         resultadosAtuais = [];
         ocultar("resultados");
