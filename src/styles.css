@@ -38,8 +38,45 @@
 }
 
 .sied-brand-line {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(90deg, transparent, var(--primary), var(--info), transparent);
   box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 38%, transparent);
+}
+
+.sied-brand-line::after {
+  position: absolute;
+  inset: 0;
+  width: 46%;
+  content: "";
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #f43f5e 18%,
+    #facc15 34%,
+    #4ade80 50%,
+    #22d3ee 66%,
+    #818cf8 82%,
+    transparent 100%
+  );
+  filter: saturate(1.18) brightness(1.18);
+  animation: sied-brand-spectrum 4.8s linear infinite;
+}
+
+@keyframes sied-brand-spectrum {
+  from {
+    transform: translateX(-230%);
+  }
+  to {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sied-brand-line::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 /* A autenticação é uma fronteira visual do sistema. Ela não deve herdar a
