@@ -579,10 +579,6 @@ function LoginPage() {
                 aria-hidden="true"
                 className="pointer-events-none absolute -inset-4 z-0 rounded-[2rem] bg-primary/16 blur-2xl"
               />
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-2 z-0 rounded-[1.35rem] border border-primary/20 bg-primary/5"
-              />
               <img
                 src="/sied-mark.svg?v=2"
                 alt="Logo SIED"
