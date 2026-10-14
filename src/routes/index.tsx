@@ -650,7 +650,7 @@ function Dashboard() {
   }, [inqueritos]);
   const TOP_BAIRROS = useMemo(() => POR_BAIRRO.slice(0, DASHBOARD_LOCALIDADE_LIMIT), [POR_BAIRRO]);
   const panelFxClass =
-    "rounded-xl transition-all duration-300 border border-border/70 hover:border-success/55 hover:shadow-[0_0_0_1px_rgba(34,197,94,0.25),0_14px_28px_-22px_rgba(34,197,94,0.75)]";
+    "rounded-xl transition-all duration-300 border border-border/70 hover:border-success/55 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.25),0_14px_28px_-22px_rgba(34,211,238,0.75)]";
   const kpiFxClass = "h-full rounded-xl";
   const interactiveItemClass =
     "rounded-md px-1.5 py-1 transition-colors duration-200 hover:bg-success/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/50";
@@ -688,7 +688,7 @@ function Dashboard() {
             alt=""
             className="h-11 w-11 object-contain drop-shadow-[0_0_7px_rgba(57,229,111,0.5)]"
           />
-          <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_8px_rgba(34,197,94,0.35)]">
+          <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_8px_rgba(34,211,238,0.35)]">
             SIED
           </span>
         </div>
@@ -1095,7 +1095,7 @@ function Dashboard() {
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-muted/60 shadow-inner shadow-black/20">
                         <div
-                          className="h-full rounded-full bg-success shadow-[0_0_18px_rgba(34,197,94,0.5)] transition-all duration-500"
+                          className="h-full rounded-full bg-success shadow-[0_0_18px_rgba(34,211,238,0.5)] transition-all duration-500"
                           style={{ width: `${width}%` }}
                         />
                       </div>
@@ -1163,7 +1163,7 @@ function Dashboard() {
             </Panel>
           </div>
 
-          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:border-success/55 hover:shadow-[0_0_0_1px_rgba(34,197,94,0.25),0_14px_28px_-22px_rgba(34,197,94,0.75)]">
+          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-all duration-300 hover:border-success/55 hover:shadow-[0_0_0_1px_rgba(34,211,238,0.25),0_14px_28px_-22px_rgba(34,211,238,0.75)]">
             <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/20 px-4 py-3">
               <div className="text-[10px] tracking-[0.15em] text-info font-bold">
                 CVLI — RESUMO ANUAL
@@ -1171,7 +1171,7 @@ function Dashboard() {
               <button
                 type="button"
                 onClick={() => navigate({ to: "/cvli-comparativo" })}
-                className="inline-flex h-7 items-center gap-1.5 rounded-md border border-success/70 bg-success px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-background shadow-[0_0_12px_rgba(34,197,94,0.38)] transition hover:-translate-y-0.5 hover:shadow-[0_0_18px_rgba(34,197,94,0.58)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/60"
+                className="inline-flex h-7 items-center gap-1.5 rounded-md border border-success/70 bg-success px-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-background shadow-[0_0_12px_rgba(34,211,238,0.38)] transition hover:-translate-y-0.5 hover:shadow-[0_0_18px_rgba(34,211,238,0.58)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/60"
               >
                 Abrir
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -1508,7 +1508,7 @@ function Dashboard() {
                           width: `${Math.min(100, produtividade.taxaConclusao30)}%`,
                           boxShadow:
                             produtividade.taxaConclusao30 > 0
-                              ? "0 0 18px rgba(34,197,94,0.45)"
+                              ? "0 0 18px rgba(34,211,238,0.45)"
                               : "none",
                         }}
                       />
@@ -1590,7 +1590,7 @@ function Dashboard() {
                             style={{
                               width: `${width}%`,
                               backgroundColor: day.isPeak ? "var(--success)" : "var(--info)",
-                              boxShadow: day.total > 0 ? "0 0 16px rgba(34,197,94,0.4)" : "none",
+                              boxShadow: day.total > 0 ? "0 0 16px rgba(34,211,238,0.4)" : "none",
                             }}
                           />
                         </div>
