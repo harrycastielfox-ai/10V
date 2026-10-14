@@ -310,7 +310,6 @@ function getDiligenciaStatusBucket(inquerito: InqueritoRecord) {
 function Dashboard() {
   const navigate = Route.useNavigate();
   const [isClient, setIsClient] = useState(false);
-  const [updatedAtLabel, setUpdatedAtLabel] = useState("");
   const [nowTs, setNowTs] = useState<number | null>(null);
   const [inqueritos, setInqueritos] = useState<InqueritoRecord[]>([]);
   const [representacoes, setRepresentacoes] = useState<RepresentacaoRecord[]>([]);
@@ -320,7 +319,6 @@ function Dashboard() {
 
   useEffect(() => {
     setIsClient(true);
-    setUpdatedAtLabel(new Date().toLocaleDateString("pt-BR"));
     setNowTs(Date.now());
   }, []);
 
@@ -371,7 +369,6 @@ function Dashboard() {
     }
 
     setNowTs(Date.now());
-    setUpdatedAtLabel(new Date().toLocaleString("pt-BR"));
     if (failures.length > 0) {
       setLoadError(`Não foi possível atualizar: ${failures.join(" e ")}.`);
     }
@@ -676,7 +673,7 @@ function Dashboard() {
       <div className="relative">
         <PageHeader
           title="Painel de Controle"
-          subtitle={`SIED — atualizado em ${updatedAtLabel || "—"}`}
+          subtitle="SIED — Procedimentos Policiais"
           showActions={false}
           accentClassName="text-[#2cddf6] drop-shadow-[0_0_8px_rgba(44,221,246,0.6)]"
         />

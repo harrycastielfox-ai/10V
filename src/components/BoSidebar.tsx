@@ -34,9 +34,9 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-bold tracking-wide text-zinc-100 transition-colors group-hover:text-purple-300">
-              SIED-B.O
+              SIED
             </div>
-            <div className="-mt-0.5 truncate text-xs text-zinc-500">Módulo de Boletins</div>
+            <div className="-mt-0.5 truncate text-xs text-zinc-500">Sistema Protect</div>
           </div>
         </Link>
         <AppearanceSwitcher />

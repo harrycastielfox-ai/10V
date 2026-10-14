@@ -40,7 +40,7 @@ export function AgendaSidebar({ profile }: { profile: UserProfile }) {
             <div className="font-bold tracking-wide text-sidebar-foreground group-hover:text-info">
               SIED
             </div>
-            <div className="-mt-0.5 truncate text-xs text-muted-foreground">Agendamento</div>
+            <div className="-mt-0.5 truncate text-xs text-muted-foreground">Sistema Protect</div>
           </div>
         </Link>
         <AppearanceSwitcher />

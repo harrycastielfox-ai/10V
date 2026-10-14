@@ -91,7 +91,7 @@ export function ObjectsSidebar({ profile }: { profile: UserProfile }) {
               SIED
             </div>
             <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              Objetos Apreendidos
+              Sistema Protect
             </div>
           </div>
         </Link>

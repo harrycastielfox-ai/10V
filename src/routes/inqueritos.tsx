@@ -1589,7 +1589,7 @@ function Inqueritos() {
       <div className="sipi-print-document space-y-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.015)] lg:flex-row lg:items-center lg:justify-between lg:p-6">
           <div className="space-y-1.5">
-            <h1 className="text-3xl font-black tracking-tight">Procedimentos Policiais</h1>
+            <h1 className="text-3xl font-black tracking-tight">SIED — Procedimentos Policiais</h1>
             <p className="text-sm text-muted-foreground">
               {filtered.length} de {visibleRows.length} caso(s) encontrado(s)
             </p>

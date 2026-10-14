@@ -27,9 +27,9 @@ export function BoMobileNavigation({ profile }: { profile: UserProfile }) {
               />
             </span>
             <span className="min-w-0">
-              <strong className="block text-sm font-black text-foreground">SIED-B.O</strong>
+              <strong className="block text-sm font-black text-foreground">SIED</strong>
               <small className="block max-w-40 truncate text-[9px] text-muted-foreground">
-                Boletins de Ocorrência
+                Sistema Protect
               </small>
             </span>
           </Link>

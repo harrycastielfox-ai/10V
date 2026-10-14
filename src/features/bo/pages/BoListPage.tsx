@@ -120,7 +120,7 @@ export default function BoListPage() {
       <header className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card/60 p-5 shadow-[0_0_0_1px_rgba(255,255,255,0.015)] sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1.5">
           <h1 className="text-2xl font-black tracking-tight text-foreground lg:text-3xl">
-            Boletins de Ocorrência
+            SIED — Boletim de Ocorrência
           </h1>
           <p className="text-sm text-muted-foreground">
             {loading

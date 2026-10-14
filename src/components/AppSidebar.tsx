@@ -102,7 +102,7 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
               SIED
             </div>
             <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              Procedimentos Policiais
+              Sistema Protect
             </div>
           </div>
         </Link>
