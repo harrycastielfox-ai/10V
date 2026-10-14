@@ -681,11 +681,11 @@ function Dashboard() {
           className="absolute right-1 top-0 hidden select-none items-center gap-2.5 text-[#35ddf5] lg:flex"
           aria-label="SIED"
         >
-          <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-lg" aria-hidden="true">
+          <span className="flex h-11 w-9 items-center justify-center" aria-hidden="true">
             <img
-              src="/sied-mark.svg?v=3"
+              src="/sied-core-mark.svg?v=1"
               alt=""
-              className="h-full w-full scale-[2.75] object-contain drop-shadow-[0_0_10px_rgba(45,211,238,0.65)]"
+              className="h-full w-full object-contain drop-shadow-[0_0_10px_rgba(45,211,238,0.65)]"
             />
           </span>
           <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_10px_rgba(45,211,238,0.48)]">

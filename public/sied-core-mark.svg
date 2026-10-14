@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 70 96 140" role="img" aria-labelledby="title desc">
+  <title id="title">Núcleo da marca SIED</title>
+  <desc id="desc">Escudo interno ciano com cruz luminosa</desc>
+  <defs>
+    <linearGradient id="core" x1="104" y1="94" x2="152" y2="178" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D6F8FF"/>
+      <stop offset=".42" stop-color="#58E3FF"/>
+      <stop offset="1" stop-color="#2387ED"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="90" y1="78" x2="169" y2="201" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#96F2FF"/>
+      <stop offset=".48" stop-color="#35D7FA"/>
+      <stop offset="1" stop-color="#277DDC"/>
+    </linearGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="5.5" result="blur"/>
+      <feFlood flood-color="#23E7FF" flood-opacity=".86" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="neon"/>
+      <feMerge><feMergeNode in="neon"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="aura" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <path d="m128 76 47 35-18 65-29 27-29-27-18-65 47-35Z" fill="#061A2A" stroke="url(#frame)" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M128 86v11M94 112l10 8M162 112l-10 8M91 143h13M165 143h-13M103 181l9-9M153 181l-9-9" fill="none" stroke="#6DE7FF" stroke-width="3.5" stroke-linecap="round" opacity=".76"/>
+  <ellipse cx="128" cy="133" rx="24" ry="29" fill="#24E4FF" opacity=".26" filter="url(#aura)"/>
+  <path d="m128 93 30 23-11 42-19 18-19-18-11-42 30-23Z" fill="url(#core)" filter="url(#glow)"/>
+  <path d="M128 111v41M108 132h40" stroke="#F1FDFF" stroke-width="7" stroke-linecap="round"/>
+  <path d="M113 101h30M108 166h40" stroke="#B9F2FF" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+</svg>
