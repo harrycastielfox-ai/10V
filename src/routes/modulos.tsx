@@ -184,7 +184,7 @@ function ModulosPage() {
   const profileInitial = (profile.nome?.trim().charAt(0) || "?").toUpperCase();
 
   return (
-    <div className="sied-identity-surface min-h-screen w-full text-foreground px-4 py-6 sm:px-6 lg:px-8">
+    <div className="sied-modules-shell sied-identity-surface min-h-screen w-full px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-4">
           <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED · Módulos do Sistema</h1>

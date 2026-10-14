@@ -10,6 +10,33 @@
     linear-gradient(135deg, color-mix(in oklab, var(--background) 95%, #06334b), var(--background) 52%);
 }
 
+/* A vitrine de modulos preserva a paleta tática original (verde, azul,
+   roxo e amarelo) mesmo quando a preferencia global estiver clara ou mesclada. */
+.sied-modules-shell {
+  color-scheme: dark;
+  --background: oklch(0.16 0.01 240);
+  --foreground: oklch(0.97 0.01 240);
+  --card: oklch(0.19 0.012 240);
+  --card-foreground: oklch(0.97 0.01 240);
+  --popover: oklch(0.19 0.012 240);
+  --popover-foreground: oklch(0.97 0.01 240);
+  --primary: oklch(0.78 0.18 152);
+  --primary-foreground: oklch(0.16 0.01 240);
+  --secondary: oklch(0.24 0.015 240);
+  --secondary-foreground: oklch(0.97 0.01 240);
+  --muted: oklch(0.22 0.012 240);
+  --muted-foreground: oklch(0.65 0.02 240);
+  --accent: oklch(0.26 0.02 240);
+  --accent-foreground: oklch(0.97 0.01 240);
+  --success: oklch(0.78 0.18 152);
+  --warning: oklch(0.82 0.17 85);
+  --info: oklch(0.7 0.18 235);
+  --purple: oklch(0.65 0.2 295);
+  --border: oklch(0.28 0.015 240);
+  --input: oklch(0.24 0.015 240);
+  --ring: oklch(0.78 0.18 152);
+}
+
 .sied-brand-line {
   background: linear-gradient(90deg, transparent, var(--primary), var(--info), transparent);
   box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 38%, transparent);
