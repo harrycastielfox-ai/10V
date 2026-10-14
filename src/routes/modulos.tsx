@@ -27,15 +27,12 @@ export const Route = createFileRoute("/modulos")({
   component: ModulosPage,
 });
 
-type ModuloTone = "success" | "info" | "warning" | "report";
-
 interface Modulo {
   id: string;
   titulo: string;
   hint: string;
   descricao: string;
   icon: typeof FileText;
-  tone: ModuloTone;
   to?: string;
   disponivel: boolean;
 }
@@ -47,7 +44,6 @@ const MODULOS: Modulo[] = [
     hint: "Procedimentos investigativos",
     descricao: "IP, APF, TCO, BOC e AIAI — controle de prazos, situações e equipes.",
     icon: FileText,
-    tone: "success",
     to: "/",
     disponivel: true,
   },
@@ -58,7 +54,6 @@ const MODULOS: Modulo[] = [
     descricao:
       "Lavratura e consulta de boletins de ocorrência, com histórico do fato, envolvidos e encaminhamentos.",
     icon: ClipboardList,
-    tone: "report",
     to: "/bo",
     disponivel: true,
   },
@@ -68,7 +63,6 @@ const MODULOS: Modulo[] = [
     hint: "Pátio e custódia",
     descricao: "Registro de veículos apreendidos, vínculo a procedimentos e devoluções.",
     icon: Car,
-    tone: "info",
     to: "/veiculos",
     disponivel: true,
   },
@@ -79,7 +73,6 @@ const MODULOS: Modulo[] = [
     descricao:
       "Registre a vistoria do veículo, preserve versões do relatório e mantenha o histórico vinculado ao cadastro.",
     icon: ClipboardCheck,
-    tone: "report",
     to: "/vistorias",
     disponivel: true,
   },
@@ -89,7 +82,6 @@ const MODULOS: Modulo[] = [
     hint: "Bens, armas e cautelas",
     descricao: "Cadastro e rastreio de objetos apreendidos vinculados a casos.",
     icon: Package,
-    tone: "warning",
     to: "/objetos",
     disponivel: true,
   },
@@ -100,7 +92,6 @@ const MODULOS: Modulo[] = [
     descricao:
       "Marcação de vítimas, testemunhas e autores para serem ouvidos, com cronograma da unidade.",
     icon: CalendarDays,
-    tone: "info",
     to: "/agenda",
     disponivel: true,
   },
@@ -111,7 +102,6 @@ const MODULOS: Modulo[] = [
     descricao:
       "Apoio a diligências externas com cadastro de pessoas, endereços, rotas, chegada ao local, fotos e Street View.",
     icon: Phone,
-    tone: "info",
     to: "/localizacao",
     disponivel: true,
   },
@@ -184,7 +174,7 @@ function ModulosPage() {
   const profileInitial = (profile.nome?.trim().charAt(0) || "?").toUpperCase();
 
   return (
-    <div className="sied-identity-surface min-h-screen w-full text-foreground px-4 py-6 sm:px-6 lg:px-8">
+    <div className="sied-modules-shell sied-identity-surface min-h-screen w-full px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-4">
           <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED · Módulos do Sistema</h1>
@@ -198,7 +188,7 @@ function ModulosPage() {
           <div className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-xl border border-primary/30 bg-primary/10 p-1.5 shadow-[0_0_22px_rgba(45,212,191,0.15)]">
-                <img src="/sied-mark.svg?v=2" alt="Marca SIED" className="h-full w-full object-contain" />
+                <img src="/sied-mark.svg?v=3" alt="Marca SIED" className="h-full w-full object-contain" />
               </div>
             <div>
               <div className="text-sm font-bold tracking-wide">SIED</div>
@@ -266,54 +256,18 @@ function ModulosPage() {
   );
 }
 
-const TONE_STYLES: Record<
-  ModuloTone,
-  {
-    iconBg: string;
-    iconBorder: string;
-    iconText: string;
-    ring: string;
-    chip: string;
-    rail: string;
-  }
-> = {
-  success: {
-    iconBg: "bg-success/15",
-    iconBorder: "border-success/30",
-    iconText: "text-success",
-    ring: "hover:border-success/50 hover:shadow-success/10",
-    chip: "bg-success/15 text-success border-success/30",
-    rail: "bg-success",
-  },
-  info: {
-    iconBg: "bg-info/15",
-    iconBorder: "border-info/30",
-    iconText: "text-info",
-    ring: "hover:border-info/50 hover:shadow-info/10",
-    chip: "bg-info/15 text-info border-info/30",
-    rail: "bg-info",
-  },
-  warning: {
-    iconBg: "bg-warning/15",
-    iconBorder: "border-warning/30",
-    iconText: "text-warning",
-    ring: "hover:border-warning/50 hover:shadow-warning/10",
-    chip: "bg-warning/15 text-warning border-warning/30",
-    rail: "bg-warning",
-  },
-  report: {
-    iconBg: "bg-indigo-500/15",
-    iconBorder: "border-indigo-500/40 dark:border-indigo-400/30",
-    iconText: "text-indigo-600 dark:text-indigo-300",
-    ring: "hover:border-indigo-500/60 hover:shadow-indigo-500/15",
-    chip: "bg-indigo-500/15 text-indigo-700 border-indigo-500/40 dark:text-indigo-200 dark:border-indigo-400/30",
-    rail: "bg-indigo-500",
-  },
+const SIED_MODULE_STYLE = {
+  iconBg: "bg-primary/15",
+  iconBorder: "border-primary/35",
+  iconText: "text-primary",
+  ring: "hover:border-primary/60 hover:shadow-primary/15",
+  chip: "border-primary/35 bg-primary/15 text-primary",
+  rail: "bg-primary",
 };
 
 function ModuloCard({ modulo, onIndisponivel }: { modulo: Modulo; onIndisponivel: () => void }) {
   const Icon = modulo.icon;
-  const styles = TONE_STYLES[modulo.tone];
+  const styles = SIED_MODULE_STYLE;
   const cardContent = (
     <div
       className={`group relative flex h-full flex-col overflow-hidden rounded-xl border border-border/90 bg-card/95 p-6 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.5)] ring-1 ring-black/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl dark:ring-white/[0.025] ${styles.ring} ${modulo.disponivel ? "cursor-pointer" : "cursor-not-allowed opacity-95"}`}

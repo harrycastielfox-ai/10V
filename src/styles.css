@@ -10,6 +10,32 @@
     linear-gradient(135deg, color-mix(in oklab, var(--background) 95%, #06334b), var(--background) 52%);
 }
 
+/* A vitrine de modulos e a porta institucional do sistema apos o login.
+   Sua leitura azul-ciano permanece fixa, independente da preferencia de
+   aparencia aplicada aos modulos de trabalho. */
+.sied-modules-shell {
+  color-scheme: dark;
+  --background: oklch(0.115 0.018 230);
+  --foreground: oklch(0.975 0.008 215);
+  --card: oklch(0.155 0.016 230);
+  --card-foreground: oklch(0.975 0.008 215);
+  --popover: oklch(0.155 0.016 230);
+  --popover-foreground: oklch(0.975 0.008 215);
+  --primary: oklch(0.76 0.15 220);
+  --primary-foreground: oklch(0.16 0.018 225);
+  --secondary: oklch(0.215 0.02 230);
+  --secondary-foreground: oklch(0.95 0.012 215);
+  --muted: oklch(0.19 0.018 230);
+  --muted-foreground: oklch(0.7 0.03 220);
+  --accent: oklch(0.24 0.026 225);
+  --accent-foreground: oklch(0.975 0.008 215);
+  --success: oklch(0.76 0.15 220);
+  --info: oklch(0.76 0.15 220);
+  --border: oklch(0.31 0.03 220);
+  --input: oklch(0.26 0.026 222);
+  --ring: oklch(0.76 0.15 220);
+}
+
 .sied-brand-line {
   background: linear-gradient(90deg, transparent, var(--primary), var(--info), transparent);
   box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 38%, transparent);
