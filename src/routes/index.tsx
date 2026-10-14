@@ -678,17 +678,17 @@ function Dashboard() {
           accentClassName="text-[#2cddf6] drop-shadow-[0_0_8px_rgba(44,221,246,0.6)]"
         />
         <div
-          className="absolute right-1 top-0 hidden select-none items-center gap-2.5 text-[#35ddf5] lg:flex"
+          className="absolute -top-3 right-1 hidden select-none items-center gap-3 text-[#35ddf5] lg:flex"
           aria-label="SIED"
         >
-          <span className="flex h-11 w-9 items-center justify-center" aria-hidden="true">
+          <span className="flex h-14 w-10 items-center justify-center" aria-hidden="true">
             <img
               src="/sied-core-mark.svg?v=1"
               alt=""
               className="h-full w-full object-contain drop-shadow-[0_0_10px_rgba(45,211,238,0.65)]"
             />
           </span>
-          <span className="text-2xl font-black tracking-normal drop-shadow-[0_0_10px_rgba(45,211,238,0.48)]">
+          <span className="text-base font-bold tracking-wide drop-shadow-[0_0_10px_rgba(45,211,238,0.48)]">
             SIED
           </span>
         </div>
