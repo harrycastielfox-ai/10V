@@ -572,9 +572,9 @@ function LoginPage() {
           <span className="h-px w-8 bg-destructive/50" />
         </div>
 
-        <div className="bg-card border border-border rounded-2xl shadow-2xl shadow-black/40">
-          <div className="px-8 pt-8 pb-6 text-center border-b border-border bg-gradient-to-b from-primary/5 to-transparent">
-            <div className="relative isolate mx-auto -mt-3 mb-4 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
+        <div className="overflow-hidden rounded-[18px] border border-primary/60 bg-card/95 shadow-[0_24px_72px_rgba(0,0,0,0.48),0_0_32px_rgba(14,165,233,0.1)]">
+          <div className="px-8 pb-7 pt-9 text-center">
+            <div className="relative isolate mx-auto -mt-2 mb-5 flex h-[104px] w-[118px] items-center justify-center overflow-visible">
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute -inset-4 z-0 rounded-[2rem] bg-primary/16 blur-2xl"
@@ -586,9 +586,9 @@ function LoginPage() {
                 style={{ transform: "translateY(1px)" }}
               />
             </div>
-            <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED</h1>
-            <p className="text-xs text-muted-foreground mt-1">Sistema Integrado de Evidências e Dados</p>
-            <p className="text-[10px] text-muted-foreground/80 mt-1 tracking-wider uppercase">
+            <h1 className="text-4xl font-black tracking-[0.1em] text-foreground">SIED</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Sistema Integrado de Evidências e Dados</p>
+            <p className="mt-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/80">
               DT Itabela · 23ª COORPIN
             </p>
           </div>
@@ -609,7 +609,7 @@ function LoginPage() {
                   value={usuario}
                   onChange={(e) => setUsuario(e.target.value)}
                   placeholder="Digite seu e-mail ou login"
-                  className="pl-9 h-11 bg-background/60 border-border focus-visible:ring-primary"
+                  className="h-12 border-primary/55 bg-background/45 pl-9 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
                   required
                 />
               </div>
@@ -641,7 +641,7 @@ function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder="Digite sua senha"
-                  className="pl-9 pr-10 h-11 bg-background/60 border-border focus-visible:ring-primary"
+                  className="h-12 border-primary/55 bg-background/45 pl-9 pr-10 transition-colors placeholder:text-muted-foreground/70 hover:border-primary/80 focus-visible:border-primary focus-visible:ring-primary"
                   required
                 />
                 <button
@@ -672,7 +672,7 @@ function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90 font-bold tracking-[0.15em] uppercase text-xs"
+              className="h-12 w-full rounded-md bg-primary text-xs font-black uppercase tracking-[0.18em] text-primary-foreground shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:bg-primary/90"
             >
               {loading ? (
                 "Verificando…"
@@ -697,7 +697,7 @@ function LoginPage() {
             </p>
           </form>
 
-          <div className="px-8 py-3 border-t border-border bg-muted/20 text-center text-[10px] text-muted-foreground tracking-wider">
+          <div className="border-t border-primary/20 px-8 py-3 text-center text-[10px] tracking-wider text-muted-foreground">
             © 2026 Polícia Civil — Uso restrito a agentes autorizados
           </div>
         </div>
