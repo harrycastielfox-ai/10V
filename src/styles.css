@@ -163,7 +163,7 @@
 .sied-network-path {
   fill: none;
   stroke: url(#sied-network-gradient);
-  stroke-width: 1;
+  stroke-width: 1.45;
 }
 
 .sied-network-path-muted {
@@ -173,9 +173,9 @@
 .sied-network-flow {
   fill: none;
   stroke: #35dff5;
-  stroke-dasharray: 2 24;
+  stroke-dasharray: 4 27;
   stroke-linecap: round;
-  stroke-width: 1.35;
+  stroke-width: 2.1;
   animation: sied-network-flow 9s linear infinite;
 }
 
