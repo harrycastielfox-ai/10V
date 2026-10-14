@@ -36,7 +36,7 @@ export function BoSidebar({ profile }: { profile: UserProfile }) {
             <div className="font-bold tracking-wide text-zinc-100 transition-colors group-hover:text-purple-300">
               SIED
             </div>
-            <div className="-mt-0.5 truncate text-xs text-zinc-500">Sistema Protect</div>
+            <div className="-mt-0.5 truncate text-xs text-zinc-500">System Protect</div>
           </div>
         </Link>
         <AppearanceSwitcher />

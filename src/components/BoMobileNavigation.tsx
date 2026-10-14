@@ -29,7 +29,7 @@ export function BoMobileNavigation({ profile }: { profile: UserProfile }) {
             <span className="min-w-0">
               <strong className="block text-sm font-black text-foreground">SIED</strong>
               <small className="block max-w-40 truncate text-[9px] text-muted-foreground">
-                Sistema Protect
+                System Protect
               </small>
             </span>
           </Link>

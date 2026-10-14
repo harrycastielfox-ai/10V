@@ -73,7 +73,7 @@ export function VehiclesSidebar({ profile }: { profile: UserProfile }) {
               SIED
             </div>
             <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              Sistema Protect
+              System Protect
             </div>
           </div>
         </Link>
