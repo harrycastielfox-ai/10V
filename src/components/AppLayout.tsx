@@ -26,6 +26,9 @@ const VehiclesMobileNavigation = lazy(() =>
     default: module.VehiclesMobileNavigation,
   })),
 );
+const VistoriasSidebar = lazy(() =>
+  import("./VistoriasSidebar").then((module) => ({ default: module.VistoriasSidebar })),
+);
 const ObjectsSidebar = lazy(() =>
   import("./ObjectsSidebar").then((module) => ({ default: module.ObjectsSidebar })),
 );
@@ -175,6 +178,8 @@ export function AppLayout({
               <AgendaMobileNavigation profile={profile} />
             ) : module === "bo" ? (
               <BoMobileNavigation profile={profile} />
+          ) : module === "vistorias" ? (
+            <VehiclesMobileNavigation profile={profile} module="vistorias" />
             ) : (
               <MobileNavigation profile={profile} />
             )
@@ -186,6 +191,8 @@ export function AppLayout({
             <AgendaSidebar profile={profile} />
           ) : module === "bo" ? (
             <BoSidebar profile={profile} />
+          ) : module === "vistorias" ? (
+            <VistoriasSidebar profile={profile} />
           ) : (
             <>
               <AppSidebar profile={profile} />

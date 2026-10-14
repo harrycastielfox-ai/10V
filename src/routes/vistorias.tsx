@@ -342,7 +342,7 @@ function VistoriasRoute() {
 
   return (
     <AppLayout module="vistorias">
-      <div className="mx-auto w-full max-w-7xl space-y-6">
+      <div className="w-full space-y-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">

@@ -437,6 +437,26 @@
   --sidebar-ring: oklch(0.78 0.18 152);
 }
 
+/* Vistoria é uma etapa técnica do fluxo veicular; usa violeta para não se
+   confundir com o verde investigativo ou com o azul de custódia. */
+.app-layout-vistorias {
+  --primary: var(--purple);
+  --primary-foreground: #ffffff;
+  --ring: var(--purple);
+}
+
+.app-layout-vistorias > aside {
+  --sidebar: oklch(0.145 0.035 292);
+  --sidebar-foreground: oklch(0.95 0.02 292);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: oklch(0.22 0.045 292);
+  --sidebar-accent-foreground: oklch(0.98 0.01 292);
+  --sidebar-border: oklch(0.29 0.055 292);
+  --sidebar-ring: var(--primary);
+  background-image: linear-gradient(165deg, oklch(0.18 0.055 292) 0%, oklch(0.13 0.03 292) 58%, oklch(0.1 0.02 292) 100%);
+}
+
 html[data-theme="light"] {
   color-scheme: light;
 

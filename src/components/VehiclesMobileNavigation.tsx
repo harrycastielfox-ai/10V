@@ -1,29 +1,43 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Car, ClipboardList, FileChartColumn, LogOut } from "lucide-react";
+import { Car, ClipboardCheck, ClipboardList, FileChartColumn, LogOut } from "lucide-react";
 import { useState } from "react";
 import { getProfileAvatarPublicUrl, logout } from "@/lib/auth";
 import type { UserProfile } from "@/lib/authz";
 import { AppearanceSwitcher } from "./AppearanceSwitcher";
 
-const items = [
+const vehicleItems = [
   { title: "Veículos", url: "/veiculos/todos", icon: Car },
   { title: "Apreendidos", url: "/veiculos/apreendidos", icon: ClipboardList },
   { title: "Relatórios", url: "/veiculos/relatorios", icon: FileChartColumn },
 ] as const;
 
-export function VehiclesMobileNavigation({ profile }: { profile: UserProfile }) {
+export function VehiclesMobileNavigation({
+  profile,
+  module = "veiculos",
+}: {
+  profile: UserProfile;
+  module?: "veiculos" | "vistorias";
+}) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
   const avatarUrl = getProfileAvatarPublicUrl(profile.avatar_path);
   const initial = (profile.nome?.trim().charAt(0) || "?").toUpperCase();
+  const isVistorias = module === "vistorias";
+  const items = isVistorias
+    ? [
+        { title: "Vistorias", url: "/vistorias", icon: ClipboardCheck },
+        { title: "Veículos", url: "/veiculos/todos", icon: Car },
+        { title: "Relatórios", url: "/veiculos/relatorios", icon: FileChartColumn },
+      ]
+    : vehicleItems;
 
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-border/80 bg-background/95 px-3 backdrop-blur md:hidden">
         <div className="mx-auto flex h-16 max-w-lg items-center justify-between gap-3">
           <Link
-            to="/veiculos/todos"
+            to={isVistorias ? "/vistorias" : "/veiculos/todos"}
             className="flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info"
           >
             <span className="sipi-brand-emblem sipi-brand-emblem-info flex h-10 w-10 items-center justify-center">
@@ -35,10 +49,10 @@ export function VehiclesMobileNavigation({ profile }: { profile: UserProfile }) 
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-black tracking-wide text-foreground">
-                VEÍCULOS
+                {isVistorias ? "VISTORIAS" : "VEÍCULOS"}
               </span>
               <span className="block truncate text-[10px] text-muted-foreground">
-                Consulta móvel
+                {isVistorias ? "Relatórios veiculares" : "Consulta móvel"}
               </span>
             </span>
           </Link>
@@ -76,7 +90,7 @@ export function VehiclesMobileNavigation({ profile }: { profile: UserProfile }) 
         </div>
       </header>
       <nav
-        aria-label="Navegação do módulo de veículos"
+        aria-label={isVistorias ? "Navegação do módulo de vistorias" : "Navegação do módulo de veículos"}
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <div className="mx-auto grid min-h-16 max-w-lg grid-cols-3 items-stretch">
