@@ -169,7 +169,7 @@ function PostSignupWelcomeOverlay({ message }: { message: string }) {
         />
 
         <div className="relative z-10 mx-auto h-36 w-36 overflow-hidden drop-shadow-[0_0_30px_rgba(34,197,94,0.2)]">
-          <img src="/sied-mark.svg?v=2" alt="Logo SIED" className="h-full w-full object-contain" />
+          <img src="/sied-mark.svg?v=3" alt="Logo SIED" className="h-full w-full object-contain" />
         </div>
 
         <div
@@ -363,7 +363,7 @@ function LoginSplash() {
         <span className="login-splash-ring login-splash-ring-1 pointer-events-none absolute" />
         <span className="login-splash-ring login-splash-ring-2 pointer-events-none absolute" />
         <img
-          src="/sied-mark.svg?v=2"
+          src="/sied-mark.svg?v=3"
           alt="Polícia Civil"
           className="relative h-60 w-60 object-contain drop-shadow-[0_0_50px_rgba(34,197,94,0.5)] sm:h-80 sm:w-80"
         />
@@ -570,9 +570,9 @@ function LoginPage() {
       <div className="relative w-full max-w-lg">
         <aside
           aria-hidden="true"
-          className="sied-login-network absolute right-[calc(100%+4rem)] top-1/2 hidden w-[360px] -translate-y-1/2 min-[1400px]:block"
+          className="sied-login-network absolute right-[calc(100%+4rem)] top-1/2 hidden w-[390px] -translate-y-1/2 min-[1400px]:block"
         >
-          <svg viewBox="0 0 360 430" role="presentation" className="h-auto w-full">
+          <svg viewBox="0 0 390 610" role="presentation" className="h-auto w-full">
             <defs>
               <linearGradient id="sied-network-gradient" x1="0" x2="1" y1="0" y2="1">
                 <stop offset="0" stopColor="#0d6f96" stopOpacity="0.08" />
@@ -588,39 +588,41 @@ function LoginPage() {
               </filter>
             </defs>
             <path
-              d="M24 338 C72 292 72 200 138 178 S232 208 280 138 S320 66 348 44"
+              d="M24 418 C72 364 72 248 138 220 S232 250 280 164 S330 80 378 52"
               className="sied-network-path"
             />
             <path
-              d="M2 282 C64 254 100 300 160 276 S236 224 344 246"
+              d="M2 352 C64 324 100 370 160 346 S246 274 374 302"
               className="sied-network-path sied-network-path-muted"
             />
             <path
-              d="M66 408 C86 350 148 354 187 304 S242 268 314 298"
+              d="M38 590 C82 508 134 480 187 414 S264 350 354 386"
               className="sied-network-path sied-network-path-muted"
             />
             <path
-              d="M24 338 C72 292 72 200 138 178 S232 208 280 138 S320 66 348 44"
+              d="M126 610 C156 540 186 492 232 452 S300 438 386 470"
+              className="sied-network-path sied-network-path-muted"
+            />
+            <path
+              d="M24 418 C72 364 72 248 138 220 S232 250 280 164 S330 80 378 52"
               className="sied-network-flow"
               filter="url(#sied-network-glow)"
             />
-            <circle cx="24" cy="338" r="4" className="sied-network-node" />
-            <circle cx="138" cy="178" r="5" className="sied-network-node sied-network-node-delay" />
-            <circle cx="280" cy="138" r="4" className="sied-network-node sied-network-node-slow" />
-            <circle cx="160" cy="276" r="3" className="sied-network-node sied-network-node-slow" />
-            <circle cx="314" cy="298" r="3" className="sied-network-node sied-network-node-delay" />
+            <circle cx="24" cy="418" r="4" className="sied-network-node" />
+            <circle cx="138" cy="220" r="5" className="sied-network-node sied-network-node-delay" />
+            <circle cx="280" cy="164" r="4" className="sied-network-node sied-network-node-slow" />
+            <circle cx="160" cy="346" r="3" className="sied-network-node sied-network-node-slow" />
+            <circle cx="354" cy="386" r="3" className="sied-network-node sied-network-node-delay" />
+            <circle cx="187" cy="414" r="3.5" className="sied-network-node" />
+            <circle cx="232" cy="452" r="3" className="sied-network-node sied-network-node-slow" />
           </svg>
         </aside>
 
         <div className="sied-login-card overflow-hidden rounded-[12px]">
           <div className="px-8 pb-6 pt-10 text-center sm:px-10">
             <div className="relative isolate mx-auto mb-5 flex h-[110px] w-[118px] items-center justify-center overflow-visible">
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute z-0 h-10 w-10 rounded-full bg-[#3be7ff]/55 blur-xl"
-              />
               <img
-                src="/sied-mark.svg?v=2"
+                src="/sied-mark.svg?v=3"
                 alt="Logo SIED"
                 className="relative z-10 mx-auto h-[120px] w-auto object-contain drop-shadow-[0_10px_16px_rgba(0,0,0,0.44)]"
                 style={{ transform: "translateY(1px)" }}
