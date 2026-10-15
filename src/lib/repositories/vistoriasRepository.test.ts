@@ -2,13 +2,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   rpc: vi.fn(),
+  from: vi.fn(),
   upload: vi.fn(),
+  createSignedUrl: vi.fn(),
 }));
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     rpc: state.rpc,
-    storage: { from: () => ({ upload: state.upload }) },
+    from: state.from,
+    storage: {
+      from: () => ({ upload: state.upload, createSignedUrl: state.createSignedUrl }),
+    },
   },
 }));
 
@@ -19,6 +24,8 @@ vi.mock("@/lib/repositories/vehiclesRepository", () => ({
 const {
   attachVehicleInspectionPdf,
   createVehicleInspection,
+  getVehicleInspectionPdfUrl,
+  listVehicleInspections,
   uploadVehicleInspectionPdf,
 } = await import("./vistoriasRepository");
 
@@ -26,10 +33,57 @@ function mutationResult(data: unknown) {
   return { abortSignal: async () => ({ data, error: null }) };
 }
 
+function inspectionQueryResult(data: unknown) {
+  const builder = {
+    select: vi.fn(),
+    order: vi.fn(),
+    limit: vi.fn(),
+    abortSignal: vi.fn(async () => ({ data, error: null })),
+  };
+  builder.select.mockReturnValue(builder);
+  builder.order.mockReturnValue(builder);
+  builder.limit.mockReturnValue(builder);
+  state.from.mockReturnValue(builder);
+  return builder;
+}
+
 describe("vistoriasRepository", () => {
   beforeEach(() => {
     state.rpc.mockReset();
+    state.from.mockReset();
     state.upload.mockReset();
+    state.createSignedUrl.mockReset();
+  });
+
+  it("preserva o veículo relacionado quando o Supabase retorna um objeto", async () => {
+    const vehicle = {
+      id: "veiculo-1",
+      internal_id: "VEI-001",
+      brand: "Toyota",
+      model: "Corolla",
+      brand_model: "Toyota Corolla",
+      color: "Prata",
+      plate: "ABC1D23",
+      engine_number: "MOTOR-1",
+      chassis: "CHASSI-1",
+      manufacture_year: 2024,
+      model_year: 2025,
+      conservation_state: "Bom",
+    };
+    inspectionQueryResult([
+      {
+        id: "vistoria-1",
+        vehicle_id: vehicle.id,
+        vehicle,
+        current_version: 1,
+      },
+    ]);
+
+    const [inspection] = await listVehicleInspections();
+
+    expect(inspection.vehicle).toEqual(vehicle);
+    expect(inspection.vehicle?.plate).toBe("ABC1D23");
+    expect(state.from).toHaveBeenCalledWith("vehicle_inspections");
   });
 
   it("cria vistoria e primeira versão por uma única RPC transacional", async () => {
@@ -89,5 +143,17 @@ describe("vistoriasRepository", () => {
       file,
       expect.objectContaining({ upsert: false, contentType: "application/pdf" }),
     );
+  });
+
+  it("gera uma URL temporária para visualizar o PDF assinado", async () => {
+    state.createSignedUrl.mockResolvedValue({
+      data: { signedUrl: "https://storage.example/vistoria-assinada.pdf" },
+      error: null,
+    });
+
+    await expect(getVehicleInspectionPdfUrl("vistoria-1/v2/laudo.pdf")).resolves.toBe(
+      "https://storage.example/vistoria-assinada.pdf",
+    );
+    expect(state.createSignedUrl).toHaveBeenCalledWith("vistoria-1/v2/laudo.pdf", 3600);
   });
 });

@@ -12,18 +12,26 @@ import type {
 type InspectionVehicle = {
   id: string;
   internal_id: string;
+  brand: string | null;
+  model: string | null;
   brand_model: string | null;
+  color: string | null;
   plate: string | null;
+  engine_number: string | null;
+  chassis: string | null;
+  manufacture_year: number | null;
+  model_year: number | null;
+  conservation_state: string | null;
 };
 
 type RawVehicleInspection = Omit<VehicleInspection, "vehicle"> & {
-  vehicle?: InspectionVehicle[] | null;
+  vehicle?: InspectionVehicle | InspectionVehicle[] | null;
 };
 
 const INSPECTION_PDF_BUCKET = "vehicle-inspection-pdfs";
 
 const INSPECTION_SELECT =
-  "id,vehicle_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,brand_model,plate)";
+  "id,vehicle_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,brand,model,brand_model,color,plate,engine_number,chassis,manufacture_year,model_year,conservation_state)";
 
 export async function listVehicleInspections(limit = 50) {
   const data = await runSupabaseQuery<RawVehicleInspection[]>("relatórios de vistoria", (signal) =>
@@ -38,14 +46,18 @@ export async function listVehicleInspections(limit = 50) {
 
   return (data ?? []).map((inspection) => ({
     ...inspection,
-    vehicle: inspection.vehicle?.[0] ?? null,
+    vehicle: Array.isArray(inspection.vehicle)
+      ? (inspection.vehicle[0] ?? null)
+      : (inspection.vehicle ?? null),
   })) as VehicleInspection[];
 }
 
 export async function listVehiclesForInspection(search = "") {
   const query = supabase
     .from("vehicles")
-    .select("id,internal_id,brand_model,plate")
+    .select(
+      "id,internal_id,brand,model,brand_model,color,plate,engine_number,chassis,manufacture_year,model_year,conservation_state",
+    )
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(40);
@@ -67,22 +79,24 @@ export async function createVehicleInspection(input: CreateVehicleInspectionInpu
   const data = await runSupabaseMutation<VehicleInspection>(
     "criação do relatório de vistoria",
     (signal) =>
-      supabase.rpc("create_vehicle_inspection", {
-        p_vehicle_id: input.vehicle_id,
-        p_inspection_date: input.inspection_date,
-        p_location: input.location?.trim() || null,
-        p_inspector_notes: input.inspector_notes?.trim() || null,
-        p_findings: input.findings ?? {},
-        p_police_report_number: input.police_report_number?.trim() || null,
-        p_presentation_reason: input.presentation_reason || null,
-        p_presenting_institution: input.presenting_institution || null,
-        p_yard_type: input.yard_type || null,
-        p_yard_location: input.yard_location?.trim() || null,
-        p_delivery_restricted: input.delivery_restricted ?? false,
-        p_checklist: input.checklist ?? {},
-        p_linked_people: input.linked_people ?? [],
-        p_original_vehicle_data: input.original_vehicle_data ?? {},
-      }).abortSignal(signal),
+      supabase
+        .rpc("create_vehicle_inspection", {
+          p_vehicle_id: input.vehicle_id,
+          p_inspection_date: input.inspection_date,
+          p_location: input.location?.trim() || null,
+          p_inspector_notes: input.inspector_notes?.trim() || null,
+          p_findings: input.findings ?? {},
+          p_police_report_number: input.police_report_number?.trim() || null,
+          p_presentation_reason: input.presentation_reason || null,
+          p_presenting_institution: input.presenting_institution || null,
+          p_yard_type: input.yard_type || null,
+          p_yard_location: input.yard_location?.trim() || null,
+          p_delivery_restricted: input.delivery_restricted ?? false,
+          p_checklist: input.checklist ?? {},
+          p_linked_people: input.linked_people ?? [],
+          p_original_vehicle_data: input.original_vehicle_data ?? {},
+        })
+        .abortSignal(signal),
   );
 
   if (!data) throw new Error("Não foi possível criar o relatório de vistoria.");
@@ -260,6 +274,16 @@ export async function attachVehicleInspectionPdf(
   );
 
   return data;
+}
+
+export async function getVehicleInspectionPdfUrl(storagePath: string) {
+  const { data, error } = await supabase.storage
+    .from(INSPECTION_PDF_BUCKET)
+    .createSignedUrl(storagePath, 3600);
+  if (error || !data?.signedUrl) {
+    throw error ?? new Error("Não foi possível abrir o PDF da vistoria.");
+  }
+  return data.signedUrl;
 }
 
 export function inspectionFindingsToText(findings: VehicleInspectionFindings) {

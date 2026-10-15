@@ -102,8 +102,16 @@ export type VehicleInspection = {
   vehicle?: {
     id: string;
     internal_id: string;
+    brand: string | null;
+    model: string | null;
     brand_model: string | null;
+    color: string | null;
     plate: string | null;
+    engine_number: string | null;
+    chassis: string | null;
+    manufacture_year: number | null;
+    model_year: number | null;
+    conservation_state: string | null;
   } | null;
 };
 

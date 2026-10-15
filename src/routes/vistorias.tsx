@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
@@ -10,20 +10,28 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  ExternalLink,
+  Eye,
   FileCheck2,
   FileClock,
+  FileText,
+  History,
   ListChecks,
   LoaderCircle,
   MapPin,
+  Printer,
   Plus,
+  Search,
   ShieldCheck,
   UsersRound,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
-import { SipiPrintSheet } from "@/components/SipiPrintSheet";
+import { VehicleInspectionQuickPreview } from "@/components/RecordQuickPreview";
+import { VehicleInspectionPrintSheet } from "@/components/VehicleInspectionPrintSheet";
 import {
   attachVehicleInspectionPdf,
   createVehicleInspection,
+  getVehicleInspectionPdfUrl,
   listVehicleInspections,
   listVehicleInspectionVersions,
   listVehicleInspectionPhotos,
@@ -146,10 +154,14 @@ export const Route = createFileRoute("/vistorias")({
 });
 
 function VistoriasRoute() {
+  const navigate = useNavigate();
+  const isVistoriasIndex = useRouterState({
+    select: (state) => state.location.pathname.replace(/\/$/u, "") === "/vistorias",
+  });
   const [inspections, setInspections] = useState<VehicleInspection[]>([]);
-  const [vehicles, setVehicles] = useState<
-    Array<{ id: string; internal_id: string; brand_model: string | null; plate: string | null }>
-  >([]);
+  const [vehicles, setVehicles] = useState<Awaited<ReturnType<typeof listVehiclesForInspection>>>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formStep, setFormStep] = useState<FormStep>(1);
@@ -166,8 +178,17 @@ function VistoriasRoute() {
   const [yardLocation, setYardLocation] = useState("");
   const [deliveryRestricted, setDeliveryRestricted] = useState(false);
   const [checklist, setChecklist] = useState<VehicleInspectionChecklist>({});
+  const [identificationFindings, setIdentificationFindings] = useState("");
+  const [structureFindings, setStructureFindings] = useState("");
+  const [conservationFindings, setConservationFindings] = useState("");
+  const [accessoriesFindings, setAccessoriesFindings] = useState("");
   const [linkedPeopleText, setLinkedPeopleText] = useState("");
   const [printInspection, setPrintInspection] = useState<VehicleInspection | null>(null);
+  const [selectedInspectionId, setSelectedInspectionId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"todos" | VehicleInspection["status"]>("todos");
+  const [openingPdfId, setOpeningPdfId] = useState<string | null>(null);
+  const [printingId, setPrintingId] = useState<string | null>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [editingInspection, setEditingInspection] = useState<VehicleInspection | null>(null);
   const [changeReason, setChangeReason] = useState("");
@@ -190,6 +211,22 @@ function VistoriasRoute() {
     .split("\n")
     .map((person) => person.trim())
     .filter(Boolean).length;
+  const filteredInspections = inspections.filter((inspection) => {
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase("pt-BR");
+    const matchesStatus = statusFilter === "todos" || inspection.status === statusFilter;
+    const matchesSearch =
+      !normalizedSearch ||
+      [
+        inspection.vehicle?.internal_id,
+        inspection.vehicle?.brand_model,
+        inspection.vehicle?.plate,
+        inspection.police_report_number,
+        inspection.location,
+      ].some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedSearch));
+    return matchesStatus && matchesSearch;
+  });
+  const selectedInspection =
+    inspections.find((inspection) => inspection.id === selectedInspectionId) ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -224,6 +261,10 @@ function VistoriasRoute() {
     setYardLocation("");
     setDeliveryRestricted(false);
     setChecklist({});
+    setIdentificationFindings("");
+    setStructureFindings("");
+    setConservationFindings("");
+    setAccessoriesFindings("");
     setLinkedPeopleText("");
     setChangeReason("");
     setError(null);
@@ -274,6 +315,30 @@ function VistoriasRoute() {
         yard_location: yardLocation,
         delivery_restricted: deliveryRestricted,
         checklist,
+        findings: {
+          identification: identificationFindings,
+          structure: structureFindings,
+          conservation: conservationFindings,
+          accessories: accessoriesFindings,
+          observations: notes,
+        },
+        original_vehicle_data:
+          editingInspection?.original_vehicle_data ??
+          (selectedVehicle
+            ? {
+                internal_id: selectedVehicle.internal_id,
+                brand: selectedVehicle.brand,
+                model: selectedVehicle.model,
+                brand_model: selectedVehicle.brand_model,
+                color: selectedVehicle.color,
+                plate: selectedVehicle.plate,
+                engine_number: selectedVehicle.engine_number,
+                chassis: selectedVehicle.chassis,
+                manufacture_year: selectedVehicle.manufacture_year,
+                model_year: selectedVehicle.model_year,
+                conservation_state: selectedVehicle.conservation_state,
+              }
+            : {}),
         linked_people: linkedPeopleText
           .split("\n")
           .map((person) => person.trim())
@@ -287,6 +352,7 @@ function VistoriasRoute() {
           ? current.map((item) => (item.id === saved.id ? saved : item))
           : [saved, ...current],
       );
+      setSelectedInspectionId(saved.id);
       setShowForm(false);
       resetInspectionForm();
     } catch {
@@ -311,6 +377,10 @@ function VistoriasRoute() {
     setYardLocation(inspection.yard_location ?? "");
     setDeliveryRestricted(inspection.delivery_restricted);
     setChecklist(inspection.checklist ?? {});
+    setIdentificationFindings(inspection.findings?.identification ?? "");
+    setStructureFindings(inspection.findings?.structure ?? "");
+    setConservationFindings(inspection.findings?.conservation ?? "");
+    setAccessoriesFindings(inspection.findings?.accessories ?? "");
     setLinkedPeopleText((inspection.linked_people ?? []).join("\n"));
     setChangeReason("");
   }
@@ -402,6 +472,78 @@ function VistoriasRoute() {
     }
   }
 
+  async function handlePrintInspection(inspection: VehicleInspection) {
+    setPrintingId(inspection.id);
+    setError(null);
+    try {
+      let photos = inspectionPhotos[inspection.id];
+      if (!photos) {
+        photos = await listVehicleInspectionPhotos(inspection.id);
+        setInspectionPhotos((current) => ({ ...current, [inspection.id]: photos }));
+      }
+      setPrintInspection(inspection);
+      const originalTitle = document.title;
+      document.title = `Vistoria-${inspection.vehicle?.internal_id || inspection.id}-v${inspection.current_version}`;
+      await new Promise((resolve) => window.setTimeout(resolve, 220));
+      const images = Array.from(
+        document.querySelectorAll<HTMLImageElement>(".sipi-vistoria-print-photo"),
+      );
+      await Promise.all(
+        images.map((image) =>
+          image.complete ? Promise.resolve() : image.decode().catch(() => undefined),
+        ),
+      );
+      window.addEventListener(
+        "afterprint",
+        () => {
+          document.title = originalTitle;
+          setPrintInspection(null);
+        },
+        { once: true },
+      );
+      window.print();
+    } catch {
+      setPrintInspection(null);
+      setError("Não foi possível preparar o relatório completo para impressão.");
+    } finally {
+      setPrintingId(null);
+    }
+  }
+
+  async function handleOpenSignedPdf(inspection: VehicleInspection) {
+    if (!inspection.pdf_storage_path) return;
+    const pdfWindow = window.open("about:blank", "_blank");
+    if (pdfWindow) pdfWindow.opener = null;
+    setOpeningPdfId(inspection.id);
+    setError(null);
+    try {
+      const url = await getVehicleInspectionPdfUrl(inspection.pdf_storage_path);
+      if (!pdfWindow) {
+        throw new Error("O navegador bloqueou a janela do PDF.");
+      }
+      pdfWindow.location.href = url;
+    } catch {
+      pdfWindow?.close();
+      setError("Não foi possível abrir o PDF assinado desta vistoria.");
+    } finally {
+      setOpeningPdfId(null);
+    }
+  }
+
+  async function handleViewInspectionPdf(inspection: VehicleInspection) {
+    if (inspection.pdf_storage_path) {
+      await handleOpenSignedPdf(inspection);
+      return;
+    }
+    await handlePrintInspection(inspection);
+  }
+
+  function handleEditFromPreview(inspection: VehicleInspection) {
+    setSelectedInspectionId(null);
+    beginEdit(inspection);
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  }
+
   const completedReports = inspections.filter((inspection) =>
     Boolean(inspection.pdf_sha256),
   ).length;
@@ -411,9 +553,11 @@ function VistoriasRoute() {
     0,
   );
 
+  if (!isVistoriasIndex) return <Outlet />;
+
   return (
     <AppLayout module="vistorias">
-      <div className="w-full space-y-6">
+      <div className="sipi-print-document w-full space-y-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
@@ -434,7 +578,7 @@ function VistoriasRoute() {
           </div>
           <button
             type="button"
-            onClick={beginNewInspection}
+            onClick={() => void navigate({ to: "/vistorias/nova" })}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/15 transition hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
@@ -757,6 +901,57 @@ function VistoriasRoute() {
                       );
                     })}
                   </div>
+                  <div className="border-t border-border/80 pt-5">
+                    <div className="mb-4">
+                      <h4 className="font-black">Constatações técnicas</h4>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Descreva os sinais identificadores e as condições efetivamente observadas.
+                        Esses registros compõem o relatório e o PDF.
+                      </p>
+                    </div>
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      <label className="space-y-2 text-sm font-semibold">
+                        Identificação e sinais
+                        <textarea
+                          value={identificationFindings}
+                          onChange={(event) => setIdentificationFindings(event.target.value)}
+                          rows={4}
+                          placeholder="Chassi, motor, etiquetas, placas e demais sinais examinados"
+                          className={TEXTAREA_CLASS}
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm font-semibold">
+                        Estrutura e integridade
+                        <textarea
+                          value={structureFindings}
+                          onChange={(event) => setStructureFindings(event.target.value)}
+                          rows={4}
+                          placeholder="Carroceria, vidros, fechaduras, lacres e pontos estruturais"
+                          className={TEXTAREA_CLASS}
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm font-semibold">
+                        Estado de conservação
+                        <textarea
+                          value={conservationFindings}
+                          onChange={(event) => setConservationFindings(event.target.value)}
+                          rows={4}
+                          placeholder="Condição externa, interna, avarias e funcionamento aparente"
+                          className={TEXTAREA_CLASS}
+                        />
+                      </label>
+                      <label className="space-y-2 text-sm font-semibold">
+                        Acessórios e itens adicionais
+                        <textarea
+                          value={accessoriesFindings}
+                          onChange={(event) => setAccessoriesFindings(event.target.value)}
+                          rows={4}
+                          placeholder="Som, ferramentas, objetos, adaptações ou outros acessórios"
+                          className={TEXTAREA_CLASS}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
@@ -817,6 +1012,17 @@ function VistoriasRoute() {
                       <ReviewRow
                         label="Checklist"
                         value={`${informedChecklistItems}/${CHECKLIST_ITEMS.length} informado(s)`}
+                      />
+                      <ReviewRow
+                        label="Constatações"
+                        value={`${
+                          [
+                            identificationFindings,
+                            structureFindings,
+                            conservationFindings,
+                            accessoriesFindings,
+                          ].filter((value) => value.trim()).length
+                        }/4 preenchida(s)`}
                       />
                       <ReviewRow label="Pessoas" value={`${linkedPeopleCount} vinculada(s)`} />
                     </dl>
@@ -881,7 +1087,7 @@ function VistoriasRoute() {
           </div>
         )}
 
-        <section className="grid gap-4 md:grid-cols-3" aria-label="Resumo das vistorias">
+        <section className="hidden" aria-hidden="true">
           <SummaryCard
             icon={FileCheck2}
             label="Relatórios emitidos"
@@ -909,318 +1115,669 @@ function VistoriasRoute() {
           />
         </section>
 
-        <section className="rounded-2xl border border-border bg-card/50 p-6 shadow-sm">
-          {loading ? (
-            <div className="flex min-h-32 items-center justify-center text-muted-foreground">
-              <LoaderCircle className="h-5 w-5 animate-spin" aria-label="Carregando vistorias" />
+        <section className="rounded-2xl border border-border/80 bg-card/70 p-4 md:p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-lg font-black">Vistorias registradas</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {filteredInspections.length} de {inspections.length} registro(s) encontrado(s)
+              </p>
             </div>
-          ) : inspections.length > 0 ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-bold">Vistorias recentes</h2>
-                <span className="text-xs text-muted-foreground">
-                  {inspections.length} registro(s)
-                </span>
-              </div>
-              {inspections.map((inspection) => (
-                <article
-                  key={inspection.id}
-                  className="rounded-xl border border-border bg-background/60 p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-bold">
-                        {inspection.vehicle?.internal_id || "Veículo não informado"}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {inspection.vehicle?.brand_model || "Modelo não informado"} ·{" "}
-                        {inspection.vehicle?.plate || "sem placa"}
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                      {INSPECTION_STATUS_LABELS[inspection.status]}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Vistoria em{" "}
-                    {new Intl.DateTimeFormat("pt-BR").format(
-                      new Date(`${inspection.inspection_date}T12:00:00`),
-                    )}{" "}
-                    · versão {inspection.current_version}
-                  </p>
-                  {inspection.police_report_number || inspection.presentation_reason ? (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {inspection.police_report_number
-                        ? `B.O. ${inspection.police_report_number}`
-                        : "B.O. não informado"}
-                      {inspection.presentation_reason
-                        ? ` · ${PRESENTATION_REASON_LABELS[inspection.presentation_reason] ?? inspection.presentation_reason}`
-                        : ""}
-                    </p>
-                  ) : null}
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => beginEdit(inspection)}
-                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
-                    >
-                      Nova versão
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void toggleHistory(inspection.id)}
-                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
-                    >
-                      {expandedHistoryId === inspection.id ? "Ocultar histórico" : "Ver histórico"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPrintInspection(inspection);
-                        window.setTimeout(() => window.print(), 120);
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="relative min-w-[280px]">
+                <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar veículo, placa, B.O. ou local"
+                  aria-label="Buscar vistorias"
+                  className={`${FIELD_CLASS} pl-10`}
+                />
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as "todos" | VehicleInspection["status"])
+                }
+                aria-label="Filtrar vistorias por status"
+                className={`${FIELD_CLASS} min-w-[190px]`}
+              >
+                <option value="todos">Todos os status</option>
+                <option value="rascunho">Em elaboração</option>
+                <option value="emitido">Relatório emitido</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-border/80 bg-card/90 shadow-[0_10px_40px_rgba(0,0,0,0.22)]">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1040px] table-fixed text-sm">
+              <thead className="bg-muted/25 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                <tr>
+                  <th className="w-[20%] px-4 py-3 text-left font-bold">Vistoria</th>
+                  <th className="w-[14%] px-3 py-3 text-left font-bold">Veículo</th>
+                  <th className="w-[10%] px-3 py-3 text-left font-bold">Placa</th>
+                  <th className="w-[13%] px-3 py-3 text-left font-bold">B.O. / ocorrência</th>
+                  <th className="w-[11%] px-3 py-3 text-left font-bold">Data</th>
+                  <th className="w-[12%] px-3 py-3 text-center font-bold">Status</th>
+                  <th className="w-[10%] px-3 py-3 text-center font-bold">Documento</th>
+                  <th className="w-[10%] px-3 py-3 text-center font-bold">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-14 text-center text-muted-foreground">
+                      <LoaderCircle className="mx-auto h-6 w-6 animate-spin" />
+                      <span className="mt-2 block text-xs">Carregando vistorias...</span>
+                    </td>
+                  </tr>
+                ) : filteredInspections.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-14 text-center text-muted-foreground">
+                      <ClipboardCheck className="mx-auto h-7 w-7 text-primary" />
+                      <strong className="mt-3 block text-sm text-foreground">
+                        {inspections.length
+                          ? "Nenhuma vistoria encontrada"
+                          : "Nenhuma vistoria registrada"}
+                      </strong>
+                      <span className="mt-1 block text-xs">
+                        {inspections.length
+                          ? "Ajuste a busca ou o filtro aplicado."
+                          : "Clique em Nova vistoria para iniciar o primeiro registro."}
+                      </span>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredInspections.map((inspection) => (
+                    <tr
+                      key={inspection.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Abrir vistoria ${inspection.vehicle?.internal_id || inspection.police_report_number || inspection.id}`}
+                      onClick={() => setSelectedInspectionId(inspection.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedInspectionId(inspection.id);
+                        }
                       }}
-                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
+                      className="cursor-pointer border-t border-border/70 transition hover:bg-primary/[0.055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
                     >
-                      Gerar impressão/PDF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void togglePhotos(inspection.id)}
-                      className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold transition hover:bg-accent"
-                    >
-                      {expandedPhotosId === inspection.id ? "Ocultar fotos" : "Ver fotos técnicas"}
-                    </button>
-                    <select
-                      value={photoCategory}
-                      onChange={(event) =>
-                        setPhotoCategory(event.target.value as InspectionPhotoCategory)
-                      }
-                      aria-label="Categoria da fotografia técnica"
-                      className="h-9 rounded-lg border border-input bg-background px-2 text-xs font-semibold"
-                    >
-                      {INSPECTION_PHOTO_CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {PHOTO_CATEGORY_LABELS[category]}
-                        </option>
-                      ))}
-                    </select>
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15">
-                      {uploadingPhotosId === inspection.id ? (
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Camera className="h-3.5 w-3.5" />
-                      )}
-                      Adicionar fotos
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        className="sr-only"
-                        disabled={uploadingPhotosId !== null}
-                        onChange={(event) => {
-                          void handlePhotoUpload(inspection, event.target.files);
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition hover:bg-primary/15">
-                      {uploadingId === inspection.id ? (
-                        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-                      ) : null}
-                      Anexar PDF assinado
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        className="sr-only"
-                        disabled={uploadingId !== null}
-                        onChange={(event) => {
-                          void handlePdfUpload(inspection, event.target.files?.[0]);
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                    {inspection.pdf_sha256 ? (
-                      <span className="text-[11px] text-success">
-                        PDF anexado · SHA-256 registrado
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">
-                        PDF ainda não anexado
-                      </span>
-                    )}
-                  </div>
-                  {expandedHistoryId === inspection.id ? (
-                    <div className="mt-4 space-y-2 border-t border-border pt-4">
-                      {(history[inspection.id] ?? []).map((version) => (
-                        <div
-                          key={version.id}
-                          className="flex flex-wrap items-center justify-between gap-2 text-xs"
+                      <td className="px-4 py-3.5 align-middle">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary">
+                            <ClipboardCheck className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-black">
+                              {inspection.vehicle?.internal_id || "Veículo não informado"}
+                            </p>
+                            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                              Vistoria v{inspection.current_version}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3.5 align-middle">
+                        <span
+                          className="block truncate text-xs font-medium"
+                          title={inspection.vehicle?.brand_model || "Não informado"}
                         >
-                          <span className="font-semibold">Versão {version.version}</span>
-                          <span className="text-muted-foreground">
-                            {version.change_reason || "Criação do relatório"} ·{" "}
-                            {new Intl.DateTimeFormat("pt-BR").format(new Date(version.created_at))}
+                          {inspection.vehicle?.brand_model || "Não informado"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3.5 align-middle font-mono text-xs font-bold">
+                        {inspection.vehicle?.plate || "—"}
+                      </td>
+                      <td className="px-3 py-3.5 align-middle font-mono text-xs text-muted-foreground">
+                        {inspection.police_report_number || "—"}
+                      </td>
+                      <td className="px-3 py-3.5 align-middle text-xs tabular-nums text-muted-foreground">
+                        {new Intl.DateTimeFormat("pt-BR").format(
+                          new Date(`${inspection.inspection_date}T12:00:00`),
+                        )}
+                      </td>
+                      <td className="px-3 py-3.5 text-center align-middle">
+                        <span
+                          className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ${
+                            inspection.status === "emitido"
+                              ? "border-success/35 bg-success/10 text-success"
+                              : inspection.status === "cancelado"
+                                ? "border-destructive/35 bg-destructive/10 text-destructive"
+                                : "border-primary/35 bg-primary/10 text-primary"
+                          }`}
+                        >
+                          {INSPECTION_STATUS_LABELS[inspection.status]}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3.5 text-center align-middle">
+                        <span
+                          className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-bold ${
+                            inspection.pdf_sha256
+                              ? "border-success/30 bg-success/10 text-success"
+                              : "border-warning/30 bg-warning/10 text-warning"
+                          }`}
+                        >
+                          {inspection.pdf_sha256 ? "Assinado" : "Pendente"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3.5 text-center align-middle">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedInspectionId(inspection.id);
+                          }}
+                          className="inline-flex min-h-8 items-center justify-center rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/20"
+                        >
+                          Abrir
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="hidden" aria-hidden="true">
+          <div className="flex flex-col gap-4 border-b border-border/80 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+                Central de vistorias
+              </p>
+              <h2 className="mt-1 text-xl font-black">Consulta e visualização</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Selecione um registro para visualizar o relatório completo e suas evidências.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <label className="relative min-w-[260px]">
+                <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Buscar veículo, placa, B.O. ou local"
+                  aria-label="Buscar vistorias"
+                  className={`${FIELD_CLASS} pl-10`}
+                />
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as "todos" | VehicleInspection["status"])
+                }
+                aria-label="Filtrar vistorias por status"
+                className={`${FIELD_CLASS} min-w-[170px]`}
+              >
+                <option value="todos">Todos os status</option>
+                <option value="rascunho">Em elaboração</option>
+                <option value="emitido">Relatório emitido</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex min-h-72 items-center justify-center text-muted-foreground">
+              <LoaderCircle className="h-6 w-6 animate-spin" aria-label="Carregando vistorias" />
+            </div>
+          ) : filteredInspections.length > 0 && selectedInspection ? (
+            <div className="grid min-h-[560px] xl:grid-cols-[minmax(300px,0.72fr)_minmax(0,1.55fr)]">
+              <aside className="border-b border-border/80 bg-background/25 xl:border-b-0 xl:border-r">
+                <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+                  <span className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    Registros encontrados
+                  </span>
+                  <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-black">
+                    {filteredInspections.length}
+                  </span>
+                </div>
+                <div className="max-h-[690px] space-y-2 overflow-y-auto p-3">
+                  {filteredInspections.map((inspection) => {
+                    const active = inspection.id === selectedInspection.id;
+                    return (
+                      <button
+                        key={inspection.id}
+                        type="button"
+                        onClick={() => setSelectedInspectionId(inspection.id)}
+                        className={`w-full rounded-xl border p-4 text-left transition ${
+                          active
+                            ? "border-primary/45 bg-primary/10 shadow-[inset_3px_0_0_var(--primary)]"
+                            : "border-border bg-card/60 hover:border-primary/25 hover:bg-muted/35"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black">
+                              {inspection.vehicle?.internal_id || "Veículo não informado"}
+                            </p>
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
+                              {inspection.vehicle?.brand_model || "Modelo não informado"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-bold text-primary">
+                            v{inspection.current_version}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                          <span>{inspection.vehicle?.plate || "Sem placa"}</span>
+                          <span>
+                            {new Intl.DateTimeFormat("pt-BR").format(
+                              new Date(`${inspection.inspection_date}T12:00:00`),
+                            )}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between border-t border-border/70 pt-3">
+                          <span className="text-[10px] font-bold text-primary">
+                            {INSPECTION_STATUS_LABELS[inspection.status]}
                           </span>
                           <span
-                            className={
-                              version.pdf_sha256 ? "text-success" : "text-muted-foreground"
-                            }
+                            className={`h-2 w-2 rounded-full ${
+                              inspection.pdf_sha256 ? "bg-success" : "bg-warning"
+                            }`}
+                            title={inspection.pdf_sha256 ? "PDF assinado anexado" : "PDF pendente"}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </aside>
+
+              <article className="min-w-0 p-5 lg:p-6">
+                <div className="flex flex-col gap-4 border-b border-border/80 pb-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex items-start gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary">
+                      <CarFront className="h-6 w-6" />
+                    </span>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-xl font-black">
+                          {selectedInspection.vehicle?.internal_id || "Veículo não informado"}
+                        </h3>
+                        <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                          {INSPECTION_STATUS_LABELS[selectedInspection.status]}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {selectedInspection.vehicle?.brand_model || "Modelo não informado"} ·{" "}
+                        {selectedInspection.vehicle?.plate || "Sem placa"}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Vistoria de{" "}
+                        {new Intl.DateTimeFormat("pt-BR").format(
+                          new Date(`${selectedInspection.inspection_date}T12:00:00`),
+                        )}{" "}
+                        · versão {selectedInspection.current_version}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => beginEdit(selectedInspection)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs font-bold transition hover:bg-muted"
+                    >
+                      <FileText className="h-4 w-4" /> Nova versão
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handlePrintInspection(selectedInspection)}
+                      disabled={printingId === selectedInspection.id}
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"
+                    >
+                      {printingId === selectedInspection.id ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Printer className="h-4 w-4" />
+                      )}
+                      {printingId === selectedInspection.id ? "Preparando..." : "Gerar PDF"}
+                    </button>
+                    {selectedInspection.pdf_storage_path ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenSignedPdf(selectedInspection)}
+                        disabled={openingPdfId === selectedInspection.id}
+                        className="inline-flex items-center gap-2 rounded-xl border border-success/35 bg-success/10 px-3.5 py-2.5 text-xs font-bold text-success transition hover:bg-success/15 disabled:opacity-60"
+                      >
+                        {openingPdfId === selectedInspection.id ? (
+                          <LoaderCircle className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <ExternalLink className="h-4 w-4" />
+                        )}
+                        Abrir assinado
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <DetailField
+                    label="B.O. / ocorrência"
+                    value={selectedInspection.police_report_number}
+                  />
+                  <DetailField
+                    label="Motivo da apresentação"
+                    value={
+                      selectedInspection.presentation_reason
+                        ? PRESENTATION_REASON_LABELS[selectedInspection.presentation_reason]
+                        : null
+                    }
+                  />
+                  <DetailField
+                    label="Instituição"
+                    value={
+                      selectedInspection.presenting_institution
+                        ? INSTITUTION_LABELS[selectedInspection.presenting_institution]
+                        : null
+                    }
+                  />
+                  <DetailField label="Local da vistoria" value={selectedInspection.location} />
+                  <DetailField
+                    label="Pátio / destino"
+                    value={
+                      selectedInspection.yard_type
+                        ? YARD_LABELS[selectedInspection.yard_type]
+                        : null
+                    }
+                  />
+                  <DetailField label="Local do pátio" value={selectedInspection.yard_location} />
+                  <DetailField
+                    label="Restrição de entrega"
+                    value={selectedInspection.delivery_restricted ? "Sim" : "Não"}
+                  />
+                  <DetailField
+                    label="Documento"
+                    value={
+                      selectedInspection.pdf_sha256 ? "PDF assinado e verificado" : "PDF pendente"
+                    }
+                    tone={selectedInspection.pdf_sha256 ? "success" : "warning"}
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                  <InspectionNarrative
+                    title="Identificação e sinais"
+                    value={selectedInspection.findings?.identification}
+                  />
+                  <InspectionNarrative
+                    title="Estrutura e integridade"
+                    value={selectedInspection.findings?.structure}
+                  />
+                  <InspectionNarrative
+                    title="Estado de conservação"
+                    value={selectedInspection.findings?.conservation}
+                  />
+                  <InspectionNarrative
+                    title="Acessórios e itens adicionais"
+                    value={selectedInspection.findings?.accessories}
+                  />
+                </div>
+
+                <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.5fr)]">
+                  <section className="rounded-xl border border-border bg-background/45 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h4 className="text-sm font-black">Checklist observado</h4>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        {
+                          Object.values(selectedInspection.checklist ?? {}).filter(
+                            (value) => value !== "nao_informado",
+                          ).length
+                        }{" "}
+                        item(ns)
+                      </span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {CHECKLIST_ITEMS.map(([key, label]) => {
+                        const value = selectedInspection.checklist?.[key];
+                        if (!value || value === "nao_informado") return null;
+                        return (
+                          <span
+                            key={key}
+                            className={`rounded-lg border px-2.5 py-1.5 text-[10px] font-bold ${
+                              value === "presente"
+                                ? "border-success/25 bg-success/10 text-success"
+                                : "border-destructive/25 bg-destructive/10 text-destructive"
+                            }`}
                           >
-                            {version.pdf_sha256 ? "PDF com hash" : "Sem PDF"}
+                            {label}: {CHECKLIST_STATUS_LABELS[value]}
+                          </span>
+                        );
+                      })}
+                      {!formatChecklist(selectedInspection.checklist) ? (
+                        <span className="text-xs text-muted-foreground">
+                          Nenhum item informado.
+                        </span>
+                      ) : null}
+                    </div>
+                  </section>
+                  <section className="rounded-xl border border-border bg-background/45 p-4">
+                    <h4 className="text-sm font-black">Pessoas vinculadas</h4>
+                    {selectedInspection.linked_people?.length ? (
+                      <ul className="mt-3 space-y-2">
+                        {selectedInspection.linked_people.map((person) => (
+                          <li key={person} className="flex items-start gap-2 text-xs">
+                            <UsersRound className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            <span>{person}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Nenhuma pessoa vinculada.
+                      </p>
+                    )}
+                  </section>
+                </div>
+
+                {selectedInspection.inspector_notes ? (
+                  <section className="mt-4 rounded-xl border border-border bg-background/45 p-4">
+                    <h4 className="text-sm font-black">Observações do vistoriador</h4>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                      {selectedInspection.inspector_notes}
+                    </p>
+                  </section>
+                ) : null}
+
+                <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/80 pt-5">
+                  <button
+                    type="button"
+                    onClick={() => void toggleHistory(selectedInspection.id)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs font-bold transition hover:bg-muted"
+                  >
+                    <History className="h-4 w-4" />
+                    {expandedHistoryId === selectedInspection.id
+                      ? "Ocultar histórico"
+                      : "Histórico"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void togglePhotos(selectedInspection.id)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-2.5 text-xs font-bold transition hover:bg-muted"
+                  >
+                    <Eye className="h-4 w-4" />
+                    {expandedPhotosId === selectedInspection.id
+                      ? "Ocultar fotos"
+                      : "Fotos técnicas"}
+                  </button>
+                  <select
+                    value={photoCategory}
+                    onChange={(event) =>
+                      setPhotoCategory(event.target.value as InspectionPhotoCategory)
+                    }
+                    aria-label="Categoria da fotografia técnica"
+                    className="h-10 rounded-xl border border-input bg-background px-3 text-xs font-semibold"
+                  >
+                    {INSPECTION_PHOTO_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {PHOTO_CATEGORY_LABELS[category]}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/15">
+                    {uploadingPhotosId === selectedInspection.id ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
+                    Adicionar fotos
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      className="sr-only"
+                      disabled={uploadingPhotosId !== null}
+                      onChange={(event) => {
+                        void handlePhotoUpload(selectedInspection, event.target.files);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3.5 py-2.5 text-xs font-bold text-primary transition hover:bg-primary/15">
+                    {uploadingId === selectedInspection.id ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileCheck2 className="h-4 w-4" />
+                    )}
+                    Anexar PDF assinado
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="sr-only"
+                      disabled={uploadingId !== null}
+                      onChange={(event) => {
+                        void handlePdfUpload(selectedInspection, event.target.files?.[0]);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {expandedHistoryId === selectedInspection.id ? (
+                  <section className="mt-4 rounded-xl border border-border bg-background/45 p-4">
+                    <h4 className="text-sm font-black">Histórico de versões</h4>
+                    <div className="mt-3 space-y-2">
+                      {(history[selectedInspection.id] ?? []).map((version) => (
+                        <div
+                          key={version.id}
+                          className="grid gap-1 rounded-lg border border-border/75 bg-card/50 p-3 text-xs sm:grid-cols-[90px_minmax(0,1fr)_auto]"
+                        >
+                          <strong>Versão {version.version}</strong>
+                          <span className="text-muted-foreground">
+                            {version.change_reason || "Criação do relatório"} ·{" "}
+                            {new Intl.DateTimeFormat("pt-BR", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            }).format(new Date(version.created_at))}
+                          </span>
+                          <span className={version.pdf_sha256 ? "text-success" : "text-warning"}>
+                            {version.pdf_sha256 ? "PDF verificado" : "PDF pendente"}
                           </span>
                         </div>
                       ))}
-                      {(history[inspection.id] ?? []).length === 0 ? (
+                      {(history[selectedInspection.id] ?? []).length === 0 ? (
                         <p className="text-xs text-muted-foreground">Nenhuma versão encontrada.</p>
                       ) : null}
                     </div>
-                  ) : null}
-                  {expandedPhotosId === inspection.id ? (
-                    <div className="mt-4 border-t border-border pt-4">
-                      {(inspectionPhotos[inspection.id] ?? []).length ? (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                          {(inspectionPhotos[inspection.id] ?? []).map((photo) => (
-                            <figure
-                              key={photo.id}
-                              className="overflow-hidden rounded-lg border border-border bg-background"
-                            >
-                              {photo.vehicle_photo?.thumbnail_url ? (
-                                <a
-                                  href={
-                                    photo.vehicle_photo.original_url ??
-                                    photo.vehicle_photo.thumbnail_url
-                                  }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="block aspect-video bg-muted"
-                                >
-                                  <img
-                                    src={photo.vehicle_photo.thumbnail_url}
-                                    alt={`Fotografia técnica: ${PHOTO_CATEGORY_LABELS[photo.category]}`}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </a>
-                              ) : (
-                                <div className="flex aspect-video items-center justify-center bg-muted text-xs text-muted-foreground">
-                                  Prévia indisponível
-                                </div>
-                              )}
-                              <figcaption className="px-3 py-2 text-xs font-semibold">
-                                {PHOTO_CATEGORY_LABELS[photo.category]}
-                              </figcaption>
-                            </figure>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Nenhuma fotografia técnica vinculada a esta vistoria.
-                        </p>
-                      )}
-                    </div>
-                  ) : null}
-                </article>
-              ))}
+                  </section>
+                ) : null}
+
+                {expandedPhotosId === selectedInspection.id ? (
+                  <section className="mt-4 rounded-xl border border-border bg-background/45 p-4">
+                    <h4 className="text-sm font-black">Fotografias técnicas</h4>
+                    {(inspectionPhotos[selectedInspection.id] ?? []).length ? (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {(inspectionPhotos[selectedInspection.id] ?? []).map((photo) => (
+                          <figure
+                            key={photo.id}
+                            className="overflow-hidden rounded-xl border border-border bg-card/60"
+                          >
+                            {photo.vehicle_photo?.thumbnail_url ? (
+                              <a
+                                href={
+                                  photo.vehicle_photo.original_url ??
+                                  photo.vehicle_photo.thumbnail_url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                                className="block aspect-video bg-muted"
+                              >
+                                <img
+                                  src={photo.vehicle_photo.thumbnail_url}
+                                  alt={`Fotografia técnica: ${PHOTO_CATEGORY_LABELS[photo.category]}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              </a>
+                            ) : (
+                              <div className="flex aspect-video items-center justify-center bg-muted text-xs text-muted-foreground">
+                                Prévia indisponível
+                              </div>
+                            )}
+                            <figcaption className="px-3 py-2 text-xs font-bold">
+                              {PHOTO_CATEGORY_LABELS[photo.category]}
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Nenhuma fotografia técnica vinculada.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+              </article>
             </div>
           ) : (
-            <div className="p-2 text-center">
+            <div className="p-10 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
-                <ClipboardCheck className="h-7 w-7" aria-hidden="true" />
+                <ClipboardCheck className="h-7 w-7" />
               </div>
-              <h2 className="mt-5 text-lg font-bold">Nenhum relatório de vistoria registrado</h2>
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                Comece pelo cadastro de veículos. O próximo passo do fluxo cria o relatório, gera o
-                PDF e grava a versão com histórico no banco de dados.
+              <h3 className="mt-4 font-black">
+                {inspections.length ? "Nenhum registro encontrado" : "Nenhuma vistoria registrada"}
+              </h3>
+              <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
+                {inspections.length
+                  ? "Ajuste a busca ou o filtro para localizar a vistoria."
+                  : "Inicie uma nova vistoria para registrar o veículo, as constatações e o relatório."}
               </p>
-              <Link
-                to="/veiculos"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold transition hover:bg-accent"
-              >
-                Abrir cadastro de veículos
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
             </div>
           )}
         </section>
+
         {printInspection ? (
-          <SipiPrintSheet
-            documentTitle="Relatório de Vistoria Veicular"
-            documentSubtitle="Registro operacional de vistoria"
-            identifierLabel="ID DA VISTORIA"
-            identifier={printInspection.id}
-            variant="vehicle"
-            summary={[
-              { label: "Veículo", value: printInspection.vehicle?.internal_id },
-              { label: "Placa", value: printInspection.vehicle?.plate },
-              { label: "Data", value: printInspection.inspection_date },
-              { label: "Local", value: printInspection.location },
-              { label: "B.O./Ocorrência", value: printInspection.police_report_number },
-            ]}
-            sections={[
-              {
-                title: "Da apresentação",
-                fields: [
-                  {
-                    label: "Motivo",
-                    value: printInspection.presentation_reason
-                      ? PRESENTATION_REASON_LABELS[printInspection.presentation_reason]
-                      : null,
-                  },
-                  {
-                    label: "Instituição apresentante",
-                    value: printInspection.presenting_institution
-                      ? INSTITUTION_LABELS[printInspection.presenting_institution]
-                      : null,
-                  },
-                  {
-                    label: "Pátio/destino",
-                    value: printInspection.yard_type
-                      ? YARD_LABELS[printInspection.yard_type]
-                      : null,
-                  },
-                  { label: "Local do pátio", value: printInspection.yard_location },
-                  {
-                    label: "Restrição de entrega",
-                    value: printInspection.delivery_restricted ? "Sim" : "Não",
-                  },
-                ],
-              },
-              {
-                title: "Checklist observado",
-                narrative: true,
-                fields: [
-                  {
-                    label: "Itens",
-                    value: formatChecklist(printInspection.checklist),
-                    wide: true,
-                  },
-                ],
-              },
-              {
-                title: "Pessoas vinculadas",
-                narrative: true,
-                fields: [
-                  {
-                    label: "Identificação e vínculo",
-                    value: printInspection.linked_people?.join("\n"),
-                    wide: true,
-                  },
-                ],
-              },
-              {
-                title: "Observações",
-                narrative: true,
-                fields: [
-                  {
-                    label: "Registro do vistoriador",
-                    value: printInspection.inspector_notes,
-                    wide: true,
-                    manualLine: true,
-                  },
-                ],
-              },
-            ]}
+          <VehicleInspectionPrintSheet
+            inspection={printInspection}
+            photos={inspectionPhotos[printInspection.id] ?? []}
           />
         ) : null}
+
+        <VehicleInspectionQuickPreview
+          record={selectedInspection}
+          onClose={() => setSelectedInspectionId(null)}
+          onViewPdf={() => {
+            if (selectedInspection) void handleViewInspectionPdf(selectedInspection);
+          }}
+          onEdit={() => {
+            if (!selectedInspection) return;
+            const inspectionId = selectedInspection.id;
+            setSelectedInspectionId(null);
+            void navigate({
+              to: "/vistorias/$inspectionId/editar",
+              params: { inspectionId },
+            });
+          }}
+          busy={
+            selectedInspection
+              ? printingId === selectedInspection.id || openingPdfId === selectedInspection.id
+              : false
+          }
+        />
       </div>
     </AppLayout>
   );
@@ -1259,5 +1816,39 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="max-w-[62%] text-right font-bold text-foreground">{value}</dd>
     </div>
+  );
+}
+
+function DetailField({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value?: string | null;
+  tone?: "default" | "success" | "warning";
+}) {
+  const toneClass =
+    tone === "success" ? "text-success" : tone === "warning" ? "text-warning" : "text-foreground";
+  return (
+    <div className="min-w-0 rounded-xl border border-border bg-background/45 p-3.5">
+      <dt className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </dt>
+      <dd className={`mt-1.5 truncate text-sm font-bold ${toneClass}`} title={value || undefined}>
+        {value || "Não informado"}
+      </dd>
+    </div>
+  );
+}
+
+function InspectionNarrative({ title, value }: { title: string; value?: string | null }) {
+  return (
+    <section className="min-h-28 rounded-xl border border-border bg-background/45 p-4">
+      <h4 className="text-xs font-black uppercase tracking-[0.1em] text-primary">{title}</h4>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+        {value?.trim() || "Não informado"}
+      </p>
+    </section>
   );
 }

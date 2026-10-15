@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowUpRight, FileText, Scale, Trash2, X } from "lucide-react";
+import { ArrowUpRight, FileText, Pencil, Scale, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { calculateInqueritoOperationalPriority } from "@/lib/inqueritosPriority";
 import {
@@ -12,6 +12,7 @@ import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import type { RepresentacaoRecord } from "@/lib/repositories/representacoesRepository";
 import { isCvliElucidado } from "@/lib/cvliMetrics";
 import { getBoStatusLabel, type BoRecord } from "@/features/bo/boTypes";
+import type { VehicleInspection } from "@/features/vistorias/vistoriaTypes";
 
 const FALLBACK = "—";
 
@@ -308,6 +309,139 @@ export function InqueritoQuickPreview({
       onOpenFull={onOpenFull}
     >
       <PreviewSection title="Informações principais" items={mainItems} />
+    </RecordQuickPreview>
+  );
+}
+
+const INSPECTION_STATUS_PREVIEW_LABELS: Record<VehicleInspection["status"], string> = {
+  rascunho: "Em elaboração",
+  emitido: "Relatório emitido",
+  cancelado: "Cancelado",
+};
+
+const INSPECTION_REASON_PREVIEW_LABELS: Record<string, string> = {
+  suspeita_adulteracao_sinais: "Suspeita de adulteração de sinais",
+  suspeita_clonagem: "Suspeita de clonagem",
+  recuperacao_furto_roubo: "Recuperação de furto/roubo",
+  trafico_drogas: "Tráfico de drogas",
+  acidente: "Acidente",
+  local_crime: "Local de crime",
+  verificacao: "Verificação",
+  condutor_nao_habilitado: "Condutor não habilitado",
+  instrumento_crime: "Instrumento de crime",
+  veiculo_abandonado: "Veículo abandonado",
+  outros: "Outros",
+};
+
+const INSPECTION_INSTITUTION_PREVIEW_LABELS: Record<string, string> = {
+  policia_militar: "Polícia Militar",
+  policia_civil: "Polícia Civil",
+  policia_rodoviaria_federal: "Polícia Rodoviária Federal",
+  policia_federal: "Polícia Federal",
+  guarda_municipal: "Guarda Municipal",
+  outros: "Outros",
+};
+
+export function VehicleInspectionQuickPreview({
+  record,
+  onClose,
+  onViewPdf,
+  onEdit,
+  busy = false,
+}: {
+  record: VehicleInspection | null;
+  onClose: () => void;
+  onViewPdf: () => void;
+  onEdit: () => void;
+  busy?: boolean;
+}) {
+  if (!record) return null;
+
+  const status = INSPECTION_STATUS_PREVIEW_LABELS[record.status];
+  const vehicleTitle = [record.vehicle?.brand_model, record.vehicle?.plate]
+    .filter(Boolean)
+    .join(" · ");
+  const identifier = firstValue(
+    record.vehicle?.internal_id,
+    record.police_report_number,
+    `Vistoria ${record.current_version}`,
+  );
+  const badges: PreviewBadge[] = [
+    { label: status, tone: statusTone(status) },
+    { label: `Versão ${record.current_version}`, tone: "violet" },
+    {
+      label: record.pdf_sha256 ? "PDF assinado" : "PDF pendente",
+      tone: record.pdf_sha256 ? "emerald" : "amber",
+    },
+  ];
+
+  const mainItems: SummaryItem[] = [
+    { label: "B.O. / ocorrência", value: displayValue(record.police_report_number) },
+    { label: "Data da vistoria", value: formatDate(record.inspection_date) },
+    {
+      label: "Motivo",
+      value: record.presentation_reason
+        ? INSPECTION_REASON_PREVIEW_LABELS[record.presentation_reason]
+        : FALLBACK,
+    },
+    {
+      label: "Instituição",
+      value: record.presenting_institution
+        ? INSPECTION_INSTITUTION_PREVIEW_LABELS[record.presenting_institution]
+        : FALLBACK,
+    },
+    { label: "Local da vistoria", value: displayValue(record.location) },
+    { label: "Local do pátio", value: displayValue(record.yard_location) },
+    { label: "Restrição de entrega", value: record.delivery_restricted ? "Sim" : "Não" },
+    {
+      label: "Pessoas vinculadas",
+      value: record.linked_people?.length ? `${record.linked_people.length} pessoa(s)` : FALLBACK,
+    },
+  ].filter((item) => item.value !== FALLBACK);
+
+  const findingItems: SummaryItem[] = [
+    { label: "Identificação e sinais", value: displayValue(record.findings?.identification) },
+    { label: "Estrutura e integridade", value: displayValue(record.findings?.structure) },
+    { label: "Conservação", value: displayValue(record.findings?.conservation) },
+    { label: "Acessórios", value: displayValue(record.findings?.accessories) },
+  ].filter((item) => item.value !== FALLBACK);
+
+  return (
+    <RecordQuickPreview
+      open
+      onOpenChange={(open) => !open && onClose()}
+      eyebrow="Visualização rápida · Vistoria veicular"
+      identifier={identifier}
+      title={vehicleTitle || "Veículo não informado"}
+      badges={badges}
+      footer={
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onViewPdf}
+            disabled={busy}
+            className="flex h-12 items-center justify-center gap-2 rounded-lg bg-violet-400 px-4 text-xs font-black uppercase tracking-[0.1em] text-violet-950 shadow-[0_0_24px_rgba(167,139,250,0.18)] transition hover:bg-violet-300 disabled:cursor-wait disabled:opacity-60"
+          >
+            <FileText className="h-4 w-4" />
+            {busy ? "Abrindo..." : "Ver PDF"}
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="flex h-12 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.05] px-4 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:border-violet-300/50 hover:bg-violet-400/10"
+          >
+            <Pencil className="h-4 w-4" /> Editar
+          </button>
+        </div>
+      }
+    >
+      <PreviewSection title="Informações principais" items={mainItems} />
+      {findingItems.length ? <PreviewSection title="Constatações" items={findingItems} /> : null}
+      {record.inspector_notes ? (
+        <PreviewSection title="Observações">
+          <p className="py-3 text-sm leading-6 text-zinc-300">{record.inspector_notes}</p>
+        </PreviewSection>
+      ) : null}
     </RecordQuickPreview>
   );
 }
