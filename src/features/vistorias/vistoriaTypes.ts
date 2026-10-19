@@ -166,6 +166,7 @@ export type VehicleInspection = {
   inspection_date: string;
   location: string | null;
   inspector_notes: string | null;
+  bo_id: string | null;
   police_report_number: string | null;
   presentation_reason: InspectionPresentationReason | null;
   presenting_institution: InspectionPresentingInstitution | null;
@@ -183,6 +184,14 @@ export type VehicleInspection = {
   updated_at: string;
   created_by: string | null;
   updated_by: string | null;
+  bo?: {
+    id: string;
+    numero_bo: string;
+    infracao_penal: string;
+    responsavel_nome: string | null;
+    status: string;
+    deleted_at: string | null;
+  } | null;
   vehicle?: {
     id: string;
     internal_id: string;
@@ -206,6 +215,7 @@ export type CreateVehicleInspectionInput = {
   inspection_date: string;
   location?: string | null;
   inspector_notes?: string | null;
+  bo_id?: string | null;
   police_report_number?: string | null;
   presentation_reason?: InspectionPresentationReason | null;
   presenting_institution?: InspectionPresentingInstitution | null;

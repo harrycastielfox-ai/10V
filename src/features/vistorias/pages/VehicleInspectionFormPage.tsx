@@ -11,11 +11,13 @@ import {
   Check,
   CheckCircle2,
   ClipboardCheck,
+  ExternalLink,
   FileSearch,
   Fingerprint,
   Gauge,
   ImagePlus,
   KeyRound,
+  Link2,
   ListChecks,
   LockKeyhole,
   LoaderCircle,
@@ -25,6 +27,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  Unlink,
   UsersRound,
   Warehouse,
   Wrench,
@@ -32,6 +35,8 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { VehicleInspectionPrintSheet } from "@/components/VehicleInspectionPrintSheet";
+import { getBoStatusLabel, type BoRecord } from "@/features/bo/boTypes";
+import { listBos } from "@/lib/repositories/boRepository";
 import {
   createVehicleInspection,
   listVehicleInspectionPhotos,
@@ -222,6 +227,7 @@ export default function VehicleInspectionFormPage({
   const [vehicles, setVehicles] = useState<Awaited<ReturnType<typeof listVehiclesForInspection>>>(
     [],
   );
+  const [boRecords, setBoRecords] = useState<BoRecord[]>([]);
   const [editingInspection, setEditingInspection] = useState<VehicleInspection | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -231,6 +237,7 @@ export default function VehicleInspectionFormPage({
   const [inspectionDate, setInspectionDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [boId, setBoId] = useState("");
   const [policeReportNumber, setPoliceReportNumber] = useState("");
   const [presentationReason, setPresentationReason] = useState("");
   const [presentingInstitution, setPresentingInstitution] = useState("");
@@ -253,6 +260,10 @@ export default function VehicleInspectionFormPage({
   const [pendingPhotos, setPendingPhotos] = useState<PendingInspectionPhoto[]>([]);
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === vehicleId) ?? null;
+  const selectedBo =
+    boRecords.find((record) => record.id === boId) ??
+    (editingInspection?.bo_id === boId ? editingInspection.bo : null) ??
+    null;
   const currentStep = STEPS.find((item) => item.id === step) ?? STEPS[0];
   const checklistValues = CHECKLIST_ITEMS.map(([key]) => checklist[key] ?? "nao_informado");
   const checklistSummary = {
@@ -344,6 +355,7 @@ export default function VehicleInspectionFormPage({
     inspection_date: inspectionDate,
     location: location || null,
     inspector_notes: notes || null,
+    bo_id: boId || null,
     police_report_number: policeReportNumber || null,
     presentation_reason: (presentationReason || null) as InspectionPresentationReason | null,
     presenting_institution: (presentingInstitution ||
@@ -394,6 +406,7 @@ export default function VehicleInspectionFormPage({
     updated_at: reviewTimestamp,
     created_by: editingInspection?.created_by ?? null,
     updated_by: editingInspection?.updated_by ?? null,
+    bo: selectedBo,
     vehicle: selectedVehicle,
   };
   const reviewPhotos: VehicleInspectionPhoto[] = [
@@ -418,10 +431,12 @@ export default function VehicleInspectionFormPage({
     void Promise.all([
       listVehiclesForInspection(),
       inspectionId ? listVehicleInspections(200) : Promise.resolve([]),
+      listBos().catch(() => []),
     ])
-      .then(([vehicleRows, inspectionRows]) => {
+      .then(([vehicleRows, inspectionRows, boRows]) => {
         if (cancelled) return;
         setVehicles(vehicleRows);
+        setBoRecords(boRows);
         if (!inspectionId) return;
         const inspection = inspectionRows.find((item) => item.id === inspectionId);
         if (!inspection) {
@@ -433,6 +448,7 @@ export default function VehicleInspectionFormPage({
         setInspectionDate(inspection.inspection_date);
         setLocation(inspection.location ?? "");
         setNotes(inspection.inspector_notes ?? "");
+        setBoId(inspection.bo_id ?? "");
         setPoliceReportNumber(inspection.police_report_number ?? "");
         setPresentationReason(inspection.presentation_reason ?? "");
         setPresentingInstitution(inspection.presenting_institution ?? "");
@@ -498,6 +514,7 @@ export default function VehicleInspectionFormPage({
         inspection_date: inspectionDate,
         location,
         inspector_notes: notes,
+        bo_id: boId || null,
         police_report_number: policeReportNumber,
         presentation_reason: (presentationReason || null) as InspectionPresentationReason | null,
         presenting_institution: (presentingInstitution ||
@@ -649,15 +666,15 @@ export default function VehicleInspectionFormPage({
           </div>
         </header>
 
-        <div className="grid items-start gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
-          <aside className="overflow-hidden rounded-[1.5rem] border border-border/75 bg-card/80 shadow-sm xl:sticky xl:top-5">
+        <div className="grid items-stretch gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
+          <aside className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border/75 bg-card/80 shadow-sm xl:sticky xl:top-5">
             <div className="border-b border-border/70 px-5 py-4">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
                 Fluxo operacional
               </p>
               <p className="mt-1 text-sm font-bold">Etapas do relatório</p>
             </div>
-            <nav className="p-3">
+            <nav className="flex-1 p-3">
               {STEPS.map((item, index) => {
                 const Icon = item.icon;
                 const active = step === item.id;
@@ -723,7 +740,7 @@ export default function VehicleInspectionFormPage({
             </div>
           </aside>
 
-          <section className="overflow-hidden rounded-[1.75rem] border border-primary/20 bg-card/90 shadow-[0_24px_70px_-45px_color-mix(in_oklab,var(--primary)_75%,transparent)]">
+          <section className="flex flex-col overflow-hidden rounded-[1.75rem] border border-primary/20 bg-card/90 shadow-[0_24px_70px_-45px_color-mix(in_oklab,var(--primary)_75%,transparent)]">
             <div className="inspection-registration-light flex flex-col gap-4 border-b border-border/75 bg-white px-5 py-5 md:flex-row md:items-center md:justify-between md:px-7">
               <SectionTitle
                 icon={currentStep.icon}
@@ -761,7 +778,7 @@ export default function VehicleInspectionFormPage({
             </div>
 
             <div
-              className={`inspection-registration-light p-5 md:p-7 ${step === 1 && !selectedVehicle && !loading ? "" : "min-h-[590px]"}`}
+              className={`inspection-registration-light flex-1 p-5 md:p-7 ${step === 1 && !selectedVehicle && !loading ? "" : "min-h-[590px]"}`}
             >
               {loading ? (
                 <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -867,7 +884,7 @@ export default function VehicleInspectionFormPage({
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-primary/25 bg-primary/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-primary/25 bg-primary/[0.035] p-4 text-center sm:flex-row sm:gap-10 sm:p-5 sm:text-left">
                           <div className="flex items-center gap-3">
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
                               <KeyRound className="h-5 w-5" />
@@ -1063,15 +1080,47 @@ export default function VehicleInspectionFormPage({
                         <Panel icon={FileSearch} title="Vínculo com a ocorrência" tone="primary">
                           <div className="grid gap-4 sm:grid-cols-2">
                             <Field
-                              label="Número do B.O. / ocorrência"
-                              hint="Referência operacional"
+                              label="B.O. cadastrado"
+                              hint={`${boRecords.length} disponível(is)`}
                             >
-                              <input
-                                value={policeReportNumber}
-                                onChange={(event) => setPoliceReportNumber(event.target.value)}
-                                className={FIELD_CLASS}
-                                placeholder="Ex.: 26-00705653"
-                              />
+                              <div>
+                                <input
+                                  list="vehicle-inspection-bo-options"
+                                  value={policeReportNumber}
+                                  onChange={(event) => {
+                                    const value = event.target.value;
+                                    const match = boRecords.find(
+                                      (record) =>
+                                        record.numero_bo.trim().toLocaleLowerCase("pt-BR") ===
+                                        value.trim().toLocaleLowerCase("pt-BR"),
+                                    );
+                                    setPoliceReportNumber(value);
+                                    setBoId(match?.id ?? "");
+                                  }}
+                                  className={FIELD_CLASS}
+                                  placeholder="Digite ou selecione o número do B.O."
+                                  aria-describedby="vehicle-inspection-bo-help"
+                                />
+                                <datalist id="vehicle-inspection-bo-options">
+                                  {boRecords.map((record) => (
+                                    <option key={record.id} value={record.numero_bo}>
+                                      {record.infracao_penal}
+                                    </option>
+                                  ))}
+                                </datalist>
+                                <p
+                                  id="vehicle-inspection-bo-help"
+                                  className={`mt-2 text-[10px] font-bold ${
+                                    selectedBo ? "text-emerald-600" : "text-muted-foreground"
+                                  }`}
+                                >
+                                  {selectedBo
+                                    ? "B.O. vinculado ao relatório de vistoria."
+                                    : policeReportNumber.trim()
+                                      ? "Referência manual — selecione uma sugestão para criar o vínculo."
+                                      : "Pesquise pelo número de um B.O. existente ou informe uma referência manual."}
+                                </p>
+                              </div>
                             </Field>
                             <Field label="Motivo da apresentação">
                               <select
@@ -1087,6 +1136,45 @@ export default function VehicleInspectionFormPage({
                                 ))}
                               </select>
                             </Field>
+                            {selectedBo ? (
+                              <div className="sm:col-span-2 flex flex-col gap-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.06] p-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-600">
+                                    <Link2 className="h-5 w-5" />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
+                                      Vínculo confirmado · {getBoStatusLabel(selectedBo.status)}
+                                    </p>
+                                    <p className="mt-1 truncate text-sm font-black">
+                                      B.O. {selectedBo.numero_bo} · {selectedBo.infracao_penal}
+                                    </p>
+                                    <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                                      Responsável: {selectedBo.responsavel_nome || "Não informado"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2">
+                                  <Link
+                                    to="/bo/$boId"
+                                    params={{ boId: selectedBo.id }}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-background/75 px-3 py-2 text-[11px] font-black transition hover:border-primary/35"
+                                  >
+                                    Abrir B.O. <ExternalLink className="h-3.5 w-3.5" />
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setBoId("");
+                                      setPoliceReportNumber("");
+                                    }}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/[0.06] px-3 py-2 text-[11px] font-black text-destructive transition hover:bg-destructive/10"
+                                  >
+                                    <Unlink className="h-3.5 w-3.5" /> Desvincular
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                           <div className="mt-4">
                             <Field label="Instituição apresentante">
@@ -1281,7 +1369,7 @@ export default function VehicleInspectionFormPage({
                                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[10px] text-primary">
                                   07
                                 </span>
-                                Nível do óleo
+                                Nível do óleo do motor
                               </span>
                               <Gauge className="h-3.5 w-3.5 text-primary/70" />
                             </div>
@@ -1388,37 +1476,6 @@ export default function VehicleInspectionFormPage({
                           </div>
                         </div>
                       </div>
-
-                      <div className="grid gap-4 lg:grid-cols-2">
-                        <FindingField
-                          index="01"
-                          title="Identificação e sinais"
-                          value={identificationFindings}
-                          onChange={setIdentificationFindings}
-                          placeholder="Chassi, motor, placas, etiquetas e demais sinais..."
-                        />
-                        <FindingField
-                          index="02"
-                          title="Estrutura e integridade"
-                          value={structureFindings}
-                          onChange={setStructureFindings}
-                          placeholder="Estrutura, fixações, vidros e componentes..."
-                        />
-                        <FindingField
-                          index="03"
-                          title="Estado de conservação"
-                          value={conservationFindings}
-                          onChange={setConservationFindings}
-                          placeholder="Condições gerais observadas..."
-                        />
-                        <FindingField
-                          index="04"
-                          title="Acessórios e itens adicionais"
-                          value={accessoriesFindings}
-                          onChange={setAccessoriesFindings}
-                          placeholder="Itens presentes, ausentes ou divergentes..."
-                        />
-                      </div>
                     </div>
                   ) : null}
 
@@ -1461,9 +1518,9 @@ export default function VehicleInspectionFormPage({
 
                   {step === 5 ? (
                     <div className="space-y-5">
-                      <Panel icon={Gauge} title="Condição operacional e diagnóstico" tone="primary">
+                      <Panel icon={Gauge} title="Condição final e diagnóstico" tone="primary">
                         <div className="grid gap-4 lg:grid-cols-3">
-                          <Field label="Nível de combustível">
+                          <Field label="Combustível no tanque">
                             <select
                               value={technicalData.fuel_level ?? "nao_verificado"}
                               onChange={(event) =>
@@ -1594,14 +1651,14 @@ export default function VehicleInspectionFormPage({
 
                       <div className="grid gap-4 lg:grid-cols-2">
                         <FindingField
-                          index="05"
+                          index="01"
                           title="Resultados obtidos"
                           value={resultFindings}
                           onChange={setResultFindings}
                           placeholder="Consolide os sinais examinados, divergências e conclusão técnica..."
                         />
                         <FindingField
-                          index="06"
+                          index="02"
                           title="Providências adotadas"
                           value={measuresTaken}
                           onChange={setMeasuresTaken}
@@ -2053,6 +2110,12 @@ function PhotoCapturePanel({
 }) {
   const [selectedOptionId, setSelectedOptionId] = useState(options[0].id);
   const selectedOption = options.find((option) => option.id === selectedOptionId) ?? options[0];
+  const selectedCaption = selectedOption.caption.trim().toLocaleLowerCase("pt-BR");
+  const hasSelectedPhoto = [...savedPhotos, ...pendingPhotos].some((photo) => {
+    if (photo.category !== selectedOption.category) return false;
+    if (selectedOption.category !== "veiculo") return true;
+    return (photo.caption ?? "").trim().toLocaleLowerCase("pt-BR") === selectedCaption;
+  });
 
   return (
     <section className="overflow-hidden rounded-3xl border border-border/75 bg-white">
@@ -2096,105 +2159,115 @@ function PhotoCapturePanel({
             </button>
           ))}
         </div>
-        {savedPhotos.length || pendingPhotos.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {savedPhotos.map((photo) => (
-              <figure
-                key={photo.id}
-                className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.045]"
-              >
-                {photo.vehicle_photo?.thumbnail_url ? (
-                  <img
-                    src={photo.vehicle_photo.thumbnail_url}
-                    alt={photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
-                    className="aspect-video w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex aspect-video items-center justify-center bg-muted text-xs text-muted-foreground">
-                    Prévia indisponível
-                  </div>
-                )}
-                <figcaption className="p-3">
-                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-emerald-500">
-                    Foto vinculada
-                  </span>
-                  <p className="mt-1 text-xs font-bold">
-                    {photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
-                  </p>
-                </figcaption>
-              </figure>
-            ))}
+        <div className="grid content-start gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {!hasSelectedPhoto ? (
+            <label className="group flex min-h-64 cursor-pointer flex-col overflow-hidden rounded-2xl border border-dashed border-primary/35 bg-primary/[0.035] transition hover:border-primary/60 hover:bg-primary/[0.07] focus-within:ring-4 focus-within:ring-primary/10">
+              <span className="flex aspect-video flex-col items-center justify-center border-b border-dashed border-primary/20 px-5 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition group-hover:scale-105 group-hover:bg-primary/15">
+                  <ImagePlus className="h-6 w-6" />
+                </span>
+                <strong className="mt-3 text-sm">Anexar fotografia</strong>
+                <span className="mt-1 text-[11px] text-muted-foreground">
+                  Clique para escolher o arquivo
+                </span>
+              </span>
+              <span className="flex flex-1 flex-col justify-center p-4">
+                <span className="text-[9px] font-black uppercase tracking-[0.14em] text-primary">
+                  Aguardando anexo
+                </span>
+                <span className="mt-1 text-sm font-black">{selectedOption.caption}</span>
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple={selectedOption.id === "outras"}
+                className="sr-only"
+                onChange={(event) => {
+                  onAdd(event.target.files, selectedOption.category, selectedOption.caption);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          ) : null}
 
-            {pendingPhotos.map((photo) => (
-              <article
-                key={photo.id}
-                className="overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.04]"
-              >
-                <div className="relative">
-                  <img
-                    src={photo.previewUrl}
-                    alt={photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
-                    className="aspect-video w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => onRemove(photo.id)}
-                    className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-black/70 text-white transition hover:bg-destructive"
-                    aria-label="Remover fotografia antes do envio"
+          {savedPhotos.map((photo) => (
+            <figure
+              key={photo.id}
+              className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.045]"
+            >
+              {photo.vehicle_photo?.thumbnail_url ? (
+                <img
+                  src={photo.vehicle_photo.thumbnail_url}
+                  alt={photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
+                  className="aspect-video w-full object-cover"
+                />
+              ) : (
+                <div className="flex aspect-video items-center justify-center bg-muted text-xs text-muted-foreground">
+                  Prévia indisponível
+                </div>
+              )}
+              <figcaption className="p-3">
+                <span className="text-[9px] font-black uppercase tracking-[0.14em] text-emerald-500">
+                  Foto vinculada
+                </span>
+                <p className="mt-1 text-xs font-bold">
+                  {photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
+                </p>
+              </figcaption>
+            </figure>
+          ))}
+
+          {pendingPhotos.map((photo) => (
+            <article
+              key={photo.id}
+              className="overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.04]"
+            >
+              <div className="relative">
+                <img
+                  src={photo.previewUrl}
+                  alt={photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
+                  className="aspect-video w-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemove(photo.id)}
+                  className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-black/70 text-white transition hover:bg-destructive"
+                  aria-label="Remover fotografia antes do envio"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-2 p-3">
+                {allowedCategories.length > 1 ? (
+                  <select
+                    value={photo.category}
+                    onChange={(event) =>
+                      onUpdate(photo.id, {
+                        category: event.target.value as InspectionPhotoCategory,
+                      })
+                    }
+                    aria-label="Categoria da fotografia"
+                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="space-y-2 p-3">
-                  {allowedCategories.length > 1 ? (
-                    <select
-                      value={photo.category}
-                      onChange={(event) =>
-                        onUpdate(photo.id, {
-                          category: event.target.value as InspectionPhotoCategory,
-                        })
-                      }
-                      aria-label="Categoria da fotografia"
-                      className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold"
-                    >
-                      {allowedCategories.map((category) => (
-                        <option key={category} value={category}>
-                          {PHOTO_CATEGORY_LABELS[category]}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-                  <input
-                    value={photo.caption}
-                    onChange={(event) => onUpdate(photo.id, { caption: event.target.value })}
-                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-semibold outline-none focus:border-primary/60"
-                    placeholder="Legenda ou posição da foto"
-                    aria-label="Legenda da fotografia"
-                  />
-                  <p className="text-[10px] font-bold text-primary">Será enviada ao salvar</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <label className="flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-primary/[0.025] p-6 text-center transition hover:bg-primary/[0.06]">
-            <ImagePlus className="h-7 w-7 text-primary" />
-            <strong className="mt-3 text-sm">Nenhuma fotografia adicionada</strong>
-            <span className="mt-1 text-xs text-muted-foreground">
-              Clique para selecionar uma ou várias imagens.
-            </span>
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              className="sr-only"
-              onChange={(event) => {
-                onAdd(event.target.files, selectedOption.category, selectedOption.caption);
-                event.currentTarget.value = "";
-              }}
-            />
-          </label>
-        )}
+                    {allowedCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {PHOTO_CATEGORY_LABELS[category]}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                <input
+                  value={photo.caption}
+                  onChange={(event) => onUpdate(photo.id, { caption: event.target.value })}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-semibold outline-none focus:border-primary/60"
+                  placeholder="Legenda ou posição da foto"
+                  aria-label="Legenda da fotografia"
+                />
+                <p className="text-[10px] font-bold text-primary">Será enviada ao salvar</p>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
       <label className="block border-t border-border/70 p-5">
         <span className="mb-2 block text-sm font-black">Descrição</span>

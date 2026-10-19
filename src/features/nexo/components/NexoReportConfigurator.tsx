@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Building2, Check, FileText, Image, Printer, UserRound, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowLeft, Building2, Check, FileText, Image, Printer, UserRound, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   createNexoReportConfig,
   listNexoReportPhotos,
@@ -34,17 +34,33 @@ export function NexoReportConfigurator({
 }) {
   const [scope, setScope] = useState(initialScope);
   const [config, setConfig] = useState(createNexoReportConfig);
+  const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const data = useMemo(
     () => ({ organizacoes, pessoas, territorios, registros, observacoes }),
     [organizacoes, pessoas, territorios, registros, observacoes],
   );
   const selected = useMemo(() => selectNexoReportData(scope, data), [scope, data]);
   const summary = useMemo(() => summarizeNexoReport(scope, data, config), [scope, data, config]);
+  const availablePhotos = useMemo(
+    () => selected.people.flatMap((person) => listNexoReportPhotos(person)),
+    [selected.people],
+  );
   const scopeExists =
     scope.kind === "geral" ||
     (scope.kind === "organizacao"
       ? organizacoes.some((org) => org.id === scope.organizacaoId)
       : pessoas.some((person) => person.id === scope.pessoaId));
+
+  useEffect(() => {
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   function switchScope(kind: NexoReportScope["kind"]) {
     setScope(
@@ -54,6 +70,27 @@ export function NexoReportConfigurator({
           ? { kind, organizacaoId: organizacoes[0]?.id || "" }
           : { kind, pessoaId: pessoas[0]?.id || "" },
     );
+  }
+
+  function openPhotoPicker() {
+    setPhotoPickerOpen(true);
+  }
+
+  function setAllPhotosIncluded(included: boolean) {
+    const selectedPersonIds = new Set(selected.people.map((person) => person.id));
+    setConfig((current) => ({
+      ...current,
+      excludedPhotoPersonIds: current.excludedPhotoPersonIds.filter(
+        (personId) => !selectedPersonIds.has(personId),
+      ),
+      photoOverrides: availablePhotos.reduce(
+        (overrides, photo) => ({
+          ...overrides,
+          [photo.key]: { ...overrides[photo.key], included },
+        }),
+        { ...current.photoOverrides },
+      ),
+    }));
   }
 
   return (
@@ -95,7 +132,9 @@ export function NexoReportConfigurator({
             disabled={busy}
             className="m-0 grid min-h-0 min-w-0 flex-1 items-start gap-4 overflow-y-auto overscroll-contain border-0 p-4 sm:p-6 lg:grid-cols-[.82fr_1.18fr]"
           >
-            <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5">
+            <section
+              className={`${photoPickerOpen ? "hidden" : ""} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5`}
+            >
               <div className="flex items-center gap-2.5">
                 <span
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#d5e7ed] bg-[#edf7f9] text-[11px] font-bold text-[#168aa1]"
@@ -167,7 +206,9 @@ export function NexoReportConfigurator({
                 </label>
               ) : null}
             </section>
-            <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5">
+            <section
+              className={`${photoPickerOpen ? "hidden" : ""} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5">
                   <span
@@ -193,30 +234,44 @@ export function NexoReportConfigurator({
               </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {NEXO_REPORT_SECTIONS.map(({ key, label, detail }) => (
-                  <label
+                  <div
                     key={key}
-                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition focus-within:ring-2 focus-within:ring-[#168aa1]/25 ${config.sections[key] ? "border-[#a3c9d5] bg-[#f0f8fa]" : "border-[#dfe7ed] bg-white hover:border-[#b7cdd8]"}`}
+                    className={`rounded-lg border p-3 transition focus-within:ring-2 focus-within:ring-[#168aa1]/25 ${config.sections[key] ? "border-[#a3c9d5] bg-[#f0f8fa]" : "border-[#dfe7ed] bg-white hover:border-[#b7cdd8]"}`}
                   >
-                    <input
-                      type="checkbox"
-                      checked={config.sections[key]}
-                      onChange={(event) =>
-                        setConfig((current) => ({
-                          ...current,
-                          sections: { ...current.sections, [key]: event.target.checked },
-                        }))
-                      }
-                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#168aa1]"
-                    />
-                    <span>
-                      <strong className="block text-xs font-semibold text-[#23475e]">
-                        {label}
-                      </strong>
-                      <small className="mt-1 block text-[11px] leading-relaxed text-[#567184]">
-                        {detail}
-                      </small>
-                    </span>
-                  </label>
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={config.sections[key]}
+                        onChange={(event) =>
+                          setConfig((current) => ({
+                            ...current,
+                            sections: { ...current.sections, [key]: event.target.checked },
+                          }))
+                        }
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-[#168aa1]"
+                      />
+                      <span>
+                        <strong className="block text-xs font-semibold text-[#23475e]">
+                          {label}
+                        </strong>
+                        <small className="mt-1 block text-[11px] leading-relaxed text-[#567184]">
+                          {detail}
+                        </small>
+                      </span>
+                    </label>
+                    {key === "photographs" && config.sections.photographs ? (
+                      <button
+                        type="button"
+                        onClick={openPhotoPicker}
+                        className="mt-3 flex w-full items-center justify-between border-t border-[#cfe1e8] pt-2 text-left text-[11px] font-bold text-[#127b92] hover:text-[#0f6073] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1]"
+                      >
+                        <span>Escolher fotos do álbum</span>
+                        <span className="rounded-md bg-white px-2 py-1 tabular-nums text-[#355a70]">
+                          {summary.photos}/{availablePhotos.length}
+                        </span>
+                      </button>
+                    ) : null}
+                  </div>
                 ))}
               </div>
               <p className="mt-4 border-t border-[#e4ecf1] pt-3 text-[11px] leading-relaxed text-[#567184]">
@@ -225,23 +280,54 @@ export function NexoReportConfigurator({
               </p>
             </section>
             {config.sections.photographs ? (
-              <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5 lg:col-span-2">
-                <div className="flex items-start gap-2.5">
-                  <span
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#d5e7ed] bg-[#edf7f9] text-[11px] font-bold text-[#168aa1]"
-                    aria-hidden="true"
-                  >
-                    03
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="flex items-center gap-2 text-[13px] font-bold leading-6 text-[#12334a]">
-                      Fotografias e legendas
-                      <Image className="h-4 w-4 text-[#168aa1]" aria-hidden="true" />
-                    </h2>
-                    <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#567184]">
-                      As legendas abaixo pertencem somente a este relatório. Elas não alteram as
-                      fotografias nem as anotações salvas no dossiê.
-                    </p>
+              <section
+                className={`${photoPickerOpen ? "" : "hidden"} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5 lg:col-span-2`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5">
+                    <span
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#d5e7ed] bg-[#edf7f9] text-[11px] font-bold text-[#168aa1]"
+                      aria-hidden="true"
+                    >
+                      03
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="flex items-center gap-2 text-[13px] font-bold leading-6 text-[#12334a]">
+                        Fotografias e legendas
+                        <Image className="h-4 w-4 text-[#168aa1]" aria-hidden="true" />
+                      </h2>
+                      <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#567184]">
+                        As legendas abaixo pertencem somente a este relatório. Elas não alteram as
+                        fotografias nem as anotações salvas no dossiê.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setPhotoPickerOpen(false)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-[#d6e3eb] bg-white px-2.5 py-1.5 text-[#47677c] hover:bg-[#f7fafc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1]"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" /> Voltar às seções
+                    </button>
+                    {availablePhotos.length ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setAllPhotosIncluded(true)}
+                          className="rounded-md border border-[#cfe0e8] bg-[#f7fafc] px-2.5 py-1.5 text-[#126b80] hover:bg-[#edf7f9] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1]"
+                        >
+                          Selecionar todas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAllPhotosIncluded(false)}
+                          className="rounded-md border border-[#dce5eb] bg-white px-2.5 py-1.5 text-[#567184] hover:bg-[#f7f9fb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1]"
+                        >
+                          Limpar seleção
+                        </button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
                 <div className="mt-4 space-y-4">

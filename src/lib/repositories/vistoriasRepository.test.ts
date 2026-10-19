@@ -76,6 +76,16 @@ describe("vistoriasRepository", () => {
       id: "vistoria-1",
       vehicle_id: "veiculo-1",
       current_version: 2,
+      bo: [
+        {
+          id: "bo-1",
+          numero_bo: "26-00705653",
+          infracao_penal: "Receptação",
+          responsavel_nome: "Equipe Alfa",
+          status: "Em Andamento",
+          deleted_at: null,
+        },
+      ],
       vehicle: [
         {
           id: "veiculo-1",
@@ -89,6 +99,7 @@ describe("vistoriasRepository", () => {
 
     expect(inspection?.vehicle?.internal_id).toBe("VEI-2026-000001");
     expect(inspection?.vehicle?.plate).toBe("JOV8032");
+    expect(inspection?.bo?.numero_bo).toBe("26-00705653");
     expect(state.from).toHaveBeenCalledWith("vehicle_inspections");
   });
 
@@ -131,6 +142,7 @@ describe("vistoriasRepository", () => {
       createVehicleInspection({
         vehicle_id: "veiculo-1",
         inspection_date: "2026-10-13",
+        bo_id: "bo-1",
         location: "Pátio",
         inspector_notes: "Sem alteração",
         presentation_reason: "verificacao",
@@ -164,6 +176,7 @@ describe("vistoriasRepository", () => {
       expect.objectContaining({
         p_vehicle_id: "veiculo-1",
         p_inspection_date: "2026-10-13",
+        p_bo_id: "bo-1",
         p_presentation_reason: "verificacao",
         p_findings: {
           result: "Há indícios de adulteração nos sinais identificadores.",

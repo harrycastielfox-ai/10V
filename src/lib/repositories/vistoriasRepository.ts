@@ -26,14 +26,17 @@ type InspectionVehicle = {
   conservation_state: string | null;
 };
 
-type RawVehicleInspection = Omit<VehicleInspection, "vehicle"> & {
+type InspectionBo = NonNullable<VehicleInspection["bo"]>;
+
+type RawVehicleInspection = Omit<VehicleInspection, "vehicle" | "bo"> & {
   vehicle?: InspectionVehicle | InspectionVehicle[] | null;
+  bo?: InspectionBo | InspectionBo[] | null;
 };
 
 const INSPECTION_PDF_BUCKET = "vehicle-inspection-pdfs";
 
 const INSPECTION_SELECT =
-  "id,vehicle_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,vehicle_type,brand,model,brand_model,color,plate,renavam,engine_number,chassis,manufacture_year,model_year,conservation_state)";
+  "id,vehicle_id,bo_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,bo:boletins_ocorrencia!vehicle_inspections_bo_id_fkey(id,numero_bo,infracao_penal,responsavel_nome,status,deleted_at),vehicle:vehicles(id,internal_id,vehicle_type,brand,model,brand_model,color,plate,renavam,engine_number,chassis,manufacture_year,model_year,conservation_state)";
 
 function normalizeVehicleInspection(inspection: RawVehicleInspection): VehicleInspection {
   return {
@@ -41,6 +44,7 @@ function normalizeVehicleInspection(inspection: RawVehicleInspection): VehicleIn
     vehicle: Array.isArray(inspection.vehicle)
       ? (inspection.vehicle[0] ?? null)
       : (inspection.vehicle ?? null),
+    bo: Array.isArray(inspection.bo) ? (inspection.bo[0] ?? null) : (inspection.bo ?? null),
   } as VehicleInspection;
 }
 
@@ -116,6 +120,7 @@ export async function createVehicleInspection(input: CreateVehicleInspectionInpu
           p_checklist: input.checklist ?? {},
           p_linked_people: input.linked_people ?? [],
           p_original_vehicle_data: input.original_vehicle_data ?? {},
+          p_bo_id: input.bo_id || null,
         })
         .abortSignal(signal),
   );
@@ -147,6 +152,7 @@ export async function updateVehicleInspection(
         p_checklist: input.checklist ?? {},
         p_linked_people: input.linked_people ?? [],
         p_original_vehicle_data: input.original_vehicle_data ?? {},
+        p_bo_id: input.bo_id || null,
       })
       .abortSignal(signal),
   );
