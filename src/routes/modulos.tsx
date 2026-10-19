@@ -11,9 +11,16 @@ import {
   Construction,
   LogOut,
   Phone,
+  Network,
 } from "lucide-react";
 import { getCurrentProfile, getProfileAvatarPublicUrl, getSession, logout } from "@/lib/auth";
-import { canViewAgenda, canViewLocalizacao, isAuthorized, type UserProfile } from "@/lib/authz";
+import {
+  canViewAgenda,
+  canViewLocalizacao,
+  canViewNexo,
+  isAuthorized,
+  type UserProfile,
+} from "@/lib/authz";
 import { AgendaLembreteNotification } from "@/components/AgendaLembreteNotification";
 import { AppearanceSwitcher } from "@/components/AppearanceSwitcher";
 
@@ -21,7 +28,10 @@ export const Route = createFileRoute("/modulos")({
   head: () => ({
     meta: [
       { title: "Módulos do Sistema — SIED" },
-      { name: "description", content: "Selecione um módulo do Sistema Integrado de Evidências e Dados." },
+      {
+        name: "description",
+        content: "Selecione um módulo do Sistema Integrado de Evidências e Dados.",
+      },
     ],
   }),
   component: ModulosPage,
@@ -115,6 +125,17 @@ const MODULOS: Modulo[] = [
     to: "/localizacao",
     disponivel: true,
   },
+  {
+    id: "nexo",
+    titulo: "NEXO",
+    hint: "Inteligência de vínculos",
+    descricao:
+      "Organizações, pessoas, hipóteses de vínculo, acervo fotográfico, localização e relatórios analíticos.",
+    icon: Network,
+    tone: "report",
+    to: "/nexo",
+    disponivel: true,
+  },
 ];
 
 function ModulosPage() {
@@ -187,7 +208,9 @@ function ModulosPage() {
     <div className="sied-modules-shell sied-identity-surface min-h-screen w-full px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold tracking-wide text-foreground">SIED · Módulos do Sistema</h1>
+          <h1 className="text-2xl font-bold tracking-wide text-foreground">
+            SIED · Módulos do Sistema
+          </h1>
           <p className="text-sm text-muted-foreground">
             Selecione um módulo para acessar suas funcionalidades
           </p>
@@ -198,39 +221,43 @@ function ModulosPage() {
           <div className="px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-xl border border-primary/30 bg-primary/10 p-1.5 shadow-[0_0_22px_rgba(45,212,191,0.15)]">
-                <img src="/sied-mark.svg?v=2" alt="Marca SIED" className="h-full w-full object-contain" />
+                <img
+                  src="/sied-mark.svg?v=2"
+                  alt="Marca SIED"
+                  className="h-full w-full object-contain"
+                />
               </div>
-            <div>
-              <div className="text-sm font-bold tracking-wide">SIED</div>
-              <div className="text-xs text-muted-foreground">DT Itabela — 23ª COORPIN</div>
+              <div>
+                <div className="text-sm font-bold tracking-wide">SIED</div>
+                <div className="text-xs text-muted-foreground">DT Itabela — 23ª COORPIN</div>
+              </div>
             </div>
-          </div>
             <div className="flex items-center gap-3">
-            <AppearanceSwitcher />
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={`Avatar de ${profile.nome}`}
-                className="h-9 w-9 rounded-full border border-border object-cover"
-              />
-            ) : (
-              <div className="h-9 w-9 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-xs font-bold text-primary">
-                {profileInitial}
+              <AppearanceSwitcher />
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={`Avatar de ${profile.nome}`}
+                  className="h-9 w-9 rounded-full border border-border object-cover"
+                />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-xs font-bold text-primary">
+                  {profileInitial}
+                </div>
+              )}
+              <div className="text-right">
+                <div className="text-xs font-semibold">{profile.nome}</div>
+                <div className="text-[10px] text-muted-foreground">{profile.cargo}</div>
               </div>
-            )}
-            <div className="text-right">
-              <div className="text-xs font-semibold">{profile.nome}</div>
-              <div className="text-[10px] text-muted-foreground">{profile.cargo}</div>
-            </div>
-            <button
-              onClick={async () => {
-                await logout();
-                navigate({ to: "/login", replace: true });
-              }}
-              className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold hover:bg-accent transition-colors"
-            >
-              <LogOut className="h-3.5 w-3.5" /> Sair
-            </button>
+              <button
+                onClick={async () => {
+                  await logout();
+                  navigate({ to: "/login", replace: true });
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold hover:bg-accent transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" /> Sair
+              </button>
             </div>
           </div>
         </div>
@@ -239,7 +266,8 @@ function ModulosPage() {
           {MODULOS.filter(
             (m) =>
               (m.id !== "localizacao-operacional" || canViewLocalizacao(profile)) &&
-              (m.id !== "agenda" || canViewAgenda(profile)),
+              (m.id !== "agenda" || canViewAgenda(profile)) &&
+              (m.id !== "nexo" || canViewNexo(profile)),
           ).map((m) => (
             <ModuloCard
               key={m.id}

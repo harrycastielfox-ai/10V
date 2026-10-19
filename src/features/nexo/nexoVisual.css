@@ -1,0 +1,449 @@
+/* NEXO visual foundation. Scoped to this workspace and its portalled dialogs. */
+.nexo-workspace,
+.nexo-themed {
+  --nexo-ink: #12334a;
+  --nexo-muted: #567184;
+  --nexo-subtle: #5d7585;
+  --nexo-accent: #168aa1;
+  --nexo-line: #d6e2e9;
+  --nexo-canvas: #eef3f7;
+  --nexo-shadow: 0 4px 6px -5px #183f541a, 0 12px 32px -26px #183f5455;
+  color-scheme: light;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+@media screen {
+  .nexo-workspace {
+    min-height: 100dvh;
+    color: var(--nexo-ink);
+    background: radial-gradient(ellipse at 95% 0%, #dfedf3 0, transparent 42%), var(--nexo-canvas);
+    isolation: isolate;
+  }
+
+  .nexo-workspace ::selection,
+  .nexo-themed ::selection {
+    color: #0e364c;
+    background: #b8e7ed;
+  }
+
+  :is(.nexo-workspace, .nexo-themed) :where(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid #168aa1;
+    outline-offset: 3px;
+  }
+
+  :is(.nexo-workspace, .nexo-themed)
+    :where(button:not(:disabled), select, input[type="checkbox"], input[type="radio"]) {
+    cursor: pointer;
+  }
+
+  :is(.nexo-workspace, .nexo-themed) :where(button:disabled) {
+    cursor: not-allowed;
+  }
+
+  :is(.nexo-workspace, .nexo-themed)
+    :where(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(
+          [type="file"]
+        ),
+      select,
+      textarea
+    ) {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  :is(.nexo-workspace, .nexo-themed) :where(input, textarea)::placeholder {
+    color: #617989;
+    opacity: 1;
+  }
+
+  :is(.nexo-workspace, .nexo-themed) :where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--nexo-accent);
+  }
+
+  .nexo-workspace :where([id^="nexo-procedure-"]) {
+    scroll-margin-top: 148px;
+  }
+
+  .nexo-workspace :where(.overflow-y-auto, .overflow-x-auto),
+  .nexo-themed :where(.overflow-y-auto, .overflow-x-auto) {
+    scrollbar-width: thin;
+    scrollbar-color: #b8ccd7 transparent;
+    overscroll-behavior: contain;
+  }
+
+  .nexo-workspace-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    color: #fff;
+    background: #0c2131;
+    box-shadow: 0 8px 25px -18px #082237aa;
+  }
+
+  .nexo-header-top,
+  .nexo-header-navigation {
+    width: 100%;
+    max-width: 1680px;
+    margin-inline: auto;
+    padding-inline: clamp(16px, 2.2vw, 36px);
+  }
+
+  .nexo-header-top {
+    display: flex;
+    min-height: 76px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .nexo-brand-mark {
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    border: 1px solid #9ceaf1aa;
+    border-radius: 13px;
+    color: #11374b;
+    background: #79dce5;
+    box-shadow: 0 0 0 5px #79dce50a;
+  }
+
+  .nexo-header-context {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 27px;
+    padding-left: 27px;
+    border-left: 1px solid #a5d3e024;
+    color: #9ab9c8;
+    font-size: 12px;
+  }
+
+  .nexo-header-context strong {
+    color: #e0edf3;
+    font-weight: 650;
+  }
+
+  .nexo-header-search {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #a6c9d72e;
+    border-radius: 11px;
+    padding: 9px 12px;
+    color: #d6e5ed;
+    background: #ffffff08;
+    font-size: 12px;
+    font-weight: 550;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease;
+  }
+
+  .nexo-header-search:hover {
+    border-color: #7bc6d080;
+    background: #ffffff10;
+  }
+
+  .nexo-header-search kbd {
+    margin-left: 32px;
+    padding: 2px 5px;
+    border: 1px solid #b7d3df30;
+    border-radius: 4px;
+    color: #96b6c6;
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .nexo-header-navigation {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    border-top: 1px solid #aecfdb12;
+    scrollbar-width: none;
+  }
+
+  .nexo-header-navigation::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nexo-nav-item {
+    position: relative;
+    display: flex;
+    min-height: 49px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 18px;
+    border: 0;
+    color: #a1bdcc;
+    font-size: 12px;
+    font-weight: 650;
+    transition:
+      color 160ms ease,
+      background 160ms ease;
+  }
+
+  .nexo-nav-item:hover {
+    color: #eefbff;
+    background: #ffffff05;
+  }
+
+  .nexo-workspace .nexo-nav-item:focus-visible {
+    outline-color: #a3e5eb;
+    outline-offset: -5px;
+  }
+
+  .nexo-workspace-header :where(button):focus-visible {
+    outline-color: #a3e5eb;
+  }
+
+  .nexo-nav-item[aria-current="page"] {
+    color: #fff;
+    background: linear-gradient(to top, #58c7d112, transparent);
+  }
+
+  .nexo-nav-item[aria-current="page"]::after {
+    position: absolute;
+    right: 18px;
+    bottom: 0;
+    left: 18px;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: #78dce5;
+    content: "";
+  }
+
+  .nexo-nav-item[aria-current="page"] svg {
+    color: #83dce6;
+  }
+
+  .nexo-content {
+    width: 100%;
+    max-width: 1680px;
+    margin-inline: auto;
+    padding-inline: clamp(16px, 2.2vw, 36px);
+  }
+
+  .nexo-page-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 26px;
+  }
+
+  .nexo-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #11788c;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.16em;
+    line-height: 1.5;
+    text-transform: uppercase;
+  }
+
+  .nexo-eyebrow::before {
+    width: 19px;
+    height: 2px;
+    border-radius: 2px;
+    background: #2b9bb0;
+    content: "";
+  }
+
+  .nexo-title {
+    margin-top: 8px;
+    color: var(--nexo-ink);
+    font-size: clamp(26px, 2.5vw, 34px);
+    font-weight: 800;
+    line-height: 1.16;
+    letter-spacing: -0.04em;
+  }
+
+  .nexo-description {
+    max-width: 760px;
+    margin-top: 10px;
+    color: var(--nexo-muted);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .nexo-surface,
+  .nexo-metric {
+    border: 1px solid var(--nexo-line);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: var(--nexo-shadow);
+  }
+
+  .nexo-action-primary,
+  .nexo-action-secondary {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 17px;
+    border: 1px solid transparent;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 700;
+    transition:
+      background 160ms ease,
+      border-color 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .nexo-action-primary {
+    border-color: #153d55;
+    color: white;
+    background: #153d55;
+    box-shadow: 0 6px 14px -10px #153d5570;
+  }
+
+  .nexo-action-primary:hover:not(:disabled) {
+    background: #20556c;
+  }
+
+  .nexo-action-secondary {
+    border-color: #cddde5;
+    color: #365f75;
+    background: white;
+  }
+
+  .nexo-action-secondary:hover:not(:disabled) {
+    border-color: #7fb8c8;
+    background: #f3fafb;
+  }
+
+  :is(.nexo-action-primary, .nexo-action-secondary):disabled {
+    opacity: 0.45;
+  }
+
+  .nexo-empty-state {
+    display: flex;
+    min-height: 180px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px;
+    border: 1px dashed #c5d9e3;
+    border-radius: 18px;
+    color: var(--nexo-muted);
+    background: #f7fafc;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .nexo-section-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border: 1px solid #cbdfe8;
+    border-radius: 10px;
+    color: #3b7188;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  .nexo-filter-panel {
+    padding: 20px;
+    border: 1px solid var(--nexo-line);
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: var(--nexo-shadow);
+  }
+
+  .nexo-dossier :where(h3) {
+    letter-spacing: -0.015em;
+  }
+  .nexo-dossier :where(nav) {
+    scrollbar-width: thin;
+  }
+  .nexo-dossier :where(input, select, textarea) {
+    border-radius: 10px;
+  }
+
+  .nexo-dossier-navigation button[aria-current="page"] {
+    background: #ffffff0d;
+  }
+
+  .nexo-dossier:not([data-organization-theme="true"]) .nexo-dossier-header {
+    background: #fff;
+    box-shadow: 0 12px 30px -28px #183f5470;
+  }
+
+  .nexo-dossier-photo {
+    box-shadow:
+      0 0 0 4px #ffffff30,
+      0 5px 14px -9px #15384c66;
+  }
+
+  .nexo-wizard-progress {
+    border: 1px solid #dae6ec;
+    border-radius: 18px;
+    background: #fff;
+  }
+
+  @media (max-width: 1023px) {
+    .nexo-header-context {
+      display: none;
+    }
+    .nexo-header-search kbd {
+      display: none;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .nexo-header-top {
+      min-height: 68px;
+      gap: 10px;
+    }
+    .nexo-header-search {
+      padding: 9px;
+    }
+    .nexo-nav-item {
+      min-height: 46px;
+      padding-inline: 14px;
+      font-size: 11px;
+    }
+    .nexo-nav-item[aria-current="page"]::after {
+      inset-inline: 14px;
+    }
+    .nexo-page-heading {
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .nexo-description {
+      font-size: 13px;
+    }
+    .nexo-filter-panel {
+      padding: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :is(.nexo-workspace, .nexo-themed),
+    :is(.nexo-workspace, .nexo-themed) *,
+    :is(.nexo-workspace, .nexo-themed) *::before,
+    :is(.nexo-workspace, .nexo-themed) *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

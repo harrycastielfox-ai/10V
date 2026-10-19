@@ -11,6 +11,14 @@ export const BO_STATUS_OPTIONS = [
 
 export type BoStatus = (typeof BO_STATUS_OPTIONS)[number]["value"];
 export type BoLinkType = "none" | "inquerito" | "representacao";
+export type BoLocationCategory =
+  | "area_influencia"
+  | "ponto_venda"
+  | "ponto_encontro"
+  | "esconderijo"
+  | "deposito"
+  | "rota_operacional"
+  | "outro";
 
 export interface BoRecord {
   id: string;
@@ -22,6 +30,14 @@ export interface BoRecord {
   status: BoStatus;
   inquerito_id: string | null;
   representacao_id: string | null;
+  local_categoria?: BoLocationCategory | null;
+  local_logradouro?: string | null;
+  local_numero?: string | null;
+  local_bairro?: string | null;
+  local_municipio?: string | null;
+  local_uf?: string | null;
+  local_ponto_referencia?: string | null;
+  local_link_navegacao?: string | null;
   origem_registro: "sipi" | "google_sheets" | "migrado";
   created_at: string;
   updated_at: string;
@@ -40,6 +56,14 @@ export type BoPayload = Pick<
   | "status"
   | "inquerito_id"
   | "representacao_id"
+  | "local_categoria"
+  | "local_logradouro"
+  | "local_numero"
+  | "local_bairro"
+  | "local_municipio"
+  | "local_uf"
+  | "local_ponto_referencia"
+  | "local_link_navegacao"
 >;
 
 export function getBoStatusLabel(status: string | null | undefined) {

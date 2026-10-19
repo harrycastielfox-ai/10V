@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   FileText,
   Link2,
+  MapPin,
   Plus,
   Save,
   Scale,
@@ -25,6 +26,7 @@ import {
   BO_STATUS_OPTIONS,
   validateBoPayload,
   type BoLinkType,
+  type BoLocationCategory,
   type BoPayload,
   type BoRecord,
   type BoStatus,
@@ -53,6 +55,16 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
   const [diligencias, setDiligencias] = useState(initial?.diligencias_pendentes ?? "");
   const [responsavel, setResponsavel] = useState(initial?.responsavel_nome ?? profile.nome ?? "");
   const [observacao, setObservacao] = useState(initial?.observacao ?? "");
+  const [localCategoria, setLocalCategoria] = useState<BoLocationCategory | "">(
+    initial?.local_categoria ?? "",
+  );
+  const [localLogradouro, setLocalLogradouro] = useState(initial?.local_logradouro ?? "");
+  const [localNumero, setLocalNumero] = useState(initial?.local_numero ?? "");
+  const [localBairro, setLocalBairro] = useState(initial?.local_bairro ?? "");
+  const [localMunicipio, setLocalMunicipio] = useState(initial?.local_municipio ?? "Itabela");
+  const [localUf, setLocalUf] = useState(initial?.local_uf ?? "BA");
+  const [localReferencia, setLocalReferencia] = useState(initial?.local_ponto_referencia ?? "");
+  const [localLink, setLocalLink] = useState(initial?.local_link_navegacao ?? "");
   const [activeLinkType, setActiveLinkType] = useState<ProcedureLinkType | null>(null);
   const [inqueritoId, setInqueritoId] = useState(initial?.inquerito_id ?? "");
   const [representacaoId, setRepresentacaoId] = useState(initial?.representacao_id ?? "");
@@ -213,8 +225,33 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
       status,
       inquerito_id: inqueritoId || null,
       representacao_id: representacaoId || null,
+      local_categoria: localCategoria || null,
+      local_logradouro: localLogradouro.trim() || null,
+      local_numero: localNumero.trim() || null,
+      local_bairro: localBairro.trim() || null,
+      local_municipio: localMunicipio.trim() || null,
+      local_uf: localUf.trim().toUpperCase() || null,
+      local_ponto_referencia: localReferencia.trim() || null,
+      local_link_navegacao: localLink.trim() || null,
     }),
-    [diligencias, infracao, inqueritoId, numero, observacao, representacaoId, responsavel, status],
+    [
+      diligencias,
+      infracao,
+      inqueritoId,
+      localBairro,
+      localCategoria,
+      localLink,
+      localLogradouro,
+      localMunicipio,
+      localNumero,
+      localReferencia,
+      localUf,
+      numero,
+      observacao,
+      representacaoId,
+      responsavel,
+      status,
+    ],
   );
 
   const chooseLinkType = (next: BoLinkType) => {
@@ -583,6 +620,91 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
       <section className="bo-surface mt-5 rounded-2xl p-5">
         <SectionTitle
           number="3"
+          title="Local do fato"
+          description="Endereço e classificação operacional usados também nas análises do NEXO."
+        />
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Field label="Categoria do local">
+            <select
+              value={localCategoria}
+              onChange={(event) => setLocalCategoria(event.target.value as BoLocationCategory | "")}
+              className="bo-form-control"
+            >
+              <option value="">Não classificado</option>
+              <option value="area_influencia">Área de influência</option>
+              <option value="ponto_venda">Ponto de venda</option>
+              <option value="ponto_encontro">Ponto de encontro</option>
+              <option value="esconderijo">Esconderijo</option>
+              <option value="deposito">Depósito</option>
+              <option value="rota_operacional">Rota operacional</option>
+              <option value="outro">Outro</option>
+            </select>
+          </Field>
+          <Field label="Logradouro">
+            <input
+              value={localLogradouro}
+              onChange={(event) => setLocalLogradouro(event.target.value)}
+              className="bo-form-control"
+              placeholder="Rua, avenida ou estrada"
+            />
+          </Field>
+          <Field label="Número">
+            <input
+              value={localNumero}
+              onChange={(event) => setLocalNumero(event.target.value)}
+              className="bo-form-control"
+              placeholder="S/N"
+            />
+          </Field>
+          <Field label="Bairro / localidade">
+            <input
+              value={localBairro}
+              onChange={(event) => setLocalBairro(event.target.value)}
+              className="bo-form-control"
+            />
+          </Field>
+          <Field label="Município">
+            <input
+              value={localMunicipio}
+              onChange={(event) => setLocalMunicipio(event.target.value)}
+              className="bo-form-control"
+            />
+          </Field>
+          <Field label="UF">
+            <input
+              value={localUf}
+              onChange={(event) => setLocalUf(event.target.value.toUpperCase())}
+              maxLength={2}
+              className="bo-form-control"
+            />
+          </Field>
+          <Field label="Ponto de referência">
+            <input
+              value={localReferencia}
+              onChange={(event) => setLocalReferencia(event.target.value)}
+              className="bo-form-control"
+            />
+          </Field>
+          <div className="md:col-span-2">
+            <Field label="Link Google Maps / navegação">
+              <div className="relative">
+                <MapPin className="absolute left-3 top-3.5 h-4 w-4 text-violet-400" />
+                <input
+                  type="url"
+                  value={localLink}
+                  onChange={(event) => setLocalLink(event.target.value)}
+                  className="bo-form-control pl-10"
+                  placeholder="https://maps.google.com/..."
+                />
+              </div>
+            </Field>
+          </div>
+        </div>
+      </section>
+
+      <section className="bo-surface mt-5 rounded-2xl p-5">
+        <SectionTitle
+          number="4"
           title="Vínculo com outro procedimento"
           description="Opcional. O mesmo B.O. pode ser vinculado a um Inquérito e a uma Representação."
         />

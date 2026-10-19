@@ -294,6 +294,18 @@ export function canViewLocalizacao(
 
 export const canManageLocalizacao = canViewLocalizacao;
 
+// NEXO concentra inteligência sensível de vínculos. O acesso exige perfil
+// especializado ou autoridade responsável pela unidade.
+const NEXO_ROLES: UserRole[] = ["atlas_access", "delegado", "admin"];
+
+export function canViewNexo(
+  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
+): boolean {
+  return Boolean(profile && isAuthorized(profile) && NEXO_ROLES.includes(profile.cargo));
+}
+
+export const canManageNexo = canViewNexo;
+
 export const canSeePrivateRecords = canViewPrivateCases;
 export const canCreateRecords = canCreateCases;
 export const canEditRecords = canEditCases;

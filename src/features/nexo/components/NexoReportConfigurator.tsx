@@ -1,0 +1,429 @@
+import * as Dialog from "@radix-ui/react-dialog";
+import { Building2, Check, FileText, Image, Printer, UserRound, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  createNexoReportConfig,
+  listNexoReportPhotos,
+  NEXO_REPORT_SECTIONS,
+  normalizeNexoReportConfig,
+  selectNexoReportData,
+  summarizeNexoReport,
+  type NexoReportConfig,
+  type NexoReportData,
+} from "../nexoReportConfig";
+import type { NexoReportScope } from "../nexoTypes";
+
+const inputClass =
+  "w-full rounded-lg border border-[#cfdee7] bg-white px-3 py-3 text-[13px] leading-relaxed text-[#12334a] outline-none placeholder:text-[#7b94a5] focus:border-[#168aa1] focus:ring-2 focus:ring-[#168aa1]/15 disabled:bg-[#f2f5f7]";
+
+export function NexoReportConfigurator({
+  initialScope,
+  organizacoes,
+  pessoas,
+  territorios = [],
+  registros = [],
+  observacoes = [],
+  onClose,
+  onGenerate,
+  busy = false,
+}: NexoReportData & {
+  initialScope: NexoReportScope;
+  onClose: () => void;
+  onGenerate: (scope: NexoReportScope, config: NexoReportConfig) => void;
+  busy?: boolean;
+}) {
+  const [scope, setScope] = useState(initialScope);
+  const [config, setConfig] = useState(createNexoReportConfig);
+  const data = useMemo(
+    () => ({ organizacoes, pessoas, territorios, registros, observacoes }),
+    [organizacoes, pessoas, territorios, registros, observacoes],
+  );
+  const selected = useMemo(() => selectNexoReportData(scope, data), [scope, data]);
+  const summary = useMemo(() => summarizeNexoReport(scope, data, config), [scope, data, config]);
+  const scopeExists =
+    scope.kind === "geral" ||
+    (scope.kind === "organizacao"
+      ? organizacoes.some((org) => org.id === scope.organizacaoId)
+      : pessoas.some((person) => person.id === scope.pessoaId));
+
+  function switchScope(kind: NexoReportScope["kind"]) {
+    setScope(
+      kind === "geral"
+        ? { kind }
+        : kind === "organizacao"
+          ? { kind, organizacaoId: organizacoes[0]?.id || "" }
+          : { kind, pessoaId: pessoas[0]?.id || "" },
+    );
+  }
+
+  return (
+    <Dialog.Root open onOpenChange={(open) => !open && !busy && onClose()}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[1200] bg-[#081a27]/70 backdrop-blur-[4px]" />
+        <Dialog.Content
+          aria-busy={busy}
+          className="nexo-themed fixed left-1/2 top-1/2 z-[1201] flex max-h-[calc(100dvh-24px)] w-[calc(100vw-24px)] max-w-5xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[20px] border border-[#cbdce5] bg-[#eef3f7] shadow-[0_28px_90px_-24px_#05172499] outline-none sm:max-h-[calc(100dvh-48px)] sm:w-[calc(100vw-48px)]"
+        >
+          <header className="shrink-0 border-t-[3px] border-[#168aa1] bg-[#12334a] px-5 py-5 text-white sm:px-7 sm:py-6">
+            <div className="flex items-start gap-4">
+              <span className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#89dce5] sm:flex">
+                <FileText className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[.16em] text-[#8ed6e0]">
+                  NEXO / Relatórios
+                </p>
+                <Dialog.Title className="mt-1.5 text-xl font-bold tracking-[-.025em] sm:text-2xl">
+                  Monte o relatório
+                </Dialog.Title>
+                <Dialog.Description className="mt-2 max-w-xl text-xs leading-relaxed text-[#c3d5df] sm:text-[13px]">
+                  Escolha o recorte, selecione as seções e revise as fotografias antes de gerar.
+                </Dialog.Description>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onClose}
+                aria-label="Fechar configuração do relatório"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/20 text-[#d2e3eb] transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#89dce5] disabled:opacity-40"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </header>
+          <fieldset
+            disabled={busy}
+            className="m-0 grid min-h-0 min-w-0 flex-1 items-start gap-4 overflow-y-auto overscroll-contain border-0 p-4 sm:p-6 lg:grid-cols-[.82fr_1.18fr]"
+          >
+            <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#d5e7ed] bg-[#edf7f9] text-[11px] font-bold text-[#168aa1]"
+                  aria-hidden="true"
+                >
+                  01
+                </span>
+                <h2 className="text-[13px] font-bold text-[#12334a]">Recorte do documento</h2>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-[#567184]">
+                Defina quais registros farão parte deste relatório.
+              </p>
+              <div className="mt-4 grid grid-cols-3 gap-2 lg:grid-cols-1">
+                {(
+                  [
+                    ["geral", "Geral", FileText],
+                    ["organizacao", "Organização", Building2],
+                    ["pessoa", "Pessoa", UserRound],
+                  ] as const
+                ).map(([kind, label, Icon]) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    aria-pressed={scope.kind === kind}
+                    onClick={() => switchScope(kind)}
+                    className={`inline-flex min-h-14 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] lg:min-h-12 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-xs ${scope.kind === kind ? "border-[#168aa1] bg-[#edf7f9] text-[#126b80] ring-1 ring-inset ring-[#168aa1]/10" : "border-[#dce6ec] bg-white text-[#567184] hover:border-[#a9c5d2] hover:bg-[#f7fafc]"}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {scope.kind === "organizacao" ? (
+                <label className="mt-4 block text-[11px] font-semibold text-[#47677c]">
+                  Organização
+                  <select
+                    value={scope.organizacaoId}
+                    onChange={(event) =>
+                      setScope({ kind: "organizacao", organizacaoId: event.target.value })
+                    }
+                    className={`mt-1 ${inputClass}`}
+                  >
+                    {!organizacoes.length ? (
+                      <option value="">Nenhuma organização cadastrada</option>
+                    ) : null}
+                    {organizacoes.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : scope.kind === "pessoa" ? (
+                <label className="mt-4 block text-[11px] font-semibold text-[#47677c]">
+                  Pessoa
+                  <select
+                    value={scope.pessoaId}
+                    onChange={(event) => setScope({ kind: "pessoa", pessoaId: event.target.value })}
+                    className={`mt-1 ${inputClass}`}
+                  >
+                    {!pessoas.length ? <option value="">Nenhuma pessoa cadastrada</option> : null}
+                    {pessoas.map((person) => (
+                      <option key={person.id} value={person.id}>
+                        {person.nome}
+                        {person.apelido ? ` · ${person.apelido}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+            </section>
+            <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#d5e7ed] bg-[#edf7f9] text-[11px] font-bold text-[#168aa1]"
+                    aria-hidden="true"
+                  >
+                    02
+                  </span>
+                  <h2 className="text-[13px] font-bold text-[#12334a]">Conteúdo incluído</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfig((current) => ({
+                      ...current,
+                      sections: createNexoReportConfig().sections,
+                    }))
+                  }
+                  className="rounded-md px-1 py-1 text-[11px] font-semibold text-[#127b92] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1]"
+                >
+                  Selecionar todas as seções
+                </button>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {NEXO_REPORT_SECTIONS.map(({ key, label, detail }) => (
+                  <label
+                    key={key}
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition focus-within:ring-2 focus-within:ring-[#168aa1]/25 ${config.sections[key] ? "border-[#a3c9d5] bg-[#f0f8fa]" : "border-[#dfe7ed] bg-white hover:border-[#b7cdd8]"}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={config.sections[key]}
+                      onChange={(event) =>
+                        setConfig((current) => ({
+                          ...current,
+                          sections: { ...current.sections, [key]: event.target.checked },
+                        }))
+                      }
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#168aa1]"
+                    />
+                    <span>
+                      <strong className="block text-xs font-semibold text-[#23475e]">
+                        {label}
+                      </strong>
+                      <small className="mt-1 block text-[11px] leading-relaxed text-[#567184]">
+                        {detail}
+                      </small>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-4 border-t border-[#e4ecf1] pt-3 text-[11px] leading-relaxed text-[#567184]">
+                O nome das pessoas e o título do recorte permanecem como referência do documento.
+                Vínculos históricos são identificados e não representam participação atual.
+              </p>
+            </section>
+            {config.sections.photographs ? (
+              <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5 lg:col-span-2">
+                <div className="flex items-start gap-2.5">
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[#d5e7ed] bg-[#edf7f9] text-[11px] font-bold text-[#168aa1]"
+                    aria-hidden="true"
+                  >
+                    03
+                  </span>
+                  <div className="min-w-0">
+                    <h2 className="flex items-center gap-2 text-[13px] font-bold leading-6 text-[#12334a]">
+                      Fotografias e legendas
+                      <Image className="h-4 w-4 text-[#168aa1]" aria-hidden="true" />
+                    </h2>
+                    <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-[#567184]">
+                      As legendas abaixo pertencem somente a este relatório. Elas não alteram as
+                      fotografias nem as anotações salvas no dossiê.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-4">
+                  {selected.people.map((person) => {
+                    const photos = listNexoReportPhotos(person);
+                    if (!photos.length) return null;
+                    const personIncluded = !config.excludedPhotoPersonIds.includes(person.id);
+                    return (
+                      <div
+                        key={person.id}
+                        className="overflow-hidden rounded-xl border border-[#dce6ed]"
+                      >
+                        <label className="flex flex-wrap items-center gap-2.5 border-b border-[#e2eaf0] bg-[#f7fafc] px-4 py-3 text-xs font-semibold text-[#23475e]">
+                          <input
+                            type="checkbox"
+                            checked={personIncluded}
+                            onChange={(event) =>
+                              setConfig((current) => ({
+                                ...current,
+                                excludedPhotoPersonIds: event.target.checked
+                                  ? current.excludedPhotoPersonIds.filter((id) => id !== person.id)
+                                  : [...new Set([...current.excludedPhotoPersonIds, person.id])],
+                              }))
+                            }
+                            className="h-4 w-4 shrink-0 accent-[#168aa1]"
+                          />
+                          Fotografias de {person.nome}
+                          <span className="ml-auto rounded-md border border-[#dfe8ee] bg-white px-2 py-1 text-[11px] font-medium text-[#567184]">
+                            {photos.length} disponível(is)
+                          </span>
+                        </label>
+                        <div
+                          className={`grid gap-3 p-3 sm:p-4 lg:grid-cols-2 ${personIncluded ? "" : "opacity-60"}`}
+                        >
+                          {photos.map((photo) => {
+                            const override = config.photoOverrides[photo.key];
+                            const included = override?.included !== false;
+                            return (
+                              <div
+                                key={photo.key}
+                                className={`flex flex-col gap-3 rounded-lg border bg-white p-3 min-[480px]:flex-row ${included && personIncluded ? "border-[#d7e4ec]" : "border-[#e4eaf0] bg-[#f7f9fb]"}`}
+                              >
+                                <img
+                                  src={photo.url}
+                                  alt={`Fotografia disponível de ${person.nome}`}
+                                  className="h-32 w-full shrink-0 rounded-md border border-[#e0e8ee] bg-[#eef3f7] object-contain min-[480px]:h-28 min-[480px]:w-24"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <label className="flex items-center gap-2 text-[11px] font-semibold text-[#355a70]">
+                                    <input
+                                      type="checkbox"
+                                      checked={included}
+                                      disabled={!personIncluded}
+                                      onChange={(event) =>
+                                        setConfig((current) => ({
+                                          ...current,
+                                          photoOverrides: {
+                                            ...current.photoOverrides,
+                                            [photo.key]: {
+                                              ...current.photoOverrides[photo.key],
+                                              included: event.target.checked,
+                                            },
+                                          },
+                                        }))
+                                      }
+                                      className="h-4 w-4 shrink-0 accent-[#168aa1]"
+                                    />
+                                    {photo.kind === "principal"
+                                      ? "Foto de referência"
+                                      : "Incluir fotografia"}
+                                  </label>
+                                  <label className="mt-3 block text-[11px] font-medium text-[#567184]">
+                                    Legenda no relatório
+                                    <textarea
+                                      value={override?.caption ?? photo.caption}
+                                      disabled={!personIncluded || !included}
+                                      maxLength={4000}
+                                      rows={3}
+                                      onChange={(event) =>
+                                        setConfig((current) => ({
+                                          ...current,
+                                          photoOverrides: {
+                                            ...current.photoOverrides,
+                                            [photo.key]: {
+                                              ...current.photoOverrides[photo.key],
+                                              caption: event.target.value,
+                                            },
+                                          },
+                                        }))
+                                      }
+                                      className={`mt-1 resize-y ${inputClass}`}
+                                      placeholder="Contexto, data ou observação desta imagem..."
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {!selected.people.some((person) => listNexoReportPhotos(person).length) ? (
+                    <p className="rounded-lg border border-dashed border-[#d2e1e9] bg-[#f7fafc] px-4 py-8 text-center text-xs text-[#567184]">
+                      Nenhuma fotografia disponível neste recorte.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+            ) : null}
+          </fieldset>
+          <footer className="shrink-0 border-t border-[#d6e3eb] bg-white px-4 py-4 sm:px-6">
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-start gap-3 border-b border-[#e3ebf0] pb-3"
+            >
+              <span className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#edf7f9] text-[#168aa1] sm:flex">
+                <Check className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <strong className="text-[11px] font-bold uppercase tracking-[.08em] text-[#47677c]">
+                  Prévia do conteúdo
+                </strong>
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] leading-relaxed text-[#567184]">
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">{summary.people}</b>{" "}
+                    pessoa(s)
+                  </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">{summary.links}</b>{" "}
+                    vínculo(s)
+                  </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">
+                      {summary.procedures}
+                    </b>{" "}
+                    procedimento(s)
+                  </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">
+                      {summary.territories}
+                    </b>{" "}
+                    território(s)
+                  </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">{summary.addresses}</b>{" "}
+                    endereço(s)
+                  </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">
+                      {summary.observations}
+                    </b>{" "}
+                    observação(ões)
+                  </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">{summary.photos}</b>{" "}
+                    foto(s)
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+              <p className="text-[11px] leading-relaxed text-[#567184]">
+                <strong className="font-semibold text-[#355a70]">
+                  {summary.sections} de 6 seções selecionadas
+                </strong>
+                <span className="ml-1.5">· impressão ou salvar como PDF</span>
+              </p>
+              <button
+                type="button"
+                disabled={busy || !summary.sections || !scopeExists}
+                onClick={() => onGenerate(scope, normalizeNexoReportConfig(config))}
+                className="nexo-action-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12334a] px-5 py-3 text-xs font-semibold text-white transition hover:bg-[#1d4b65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
+              >
+                <Printer className="h-4 w-4" />
+                {busy ? "Preparando relatório..." : "Gerar relatório"}
+              </button>
+            </div>
+          </footer>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}

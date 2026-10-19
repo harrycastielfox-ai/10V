@@ -23,6 +23,7 @@ import { Route as LocalidadesRouteImport } from './routes/localidades'
 import { Route as LocalizacaoRouteImport } from './routes/localizacao'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ModulosRouteImport } from './routes/modulos'
+import { Route as NexoRouteImport } from './routes/nexo'
 import { Route as NovaRepresentacaoRouteImport } from './routes/nova-representacao'
 import { Route as NovoCasoRouteImport } from './routes/novo-caso'
 import { Route as ObjetosRouteImport } from './routes/objetos'
@@ -47,10 +48,12 @@ import { Route as LocalizacaoIndexRouteImport } from './routes/localizacao.index
 import { Route as LocalizacaoEnderecosRouteImport } from './routes/localizacao.enderecos'
 import { Route as LocalizacaoPessoasRouteImport } from './routes/localizacao.pessoas'
 import { Route as LocalizacaoRotasRouteImport } from './routes/localizacao.rotas'
+import { Route as NexoIndexRouteImport } from './routes/nexo.index'
 import { Route as ObjetosIndexRouteImport } from './routes/objetos.index'
 import { Route as ObjetosObjectIdRouteImport } from './routes/objetos.$objectId'
 import { Route as ObjetosNovoRouteImport } from './routes/objetos.novo'
 import { Route as ObjetosTodosRouteImport } from './routes/objetos.todos'
+import { Route as PreviewNexoRouteImport } from './routes/preview.nexo'
 import { Route as RepresentacoesRepresentacaoIdRouteImport } from './routes/representacoes.$representacaoId'
 import { Route as VeiculosIndexRouteImport } from './routes/veiculos.index'
 import { Route as VeiculosVehicleIdRouteImport } from './routes/veiculos.$vehicleId'
@@ -146,6 +149,11 @@ const LoginRoute = LoginRouteImport.update({
 const ModulosRoute = ModulosRouteImport.update({
   id: '/modulos',
   path: '/modulos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NexoRoute = NexoRouteImport.update({
+  id: '/nexo',
+  path: '/nexo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NovaRepresentacaoRoute = NovaRepresentacaoRouteImport.update({
@@ -268,6 +276,11 @@ const LocalizacaoRotasRoute = LocalizacaoRotasRouteImport.update({
   path: '/rotas',
   getParentRoute: () => LocalizacaoRoute,
 } as any)
+const NexoIndexRoute = NexoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NexoRoute,
+} as any)
 const ObjetosIndexRoute = ObjetosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -287,6 +300,11 @@ const ObjetosTodosRoute = ObjetosTodosRouteImport.update({
   id: '/todos',
   path: '/todos',
   getParentRoute: () => ObjetosRoute,
+} as any)
+const PreviewNexoRoute = PreviewNexoRouteImport.update({
+  id: '/preview/nexo',
+  path: '/preview/nexo',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const RepresentacoesRepresentacaoIdRoute =
   RepresentacoesRepresentacaoIdRouteImport.update({
@@ -439,6 +457,7 @@ export interface FileRoutesByFullPath {
   '/localizacao': typeof LocalizacaoRouteWithChildren
   '/login': typeof LoginRoute
   '/modulos': typeof ModulosRoute
+  '/nexo': typeof NexoRouteWithChildren
   '/nova-representacao': typeof NovaRepresentacaoRoute
   '/novo-caso': typeof NovoCasoRoute
   '/objetos': typeof ObjetosRouteWithChildren
@@ -463,6 +482,7 @@ export interface FileRoutesByFullPath {
   '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
+  '/preview/nexo': typeof PreviewNexoRoute
   '/representacoes/$representacaoId': typeof RepresentacoesRepresentacaoIdRouteWithChildren
   '/veiculos/$vehicleId': typeof VeiculosVehicleIdRouteWithChildren
   '/veiculos/adulterados': typeof VeiculosAdulteradosRoute
@@ -482,6 +502,7 @@ export interface FileRoutesByFullPath {
   '/agenda/': typeof AgendaIndexRoute
   '/bo/': typeof BoIndexRoute
   '/localizacao/': typeof LocalizacaoIndexRoute
+  '/nexo/': typeof NexoIndexRoute
   '/objetos/': typeof ObjetosIndexRoute
   '/veiculos/': typeof VeiculosIndexRoute
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
@@ -528,6 +549,7 @@ export interface FileRoutesByTo {
   '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
+  '/preview/nexo': typeof PreviewNexoRoute
   '/representacoes/$representacaoId': typeof RepresentacoesRepresentacaoIdRouteWithChildren
   '/veiculos/$vehicleId': typeof VeiculosVehicleIdRouteWithChildren
   '/veiculos/adulterados': typeof VeiculosAdulteradosRoute
@@ -547,6 +569,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AgendaIndexRoute
   '/bo': typeof BoIndexRoute
   '/localizacao': typeof LocalizacaoIndexRoute
+  '/nexo': typeof NexoIndexRoute
   '/objetos': typeof ObjetosIndexRoute
   '/veiculos': typeof VeiculosIndexRoute
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
@@ -575,6 +598,7 @@ export interface FileRoutesById {
   '/localizacao': typeof LocalizacaoRouteWithChildren
   '/login': typeof LoginRoute
   '/modulos': typeof ModulosRoute
+  '/nexo': typeof NexoRouteWithChildren
   '/nova-representacao': typeof NovaRepresentacaoRoute
   '/novo-caso': typeof NovoCasoRoute
   '/objetos': typeof ObjetosRouteWithChildren
@@ -599,6 +623,7 @@ export interface FileRoutesById {
   '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
+  '/preview/nexo': typeof PreviewNexoRoute
   '/representacoes/$representacaoId': typeof RepresentacoesRepresentacaoIdRouteWithChildren
   '/veiculos/$vehicleId': typeof VeiculosVehicleIdRouteWithChildren
   '/veiculos/adulterados': typeof VeiculosAdulteradosRoute
@@ -618,6 +643,7 @@ export interface FileRoutesById {
   '/agenda/': typeof AgendaIndexRoute
   '/bo/': typeof BoIndexRoute
   '/localizacao/': typeof LocalizacaoIndexRoute
+  '/nexo/': typeof NexoIndexRoute
   '/objetos/': typeof ObjetosIndexRoute
   '/veiculos/': typeof VeiculosIndexRoute
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
@@ -647,6 +673,7 @@ export interface FileRouteTypes {
     | '/localizacao'
     | '/login'
     | '/modulos'
+    | '/nexo'
     | '/nova-representacao'
     | '/novo-caso'
     | '/objetos'
@@ -671,6 +698,7 @@ export interface FileRouteTypes {
     | '/objetos/$objectId'
     | '/objetos/novo'
     | '/objetos/todos'
+    | '/preview/nexo'
     | '/representacoes/$representacaoId'
     | '/veiculos/$vehicleId'
     | '/veiculos/adulterados'
@@ -690,6 +718,7 @@ export interface FileRouteTypes {
     | '/agenda/'
     | '/bo/'
     | '/localizacao/'
+    | '/nexo/'
     | '/objetos/'
     | '/veiculos/'
     | '/admin/usuarios/$userId'
@@ -736,6 +765,7 @@ export interface FileRouteTypes {
     | '/objetos/$objectId'
     | '/objetos/novo'
     | '/objetos/todos'
+    | '/preview/nexo'
     | '/representacoes/$representacaoId'
     | '/veiculos/$vehicleId'
     | '/veiculos/adulterados'
@@ -755,6 +785,7 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/bo'
     | '/localizacao'
+    | '/nexo'
     | '/objetos'
     | '/veiculos'
     | '/admin/usuarios/$userId'
@@ -782,6 +813,7 @@ export interface FileRouteTypes {
     | '/localizacao'
     | '/login'
     | '/modulos'
+    | '/nexo'
     | '/nova-representacao'
     | '/novo-caso'
     | '/objetos'
@@ -806,6 +838,7 @@ export interface FileRouteTypes {
     | '/objetos/$objectId'
     | '/objetos/novo'
     | '/objetos/todos'
+    | '/preview/nexo'
     | '/representacoes/$representacaoId'
     | '/veiculos/$vehicleId'
     | '/veiculos/adulterados'
@@ -825,6 +858,7 @@ export interface FileRouteTypes {
     | '/agenda/'
     | '/bo/'
     | '/localizacao/'
+    | '/nexo/'
     | '/objetos/'
     | '/veiculos/'
     | '/admin/usuarios/$userId'
@@ -853,6 +887,7 @@ export interface RootRouteChildren {
   LocalizacaoRoute: typeof LocalizacaoRouteWithChildren
   LoginRoute: typeof LoginRoute
   ModulosRoute: typeof ModulosRoute
+  NexoRoute: typeof NexoRouteWithChildren
   NovaRepresentacaoRoute: typeof NovaRepresentacaoRoute
   NovoCasoRoute: typeof NovoCasoRoute
   ObjetosRoute: typeof ObjetosRouteWithChildren
@@ -862,6 +897,7 @@ export interface RootRouteChildren {
   VistoriasRoute: typeof VistoriasRouteWithChildren
   AdminUsuariosRoute: typeof AdminUsuariosRouteWithChildren
   ApiSheetSyncRoute: typeof ApiSheetSyncRoute
+  PreviewNexoRoute: typeof PreviewNexoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -962,6 +998,13 @@ declare module '@tanstack/react-router' {
       path: '/modulos'
       fullPath: '/modulos'
       preLoaderRoute: typeof ModulosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nexo': {
+      id: '/nexo'
+      path: '/nexo'
+      fullPath: '/nexo'
+      preLoaderRoute: typeof NexoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/nova-representacao': {
@@ -1132,6 +1175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocalizacaoRotasRouteImport
       parentRoute: typeof LocalizacaoRoute
     }
+    '/nexo/': {
+      id: '/nexo/'
+      path: '/'
+      fullPath: '/nexo/'
+      preLoaderRoute: typeof NexoIndexRouteImport
+      parentRoute: typeof NexoRoute
+    }
     '/objetos/': {
       id: '/objetos/'
       path: '/'
@@ -1159,6 +1209,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/objetos/todos'
       preLoaderRoute: typeof ObjetosTodosRouteImport
       parentRoute: typeof ObjetosRoute
+    }
+    '/preview/nexo': {
+      id: '/preview/nexo'
+      path: '/preview/nexo'
+      fullPath: '/preview/nexo'
+      preLoaderRoute: typeof PreviewNexoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/representacoes/$representacaoId': {
       id: '/representacoes/$representacaoId'
@@ -1436,6 +1493,16 @@ const LocalizacaoRouteWithChildren = LocalizacaoRoute._addFileChildren(
   LocalizacaoRouteChildren,
 )
 
+interface NexoRouteChildren {
+  NexoIndexRoute: typeof NexoIndexRoute
+}
+
+const NexoRouteChildren: NexoRouteChildren = {
+  NexoIndexRoute: NexoIndexRoute,
+}
+
+const NexoRouteWithChildren = NexoRoute._addFileChildren(NexoRouteChildren)
+
 interface ObjetosObjectIdRouteChildren {
   ObjetosObjectIdEditarRoute: typeof ObjetosObjectIdEditarRoute
 }
@@ -1587,6 +1654,7 @@ const rootRouteChildren: RootRouteChildren = {
   LocalizacaoRoute: LocalizacaoRouteWithChildren,
   LoginRoute: LoginRoute,
   ModulosRoute: ModulosRoute,
+  NexoRoute: NexoRouteWithChildren,
   NovaRepresentacaoRoute: NovaRepresentacaoRoute,
   NovoCasoRoute: NovoCasoRoute,
   ObjetosRoute: ObjetosRouteWithChildren,
@@ -1596,6 +1664,7 @@ const rootRouteChildren: RootRouteChildren = {
   VistoriasRoute: VistoriasRouteWithChildren,
   AdminUsuariosRoute: AdminUsuariosRouteWithChildren,
   ApiSheetSyncRoute: ApiSheetSyncRoute,
+  PreviewNexoRoute: PreviewNexoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

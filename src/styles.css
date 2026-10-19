@@ -22,6 +22,586 @@
     );
 }
 
+@keyframes nexo-boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes nexo-boot-spin-reverse {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes nexo-boot-scan {
+  0%,
+  100% {
+    transform: translateY(-42px);
+    opacity: 0;
+  }
+  12%,
+  88% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(42px);
+    opacity: 1;
+  }
+}
+
+@keyframes nexo-boot-progress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes nexo-boot-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 0 rgba(99, 225, 235, 0));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px rgba(99, 225, 235, 0.5));
+  }
+}
+
+.nexo-boot-grid {
+  background-image:
+    linear-gradient(rgba(104, 213, 226, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(104, 213, 226, 0.06) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at center, #000 5%, transparent 72%);
+}
+
+.nexo-boot-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 1px solid rgba(102, 216, 227, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.nexo-boot-orbit::after {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #70e5ee;
+  box-shadow: 0 0 18px #70e5ee;
+  content: "";
+}
+
+.nexo-boot-orbit-a {
+  width: 440px;
+  height: 440px;
+  animation: nexo-boot-spin 9s linear infinite;
+}
+.nexo-boot-orbit-a::after {
+  left: 66px;
+  top: 54px;
+}
+.nexo-boot-orbit-b {
+  width: 660px;
+  height: 660px;
+  animation: nexo-boot-spin-reverse 14s linear infinite;
+}
+.nexo-boot-orbit-b::after {
+  bottom: 87px;
+  right: 86px;
+}
+.nexo-boot-ring {
+  border-top-color: #6fe2eb;
+  animation: nexo-boot-spin 2.4s linear infinite;
+}
+.nexo-boot-ring-delay {
+  border-right-color: #b9f8fa;
+  animation: nexo-boot-spin-reverse 1.8s linear infinite;
+}
+.nexo-boot-scanline {
+  animation: nexo-boot-scan 1.6s ease-in-out infinite;
+}
+.nexo-boot-progress {
+  animation: nexo-boot-progress 1.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.nexo-boot-fingerprint {
+  animation: nexo-boot-pulse 1.6s ease-in-out infinite;
+}
+
+.nexo-top-nav {
+  scrollbar-width: none;
+}
+
+.nexo-top-nav::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexo-boot-orbit-a,
+  .nexo-boot-orbit-b,
+  .nexo-boot-ring,
+  .nexo-boot-ring-delay,
+  .nexo-boot-scanline,
+  .nexo-boot-progress,
+  .nexo-boot-fingerprint {
+    animation: none !important;
+  }
+  .nexo-boot-progress {
+    width: 100%;
+  }
+}
+
+/* NEXO — painel territorial e fichas operacionais. */
+.nexo-shell {
+  background:
+    radial-gradient(circle at 18% -10%, rgb(69 174 194 / 9%), transparent 34rem),
+    radial-gradient(circle at 92% 18%, rgb(85 140 186 / 7%), transparent 30rem), #f1f5f8;
+}
+
+.nexo-grid-bg {
+  background-image:
+    linear-gradient(rgb(103 232 249 / 7%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(103 232 249 / 7%) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.nexo-map-vignette {
+  background:
+    linear-gradient(180deg, rgba(2, 6, 9, 0.12), rgba(2, 6, 9, 0.62)),
+    radial-gradient(circle at 50% 46%, transparent 18%, rgba(2, 6, 9, 0.45) 100%);
+  box-shadow: inset 0 0 80px rgba(2, 6, 9, 0.72);
+}
+
+.nexo-loader-ring {
+  width: 38px;
+  height: 38px;
+  border: 2px solid rgb(34 211 238 / 16%);
+  border-top-color: #67e8f9;
+  border-radius: 999px;
+  animation: nexo-spin 760ms linear infinite;
+  box-shadow: 0 0 24px rgb(34 211 238 / 16%);
+}
+
+.nexo-drawer {
+  animation: nexo-drawer-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.nexo-scan-card {
+  animation: nexo-card-in 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.nexo-scan-card .grid span {
+  animation: nexo-cell 680ms ease-in-out infinite alternate;
+}
+
+.nexo-scan-line {
+  position: absolute;
+  inset-inline: 0;
+  top: -10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #67e8f9, transparent);
+  box-shadow: 0 0 18px #22d3ee;
+  animation: nexo-scan 1.05s ease-in-out infinite;
+}
+
+@keyframes nexo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes nexo-drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(42px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes nexo-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes nexo-cell {
+  from {
+    opacity: 0.18;
+  }
+  to {
+    opacity: 0.8;
+    background: rgb(103 232 249 / 55%);
+  }
+}
+@keyframes nexo-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexo-loader-ring,
+  .nexo-scan-line,
+  .nexo-scan-card .grid span,
+  .nexo-drawer,
+  .nexo-scan-card {
+    animation: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  body:has(.nexo-print-document) * {
+    visibility: hidden !important;
+  }
+
+  body:has(.nexo-print-document) {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  body:has(.nexo-print-document) .nexo-print-document,
+  body:has(.nexo-print-document) .nexo-print-document * {
+    visibility: visible !important;
+  }
+
+  body:has(.nexo-print-document) .nexo-print-document {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    display: block !important;
+    width: 100% !important;
+    color: #111827 !important;
+    background: #fff !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 8pt !important;
+    line-height: 1.35 !important;
+  }
+
+  .nexo-report-letterhead {
+    display: grid !important;
+    grid-template-columns: 25mm minmax(0, 1fr) 43mm !important;
+    min-height: 29mm !important;
+    border: 0.4mm solid #263746 !important;
+  }
+
+  .nexo-report-letterhead > img {
+    width: 20mm !important;
+    height: 24mm !important;
+    align-self: center !important;
+    justify-self: center !important;
+    object-fit: contain !important;
+  }
+
+  .nexo-report-letterhead > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-inline: 0.3mm solid #263746 !important;
+    text-align: center !important;
+  }
+
+  .nexo-report-letterhead > div strong {
+    font-size: 11pt !important;
+    color: #0b3850 !important;
+  }
+  .nexo-report-letterhead > div span {
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+  }
+  .nexo-report-letterhead > div small {
+    margin-top: 1mm !important;
+    color: #087f8c !important;
+    font-size: 6pt !important;
+    font-weight: 800 !important;
+  }
+  .nexo-report-letterhead aside {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+  .nexo-report-letterhead aside span,
+  .nexo-report-letterhead aside small {
+    color: #64748b !important;
+    font-size: 5.5pt !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+  }
+  .nexo-report-letterhead aside strong {
+    margin: 1mm 0 !important;
+    color: #b91c1c !important;
+    font-size: 8pt !important;
+  }
+
+  .nexo-report-title {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-top: 2mm !important;
+    padding: 2mm 3mm !important;
+    border: 0.35mm solid #263746 !important;
+    border-left: 2mm solid #0891b2 !important;
+    background: #f0f7f8 !important;
+  }
+
+  .nexo-report-title span {
+    font-size: 10pt !important;
+    font-weight: 900 !important;
+    color: #0f2535 !important;
+  }
+  .nexo-report-title strong {
+    color: #087f8c !important;
+    font-size: 6.5pt !important;
+  }
+
+  .nexo-report-disclaimer {
+    margin-top: 2mm !important;
+    padding: 1.5mm 2mm !important;
+    border: 0.25mm solid #d5a02e !important;
+    background: #fff9e8 !important;
+    color: #594718 !important;
+    font-size: 6.5pt !important;
+    font-weight: 700 !important;
+  }
+
+  .nexo-report-summary {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    margin-top: 2mm !important;
+    border: 0.35mm solid #263746 !important;
+  }
+
+  .nexo-report-summary > div {
+    padding: 2mm !important;
+    border-right: 0.25mm solid #a8b3bc !important;
+    text-align: center !important;
+  }
+  .nexo-report-summary > div:last-child {
+    border-right: 0 !important;
+  }
+  .nexo-report-summary span {
+    display: block !important;
+    color: #64748b !important;
+    font-size: 5.7pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+  }
+  .nexo-report-summary strong {
+    display: block !important;
+    margin-top: 0.7mm !important;
+    color: #0b3850 !important;
+    font-size: 13pt !important;
+  }
+
+  .nexo-report-section {
+    margin-top: 2.2mm !important;
+    border: 0.35mm solid #263746 !important;
+    break-inside: avoid !important;
+  }
+
+  .nexo-report-section > h3 {
+    margin: 0 !important;
+    padding: 1.2mm 2mm !important;
+    border-bottom: 0.3mm solid #263746 !important;
+    background: #eaf0f3 !important;
+    color: #17212b !important;
+    font-size: 7pt !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+  }
+
+  .nexo-report-section > p {
+    margin: 0 !important;
+    padding: 1.7mm 2mm !important;
+    color: #25313c !important;
+  }
+  .nexo-report-section table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  .nexo-report-section th,
+  .nexo-report-section td {
+    padding: 1.5mm 2mm !important;
+    border-right: 0.2mm solid #cbd5e1 !important;
+    border-bottom: 0.2mm solid #cbd5e1 !important;
+    text-align: left !important;
+  }
+  .nexo-report-section th {
+    color: #475569 !important;
+    font-size: 6pt !important;
+    text-transform: uppercase !important;
+  }
+
+  .nexo-report-person {
+    margin-top: 4mm !important;
+    break-before: auto !important;
+  }
+  .nexo-report-person + .nexo-report-person {
+    break-before: page !important;
+  }
+  .nexo-report-person-hero {
+    display: grid !important;
+    grid-template-columns: 34mm 1fr !important;
+    min-height: 38mm !important;
+    border: 0.45mm solid #0e7490 !important;
+    background: linear-gradient(105deg, #eefafd, #fff) !important;
+  }
+  .nexo-report-person-photo {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-right: 0.35mm solid #0e7490 !important;
+    background: #dceff3 !important;
+  }
+  .nexo-report-person-photo img {
+    width: 100% !important;
+    height: 38mm !important;
+    object-fit: cover !important;
+  }
+  .nexo-report-person-photo span {
+    color: #0e7490 !important;
+    font-size: 22pt !important;
+    font-weight: 900 !important;
+  }
+  .nexo-report-person-hero > div:last-child {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    padding: 3mm 4mm !important;
+  }
+  .nexo-report-person-hero small {
+    color: #0e7490 !important;
+    font-size: 5.8pt !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.1em !important;
+  }
+  .nexo-report-person-hero h2 {
+    margin: 1mm 0 0 !important;
+    color: #0f2535 !important;
+    font-size: 14pt !important;
+  }
+  .nexo-report-person-hero p {
+    margin: 0.5mm 0 !important;
+    color: #475569 !important;
+  }
+  .nexo-report-person-hero strong {
+    width: fit-content !important;
+    margin-top: 1mm !important;
+    padding: 0.7mm 2mm !important;
+    border: 0.25mm solid #0e7490 !important;
+    color: #0e7490 !important;
+    font-size: 6pt !important;
+    text-transform: uppercase !important;
+  }
+
+  .nexo-report-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    margin: 0 !important;
+  }
+  .nexo-report-grid > div {
+    padding: 1.5mm 2mm !important;
+    border-right: 0.2mm solid #cbd5e1 !important;
+    border-bottom: 0.2mm solid #cbd5e1 !important;
+  }
+  .nexo-report-grid dt {
+    color: #64748b !important;
+    font-size: 5.5pt !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+  }
+  .nexo-report-grid dd {
+    margin: 0.5mm 0 0 !important;
+    color: #111827 !important;
+    font-weight: 700 !important;
+  }
+  .nexo-report-link {
+    padding: 1.6mm 2mm !important;
+    border-bottom: 0.2mm solid #cbd5e1 !important;
+  }
+  .nexo-report-link > div {
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+  .nexo-report-link span {
+    color: #0e7490 !important;
+    font-weight: 800 !important;
+  }
+  .nexo-report-link p {
+    margin: 0.7mm 0 0 !important;
+    color: #475569 !important;
+  }
+
+  .nexo-report-album > div {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .nexo-report-album figure {
+    margin: 0 !important;
+    border-right: 0.2mm solid #cbd5e1 !important;
+  }
+  .nexo-report-album img,
+  .nexo-report-album figure > span {
+    display: flex !important;
+    width: 100% !important;
+    height: 38mm !important;
+    align-items: center !important;
+    justify-content: center !important;
+    object-fit: cover !important;
+    background: #e2e8f0 !important;
+    color: #64748b !important;
+  }
+  .nexo-report-album figcaption {
+    padding: 1.2mm !important;
+    color: #475569 !important;
+    font-size: 6pt !important;
+    text-align: center !important;
+  }
+
+  .nexo-report-footer {
+    position: fixed !important;
+    right: 0 !important;
+    bottom: -5mm !important;
+    left: 0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    padding-top: 1.5mm !important;
+    border-top: 0.25mm solid #94a3b8 !important;
+    color: #64748b !important;
+    font-size: 5.5pt !important;
+  }
+}
+
 /* A vitrine de modulos preserva a paleta tática original (verde, azul,
    roxo e amarelo) mesmo quando a preferencia global estiver clara ou mesclada. */
 .sied-modules-shell {

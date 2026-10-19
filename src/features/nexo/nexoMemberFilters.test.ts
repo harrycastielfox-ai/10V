@@ -1,0 +1,48 @@
+import { describe, expect, it } from "vitest";
+import { NEXO_DEMO_PESSOAS, NEXO_DEMO_REGISTROS } from "./nexoDemoData";
+import {
+  filterNexoOrganizationMembers,
+  hasActiveMemberFilters,
+  type NexoMemberFilters,
+} from "./nexoMemberFilters";
+
+const emptyFilters: NexoMemberFilters = {
+  busca: "",
+  funcao: "",
+  status: "",
+  bairro: "",
+  confiancaMinima: 0,
+  procedimento: "todos",
+};
+
+const members = NEXO_DEMO_PESSOAS.map((person) => ({
+  person,
+  link: person.vinculos[0],
+}));
+
+describe("filterNexoOrganizationMembers", () => {
+  it("busca sem diferenciar acentos ou maiúsculas", () => {
+    const result = filterNexoOrganizationMembers(members, NEXO_DEMO_REGISTROS, {
+      ...emptyFilters,
+      busca: "lideranca",
+    });
+
+    expect(result.map(({ person }) => person.id)).toContain("pessoa-1");
+  });
+
+  it("combina confiança, bairro e existência de procedimento", () => {
+    const result = filterNexoOrganizationMembers(members, NEXO_DEMO_REGISTROS, {
+      ...emptyFilters,
+      bairro: "Centro",
+      confiancaMinima: 70,
+      procedimento: "com_procedimento",
+    });
+
+    expect(result.map(({ person }) => person.id)).toEqual(["pessoa-1"]);
+  });
+
+  it("informa quando há algum filtro ativo", () => {
+    expect(hasActiveMemberFilters(emptyFilters)).toBe(false);
+    expect(hasActiveMemberFilters({ ...emptyFilters, status: "provavel" })).toBe(true);
+  });
+});
