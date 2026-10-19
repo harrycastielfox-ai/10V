@@ -9,7 +9,7 @@ export const Route = createFileRoute("/vistorias/nova")({
   head: () => ({ meta: [{ title: "Nova Vistoria — SIED" }] }),
   component: () => (
     <Suspense fallback={null}>
-      <VehicleInspectionFormPage />
+      <VehicleInspectionFormPage hideNavigation />
     </Suspense>
   ),
 });

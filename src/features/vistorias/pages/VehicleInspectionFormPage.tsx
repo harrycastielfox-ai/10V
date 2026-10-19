@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   Building2,
   CalendarDays,
+  Camera,
   CarFront,
   Check,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
   FileSearch,
   Fingerprint,
   Gauge,
+  ImagePlus,
   KeyRound,
   ListChecks,
   LockKeyhole,
@@ -22,17 +24,21 @@ import {
   ScanLine,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UsersRound,
   Warehouse,
   Wrench,
   X,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { VehicleInspectionPrintSheet } from "@/components/VehicleInspectionPrintSheet";
 import {
   createVehicleInspection,
+  listVehicleInspectionPhotos,
   listVehicleInspections,
   listVehiclesForInspection,
   updateVehicleInspection,
+  uploadVehicleInspectionPhotos,
 } from "@/lib/repositories/vistoriasRepository";
 import {
   INSPECTION_PRESENTATION_REASONS,
@@ -41,10 +47,76 @@ import {
   type InspectionPresentationReason,
   type InspectionPresentingInstitution,
   type InspectionYardType,
+  INSPECTION_PHOTO_CATEGORIES,
+  type InspectionPhotoCategory,
   type VehicleInspection,
   type VehicleInspectionAnswer,
   type VehicleInspectionChecklist,
+  type VehicleInspectionOstensibleData,
+  type VehicleInspectionPhoto,
 } from "@/features/vistorias/vistoriaTypes";
+
+const PHOTO_CATEGORY_LABELS: Record<InspectionPhotoCategory, string> = {
+  veiculo: "Vista geral do veículo",
+  chassi: "Chassi",
+  motor: "Motor",
+  etiqueta_seguranca: "Etiqueta de segurança",
+  placa: "Placa",
+  sinal_identificador: "Outro sinal identificador",
+  outros: "Outro registro",
+};
+
+type PhotoCaptureOption = {
+  id: string;
+  label: string;
+  category: InspectionPhotoCategory;
+  caption: string;
+};
+
+const VEHICLE_PHOTO_OPTIONS: PhotoCaptureOption[] = [
+  { id: "frente", label: "Foto - Frente", category: "veiculo", caption: "Frente" },
+  { id: "fundo", label: "Foto - Fundo", category: "veiculo", caption: "Fundo" },
+  {
+    id: "lateral-direita",
+    label: "Foto - Lateral direita",
+    category: "veiculo",
+    caption: "Lateral direita",
+  },
+  {
+    id: "lateral-esquerda",
+    label: "Foto - Lateral esquerda",
+    category: "veiculo",
+    caption: "Lateral esquerda",
+  },
+  { id: "teto", label: "Foto - Teto", category: "veiculo", caption: "Teto" },
+  { id: "outras", label: "Outras fotos", category: "veiculo", caption: "Vista do veículo" },
+];
+
+const IDENTIFIER_PHOTO_OPTIONS: PhotoCaptureOption[] = [
+  { id: "chassi", label: "Foto - Chassi", category: "chassi", caption: "Chassi" },
+  { id: "motor", label: "Foto - Motor", category: "motor", caption: "Motor" },
+  { id: "placa", label: "Foto - Placa", category: "placa", caption: "Placa" },
+  {
+    id: "etiqueta",
+    label: "Foto - Etiqueta de segurança",
+    category: "etiqueta_seguranca",
+    caption: "Etiqueta de segurança",
+  },
+  {
+    id: "outro-sinal",
+    label: "Outros sinais",
+    category: "sinal_identificador",
+    caption: "Outro sinal identificador",
+  },
+];
+
+type PendingInspectionPhoto = {
+  id: string;
+  file: File;
+  previewUrl: string;
+  category: InspectionPhotoCategory;
+  caption: string;
+};
 
 const PRESENTATION_REASON_LABELS: Record<string, string> = {
   suspeita_adulteracao_sinais: "Suspeita de adulteração de sinais",
@@ -127,8 +199,9 @@ const STEPS = [
   { id: 1, label: "Veículo", description: "Identificação e data", icon: CarFront },
   { id: 2, label: "Apresentação", description: "Origem e custódia", icon: Building2 },
   { id: 3, label: "Exame", description: "Checklist e constatações", icon: ListChecks },
-  { id: 4, label: "Resultado", description: "Conclusão e providências", icon: FileSearch },
-  { id: 5, label: "Revisão", description: "Pessoas e confirmação", icon: UsersRound },
+  { id: 4, label: "Fotografias", description: "Veículo e identificadores", icon: Camera },
+  { id: 5, label: "Resultado", description: "Conclusão e providências", icon: FileSearch },
+  { id: 6, label: "Revisão", description: "Pessoas e confirmação", icon: UsersRound },
 ] as const;
 
 type Step = (typeof STEPS)[number]["id"];
@@ -138,7 +211,13 @@ const FIELD_CLASS =
 const TEXTAREA_CLASS =
   "w-full resize-y rounded-xl border border-border/80 bg-background/65 px-4 py-3 text-sm font-normal leading-relaxed outline-none transition duration-200 hover:border-primary/35 focus:border-primary/70 focus:bg-background focus:ring-4 focus:ring-primary/10";
 
-export default function VehicleInspectionFormPage({ inspectionId }: { inspectionId?: string }) {
+export default function VehicleInspectionFormPage({
+  inspectionId,
+  hideNavigation = false,
+}: {
+  inspectionId?: string;
+  hideNavigation?: boolean;
+}) {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<Awaited<ReturnType<typeof listVehiclesForInspection>>>(
     [],
@@ -163,10 +242,15 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
   const [structureFindings, setStructureFindings] = useState("");
   const [conservationFindings, setConservationFindings] = useState("");
   const [accessoriesFindings, setAccessoriesFindings] = useState("");
+  const [photoVehicleDescription, setPhotoVehicleDescription] = useState("");
+  const [photoIdentifiersDescription, setPhotoIdentifiersDescription] = useState("");
   const [resultFindings, setResultFindings] = useState("");
   const [measuresTaken, setMeasuresTaken] = useState("");
   const [linkedPeopleText, setLinkedPeopleText] = useState("");
   const [changeReason, setChangeReason] = useState("");
+  const [ostensibleData, setOstensibleData] = useState<VehicleInspectionOstensibleData>({});
+  const [savedPhotos, setSavedPhotos] = useState<VehicleInspectionPhoto[]>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<PendingInspectionPhoto[]>([]);
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === vehicleId) ?? null;
   const currentStep = STEPS.find((item) => item.id === step) ?? STEPS[0];
@@ -185,6 +269,46 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
       ...current,
       technical: { ...current.technical, ...patch },
     }));
+  }
+  function updateOstensibleData(
+    key: keyof VehicleInspectionOstensibleData,
+    value: string | number | null,
+  ) {
+    setOstensibleData((current) => ({ ...current, [key]: value }));
+  }
+
+  function addPendingPhotos(
+    files: FileList | null,
+    category: InspectionPhotoCategory,
+    defaultCaption?: string,
+  ) {
+    const selected = Array.from(files ?? []);
+    if (!selected.length) return;
+    setPendingPhotos((current) => [
+      ...current,
+      ...selected.map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        category,
+        caption:
+          defaultCaption ?? (category === "veiculo" ? "Vista do veículo na apresentação" : ""),
+      })),
+    ]);
+  }
+
+  function removePendingPhoto(photoId: string) {
+    setPendingPhotos((current) => {
+      const removed = current.find((photo) => photo.id === photoId);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return current.filter((photo) => photo.id !== photoId);
+    });
+  }
+
+  function updatePendingPhoto(photoId: string, patch: Partial<PendingInspectionPhoto>) {
+    setPendingPhotos((current) =>
+      current.map((photo) => (photo.id === photoId ? { ...photo, ...patch } : photo)),
+    );
   }
   function updateAssessment(
     patch: Partial<NonNullable<NonNullable<VehicleInspectionChecklist["technical"]>["assessment"]>>,
@@ -212,6 +336,82 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
     (completenessSignals.filter((value) => Boolean(value)).length / completenessSignals.length) *
       100,
   );
+  const reviewTimestamp = editingInspection?.updated_at ?? new Date().toISOString();
+  const reviewInspection: VehicleInspection = {
+    id: editingInspection?.id ?? "PREVIA-VISTORIA",
+    vehicle_id: vehicleId,
+    status: editingInspection?.status ?? "rascunho",
+    inspection_date: inspectionDate,
+    location: location || null,
+    inspector_notes: notes || null,
+    police_report_number: policeReportNumber || null,
+    presentation_reason: (presentationReason || null) as InspectionPresentationReason | null,
+    presenting_institution: (presentingInstitution ||
+      null) as InspectionPresentingInstitution | null,
+    yard_type: (yardType || null) as InspectionYardType | null,
+    yard_location: yardLocation || null,
+    delivery_restricted: deliveryRestricted,
+    checklist,
+    linked_people: linkedPeopleText
+      .split("\n")
+      .map((person) => person.trim())
+      .filter(Boolean),
+    original_vehicle_data:
+      editingInspection?.original_vehicle_data ??
+      (selectedVehicle
+        ? {
+            internal_id: selectedVehicle.internal_id,
+            vehicle_type: selectedVehicle.vehicle_type,
+            brand: selectedVehicle.brand,
+            model: selectedVehicle.model,
+            brand_model: selectedVehicle.brand_model,
+            color: selectedVehicle.color,
+            plate: selectedVehicle.plate,
+            renavam: selectedVehicle.renavam,
+            engine_number: selectedVehicle.engine_number,
+            chassis: selectedVehicle.chassis,
+            manufacture_year: selectedVehicle.manufacture_year,
+            model_year: selectedVehicle.model_year,
+            conservation_state: selectedVehicle.conservation_state,
+          }
+        : {}),
+    findings: {
+      identification: identificationFindings,
+      structure: structureFindings,
+      conservation: conservationFindings,
+      accessories: accessoriesFindings,
+      observations: notes,
+      result: resultFindings,
+      measures_taken: measuresTaken,
+      photo_vehicle_description: photoVehicleDescription,
+      photo_identifiers_description: photoIdentifiersDescription,
+      ostensible_vehicle: ostensibleData,
+    },
+    current_version: editingInspection ? editingInspection.current_version + 1 : 1,
+    pdf_storage_path: editingInspection?.pdf_storage_path ?? null,
+    pdf_sha256: editingInspection?.pdf_sha256 ?? null,
+    created_at: editingInspection?.created_at ?? reviewTimestamp,
+    updated_at: reviewTimestamp,
+    created_by: editingInspection?.created_by ?? null,
+    updated_by: editingInspection?.updated_by ?? null,
+    vehicle: selectedVehicle,
+  };
+  const reviewPhotos: VehicleInspectionPhoto[] = [
+    ...savedPhotos,
+    ...pendingPhotos.map((photo) => ({
+      id: photo.id,
+      inspection_id: editingInspection?.id ?? "PREVIA-VISTORIA",
+      vehicle_photo_id: photo.id,
+      category: photo.category,
+      caption: photo.caption || null,
+      created_at: reviewTimestamp,
+      vehicle_photo: {
+        id: photo.id,
+        original_url: photo.previewUrl,
+        thumbnail_url: photo.previewUrl,
+      },
+    })),
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -244,9 +444,20 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
         setStructureFindings(inspection.findings?.structure ?? "");
         setConservationFindings(inspection.findings?.conservation ?? "");
         setAccessoriesFindings(inspection.findings?.accessories ?? "");
+        setPhotoVehicleDescription(inspection.findings?.photo_vehicle_description ?? "");
+        setPhotoIdentifiersDescription(inspection.findings?.photo_identifiers_description ?? "");
         setResultFindings(inspection.findings?.result ?? "");
         setMeasuresTaken(inspection.findings?.measures_taken ?? "");
+        setOstensibleData(inspection.findings?.ostensible_vehicle ?? {});
         setLinkedPeopleText((inspection.linked_people ?? []).join("\n"));
+        void listVehicleInspectionPhotos(inspection.id)
+          .then((photos) => {
+            if (!cancelled) setSavedPhotos(photos);
+          })
+          .catch(() => {
+            if (!cancelled)
+              setError("A vistoria foi carregada, mas as fotografias não puderam ser exibidas.");
+          });
       })
       .catch(() => {
         if (!cancelled) setError("Não foi possível carregar o cadastro da vistoria.");
@@ -303,17 +514,22 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
           observations: notes,
           result: resultFindings,
           measures_taken: measuresTaken,
+          photo_vehicle_description: photoVehicleDescription,
+          photo_identifiers_description: photoIdentifiersDescription,
+          ostensible_vehicle: ostensibleData,
         },
         original_vehicle_data:
           editingInspection?.original_vehicle_data ??
           (selectedVehicle
             ? {
                 internal_id: selectedVehicle.internal_id,
+                vehicle_type: selectedVehicle.vehicle_type,
                 brand: selectedVehicle.brand,
                 model: selectedVehicle.model,
                 brand_model: selectedVehicle.brand_model,
                 color: selectedVehicle.color,
                 plate: selectedVehicle.plate,
+                renavam: selectedVehicle.renavam,
                 engine_number: selectedVehicle.engine_number,
                 chassis: selectedVehicle.chassis,
                 manufacture_year: selectedVehicle.manufacture_year,
@@ -326,10 +542,37 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
           .map((person) => person.trim())
           .filter(Boolean),
       };
-      if (editingInspection) {
-        await updateVehicleInspection(editingInspection.id, input, changeReason);
-      } else {
-        await createVehicleInspection(input);
+      const savedInspection = editingInspection
+        ? await updateVehicleInspection(editingInspection.id, input, changeReason)
+        : await createVehicleInspection(input);
+      const failedPhotoIds = new Set<string>();
+      for (const photo of pendingPhotos) {
+        try {
+          const result = await uploadVehicleInspectionPhotos({
+            inspectionId: savedInspection.id,
+            vehicleId,
+            category: photo.category,
+            caption: photo.caption,
+            files: [photo.file],
+          });
+          if (result.failed.length) {
+            failedPhotoIds.add(photo.id);
+          } else {
+            URL.revokeObjectURL(photo.previewUrl);
+          }
+        } catch {
+          failedPhotoIds.add(photo.id);
+        }
+      }
+      if (failedPhotoIds.size) {
+        setEditingInspection(savedInspection);
+        setPendingPhotos((current) => current.filter((photo) => failedPhotoIds.has(photo.id)));
+        setSavedPhotos(await listVehicleInspectionPhotos(savedInspection.id));
+        setError(
+          `A vistoria foi salva, mas ${failedPhotoIds.size} fotografia(s) não foram enviadas. Revise e tente novamente.`,
+        );
+        setStep(4);
+        return;
       }
       await navigate({ to: "/vistorias" });
     } catch {
@@ -340,7 +583,7 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
   }
 
   return (
-    <AppLayout module="vistorias">
+    <AppLayout module="vistorias" hideNavigation={hideNavigation}>
       <div className="mx-auto w-full max-w-[1480px] space-y-5 pb-10">
         <header className="relative overflow-hidden rounded-[1.75rem] border border-primary/25 bg-[radial-gradient(circle_at_85%_15%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_34%),linear-gradient(135deg,color-mix(in_oklab,var(--card)_96%,black),color-mix(in_oklab,var(--background)_92%,var(--primary)_8%))] p-5 shadow-[0_24px_80px_-42px_color-mix(in_oklab,var(--primary)_80%,transparent)] md:p-7">
           <div className="pointer-events-none absolute -right-14 -top-24 h-72 w-72 rounded-full border border-primary/15" />
@@ -481,7 +724,7 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
           </aside>
 
           <section className="overflow-hidden rounded-[1.75rem] border border-primary/20 bg-card/90 shadow-[0_24px_70px_-45px_color-mix(in_oklab,var(--primary)_75%,transparent)]">
-            <div className="flex flex-col gap-4 border-b border-border/75 bg-background/20 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-7">
+            <div className="inspection-registration-light flex flex-col gap-4 border-b border-border/75 bg-white px-5 py-5 md:flex-row md:items-center md:justify-between md:px-7">
               <SectionTitle
                 icon={currentStep.icon}
                 eyebrow={`Etapa ${currentStep.id} de ${STEPS.length}`}
@@ -492,7 +735,11 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                       ? "Origem, ocorrência e custódia"
                       : step === 3
                         ? "Exame técnico do veículo"
-                        : "Conferência e formalização"
+                        : step === 4
+                          ? "Registro fotográfico"
+                          : step === 5
+                            ? "Resultado e providências"
+                            : "Conferência e formalização"
                 }
                 description={
                   step === 1
@@ -501,15 +748,21 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                       ? "Contextualize a apresentação e defina onde o bem permanecerá custodiado."
                       : step === 3
                         ? "Registre o estado encontrado com critérios objetivos e narrativa técnica."
-                        : "Revise vínculos, observações e os dados que formarão o relatório."
+                        : step === 4
+                          ? "Fotografe o veículo por posição e documente separadamente cada sinal identificador."
+                          : step === 5
+                            ? "Consolide o diagnóstico, a conclusão e as providências administrativas."
+                            : "Revise vínculos, observações e os dados que formarão o relatório."
                 }
               />
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-500">
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-primary">
                 <ShieldCheck className="h-3.5 w-3.5" /> Salvamento auditado
               </span>
             </div>
 
-            <div className="min-h-[590px] p-5 md:p-7">
+            <div
+              className={`inspection-registration-light p-5 md:p-7 ${step === 1 && !selectedVehicle && !loading ? "" : "min-h-[590px]"}`}
+            >
               {loading ? (
                 <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-muted-foreground">
                   <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
@@ -531,7 +784,10 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                         <Field label="Veículo cadastrado" hint="Vínculo obrigatório">
                           <select
                             value={vehicleId}
-                            onChange={(event) => setVehicleId(event.target.value)}
+                            onChange={(event) => {
+                              setVehicleId(event.target.value);
+                              setOstensibleData({});
+                            }}
                             disabled={Boolean(editingInspection)}
                             className={FIELD_CLASS}
                           >
@@ -611,23 +867,193 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                           </div>
                         </div>
                       ) : (
-                        <div className="flex min-h-52 flex-col items-center justify-center rounded-3xl border border-dashed border-primary/25 bg-primary/[0.035] p-8 text-center">
-                          <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
-                            <KeyRound className="h-6 w-6" />
-                          </span>
-                          <h3 className="mt-4 font-black">Nenhum veículo vinculado</h3>
-                          <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                            Selecione um cadastro acima. Se o veículo ainda não existir, crie-o
-                            antes de iniciar a vistoria.
-                          </p>
+                        <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-primary/25 bg-primary/[0.035] p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                          <div className="flex items-center gap-3">
+                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+                              <KeyRound className="h-5 w-5" />
+                            </span>
+                            <div>
+                              <h3 className="text-sm font-black">Nenhum veículo vinculado</h3>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                Selecione um cadastro acima para abrir os dados da vistoria.
+                              </p>
+                            </div>
+                          </div>
                           <Link
                             to="/veiculos/novo"
-                            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-black text-primary transition hover:bg-primary/15"
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-black text-primary transition hover:bg-primary/15"
                           >
                             <CarFront className="h-4 w-4" /> Cadastrar novo veículo
                           </Link>
                         </div>
                       )}
+
+                      {selectedVehicle ? (
+                        <Panel
+                          icon={ScanLine}
+                          title="Características ostentadas / como chegou"
+                          tone="primary"
+                        >
+                          <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/[0.07] p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-xs font-black text-amber-500">
+                                Preenchimento manual da condição encontrada
+                              </p>
+                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                Estes dados não alteram o cadastro vinculado. O relatório mostrará
+                                separadamente o que foi ostentado e os dados originais preservados.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOstensibleData({
+                                  vehicle_type: selectedVehicle.vehicle_type ?? "",
+                                  brand: selectedVehicle.brand ?? "",
+                                  model: selectedVehicle.model ?? "",
+                                  color: selectedVehicle.color ?? "",
+                                  plate: selectedVehicle.plate ?? "",
+                                  chassis: selectedVehicle.chassis ?? "",
+                                  engine_number: selectedVehicle.engine_number ?? "",
+                                  renavam: selectedVehicle.renavam ?? "",
+                                  manufacture_year: selectedVehicle.manufacture_year,
+                                  model_year: selectedVehicle.model_year,
+                                  description: ostensibleData.description ?? "",
+                                })
+                              }
+                              className="shrink-0 rounded-xl border border-amber-500/30 bg-background/70 px-3.5 py-2.5 text-xs font-black text-amber-500 transition hover:bg-amber-500/10"
+                            >
+                              Copiar dados originais
+                            </button>
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                            <Field label="Tipo ostentado">
+                              <input
+                                value={ostensibleData.vehicle_type ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("vehicle_type", event.target.value)
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Ex.: Motocicleta"
+                              />
+                            </Field>
+                            <Field label="Marca ostentada">
+                              <input
+                                value={ostensibleData.brand ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("brand", event.target.value)
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Ex.: Honda"
+                              />
+                            </Field>
+                            <Field label="Modelo ostentado">
+                              <input
+                                value={ostensibleData.model ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("model", event.target.value)
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Ex.: XRE 190"
+                              />
+                            </Field>
+                            <Field label="Cor ostentada">
+                              <input
+                                value={ostensibleData.color ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("color", event.target.value)
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Ex.: Vermelha"
+                              />
+                            </Field>
+                            <Field label="Placa ostentada">
+                              <input
+                                value={ostensibleData.plate ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("plate", event.target.value.toUpperCase())
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Ex.: ABC1D23"
+                              />
+                            </Field>
+                            <Field label="Chassi ostentado">
+                              <input
+                                value={ostensibleData.chassis ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("chassis", event.target.value.toUpperCase())
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Numeração encontrada"
+                              />
+                            </Field>
+                            <Field label="Motor ostentado">
+                              <input
+                                value={ostensibleData.engine_number ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData(
+                                    "engine_number",
+                                    event.target.value.toUpperCase(),
+                                  )
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Numeração encontrada"
+                              />
+                            </Field>
+                            <Field label="Renavam ostentado">
+                              <input
+                                value={ostensibleData.renavam ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData("renavam", event.target.value)
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="Se disponível"
+                              />
+                            </Field>
+                            <Field label="Ano de fabricação">
+                              <input
+                                type="number"
+                                value={ostensibleData.manufacture_year ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData(
+                                    "manufacture_year",
+                                    event.target.value ? Number(event.target.value) : null,
+                                  )
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="AAAA"
+                              />
+                            </Field>
+                            <Field label="Ano do modelo">
+                              <input
+                                type="number"
+                                value={ostensibleData.model_year ?? ""}
+                                onChange={(event) =>
+                                  updateOstensibleData(
+                                    "model_year",
+                                    event.target.value ? Number(event.target.value) : null,
+                                  )
+                                }
+                                className={FIELD_CLASS}
+                                placeholder="AAAA"
+                              />
+                            </Field>
+                            <div className="sm:col-span-2">
+                              <Field label="Descrição de como o veículo chegou">
+                                <textarea
+                                  value={ostensibleData.description ?? ""}
+                                  onChange={(event) =>
+                                    updateOstensibleData("description", event.target.value)
+                                  }
+                                  rows={3}
+                                  className={TEXTAREA_CLASS}
+                                  placeholder="Ex.: motocicleta sem carenagem lateral, placa fixada, sinais aparentes..."
+                                />
+                              </Field>
+                            </div>
+                          </div>
+                        </Panel>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -997,6 +1423,43 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                   ) : null}
 
                   {step === 4 ? (
+                    <div className="space-y-6">
+                      <PhotoCapturePanel
+                        title="Registro fotográfico do veículo"
+                        description="Fotografe a condição em que o veículo foi apresentado. Selecione a posição antes de adicionar as imagens."
+                        allowedCategories={["veiculo"]}
+                        options={VEHICLE_PHOTO_OPTIONS}
+                        descriptionValue={photoVehicleDescription}
+                        onDescriptionChange={setPhotoVehicleDescription}
+                        savedPhotos={savedPhotos.filter((photo) => photo.category === "veiculo")}
+                        pendingPhotos={pendingPhotos.filter(
+                          (photo) => photo.category === "veiculo",
+                        )}
+                        onAdd={addPendingPhotos}
+                        onUpdate={updatePendingPhoto}
+                        onRemove={removePendingPhoto}
+                      />
+                      <PhotoCapturePanel
+                        title="Registro fotográfico dos sinais identificadores"
+                        description="Registre chassi, motor, placa, etiqueta de segurança e outros sinais examinados."
+                        allowedCategories={INSPECTION_PHOTO_CATEGORIES.filter(
+                          (category) => category !== "veiculo",
+                        )}
+                        options={IDENTIFIER_PHOTO_OPTIONS}
+                        descriptionValue={photoIdentifiersDescription}
+                        onDescriptionChange={setPhotoIdentifiersDescription}
+                        savedPhotos={savedPhotos.filter((photo) => photo.category !== "veiculo")}
+                        pendingPhotos={pendingPhotos.filter(
+                          (photo) => photo.category !== "veiculo",
+                        )}
+                        onAdd={addPendingPhotos}
+                        onUpdate={updatePendingPhoto}
+                        onRemove={removePendingPhoto}
+                      />
+                    </div>
+                  ) : null}
+
+                  {step === 5 ? (
                     <div className="space-y-5">
                       <Panel icon={Gauge} title="Condição operacional e diagnóstico" tone="primary">
                         <div className="grid gap-4 lg:grid-cols-3">
@@ -1179,7 +1642,7 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                     </div>
                   ) : null}
 
-                  {step === 5 ? (
+                  {step === 6 ? (
                     <div className="space-y-5">
                       <div className="grid gap-4 lg:grid-cols-[1fr_0.42fr]">
                         <Panel icon={UsersRound} title="Vínculos e observações">
@@ -1239,40 +1702,25 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
                       </div>
 
                       <div className="overflow-hidden rounded-3xl border border-border/75 bg-background/35">
-                        <div className="flex items-center justify-between border-b border-border/70 px-5 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-4">
                           <div>
                             <p className="text-[10px] font-black uppercase tracking-[0.17em] text-primary">
-                              Resumo para conferência
+                              Prévia do documento
                             </p>
-                            <h3 className="mt-1 font-black">Dados que seguirão para o relatório</h3>
+                            <h3 className="mt-1 font-black">Relatório em formato A4</h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Esta é a composição que seguirá para impressão e geração do PDF.
+                            </p>
                           </div>
-                          <BadgeCheck className="h-5 w-5 text-primary" />
+                          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-primary">
+                            <BadgeCheck className="h-4 w-4" /> Prévia ao vivo
+                          </span>
                         </div>
-                        <div className="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4">
-                          <Review
-                            label="Veículo"
-                            value={selectedVehicle?.internal_id || "Não selecionado"}
-                          />
-                          <Review label="Placa" value={selectedVehicle?.plate || "Não informada"} />
-                          <Review
-                            label="B.O. / ocorrência"
-                            value={policeReportNumber || "Não informado"}
-                          />
-                          <Review label="Data" value={inspectionDate || "Não informada"} />
-                          <Review
-                            label="Motivo"
-                            value={
-                              PRESENTATION_REASON_LABELS[presentationReason] || "Não informado"
-                            }
-                          />
-                          <Review
-                            label="Instituição"
-                            value={INSTITUTION_LABELS[presentingInstitution] || "Não informada"}
-                          />
-                          <Review label="Local" value={location || "Não informado"} />
-                          <Review
-                            label="Custódia"
-                            value={YARD_LABELS[yardType] || "Não informada"}
+                        <div className="sipi-vistoria-review-stage">
+                          <VehicleInspectionPrintSheet
+                            inspection={reviewInspection}
+                            photos={reviewPhotos}
+                            preview
                           />
                         </div>
                       </div>
@@ -1282,7 +1730,9 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
               )}
             </div>
 
-            <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border/80 bg-card/95 px-5 py-4 backdrop-blur-xl md:px-7">
+            <footer
+              className={`inspection-registration-light z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border/80 bg-card/95 px-5 py-4 md:px-7 ${step === 1 && !selectedVehicle ? "" : "sticky bottom-0 backdrop-blur-xl"}`}
+            >
               <button
                 type="button"
                 onClick={step === 1 ? () => void navigate({ to: "/vistorias" }) : previousStep}
@@ -1576,13 +2026,186 @@ function FindingField({
   );
 }
 
-function Review({ label, value }: { label: string; value: string }) {
+function PhotoCapturePanel({
+  title,
+  description,
+  allowedCategories,
+  options,
+  descriptionValue,
+  onDescriptionChange,
+  savedPhotos,
+  pendingPhotos,
+  onAdd,
+  onUpdate,
+  onRemove,
+}: {
+  title: string;
+  description: string;
+  allowedCategories: InspectionPhotoCategory[];
+  options: PhotoCaptureOption[];
+  descriptionValue: string;
+  onDescriptionChange: (value: string) => void;
+  savedPhotos: VehicleInspectionPhoto[];
+  pendingPhotos: PendingInspectionPhoto[];
+  onAdd: (files: FileList | null, category: InspectionPhotoCategory, caption?: string) => void;
+  onUpdate: (photoId: string, patch: Partial<PendingInspectionPhoto>) => void;
+  onRemove: (photoId: string) => void;
+}) {
+  const [selectedOptionId, setSelectedOptionId] = useState(options[0].id);
+  const selectedOption = options.find((option) => option.id === selectedOptionId) ?? options[0];
+
   return (
-    <div className="min-w-0 bg-background/75 p-4">
-      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1.5 truncate text-sm font-black">{value}</p>
-    </div>
+    <section className="overflow-hidden rounded-3xl border border-border/75 bg-white">
+      <div className="flex flex-col gap-4 border-b border-border/70 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+            <Camera className="h-5 w-5" />
+          </span>
+          <div>
+            <h3 className="text-sm font-black">{title}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-black text-primary-foreground shadow-sm transition hover:brightness-105">
+          <ImagePlus className="h-4 w-4" /> Adicionar:{" "}
+          {selectedOption.label.replace(/^Foto - /, "")}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="sr-only"
+            onChange={(event) => {
+              onAdd(event.target.files, selectedOption.category, selectedOption.caption);
+              event.currentTarget.value = "";
+            }}
+          />
+        </label>
+      </div>
+
+      <div className="grid gap-4 p-5 lg:grid-cols-[190px_minmax(0,1fr)]">
+        <div className="flex flex-wrap content-start gap-2 lg:flex-col">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => setSelectedOptionId(option.id)}
+              aria-pressed={selectedOptionId === option.id}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition ${selectedOptionId === option.id ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-white text-foreground hover:border-primary/30"}`}
+            >
+              <Camera className="h-4 w-4 shrink-0" /> {option.label}
+            </button>
+          ))}
+        </div>
+        {savedPhotos.length || pendingPhotos.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {savedPhotos.map((photo) => (
+              <figure
+                key={photo.id}
+                className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.045]"
+              >
+                {photo.vehicle_photo?.thumbnail_url ? (
+                  <img
+                    src={photo.vehicle_photo.thumbnail_url}
+                    alt={photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
+                    className="aspect-video w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-video items-center justify-center bg-muted text-xs text-muted-foreground">
+                    Prévia indisponível
+                  </div>
+                )}
+                <figcaption className="p-3">
+                  <span className="text-[9px] font-black uppercase tracking-[0.14em] text-emerald-500">
+                    Foto vinculada
+                  </span>
+                  <p className="mt-1 text-xs font-bold">
+                    {photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
+                  </p>
+                </figcaption>
+              </figure>
+            ))}
+
+            {pendingPhotos.map((photo) => (
+              <article
+                key={photo.id}
+                className="overflow-hidden rounded-2xl border border-primary/25 bg-primary/[0.04]"
+              >
+                <div className="relative">
+                  <img
+                    src={photo.previewUrl}
+                    alt={photo.caption || PHOTO_CATEGORY_LABELS[photo.category]}
+                    className="aspect-video w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onRemove(photo.id)}
+                    className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center rounded-xl border border-white/20 bg-black/70 text-white transition hover:bg-destructive"
+                    aria-label="Remover fotografia antes do envio"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-2 p-3">
+                  {allowedCategories.length > 1 ? (
+                    <select
+                      value={photo.category}
+                      onChange={(event) =>
+                        onUpdate(photo.id, {
+                          category: event.target.value as InspectionPhotoCategory,
+                        })
+                      }
+                      aria-label="Categoria da fotografia"
+                      className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-bold"
+                    >
+                      {allowedCategories.map((category) => (
+                        <option key={category} value={category}>
+                          {PHOTO_CATEGORY_LABELS[category]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <input
+                    value={photo.caption}
+                    onChange={(event) => onUpdate(photo.id, { caption: event.target.value })}
+                    className="h-10 w-full rounded-xl border border-border bg-background px-3 text-xs font-semibold outline-none focus:border-primary/60"
+                    placeholder="Legenda ou posição da foto"
+                    aria-label="Legenda da fotografia"
+                  />
+                  <p className="text-[10px] font-bold text-primary">Será enviada ao salvar</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <label className="flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-primary/30 bg-primary/[0.025] p-6 text-center transition hover:bg-primary/[0.06]">
+            <ImagePlus className="h-7 w-7 text-primary" />
+            <strong className="mt-3 text-sm">Nenhuma fotografia adicionada</strong>
+            <span className="mt-1 text-xs text-muted-foreground">
+              Clique para selecionar uma ou várias imagens.
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              className="sr-only"
+              onChange={(event) => {
+                onAdd(event.target.files, selectedOption.category, selectedOption.caption);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+        )}
+      </div>
+      <label className="block border-t border-border/70 p-5">
+        <span className="mb-2 block text-sm font-black">Descrição</span>
+        <textarea
+          value={descriptionValue}
+          onChange={(event) => onDescriptionChange(event.target.value)}
+          rows={3}
+          className={TEXTAREA_CLASS}
+          placeholder="Descreva o que as fotografias mostram e a condição encontrada."
+        />
+      </label>
+    </section>
   );
 }

@@ -1857,6 +1857,15 @@ function VistoriasRoute() {
         <VehicleInspectionQuickPreview
           record={selectedInspection}
           onClose={() => setSelectedInspectionId(null)}
+          onOpenDetails={() => {
+            if (!selectedInspection) return;
+            const inspectionId = selectedInspection.id;
+            setSelectedInspectionId(null);
+            void navigate({
+              to: "/vistorias/$inspectionId",
+              params: { inspectionId },
+            });
+          }}
           onViewPdf={() => {
             if (selectedInspection) void handleViewInspectionPdf(selectedInspection);
           }}

@@ -74,9 +74,11 @@ function useMobileViewport() {
 export function AppLayout({
   children,
   module = "inqueritos",
+  hideNavigation = false,
 }: {
   children: ReactNode;
   module?: AppModule;
+  hideNavigation?: boolean;
 }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
@@ -168,46 +170,50 @@ export function AppLayout({
         className={`app-layout app-layout-${module} min-h-screen flex w-full bg-background text-foreground`}
         data-app-module={module}
       >
-        <Suspense fallback={null}>
-          {mobile ? (
-            module === "veiculos" ? (
-              <VehiclesMobileNavigation profile={profile} />
+        {hideNavigation ? null : (
+          <Suspense fallback={null}>
+            {mobile ? (
+              module === "veiculos" ? (
+                <VehiclesMobileNavigation profile={profile} />
+              ) : module === "objetos" ? (
+                <ObjectsMobileNavigation profile={profile} />
+              ) : module === "agenda" ? (
+                <AgendaMobileNavigation profile={profile} />
+              ) : module === "bo" ? (
+                <BoMobileNavigation profile={profile} />
+              ) : module === "vistorias" ? (
+                <VehiclesMobileNavigation profile={profile} module="vistorias" />
+              ) : (
+                <MobileNavigation profile={profile} />
+              )
+            ) : module === "veiculos" ? (
+              <VehiclesSidebar profile={profile} />
             ) : module === "objetos" ? (
-              <ObjectsMobileNavigation profile={profile} />
+              <ObjectsSidebar profile={profile} />
             ) : module === "agenda" ? (
-              <AgendaMobileNavigation profile={profile} />
+              <AgendaSidebar profile={profile} />
             ) : module === "bo" ? (
-              <BoMobileNavigation profile={profile} />
-          ) : module === "vistorias" ? (
-            <VehiclesMobileNavigation profile={profile} module="vistorias" />
+              <BoSidebar profile={profile} />
+            ) : module === "vistorias" ? (
+              <VistoriasSidebar profile={profile} />
             ) : (
-              <MobileNavigation profile={profile} />
-            )
-          ) : module === "veiculos" ? (
-            <VehiclesSidebar profile={profile} />
-          ) : module === "objetos" ? (
-            <ObjectsSidebar profile={profile} />
-          ) : module === "agenda" ? (
-            <AgendaSidebar profile={profile} />
-          ) : module === "bo" ? (
-            <BoSidebar profile={profile} />
-          ) : module === "vistorias" ? (
-            <VistoriasSidebar profile={profile} />
-          ) : (
-            <>
-              <AppSidebar profile={profile} />
-              <DueSoonNotification />
-              <AgendaLembreteNotification />
-            </>
-          )}
-        </Suspense>
+              <>
+                <AppSidebar profile={profile} />
+                <DueSoonNotification />
+                <AgendaLembreteNotification />
+              </>
+            )}
+          </Suspense>
+        )}
         <main
-          className={`flex-1 min-w-0 overflow-x-hidden ${mobile ? "px-4 pb-24 pt-20" : "p-6 lg:p-8"}`}
+          className={`flex-1 min-w-0 overflow-x-hidden ${
+            mobile ? (hideNavigation ? "px-4 py-5" : "px-4 pb-24 pt-20") : "p-6 lg:p-8"
+          }`}
         >
           {children}
         </main>
         {/* Busca global por Ctrl+K. Fica fora do <main> para valer em todos os módulos. */}
-        {mobile ? null : (
+        {mobile || hideNavigation ? null : (
           <Suspense fallback={null}>
             <CommandPalette />
           </Suspense>

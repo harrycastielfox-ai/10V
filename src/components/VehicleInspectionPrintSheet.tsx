@@ -151,9 +151,13 @@ function inspectionStatusLabel(status: VehicleInspection["status"]) {
 
 function buildPreamble(inspection: VehicleInspection) {
   const vehicle = inspection.vehicle;
+  const ostensible = inspection.findings?.ostensible_vehicle ?? {};
+  const displayedModel = [ostensible.brand, ostensible.model].filter(Boolean).join(" ");
   const identification = [
-    vehicle?.brand_model ? `veículo ${vehicle.brand_model}` : "veículo cadastrado no SIED",
-    vehicle?.plate ? `placa ${vehicle.plate}` : null,
+    displayedModel || vehicle?.brand_model
+      ? `veículo ${displayedModel || vehicle?.brand_model}`
+      : "veículo cadastrado no SIED",
+    ostensible.plate || vehicle?.plate ? `placa ${ostensible.plate || vehicle?.plate}` : null,
     inspection.police_report_number
       ? `vinculado à ocorrência policial nº ${inspection.police_report_number}`
       : null,
@@ -174,13 +178,15 @@ function PrintPhotoGrid({
   photos,
   variant,
   sequenceStart,
+  description,
 }: {
   title: string;
   photos: VehicleInspectionPhoto[];
   variant: "vehicle" | "identifier";
   sequenceStart: number;
+  description?: string;
 }) {
-  if (!photos.length) return null;
+  if (!photos.length && !description?.trim()) return null;
   return (
     <section className="sipi-vistoria-block sipi-vistoria-photo-block">
       <h2>{title}</h2>
@@ -208,6 +214,9 @@ function PrintPhotoGrid({
           </figure>
         ))}
       </div>
+      {description?.trim() ? (
+        <p className="sipi-vistoria-photo-description">{description}</p>
+      ) : null}
     </section>
   );
 }
@@ -215,15 +224,18 @@ function PrintPhotoGrid({
 export function VehicleInspectionPrintSheet({
   inspection,
   photos,
+  preview = false,
 }: {
   inspection: VehicleInspection;
   photos: VehicleInspectionPhoto[];
+  preview?: boolean;
 }) {
   const vehicle = inspection.vehicle;
   const vehiclePhotos = photos.filter((photo) => photo.category === "veiculo");
   const identifierPhotos = photos.filter((photo) => photo.category !== "veiculo");
   const original = inspection.original_vehicle_data ?? {};
   const findings = inspection.findings ?? {};
+  const ostensible = findings.ostensible_vehicle ?? {};
   const destination = inspection.yard_type
     ? (YARD_LABELS[inspection.yard_type] ?? inspection.yard_type)
     : null;
@@ -235,7 +247,7 @@ export function VehicleInspectionPrintSheet({
     findings.result,
     findings.measures_taken,
     inspection.inspector_notes,
-  ].filter((value): value is string => Boolean(value?.trim()));
+  ].filter((value): value is string => typeof value === "string" && Boolean(value.trim()));
   const checklistStatuses = CHECKLIST_ITEMS.map(
     ([key]) => inspection.checklist?.[key] ?? "nao_informado",
   );
@@ -254,7 +266,10 @@ export function VehicleInspectionPrintSheet({
   const administrativeOffset = answeredQuestionnaire.length ? 1 : 0;
 
   return (
-    <div className="print-only sipi-print-sheet sipi-vistoria-report" aria-hidden="true">
+    <div
+      className={`${preview ? "sipi-vistoria-screen-preview" : "print-only"} sipi-print-sheet sipi-vistoria-report`}
+      aria-hidden={preview ? undefined : true}
+    >
       <header className="sipi-vistoria-letterhead">
         <div className="sipi-vistoria-emblem-wrap">
           <img src="/policia-civil-bahia-brasao-pdf.png" alt="" />
@@ -281,11 +296,16 @@ export function VehicleInspectionPrintSheet({
       <section className="sipi-vistoria-overview" aria-label="Resumo do registro">
         <div>
           <span>Veículo</span>
-          <strong>{vehicle?.brand_model || vehicle?.model || "Não informado"}</strong>
+          <strong>
+            {[ostensible.brand, ostensible.model].filter(Boolean).join(" ") ||
+              vehicle?.brand_model ||
+              vehicle?.model ||
+              "Não informado"}
+          </strong>
         </div>
         <div>
           <span>Placa</span>
-          <strong>{displayValue(vehicle?.plate)}</strong>
+          <strong>{displayValue(ostensible.plate || vehicle?.plate)}</strong>
         </div>
         <div>
           <span>Data da vistoria</span>
@@ -315,39 +335,51 @@ export function VehicleInspectionPrintSheet({
         <dl className="sipi-vistoria-data-grid">
           <div>
             <dt>Marca</dt>
-            <dd>{displayValue(vehicle?.brand)}</dd>
+            <dd>{displayValue(ostensible.brand || vehicle?.brand)}</dd>
           </div>
           <div>
             <dt>Modelo</dt>
-            <dd>{displayValue(vehicle?.model ?? vehicle?.brand_model)}</dd>
+            <dd>{displayValue(ostensible.model || vehicle?.model || vehicle?.brand_model)}</dd>
           </div>
           <div>
             <dt>Placa</dt>
-            <dd>{displayValue(vehicle?.plate)}</dd>
+            <dd>{displayValue(ostensible.plate || vehicle?.plate)}</dd>
           </div>
           <div>
             <dt>Chassi</dt>
-            <dd>{displayValue(vehicle?.chassis)}</dd>
+            <dd>{displayValue(ostensible.chassis || vehicle?.chassis)}</dd>
           </div>
           <div>
             <dt>Motor</dt>
-            <dd>{displayValue(vehicle?.engine_number)}</dd>
+            <dd>{displayValue(ostensible.engine_number || vehicle?.engine_number)}</dd>
           </div>
           <div>
             <dt>Cor</dt>
-            <dd>{displayValue(vehicle?.color)}</dd>
+            <dd>{displayValue(ostensible.color || vehicle?.color)}</dd>
           </div>
           <div>
             <dt>Ano fabricação</dt>
-            <dd>{displayValue(vehicle?.manufacture_year)}</dd>
+            <dd>{displayValue(ostensible.manufacture_year ?? vehicle?.manufacture_year)}</dd>
           </div>
           <div>
             <dt>Ano modelo</dt>
-            <dd>{displayValue(vehicle?.model_year)}</dd>
+            <dd>{displayValue(ostensible.model_year ?? vehicle?.model_year)}</dd>
           </div>
           <div>
             <dt>Conservação</dt>
             <dd>{displayValue(vehicle?.conservation_state)}</dd>
+          </div>
+          <div>
+            <dt>Renavam ostentado</dt>
+            <dd>{displayValue(ostensible.renavam || vehicle?.renavam)}</dd>
+          </div>
+          <div>
+            <dt>Tipo ostentado</dt>
+            <dd>{displayValue(ostensible.vehicle_type || vehicle?.vehicle_type)}</dd>
+          </div>
+          <div>
+            <dt>Descrição de chegada</dt>
+            <dd>{displayValue(ostensible.description)}</dd>
           </div>
         </dl>
       </section>
@@ -440,12 +472,14 @@ export function VehicleInspectionPrintSheet({
         photos={vehiclePhotos}
         variant="vehicle"
         sequenceStart={1}
+        description={findings.photo_vehicle_description}
       />
       <PrintPhotoGrid
         title="5. REGISTRO FOTOGRÁFICO DOS SINAIS IDENTIFICADORES"
         photos={identifierPhotos}
         variant="identifier"
         sequenceStart={vehiclePhotos.length + 1}
+        description={findings.photo_identifiers_description}
       />
 
       {photos.length >= 4 ? (

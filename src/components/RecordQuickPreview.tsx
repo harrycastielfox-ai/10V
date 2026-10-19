@@ -345,12 +345,14 @@ const INSPECTION_INSTITUTION_PREVIEW_LABELS: Record<string, string> = {
 export function VehicleInspectionQuickPreview({
   record,
   onClose,
+  onOpenDetails,
   onViewPdf,
   onEdit,
   busy = false,
 }: {
   record: VehicleInspection | null;
   onClose: () => void;
+  onOpenDetails: () => void;
   onViewPdf: () => void;
   onEdit: () => void;
   busy?: boolean;
@@ -418,9 +420,16 @@ export function VehicleInspectionQuickPreview({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
+            onClick={onOpenDetails}
+            className="inspection-preview-details col-span-2 flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-xs font-black uppercase tracking-[0.1em] text-primary-foreground shadow-[0_0_24px_color-mix(in_oklab,var(--primary)_20%,transparent)] transition hover:bg-primary/90"
+          >
+            <ArrowUpRight className="h-4 w-4" /> Abrir detalhes
+          </button>
+          <button
+            type="button"
             onClick={onViewPdf}
             disabled={busy}
-            className="flex h-12 items-center justify-center gap-2 rounded-lg bg-violet-400 px-4 text-xs font-black uppercase tracking-[0.1em] text-violet-950 shadow-[0_0_24px_rgba(167,139,250,0.18)] transition hover:bg-violet-300 disabled:cursor-wait disabled:opacity-60"
+            className="inspection-preview-pdf flex h-12 items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/10 px-4 text-xs font-black uppercase tracking-[0.1em] text-primary transition hover:bg-primary/15 disabled:cursor-wait disabled:opacity-60"
           >
             <FileText className="h-4 w-4" />
             {busy ? "Abrindo..." : "Ver PDF"}
@@ -428,7 +437,7 @@ export function VehicleInspectionQuickPreview({
           <button
             type="button"
             onClick={onEdit}
-            className="flex h-12 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.05] px-4 text-xs font-black uppercase tracking-[0.1em] text-white transition hover:border-violet-300/50 hover:bg-violet-400/10"
+            className="inspection-preview-edit flex h-12 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-xs font-black uppercase tracking-[0.1em] text-foreground shadow-sm transition hover:border-primary/45 hover:bg-primary/10 hover:text-primary"
           >
             <Pencil className="h-4 w-4" /> Editar
           </button>

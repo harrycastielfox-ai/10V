@@ -24,7 +24,9 @@ vi.mock("@/lib/repositories/vehiclesRepository", () => ({
 const {
   attachVehicleInspectionPdf,
   createVehicleInspection,
+  getVehicleInspection,
   getVehicleInspectionPdfUrl,
+  inspectionFindingsToText,
   listVehicleInspections,
   uploadVehicleInspectionPdf,
 } = await import("./vistoriasRepository");
@@ -47,12 +49,47 @@ function inspectionQueryResult(data: unknown) {
   return builder;
 }
 
+function inspectionDetailQueryResult(data: unknown) {
+  const builder = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    abortSignal: vi.fn(),
+    maybeSingle: vi.fn(async () => ({ data, error: null })),
+  };
+  builder.select.mockReturnValue(builder);
+  builder.eq.mockReturnValue(builder);
+  builder.abortSignal.mockReturnValue(builder);
+  state.from.mockReturnValue(builder);
+  return builder;
+}
+
 describe("vistoriasRepository", () => {
   beforeEach(() => {
     state.rpc.mockReset();
     state.from.mockReset();
     state.upload.mockReset();
     state.createSignedUrl.mockReset();
+  });
+
+  it("busca uma vistoria pelo id e normaliza o veículo relacionado", async () => {
+    inspectionDetailQueryResult({
+      id: "vistoria-1",
+      vehicle_id: "veiculo-1",
+      current_version: 2,
+      vehicle: [
+        {
+          id: "veiculo-1",
+          internal_id: "VEI-2026-000001",
+          plate: "JOV8032",
+        },
+      ],
+    });
+
+    const inspection = await getVehicleInspection("vistoria-1");
+
+    expect(inspection?.vehicle?.internal_id).toBe("VEI-2026-000001");
+    expect(inspection?.vehicle?.plate).toBe("JOV8032");
+    expect(state.from).toHaveBeenCalledWith("vehicle_inspections");
   });
 
   it("preserva o veículo relacionado quando o Supabase retorna um objeto", async () => {
@@ -195,5 +232,18 @@ describe("vistoriasRepository", () => {
       "https://storage.example/vistoria-assinada.pdf",
     );
     expect(state.createSignedUrl).toHaveBeenCalledWith("vistoria-1/v2/laudo.pdf", 3600);
+  });
+
+  it("mantém os dados ostentados estruturados fora da narrativa textual", () => {
+    expect(
+      inspectionFindingsToText({
+        identification: "Chassi com sinais de remarcação.",
+        ostensible_vehicle: {
+          brand: "Honda",
+          model: "XRE 190",
+          plate: "TOG1G13",
+        },
+      }),
+    ).toBe("identification: Chassi com sinais de remarcação.");
   });
 });

@@ -1,5 +1,19 @@
 export type VehicleInspectionStatus = "rascunho" | "emitido" | "cancelado";
 
+export type VehicleInspectionOstensibleData = {
+  vehicle_type?: string;
+  brand?: string;
+  model?: string;
+  color?: string;
+  plate?: string;
+  chassis?: string;
+  engine_number?: string;
+  renavam?: string;
+  manufacture_year?: number | null;
+  model_year?: number | null;
+  description?: string;
+};
+
 export type VehicleInspectionFindings = {
   identification?: string;
   structure?: string;
@@ -8,6 +22,9 @@ export type VehicleInspectionFindings = {
   observations?: string;
   result?: string;
   measures_taken?: string;
+  photo_vehicle_description?: string;
+  photo_identifiers_description?: string;
+  ostensible_vehicle?: VehicleInspectionOstensibleData;
 };
 
 export const INSPECTION_PRESENTATION_REASONS = [
@@ -169,11 +186,13 @@ export type VehicleInspection = {
   vehicle?: {
     id: string;
     internal_id: string;
+    vehicle_type: string | null;
     brand: string | null;
     model: string | null;
     brand_model: string | null;
     color: string | null;
     plate: string | null;
+    renavam: string | null;
     engine_number: string | null;
     chassis: string | null;
     manufacture_year: number | null;

@@ -75,6 +75,7 @@ import { Route as InqueritosCaseIdEditarRouteImport } from './routes/inqueritos.
 import { Route as ObjetosObjectIdEditarRouteImport } from './routes/objetos.$objectId.editar'
 import { Route as RepresentacoesRepresentacaoIdEditarRouteImport } from './routes/representacoes.$representacaoId.editar'
 import { Route as VeiculosVehicleIdEditarRouteImport } from './routes/veiculos.$vehicleId.editar'
+import { Route as VistoriasInspectionIdIndexRouteImport } from './routes/vistorias.$inspectionId.index'
 import { Route as VistoriasInspectionIdEditarRouteImport } from './routes/vistorias.$inspectionId.editar'
 
 const IndexRoute = IndexRouteImport.update({
@@ -410,6 +411,12 @@ const VeiculosVehicleIdEditarRoute = VeiculosVehicleIdEditarRouteImport.update({
   path: '/editar',
   getParentRoute: () => VeiculosVehicleIdRoute,
 } as any)
+const VistoriasInspectionIdIndexRoute =
+  VistoriasInspectionIdIndexRouteImport.update({
+    id: '/$inspectionId/',
+    path: '/$inspectionId/',
+    getParentRoute: () => VistoriasRoute,
+  } as any)
 const VistoriasInspectionIdEditarRoute =
   VistoriasInspectionIdEditarRouteImport.update({
     id: '/$inspectionId/editar',
@@ -485,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
   '/veiculos/$vehicleId/editar': typeof VeiculosVehicleIdEditarRoute
   '/vistorias/$inspectionId/editar': typeof VistoriasInspectionIdEditarRoute
+  '/vistorias/$inspectionId/': typeof VistoriasInspectionIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -549,6 +557,7 @@ export interface FileRoutesByTo {
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
   '/veiculos/$vehicleId/editar': typeof VeiculosVehicleIdEditarRoute
   '/vistorias/$inspectionId/editar': typeof VistoriasInspectionIdEditarRoute
+  '/vistorias/$inspectionId': typeof VistoriasInspectionIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -619,6 +628,7 @@ export interface FileRoutesById {
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
   '/veiculos/$vehicleId/editar': typeof VeiculosVehicleIdEditarRoute
   '/vistorias/$inspectionId/editar': typeof VistoriasInspectionIdEditarRoute
+  '/vistorias/$inspectionId/': typeof VistoriasInspectionIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -690,6 +700,7 @@ export interface FileRouteTypes {
     | '/representacoes/$representacaoId/editar'
     | '/veiculos/$vehicleId/editar'
     | '/vistorias/$inspectionId/editar'
+    | '/vistorias/$inspectionId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -754,6 +765,7 @@ export interface FileRouteTypes {
     | '/representacoes/$representacaoId/editar'
     | '/veiculos/$vehicleId/editar'
     | '/vistorias/$inspectionId/editar'
+    | '/vistorias/$inspectionId'
   id:
     | '__root__'
     | '/'
@@ -823,6 +835,7 @@ export interface FileRouteTypes {
     | '/representacoes/$representacaoId/editar'
     | '/veiculos/$vehicleId/editar'
     | '/vistorias/$inspectionId/editar'
+    | '/vistorias/$inspectionId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1315,6 +1328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VeiculosVehicleIdEditarRouteImport
       parentRoute: typeof VeiculosVehicleIdRoute
     }
+    '/vistorias/$inspectionId/': {
+      id: '/vistorias/$inspectionId/'
+      path: '/$inspectionId'
+      fullPath: '/vistorias/$inspectionId/'
+      preLoaderRoute: typeof VistoriasInspectionIdIndexRouteImport
+      parentRoute: typeof VistoriasRoute
+    }
     '/vistorias/$inspectionId/editar': {
       id: '/vistorias/$inspectionId/editar'
       path: '/$inspectionId/editar'
@@ -1527,11 +1547,13 @@ const VeiculosRouteWithChildren = VeiculosRoute._addFileChildren(
 interface VistoriasRouteChildren {
   VistoriasNovaRoute: typeof VistoriasNovaRoute
   VistoriasInspectionIdEditarRoute: typeof VistoriasInspectionIdEditarRoute
+  VistoriasInspectionIdIndexRoute: typeof VistoriasInspectionIdIndexRoute
 }
 
 const VistoriasRouteChildren: VistoriasRouteChildren = {
   VistoriasNovaRoute: VistoriasNovaRoute,
   VistoriasInspectionIdEditarRoute: VistoriasInspectionIdEditarRoute,
+  VistoriasInspectionIdIndexRoute: VistoriasInspectionIdIndexRoute,
 }
 
 const VistoriasRouteWithChildren = VistoriasRoute._addFileChildren(

@@ -56,6 +56,60 @@
   box-shadow: 0 0 20px color-mix(in oklab, var(--primary) 38%, transparent);
 }
 
+/* O corpo do cadastro de vistoria funciona como uma prancheta clara. A
+   navegação e o cabeçalho preservam o tema do módulo, mas os campos mantêm
+   contraste estável para leitura e digitação prolongadas. */
+.inspection-registration-light {
+  color-scheme: light;
+  --background: oklch(0.995 0.002 260);
+  --foreground: oklch(0.16 0.015 260);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.16 0.015 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.16 0.015 260);
+  --secondary: oklch(0.95 0.008 260);
+  --secondary-foreground: oklch(0.2 0.015 260);
+  --muted: oklch(0.95 0.008 260);
+  --muted-foreground: oklch(0.42 0.02 260);
+  --accent: oklch(0.94 0.012 290);
+  --accent-foreground: oklch(0.2 0.02 270);
+  --border: oklch(0.84 0.012 260);
+  --input: oklch(0.84 0.012 260);
+  --ring: var(--primary);
+  color: var(--foreground);
+  background: #fff;
+}
+
+.inspection-registration-light input,
+.inspection-registration-light select,
+.inspection-registration-light textarea {
+  color: #111827;
+  caret-color: var(--primary);
+}
+
+.inspection-registration-light input::placeholder,
+.inspection-registration-light textarea::placeholder {
+  color: #64748b;
+}
+
+.inspection-registration-light input:disabled,
+.inspection-registration-light select:disabled,
+.inspection-registration-light textarea:disabled {
+  color: #475569;
+  opacity: 0.82;
+}
+
+.sipi-vistoria-photo-description {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-top: 1px solid #cbd5e1;
+  color: #17212b;
+  background: #fff;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .sied-brand-line::after {
   position: absolute;
   inset: 0;
@@ -1084,6 +1138,19 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
   html[data-theme="light"] .record-quick-preview-footer {
     border-color: #cbd5df;
     background-color: rgb(250 251 252 / 0.96);
+  }
+
+  html[data-theme="light"] .inspection-preview-edit {
+    border-color: #aebbc7;
+    background: #ffffff;
+    color: #17212b;
+    box-shadow: 0 5px 14px rgb(23 33 43 / 0.08);
+  }
+
+  html[data-theme="light"] .inspection-preview-edit:hover {
+    border-color: color-mix(in oklab, var(--primary) 55%, #aebbc7);
+    background: color-mix(in oklab, var(--primary) 8%, white);
+    color: color-mix(in oklab, var(--primary) 78%, #17212b);
   }
 
   html[data-theme="light"] .alert-module-card[data-alert-tone="criticos"] {
@@ -2616,6 +2683,318 @@ html[data-theme="light"] .sipi-bairro-name {
 }
 
 /* Relatório institucional de vistoria veicular. */
+@media screen {
+  .sipi-vistoria-review-stage {
+    overflow: auto;
+    padding: clamp(1rem, 3vw, 2.25rem);
+    background:
+      radial-gradient(
+        circle at 15% 10%,
+        color-mix(in oklab, var(--primary) 12%, transparent),
+        transparent 28%
+      ),
+      color-mix(in oklab, var(--muted) 70%, var(--background));
+  }
+
+  .sipi-vistoria-screen-preview {
+    --vistoria-ink: #111827;
+    --vistoria-line: #27313c;
+    --vistoria-soft: #eef2f5;
+    --vistoria-accent: #0b5f8a;
+    display: block;
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 10mm;
+    color: var(--vistoria-ink);
+    background: #fff;
+    box-shadow: 0 28px 80px rgb(2 8 23 / 28%);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8.2pt;
+    line-height: 1.3;
+  }
+
+  .sipi-vistoria-screen-preview * {
+    box-sizing: border-box;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-letterhead {
+    display: grid;
+    grid-template-columns: 27mm minmax(0, 1fr) 47mm;
+    min-height: 31mm;
+    margin-bottom: 2.2mm;
+    border: 0.45mm solid var(--vistoria-line);
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-emblem-wrap,
+  .sipi-vistoria-screen-preview .sipi-vistoria-document-id {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2mm;
+    text-align: center;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-emblem-wrap {
+    border-right: 0.35mm solid var(--vistoria-line);
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-emblem-wrap img {
+    width: 21mm;
+    height: 26mm;
+    object-fit: contain;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-document-id {
+    border-left: 0.35mm solid var(--vistoria-line);
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-agency {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2mm 3mm;
+    text-align: center;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-agency strong {
+    color: #0b2540;
+    font-size: 10.5pt;
+    font-weight: 900;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-agency span {
+    font-size: 7.2pt;
+    font-weight: 700;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-agency small,
+  .sipi-vistoria-screen-preview .sipi-vistoria-document-id span,
+  .sipi-vistoria-screen-preview .sipi-vistoria-document-id small {
+    color: #52606d;
+    font-size: 6.2pt;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-document-id strong {
+    margin: 1.1mm 0;
+    color: var(--vistoria-accent);
+    font-size: 9pt;
+    font-weight: 900;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4mm;
+    margin-bottom: 2.2mm;
+    padding: 2mm 3mm;
+    border: 0.45mm solid var(--vistoria-line);
+    border-left: 2mm solid var(--vistoria-accent);
+    background: #f7fafc;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-title span {
+    color: #0b2540;
+    font-size: 11.5pt;
+    font-weight: 900;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-title strong {
+    color: var(--vistoria-accent);
+    font-size: 7pt;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-overview {
+    display: grid;
+    grid-template-columns: 1.4fr 0.75fr 1fr 1fr 0.8fr 0.9fr;
+    margin-bottom: 2.2mm;
+    border: 0.35mm solid var(--vistoria-line);
+    border-top: 1mm solid var(--vistoria-accent);
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-overview > div {
+    min-width: 0;
+    padding: 1.7mm 1.6mm;
+    border-right: 0.25mm solid #b6c0ca;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-overview > div:last-child {
+    border-right: 0;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-overview span,
+  .sipi-vistoria-screen-preview dt {
+    color: #52606d;
+    font-size: 5.8pt;
+    font-weight: 800;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-overview strong {
+    display: block;
+    margin-top: 0.7mm;
+    color: #0b2540;
+    font-size: 7pt;
+    overflow-wrap: anywhere;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-block {
+    margin-bottom: 2.2mm;
+    border: 0.35mm solid var(--vistoria-line);
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-block > h2,
+  .sipi-vistoria-screen-preview .sipi-vistoria-operational-grid > div > h2 {
+    margin: 0;
+    padding: 1.25mm 2mm;
+    border-bottom: 0.3mm solid var(--vistoria-line);
+    background: var(--vistoria-soft);
+    font-size: 7.2pt;
+    font-weight: 900;
+    letter-spacing: 0.055em;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-narrative {
+    margin: 0;
+    padding: 2.2mm 2.5mm;
+    line-height: 1.42;
+    text-align: justify;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-data-grid,
+  .sipi-vistoria-screen-preview .sipi-vistoria-technical-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: 0;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-data-grid > div,
+  .sipi-vistoria-screen-preview .sipi-vistoria-technical-grid > div {
+    min-width: 0;
+    padding: 1.6mm 2mm;
+    border-right: 0.25mm solid #9aa4af;
+    border-bottom: 0.25mm solid #9aa4af;
+  }
+  .sipi-vistoria-screen-preview dd {
+    margin: 0.7mm 0 0;
+    font-size: 7.8pt;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-checklist {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-checklist-summary {
+    display: flex;
+    gap: 4mm;
+    padding: 1.2mm 2mm;
+    border-bottom: 0.25mm solid #9aa4af;
+    background: #f8fafc;
+    color: #52606d;
+    font-size: 6.2pt;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-checklist > div {
+    display: grid;
+    grid-template-columns: 1fr 24mm;
+    border-right: 0.25mm solid #9aa4af;
+    border-bottom: 0.25mm solid #9aa4af;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-checklist span,
+  .sipi-vistoria-screen-preview .sipi-vistoria-checklist strong {
+    padding: 1.4mm 1.8mm;
+    font-size: 7pt;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-checklist strong {
+    border-left: 0.25mm solid #9aa4af;
+    background: #f8fafc;
+    text-align: center;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-photo-block > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2mm;
+    padding: 2mm;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-print-photo {
+    margin: 0;
+    border: 0.25mm solid #9aa4af;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-print-photo img {
+    display: block;
+    width: 100%;
+    height: 46mm;
+    object-fit: cover;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-print-photo figcaption,
+  .sipi-vistoria-screen-preview .sipi-vistoria-photo-missing {
+    padding: 1.5mm 2mm;
+    color: #52606d;
+    font-size: 6.3pt;
+    font-weight: 700;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-result {
+    padding: 1.7mm 2.2mm;
+    border-bottom: 0.25mm solid #c5ccd3;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-result strong,
+  .sipi-vistoria-screen-preview .sipi-vistoria-conclusion span {
+    color: var(--vistoria-accent);
+    font-size: 6.4pt;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-result p,
+  .sipi-vistoria-screen-preview .sipi-vistoria-conclusion p {
+    margin: 0.8mm 0 0;
+    font-size: 7.8pt;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-assessment-grid,
+  .sipi-vistoria-screen-preview .sipi-vistoria-operational-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-assessment-grid p,
+  .sipi-vistoria-screen-preview .sipi-vistoria-operational-grid > div > p,
+  .sipi-vistoria-screen-preview .sipi-vistoria-conclusion > div {
+    margin: 0;
+    padding: 1.6mm 2mm;
+    border-bottom: 0.25mm solid #c5ccd3;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-administrative > div {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-administrative p {
+    display: flex;
+    justify-content: space-between;
+    gap: 2mm;
+    margin: 0;
+    padding: 1.5mm 2mm;
+    border-bottom: 0.25mm solid #c5ccd3;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-traceability dl {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    margin: 0;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-traceability dl > div {
+    padding: 1.5mm 2mm;
+    border-bottom: 0.25mm solid #c5ccd3;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-traceability .is-wide {
+    grid-column: 1 / -1;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-place-date p {
+    margin: 0;
+    padding: 2mm;
+    text-align: center;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-signature > div {
+    padding: 8mm 2mm 3mm;
+    text-align: center;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-signature span,
+  .sipi-vistoria-screen-preview .sipi-vistoria-signature strong,
+  .sipi-vistoria-screen-preview .sipi-vistoria-signature small {
+    display: block;
+  }
+  .sipi-vistoria-screen-preview .sipi-vistoria-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 3mm;
+    padding-top: 2mm;
+    border-top: 0.35mm solid var(--vistoria-line);
+    color: #52606d;
+    font-size: 5.8pt;
+    font-weight: 700;
+  }
+}
+
 @media print {
   @page sipi-vistoria-page {
     size: A4 portrait;

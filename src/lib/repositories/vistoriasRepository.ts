@@ -12,11 +12,13 @@ import type {
 type InspectionVehicle = {
   id: string;
   internal_id: string;
+  vehicle_type: string | null;
   brand: string | null;
   model: string | null;
   brand_model: string | null;
   color: string | null;
   plate: string | null;
+  renavam: string | null;
   engine_number: string | null;
   chassis: string | null;
   manufacture_year: number | null;
@@ -31,7 +33,16 @@ type RawVehicleInspection = Omit<VehicleInspection, "vehicle"> & {
 const INSPECTION_PDF_BUCKET = "vehicle-inspection-pdfs";
 
 const INSPECTION_SELECT =
-  "id,vehicle_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,brand,model,brand_model,color,plate,engine_number,chassis,manufacture_year,model_year,conservation_state)";
+  "id,vehicle_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,vehicle:vehicles(id,internal_id,vehicle_type,brand,model,brand_model,color,plate,renavam,engine_number,chassis,manufacture_year,model_year,conservation_state)";
+
+function normalizeVehicleInspection(inspection: RawVehicleInspection): VehicleInspection {
+  return {
+    ...inspection,
+    vehicle: Array.isArray(inspection.vehicle)
+      ? (inspection.vehicle[0] ?? null)
+      : (inspection.vehicle ?? null),
+  } as VehicleInspection;
+}
 
 export async function listVehicleInspections(limit = 50) {
   const data = await runSupabaseQuery<RawVehicleInspection[]>("relatórios de vistoria", (signal) =>
@@ -44,19 +55,29 @@ export async function listVehicleInspections(limit = 50) {
       .abortSignal(signal),
   );
 
-  return (data ?? []).map((inspection) => ({
-    ...inspection,
-    vehicle: Array.isArray(inspection.vehicle)
-      ? (inspection.vehicle[0] ?? null)
-      : (inspection.vehicle ?? null),
-  })) as VehicleInspection[];
+  return (data ?? []).map(normalizeVehicleInspection);
+}
+
+export async function getVehicleInspection(inspectionId: string) {
+  const data = await runSupabaseQuery<RawVehicleInspection | null>(
+    "detalhes da vistoria",
+    (signal) =>
+      supabase
+        .from("vehicle_inspections")
+        .select(INSPECTION_SELECT)
+        .eq("id", inspectionId)
+        .abortSignal(signal)
+        .maybeSingle(),
+  );
+
+  return data ? normalizeVehicleInspection(data) : null;
 }
 
 export async function listVehiclesForInspection(search = "") {
   const query = supabase
     .from("vehicles")
     .select(
-      "id,internal_id,brand,model,brand_model,color,plate,engine_number,chassis,manufacture_year,model_year,conservation_state",
+      "id,internal_id,vehicle_type,brand,model,brand_model,color,plate,renavam,engine_number,chassis,manufacture_year,model_year,conservation_state",
     )
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
@@ -218,6 +239,7 @@ export async function uploadVehicleInspectionPhotos(input: {
   vehicleId: string;
   category: InspectionPhotoCategory;
   files: File[];
+  caption?: string | null;
 }) {
   const { created, failed } = await uploadVehiclePhotos(input.vehicleId, input.files);
   if (created.length) {
@@ -229,6 +251,7 @@ export async function uploadVehicleInspectionPhotos(input: {
             inspection_id: input.inspectionId,
             vehicle_photo_id: photo.id,
             category: input.category,
+            caption: input.caption?.trim() || null,
           })),
         )
         .abortSignal(signal),
@@ -288,7 +311,7 @@ export async function getVehicleInspectionPdfUrl(storagePath: string) {
 
 export function inspectionFindingsToText(findings: VehicleInspectionFindings) {
   return Object.entries(findings)
-    .filter(([, value]) => Boolean(value?.trim()))
+    .filter(([, value]) => typeof value === "string" && Boolean(value.trim()))
     .map(([key, value]) => `${key}: ${value}`)
     .join("\n");
 }
