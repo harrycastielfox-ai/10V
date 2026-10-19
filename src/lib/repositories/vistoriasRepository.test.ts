@@ -97,7 +97,27 @@ describe("vistoriasRepository", () => {
         location: "Pátio",
         inspector_notes: "Sem alteração",
         presentation_reason: "verificacao",
-        checklist: { estepe: "presente" },
+        findings: {
+          result: "Há indícios de adulteração nos sinais identificadores.",
+          measures_taken: "Veículo encaminhado para exame pericial.",
+        },
+        checklist: {
+          estepe: "presente",
+          technical: {
+            oil_level: "adequado",
+            wheel_brand: "Michelin",
+            wheel_rim: "17",
+            mileage_km: 42876,
+            assessment: {
+              expert_examined: "sim",
+              tampering_confirmed: "sim",
+              divergence_indicators: ["visible_identifier_tampering"],
+              questionnaire: {
+                early_disposal_requested: "nao",
+              },
+            },
+          },
+        },
       }),
     ).resolves.toEqual(inspection);
 
@@ -108,7 +128,27 @@ describe("vistoriasRepository", () => {
         p_vehicle_id: "veiculo-1",
         p_inspection_date: "2026-10-13",
         p_presentation_reason: "verificacao",
-        p_checklist: { estepe: "presente" },
+        p_findings: {
+          result: "Há indícios de adulteração nos sinais identificadores.",
+          measures_taken: "Veículo encaminhado para exame pericial.",
+        },
+        p_checklist: {
+          estepe: "presente",
+          technical: {
+            oil_level: "adequado",
+            wheel_brand: "Michelin",
+            wheel_rim: "17",
+            mileage_km: 42876,
+            assessment: {
+              expert_examined: "sim",
+              tampering_confirmed: "sim",
+              divergence_indicators: ["visible_identifier_tampering"],
+              questionnaire: {
+                early_disposal_requested: "nao",
+              },
+            },
+          },
+        },
       }),
     );
   });

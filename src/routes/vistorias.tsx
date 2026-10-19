@@ -51,6 +51,7 @@ import {
   type InspectionPhotoCategory,
   type InspectionYardType,
   type VehicleInspectionChecklist,
+  type VehicleInspectionChecklistStatus,
 } from "@/features/vistorias/vistoriaTypes";
 
 const PRESENTATION_REASON_LABELS: Record<string, string> = {
@@ -99,12 +100,9 @@ const CHECKLIST_ITEMS = [
   ["macaco", "Macaco"],
   ["tapetes", "Tapetes"],
   ["chave_crv_crlv", "Chave/CRV/CRLV"],
-  ["nivel_oleo", "Nível/óleo"],
-  ["rodas_aro", "Rodas/aro"],
-  ["quilometragem", "Quilometragem"],
 ] as const;
 
-const CHECKLIST_STATUS_LABELS: Record<VehicleInspectionChecklist[string], string> = {
+const CHECKLIST_STATUS_LABELS: Record<VehicleInspectionChecklistStatus, string> = {
   presente: "Presente",
   ausente: "Ausente",
   nao_informado: "Não informado",
@@ -137,6 +135,26 @@ function formatChecklist(checklist: VehicleInspectionChecklist): string | null {
       ? `${label}: ${CHECKLIST_STATUS_LABELS[value]}`
       : null;
   }).filter((entry): entry is string => Boolean(entry));
+  const technical = checklist.technical;
+  if (technical?.oil_level) {
+    const oilLabels = {
+      adequado: "Adequado",
+      baixo: "Baixo",
+      critico: "Crítico",
+      nao_verificado: "Não verificado",
+    } as const;
+    entries.push(`Óleo: ${oilLabels[technical.oil_level]}`);
+  }
+  if (technical?.wheel_brand || technical?.wheel_rim) {
+    entries.push(
+      `Rodas: ${[technical.wheel_brand, technical.wheel_rim ? `aro ${technical.wheel_rim}` : null]
+        .filter(Boolean)
+        .join(" · ")}`,
+    );
+  }
+  if (technical?.mileage_km !== null && technical?.mileage_km !== undefined) {
+    entries.push(`Quilometragem: ${technical.mileage_km.toLocaleString("pt-BR")} km`);
+  }
   return entries.length ? entries.join(" · ") : null;
 }
 
@@ -1517,6 +1535,14 @@ function VistoriasRoute() {
                     title="Acessórios e itens adicionais"
                     value={selectedInspection.findings?.accessories}
                   />
+                  <InspectionNarrative
+                    title="Resultados obtidos"
+                    value={selectedInspection.findings?.result}
+                  />
+                  <InspectionNarrative
+                    title="Providências adotadas"
+                    value={selectedInspection.findings?.measures_taken}
+                  />
                 </div>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.5fr)]">
@@ -1525,9 +1551,10 @@ function VistoriasRoute() {
                       <h4 className="text-sm font-black">Checklist observado</h4>
                       <span className="text-[10px] font-bold text-muted-foreground">
                         {
-                          Object.values(selectedInspection.checklist ?? {}).filter(
-                            (value) => value !== "nao_informado",
-                          ).length
+                          CHECKLIST_ITEMS.filter(([key]) => {
+                            const value = selectedInspection.checklist?.[key];
+                            return value && value !== "nao_informado";
+                          }).length
                         }{" "}
                         item(ns)
                       </span>
@@ -1555,6 +1582,76 @@ function VistoriasRoute() {
                         </span>
                       ) : null}
                     </div>
+                    {selectedInspection.checklist?.technical ? (
+                      <div className="mt-3 grid gap-2 border-t border-border/70 pt-3 sm:grid-cols-3">
+                        <TechnicalValue
+                          label="Nível do óleo"
+                          value={
+                            selectedInspection.checklist.technical.oil_level
+                              ? {
+                                  adequado: "Adequado",
+                                  baixo: "Baixo",
+                                  critico: "Crítico",
+                                  nao_verificado: "Não verificado",
+                                }[selectedInspection.checklist.technical.oil_level]
+                              : "Não informado"
+                          }
+                        />
+                        <TechnicalValue
+                          label="Rodas / aro"
+                          value={
+                            [
+                              selectedInspection.checklist.technical.wheel_brand,
+                              selectedInspection.checklist.technical.wheel_rim
+                                ? `aro ${selectedInspection.checklist.technical.wheel_rim}`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "Não informado"
+                          }
+                        />
+                        <TechnicalValue
+                          label="Quilometragem"
+                          value={
+                            selectedInspection.checklist.technical.mileage_km !== null &&
+                            selectedInspection.checklist.technical.mileage_km !== undefined
+                              ? `${selectedInspection.checklist.technical.mileage_km.toLocaleString("pt-BR")} km`
+                              : "Não informada"
+                          }
+                        />
+                        <TechnicalValue
+                          label="Combustível"
+                          value={
+                            {
+                              vazio: "Vazio",
+                              reserva: "Reserva",
+                              um_quarto: "1/4",
+                              meio: "1/2",
+                              tres_quartos: "3/4",
+                              cheio: "Cheio",
+                              nao_verificado: "Não verificado",
+                            }[selectedInspection.checklist.technical.fuel_level ?? "nao_verificado"]
+                          }
+                        />
+                        <TechnicalValue
+                          label="Estado operacional"
+                          value={
+                            selectedInspection.checklist.technical.vehicle_condition === "servivel"
+                              ? "Servível"
+                              : selectedInspection.checklist.technical.vehicle_condition ===
+                                  "inservivel"
+                                ? "Inservível"
+                                : "Não informado"
+                          }
+                        />
+                        <TechnicalValue
+                          label="Avarias aparentes"
+                          value={
+                            selectedInspection.checklist.technical.damage_notes || "Não informadas"
+                          }
+                        />
+                      </div>
+                    ) : null}
                   </section>
                   <section className="rounded-xl border border-border bg-background/45 p-4">
                     <h4 className="text-sm font-black">Pessoas vinculadas</h4>
@@ -1815,6 +1912,19 @@ function ReviewRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-start justify-between gap-4 border-b border-primary/10 pb-3 last:border-0 last:pb-0">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="max-w-[62%] text-right font-bold text-foreground">{value}</dd>
+    </div>
+  );
+}
+
+function TechnicalValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0 rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5">
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-xs font-bold text-foreground" title={value}>
+        {value}
+      </p>
     </div>
   );
 }

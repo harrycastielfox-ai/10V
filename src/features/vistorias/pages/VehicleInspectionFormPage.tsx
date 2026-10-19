@@ -3,15 +3,29 @@ import { type ReactNode, useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  BadgeCheck,
   Building2,
   CalendarDays,
   CarFront,
+  Check,
   CheckCircle2,
   ClipboardCheck,
+  FileSearch,
+  Fingerprint,
+  Gauge,
+  KeyRound,
   ListChecks,
+  LockKeyhole,
   LoaderCircle,
   MapPin,
+  Minus,
+  ScanLine,
+  ShieldCheck,
+  Sparkles,
   UsersRound,
+  Warehouse,
+  Wrench,
+  X,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import {
@@ -28,6 +42,7 @@ import {
   type InspectionPresentingInstitution,
   type InspectionYardType,
   type VehicleInspection,
+  type VehicleInspectionAnswer,
   type VehicleInspectionChecklist,
 } from "@/features/vistorias/vistoriaTypes";
 
@@ -71,24 +86,57 @@ const CHECKLIST_ITEMS = [
   ["macaco", "Macaco"],
   ["tapetes", "Tapetes"],
   ["chave_crv_crlv", "Chave/CRV/CRLV"],
-  ["nivel_oleo", "Nível/óleo"],
-  ["rodas_aro", "Rodas/aro"],
-  ["quilometragem", "Quilometragem"],
+] as const;
+
+const DIVERGENCE_INDICATORS = [
+  ["missing_plate_preserved_identifiers", "Sem placa, com os demais identificadores preservados"],
+  [
+    "replaced_plate_preserved_identifiers",
+    "Placa trocada, com os demais identificadores preservados",
+  ],
+  ["possible_clone", "Indícios de clonagem por sinais coincidentes com outro veículo"],
+  ["obd_vin_mismatch", "VIN lido via OBD diverge do sinal ostentado"],
+  ["original_number_recovered", "Numeração original identificada em um ou mais agregados"],
+  ["identifier_number_missing", "Ausência completa de numeração em item identificador"],
+  ["visible_identifier_tampering", "Adulteração visível por sobreposição, raspagem ou implante"],
+  ["parts_date_mismatch", "Datas de fabricação de peças incompatíveis com os sinais ostentados"],
+  [
+    "original_vin_with_stolen_part",
+    "VIN original com agregado proveniente de veículo furtado/roubado",
+  ],
+] as const;
+
+const CUSTODY_QUESTIONNAIRE = [
+  ["registered_before_law_13352", "Veículo cadastrado antes da Lei 13.352/2015"],
+  ["related_to_drug_trafficking", "Apreensão relacionada ao tráfico de drogas ou crimes afins"],
+  ["proceeding_information_unavailable", "Informação de procedência policial indisponível"],
+  ["seizure_date_unavailable", "Data da apreensão não identificada"],
+  ["judicial_auction_requested", "Representação judicial para autorização de leilão"],
+  ["detran_infraction_requested", "DETRAN/CIRETRAN oficiado para auto de infração"],
+  ["public_notice_requested", "COORPIN/DEPIN informado para publicação de edital"],
+  ["early_disposal_requested", "Alienação antecipada solicitada judicialmente"],
+  ["owner_or_insurer_notified", "Proprietário ou seguradora notificado para retirada"],
+  ["awaiting_public_notice", "Aguardando período de notificação em edital"],
+  ["under_judicial_restriction", "Objeto de restrição ou sindicância"],
+  ["administrative_occurrence_linked", "Ocorrência administrativa vinculada a IP/TCO"],
+  ["authorized_to_circulate", "Autorizado judicialmente a circular"],
+  ["available_for_auction", "Disponível para leilão"],
 ] as const;
 
 const STEPS = [
   { id: 1, label: "Veículo", description: "Identificação e data", icon: CarFront },
   { id: 2, label: "Apresentação", description: "Origem e custódia", icon: Building2 },
   { id: 3, label: "Exame", description: "Checklist e constatações", icon: ListChecks },
-  { id: 4, label: "Revisão", description: "Pessoas e confirmação", icon: UsersRound },
+  { id: 4, label: "Resultado", description: "Conclusão e providências", icon: FileSearch },
+  { id: 5, label: "Revisão", description: "Pessoas e confirmação", icon: UsersRound },
 ] as const;
 
 type Step = (typeof STEPS)[number]["id"];
 
 const FIELD_CLASS =
-  "h-11 w-full rounded-xl border border-input bg-background/75 px-3 text-sm font-normal outline-none transition focus:border-primary/65 focus:ring-4 focus:ring-primary/10";
+  "h-12 w-full rounded-xl border border-border/80 bg-background/65 px-4 text-sm font-semibold outline-none transition duration-200 hover:border-primary/35 focus:border-primary/70 focus:bg-background focus:ring-4 focus:ring-primary/10";
 const TEXTAREA_CLASS =
-  "w-full resize-y rounded-xl border border-input bg-background/75 px-3 py-3 text-sm font-normal outline-none transition focus:border-primary/65 focus:ring-4 focus:ring-primary/10";
+  "w-full resize-y rounded-xl border border-border/80 bg-background/65 px-4 py-3 text-sm font-normal leading-relaxed outline-none transition duration-200 hover:border-primary/35 focus:border-primary/70 focus:bg-background focus:ring-4 focus:ring-primary/10";
 
 export default function VehicleInspectionFormPage({ inspectionId }: { inspectionId?: string }) {
   const navigate = useNavigate();
@@ -115,10 +163,55 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
   const [structureFindings, setStructureFindings] = useState("");
   const [conservationFindings, setConservationFindings] = useState("");
   const [accessoriesFindings, setAccessoriesFindings] = useState("");
+  const [resultFindings, setResultFindings] = useState("");
+  const [measuresTaken, setMeasuresTaken] = useState("");
   const [linkedPeopleText, setLinkedPeopleText] = useState("");
   const [changeReason, setChangeReason] = useState("");
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === vehicleId) ?? null;
+  const currentStep = STEPS.find((item) => item.id === step) ?? STEPS[0];
+  const checklistValues = CHECKLIST_ITEMS.map(([key]) => checklist[key] ?? "nao_informado");
+  const checklistSummary = {
+    present: checklistValues.filter((value) => value === "presente").length,
+    absent: checklistValues.filter((value) => value === "ausente").length,
+    uninformed: checklistValues.filter((value) => value === "nao_informado").length,
+  };
+  const technicalData = checklist.technical ?? {};
+
+  function updateTechnicalData(
+    patch: Partial<NonNullable<VehicleInspectionChecklist["technical"]>>,
+  ) {
+    setChecklist((current) => ({
+      ...current,
+      technical: { ...current.technical, ...patch },
+    }));
+  }
+  function updateAssessment(
+    patch: Partial<NonNullable<NonNullable<VehicleInspectionChecklist["technical"]>["assessment"]>>,
+  ) {
+    setChecklist((current) => ({
+      ...current,
+      technical: {
+        ...current.technical,
+        assessment: { ...current.technical?.assessment, ...patch },
+      },
+    }));
+  }
+  const assessment = technicalData.assessment ?? {};
+  const completenessSignals = [
+    vehicleId,
+    inspectionDate,
+    policeReportNumber,
+    presentationReason,
+    presentingInstitution,
+    location,
+    yardType,
+    identificationFindings || structureFindings || conservationFindings || accessoriesFindings,
+  ];
+  const completeness = Math.round(
+    (completenessSignals.filter((value) => Boolean(value)).length / completenessSignals.length) *
+      100,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -151,6 +244,8 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
         setStructureFindings(inspection.findings?.structure ?? "");
         setConservationFindings(inspection.findings?.conservation ?? "");
         setAccessoriesFindings(inspection.findings?.accessories ?? "");
+        setResultFindings(inspection.findings?.result ?? "");
+        setMeasuresTaken(inspection.findings?.measures_taken ?? "");
         setLinkedPeopleText((inspection.linked_people ?? []).join("\n"));
       })
       .catch(() => {
@@ -170,7 +265,7 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
       return;
     }
     setError(null);
-    setStep((current) => Math.min(4, current + 1) as Step);
+    setStep((current) => Math.min(STEPS.length, current + 1) as Step);
   }
 
   function previousStep() {
@@ -206,6 +301,8 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
           conservation: conservationFindings,
           accessories: accessoriesFindings,
           observations: notes,
+          result: resultFindings,
+          measures_taken: measuresTaken,
         },
         original_vehicle_data:
           editingInspection?.original_vehicle_data ??
@@ -244,390 +341,991 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
 
   return (
     <AppLayout module="vistorias">
-      <div className="mx-auto w-full max-w-6xl space-y-5">
-        <header className="rounded-2xl border border-border/70 bg-card/70 p-5 shadow-sm md:p-6">
-          <Link
-            to="/vistorias"
-            className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground transition hover:text-primary"
-          >
-            <ArrowLeft className="h-4 w-4" /> Voltar para vistorias
-          </Link>
-          <div className="mt-4 flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-              <ClipboardCheck className="h-6 w-6" />
-            </span>
+      <div className="mx-auto w-full max-w-[1480px] space-y-5 pb-10">
+        <header className="relative overflow-hidden rounded-[1.75rem] border border-primary/25 bg-[radial-gradient(circle_at_85%_15%,color-mix(in_oklab,var(--primary)_18%,transparent),transparent_34%),linear-gradient(135deg,color-mix(in_oklab,var(--card)_96%,black),color-mix(in_oklab,var(--background)_92%,var(--primary)_8%))] p-5 shadow-[0_24px_80px_-42px_color-mix(in_oklab,var(--primary)_80%,transparent)] md:p-7">
+          <div className="pointer-events-none absolute -right-14 -top-24 h-72 w-72 rounded-full border border-primary/15" />
+          <div className="pointer-events-none absolute -right-2 -top-12 h-44 w-44 rounded-full border border-primary/20" />
+          <div className="relative flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-primary">
-                {inspectionId ? "Edição de vistoria" : "Novo registro"}
-              </p>
-              <h1 className="mt-1 text-2xl font-black tracking-tight md:text-3xl">
-                {inspectionId ? "Editar vistoria" : "Nova vistoria"}
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Cadastro separado da consulta, organizado em etapas para evitar informações
-                misturadas.
-              </p>
+              <Link
+                to="/vistorias"
+                className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground transition hover:text-primary"
+              >
+                <ArrowLeft className="h-4 w-4" /> Central de vistorias
+              </Link>
+              <div className="mt-5 flex items-start gap-4">
+                <span className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-primary/35 bg-primary/12 text-primary shadow-[0_0_32px_-10px_color-mix(in_oklab,var(--primary)_90%,transparent)]">
+                  <ScanLine className="h-7 w-7" />
+                  <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-card bg-emerald-400" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary">
+                      Estação de inspeção veicular
+                    </p>
+                    <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-primary">
+                      {inspectionId ? "Nova versão" : "Registro inicial"}
+                    </span>
+                  </div>
+                  <h1 className="mt-2 text-2xl font-black tracking-[-0.035em] md:text-4xl">
+                    {inspectionId ? "Atualizar relatório de vistoria" : "Iniciar vistoria técnica"}
+                  </h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                    Construa o registro técnico em uma sequência controlada. Os dados do veículo são
+                    preservados como referência da versão.
+                  </p>
+                </div>
+              </div>
             </div>
+            <div className="grid min-w-0 gap-3 sm:grid-cols-3 xl:min-w-[470px]">
+              <HeroMetric
+                label="Progresso"
+                value={`${completeness}%`}
+                detail={`${step} de ${STEPS.length} etapas`}
+                icon={Gauge}
+              />
+              <HeroMetric
+                label="Veículo"
+                value={selectedVehicle?.plate || "—"}
+                detail={selectedVehicle?.internal_id || "Não vinculado"}
+                icon={CarFront}
+              />
+              <HeroMetric
+                label="Proteção"
+                value={deliveryRestricted ? "Restrita" : "Padrão"}
+                detail="Trilha auditável"
+                icon={ShieldCheck}
+              />
+            </div>
+          </div>
+          <div className="relative mt-6 h-1.5 overflow-hidden rounded-full bg-border/60">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-primary/70 via-primary to-cyan-400 shadow-[0_0_16px_color-mix(in_oklab,var(--primary)_80%,transparent)] transition-all duration-500"
+              style={{ width: `${(step / STEPS.length) * 100}%` }}
+            />
           </div>
         </header>
 
-        <section className="overflow-hidden rounded-2xl border border-primary/25 bg-card/90 shadow-[0_18px_55px_-35px_color-mix(in_oklab,var(--primary)_70%,transparent)]">
-          <nav className="grid border-b border-border/80 bg-background/30 sm:grid-cols-2 xl:grid-cols-4">
-            {STEPS.map((item) => {
-              const Icon = item.icon;
-              const active = step === item.id;
-              const completed = step > item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setStep(item.id)}
-                  className={`flex items-center gap-3 border-b border-border/60 px-5 py-4 text-left transition sm:border-r xl:border-b-0 ${
-                    active
-                      ? "bg-primary/10 text-foreground"
-                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                  }`}
-                >
-                  <span
-                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
-                      active || completed
-                        ? "border-primary/40 bg-primary/15 text-primary"
-                        : "border-border bg-background/60"
+        <div className="grid items-start gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
+          <aside className="overflow-hidden rounded-[1.5rem] border border-border/75 bg-card/80 shadow-sm xl:sticky xl:top-5">
+            <div className="border-b border-border/70 px-5 py-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Fluxo operacional
+              </p>
+              <p className="mt-1 text-sm font-bold">Etapas do relatório</p>
+            </div>
+            <nav className="p-3">
+              {STEPS.map((item, index) => {
+                const Icon = item.icon;
+                const active = step === item.id;
+                const completed = step > item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setStep(item.id)}
+                    className={`group relative flex w-full items-center gap-3 rounded-2xl px-3 py-3.5 text-left transition duration-200 ${
+                      active
+                        ? "border border-primary/30 bg-primary/10 text-foreground shadow-[0_10px_28px_-22px_color-mix(in_oklab,var(--primary)_80%,transparent)]"
+                        : "border border-transparent text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground"
                     }`}
+                    aria-current={active ? "step" : undefined}
                   >
-                    {completed ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Icon className="h-4 w-4" />
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <strong className="block text-sm">{item.label}</strong>
-                    <span className="block truncate text-[11px] opacity-75">
-                      {item.description}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="min-h-[430px] p-5 md:p-7">
-            {loading ? (
-              <div className="flex min-h-[360px] items-center justify-center text-muted-foreground">
-                <LoaderCircle className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <>
-                {error ? (
-                  <div className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {error}
-                  </div>
-                ) : null}
-
-                {step === 1 ? (
-                  <div className="space-y-5">
-                    <SectionTitle
-                      icon={CarFront}
-                      title="Identifique o veículo"
-                      description="A vistoria ficará permanentemente vinculada a este cadastro."
-                    />
-                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(240px,0.7fr)]">
-                      <label className="space-y-2 text-sm font-semibold">
-                        Veículo cadastrado
-                        <select
-                          value={vehicleId}
-                          onChange={(event) => setVehicleId(event.target.value)}
-                          disabled={Boolean(editingInspection)}
-                          className={FIELD_CLASS}
-                        >
-                          <option value="">Selecione o veículo</option>
-                          {vehicles.map((vehicle) => (
-                            <option key={vehicle.id} value={vehicle.id}>
-                              {vehicle.internal_id} · {vehicle.plate || "sem placa"} ·{" "}
-                              {vehicle.brand_model || "não informado"}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="space-y-2 text-sm font-semibold">
-                        Data da vistoria
-                        <span className="relative block">
-                          <CalendarDays className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                          <input
-                            type="date"
-                            value={inspectionDate}
-                            onChange={(event) => setInspectionDate(event.target.value)}
-                            className={`${FIELD_CLASS} pl-10`}
-                          />
-                        </span>
-                      </label>
-                    </div>
-                    {selectedVehicle ? (
-                      <div className="rounded-2xl border border-primary/25 bg-primary/[0.07] p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.15em] text-primary">
-                          Veículo selecionado
-                        </p>
-                        <p className="mt-2 text-lg font-black">{selectedVehicle.internal_id}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedVehicle.brand_model || "Modelo não informado"} ·{" "}
-                          {selectedVehicle.plate || "Sem placa"}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="rounded-2xl border border-dashed border-border bg-background/40 p-4 text-sm text-muted-foreground">
-                        Veículo ainda não cadastrado?{" "}
-                        <Link
-                          to="/veiculos/novo"
-                          className="font-bold text-primary hover:underline"
-                        >
-                          Cadastrar veículo
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-
-                {step === 2 ? (
-                  <div className="space-y-5">
-                    <SectionTitle
-                      icon={Building2}
-                      title="Apresentação e custódia"
-                      description="Registre a origem, o motivo e o destino do veículo."
-                    />
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      <Field label="Número do B.O. / ocorrência">
-                        <input
-                          value={policeReportNumber}
-                          onChange={(event) => setPoliceReportNumber(event.target.value)}
-                          className={FIELD_CLASS}
-                          placeholder="Ex.: 26-00705653"
-                        />
-                      </Field>
-                      <Field label="Motivo da apresentação">
-                        <select
-                          value={presentationReason}
-                          onChange={(event) => setPresentationReason(event.target.value)}
-                          className={FIELD_CLASS}
-                        >
-                          <option value="">Selecione...</option>
-                          {INSPECTION_PRESENTATION_REASONS.map((value) => (
-                            <option key={value} value={value}>
-                              {PRESENTATION_REASON_LABELS[value]}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Instituição que apresentou">
-                        <select
-                          value={presentingInstitution}
-                          onChange={(event) => setPresentingInstitution(event.target.value)}
-                          className={FIELD_CLASS}
-                        >
-                          <option value="">Selecione...</option>
-                          {INSPECTION_PRESENTING_INSTITUTIONS.map((value) => (
-                            <option key={value} value={value}>
-                              {INSTITUTION_LABELS[value]}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Local da vistoria">
-                        <span className="relative block">
-                          <MapPin className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                          <input
-                            value={location}
-                            onChange={(event) => setLocation(event.target.value)}
-                            className={`${FIELD_CLASS} pl-10`}
-                            placeholder="Unidade, pátio ou endereço"
-                          />
-                        </span>
-                      </Field>
-                      <Field label="Pátio / destino">
-                        <select
-                          value={yardType}
-                          onChange={(event) => setYardType(event.target.value)}
-                          className={FIELD_CLASS}
-                        >
-                          <option value="">Selecione...</option>
-                          {INSPECTION_YARD_TYPES.map((value) => (
-                            <option key={value} value={value}>
-                              {YARD_LABELS[value]}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="Local do pátio">
-                        <input
-                          value={yardLocation}
-                          onChange={(event) => setYardLocation(event.target.value)}
-                          className={FIELD_CLASS}
-                          placeholder="Nome ou endereço"
-                        />
-                      </Field>
-                    </div>
-                    <label className="flex items-center gap-3 rounded-xl border border-border bg-background/45 p-4 text-sm font-semibold">
-                      <input
-                        type="checkbox"
-                        checked={deliveryRestricted}
-                        onChange={(event) => setDeliveryRestricted(event.target.checked)}
-                        className="h-4 w-4 accent-primary"
+                    {index < STEPS.length - 1 ? (
+                      <span
+                        className={`absolute left-[31px] top-[49px] h-[25px] w-px ${completed ? "bg-primary/55" : "bg-border"}`}
                       />
-                      Veículo com restrição de entrega
-                    </label>
-                  </div>
-                ) : null}
-
-                {step === 3 ? (
-                  <div className="space-y-6">
-                    <SectionTitle
-                      icon={ListChecks}
-                      title="Exame do veículo"
-                      description="Registre itens observados e constatações técnicas."
-                    />
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {CHECKLIST_ITEMS.map(([key, label]) => (
-                        <label
-                          key={key}
-                          className="rounded-xl border border-border bg-background/45 p-3 text-xs font-bold"
-                        >
-                          <span>{label}</span>
-                          <select
-                            value={checklist[key] ?? "nao_informado"}
-                            onChange={(event) =>
-                              setChecklist((current) => ({
-                                ...current,
-                                [key]: event.target.value as VehicleInspectionChecklist[string],
-                              }))
-                            }
-                            className={`${FIELD_CLASS} mt-2`}
-                          >
-                            <option value="nao_informado">Não informado</option>
-                            <option value="presente">Presente</option>
-                            <option value="ausente">Ausente</option>
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                    <div className="grid gap-4 lg:grid-cols-2">
-                      <TextArea
-                        label="Identificação e sinais"
-                        value={identificationFindings}
-                        onChange={setIdentificationFindings}
-                        placeholder="Chassi, motor, placas, etiquetas e demais sinais"
-                      />
-                      <TextArea
-                        label="Estrutura e integridade"
-                        value={structureFindings}
-                        onChange={setStructureFindings}
-                        placeholder="Estrutura, fixações, vidros e componentes"
-                      />
-                      <TextArea
-                        label="Estado de conservação"
-                        value={conservationFindings}
-                        onChange={setConservationFindings}
-                        placeholder="Condições gerais observadas"
-                      />
-                      <TextArea
-                        label="Acessórios e itens adicionais"
-                        value={accessoriesFindings}
-                        onChange={setAccessoriesFindings}
-                        placeholder="Itens presentes, ausentes ou divergentes"
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {step === 4 ? (
-                  <div className="space-y-5">
-                    <SectionTitle
-                      icon={UsersRound}
-                      title="Revisão e confirmação"
-                      description="Complete os vínculos e confirme antes de salvar."
-                    />
-                    <div className="grid gap-4 lg:grid-cols-2">
-                      <Field label="Pessoas vinculadas — uma por linha">
-                        <textarea
-                          value={linkedPeopleText}
-                          onChange={(event) => setLinkedPeopleText(event.target.value)}
-                          rows={6}
-                          className={TEXTAREA_CLASS}
-                          placeholder="Nome — vínculo ou condição"
-                        />
-                      </Field>
-                      <Field label="Observações do vistoriador">
-                        <textarea
-                          value={notes}
-                          onChange={(event) => setNotes(event.target.value)}
-                          rows={6}
-                          className={TEXTAREA_CLASS}
-                          placeholder="Observações complementares"
-                        />
-                      </Field>
-                    </div>
-                    {editingInspection ? (
-                      <Field label="Motivo da alteração">
-                        <input
-                          value={changeReason}
-                          onChange={(event) => setChangeReason(event.target.value)}
-                          className={FIELD_CLASS}
-                          placeholder="Ex.: complementação das constatações"
-                        />
-                      </Field>
                     ) : null}
-                    <div className="grid gap-3 rounded-2xl border border-primary/20 bg-primary/[0.05] p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                      <Review
-                        label="Veículo"
-                        value={selectedVehicle?.internal_id || "Não selecionado"}
-                      />
-                      <Review label="Data" value={inspectionDate || "Não informada"} />
-                      <Review label="B.O." value={policeReportNumber || "Não informado"} />
-                      <Review label="Local" value={location || "Não informado"} />
-                    </div>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${
+                        active || completed
+                          ? "border-primary/40 bg-primary/15 text-primary"
+                          : "border-border bg-background/60"
+                      }`}
+                    >
+                      {completed ? (
+                        <CheckCircle2 className="h-5 w-5" />
+                      ) : (
+                        <Icon className="h-5 w-5" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[9px] font-black uppercase tracking-[0.16em] opacity-65">
+                        Etapa {item.id}
+                      </span>
+                      <strong className="mt-0.5 block text-sm">{item.label}</strong>
+                      <span className="mt-0.5 block truncate text-[11px] opacity-70">
+                        {item.description}
+                      </span>
+                    </span>
+                    {active ? (
+                      <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_var(--primary)]" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </nav>
+            <div className="border-t border-border/70 bg-background/25 p-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background/45 p-3">
+                <Fingerprint className="h-5 w-5 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black uppercase tracking-[0.15em] text-muted-foreground">
+                    Registro
+                  </p>
+                  <p className="truncate text-xs font-bold">
+                    {editingInspection?.id.slice(0, 13) || "Gerado ao salvar"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
 
-          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border/80 bg-background/25 px-5 py-4 md:px-7">
-            <button
-              type="button"
-              onClick={step === 1 ? () => void navigate({ to: "/vistorias" }) : previousStep}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold transition hover:bg-muted"
-            >
-              <ArrowLeft className="h-4 w-4" /> {step === 1 ? "Cancelar" : "Voltar"}
-            </button>
-            {step < 4 ? (
+          <section className="overflow-hidden rounded-[1.75rem] border border-primary/20 bg-card/90 shadow-[0_24px_70px_-45px_color-mix(in_oklab,var(--primary)_75%,transparent)]">
+            <div className="flex flex-col gap-4 border-b border-border/75 bg-background/20 px-5 py-5 md:flex-row md:items-center md:justify-between md:px-7">
+              <SectionTitle
+                icon={currentStep.icon}
+                eyebrow={`Etapa ${currentStep.id} de ${STEPS.length}`}
+                title={
+                  step === 1
+                    ? "Identificação do veículo"
+                    : step === 2
+                      ? "Origem, ocorrência e custódia"
+                      : step === 3
+                        ? "Exame técnico do veículo"
+                        : "Conferência e formalização"
+                }
+                description={
+                  step === 1
+                    ? "Selecione o cadastro que será congelado como referência desta vistoria."
+                    : step === 2
+                      ? "Contextualize a apresentação e defina onde o bem permanecerá custodiado."
+                      : step === 3
+                        ? "Registre o estado encontrado com critérios objetivos e narrativa técnica."
+                        : "Revise vínculos, observações e os dados que formarão o relatório."
+                }
+              />
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.13em] text-emerald-500">
+                <ShieldCheck className="h-3.5 w-3.5" /> Salvamento auditado
+              </span>
+            </div>
+
+            <div className="min-h-[590px] p-5 md:p-7">
+              {loading ? (
+                <div className="flex min-h-[520px] flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
+                    <LoaderCircle className="h-6 w-6 animate-spin" />
+                  </span>
+                  <p className="text-sm font-bold">Preparando estação de vistoria...</p>
+                </div>
+              ) : (
+                <>
+                  {error ? (
+                    <div className="mb-5 flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+                      <X className="h-4 w-4 shrink-0" /> {error}
+                    </div>
+                  ) : null}
+
+                  {step === 1 ? (
+                    <div className="space-y-5">
+                      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(240px,0.7fr)]">
+                        <Field label="Veículo cadastrado" hint="Vínculo obrigatório">
+                          <select
+                            value={vehicleId}
+                            onChange={(event) => setVehicleId(event.target.value)}
+                            disabled={Boolean(editingInspection)}
+                            className={FIELD_CLASS}
+                          >
+                            <option value="">Selecione o veículo...</option>
+                            {vehicles.map((vehicle) => (
+                              <option key={vehicle.id} value={vehicle.id}>
+                                {vehicle.internal_id} · {vehicle.plate || "sem placa"} ·{" "}
+                                {vehicle.brand_model || "não informado"}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Data da vistoria" hint="Data do exame">
+                          <span className="relative block">
+                            <CalendarDays className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-primary" />
+                            <input
+                              type="date"
+                              value={inspectionDate}
+                              onChange={(event) => setInspectionDate(event.target.value)}
+                              className={`${FIELD_CLASS} pl-11`}
+                            />
+                          </span>
+                        </Field>
+                      </div>
+
+                      {selectedVehicle ? (
+                        <div className="overflow-hidden rounded-3xl border border-primary/25 bg-[linear-gradient(135deg,color-mix(in_oklab,var(--primary)_12%,var(--background)),var(--background)_72%)]">
+                          <div className="flex flex-col gap-5 border-b border-primary/15 p-5 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-center gap-4">
+                              <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/35 bg-primary/15 text-primary">
+                                <CarFront className="h-7 w-7" />
+                              </span>
+                              <div>
+                                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
+                                  Veículo confirmado
+                                </p>
+                                <h3 className="mt-1 text-xl font-black">
+                                  {selectedVehicle.brand_model || "Modelo não informado"}
+                                </h3>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Cadastro {selectedVehicle.internal_id}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="rounded-xl border border-foreground/15 bg-background/75 px-5 py-3 text-center shadow-sm">
+                              <span className="block text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                                Placa
+                              </span>
+                              <strong className="mt-1 block font-mono text-xl tracking-[0.12em]">
+                                {selectedVehicle.plate || "SEM PLACA"}
+                              </strong>
+                            </div>
+                          </div>
+                          <div className="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4">
+                            <VehicleDatum
+                              icon={Fingerprint}
+                              label="Chassi"
+                              value={selectedVehicle.chassis}
+                            />
+                            <VehicleDatum
+                              icon={Wrench}
+                              label="Motor"
+                              value={selectedVehicle.engine_number}
+                            />
+                            <VehicleDatum
+                              icon={Sparkles}
+                              label="Cor"
+                              value={selectedVehicle.color}
+                            />
+                            <VehicleDatum
+                              icon={BadgeCheck}
+                              label="Ano / modelo"
+                              value={[selectedVehicle.manufacture_year, selectedVehicle.model_year]
+                                .filter(Boolean)
+                                .join(" / ")}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex min-h-52 flex-col items-center justify-center rounded-3xl border border-dashed border-primary/25 bg-primary/[0.035] p-8 text-center">
+                          <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
+                            <KeyRound className="h-6 w-6" />
+                          </span>
+                          <h3 className="mt-4 font-black">Nenhum veículo vinculado</h3>
+                          <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                            Selecione um cadastro acima. Se o veículo ainda não existir, crie-o
+                            antes de iniciar a vistoria.
+                          </p>
+                          <Link
+                            to="/veiculos/novo"
+                            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-xs font-black text-primary transition hover:bg-primary/15"
+                          >
+                            <CarFront className="h-4 w-4" /> Cadastrar novo veículo
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {step === 2 ? (
+                    <div className="space-y-5">
+                      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+                        <Panel icon={FileSearch} title="Vínculo com a ocorrência" tone="primary">
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <Field
+                              label="Número do B.O. / ocorrência"
+                              hint="Referência operacional"
+                            >
+                              <input
+                                value={policeReportNumber}
+                                onChange={(event) => setPoliceReportNumber(event.target.value)}
+                                className={FIELD_CLASS}
+                                placeholder="Ex.: 26-00705653"
+                              />
+                            </Field>
+                            <Field label="Motivo da apresentação">
+                              <select
+                                value={presentationReason}
+                                onChange={(event) => setPresentationReason(event.target.value)}
+                                className={FIELD_CLASS}
+                              >
+                                <option value="">Selecione...</option>
+                                {INSPECTION_PRESENTATION_REASONS.map((value) => (
+                                  <option key={value} value={value}>
+                                    {PRESENTATION_REASON_LABELS[value]}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                          </div>
+                          <div className="mt-4">
+                            <Field label="Instituição apresentante">
+                              <select
+                                value={presentingInstitution}
+                                onChange={(event) => setPresentingInstitution(event.target.value)}
+                                className={FIELD_CLASS}
+                              >
+                                <option value="">Selecione...</option>
+                                {INSPECTION_PRESENTING_INSTITUTIONS.map((value) => (
+                                  <option key={value} value={value}>
+                                    {INSTITUTION_LABELS[value]}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                          </div>
+                        </Panel>
+
+                        <Panel icon={Warehouse} title="Custódia e destino">
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <Field label="Pátio / destino">
+                              <select
+                                value={yardType}
+                                onChange={(event) => setYardType(event.target.value)}
+                                className={FIELD_CLASS}
+                              >
+                                <option value="">Selecione...</option>
+                                {INSPECTION_YARD_TYPES.map((value) => (
+                                  <option key={value} value={value}>
+                                    {YARD_LABELS[value]}
+                                  </option>
+                                ))}
+                              </select>
+                            </Field>
+                            <Field label="Local do pátio">
+                              <input
+                                value={yardLocation}
+                                onChange={(event) => setYardLocation(event.target.value)}
+                                className={FIELD_CLASS}
+                                placeholder="Nome ou endereço"
+                              />
+                            </Field>
+                          </div>
+                          <div className="mt-4">
+                            <Field label="Local da vistoria">
+                              <span className="relative block">
+                                <MapPin className="pointer-events-none absolute left-4 top-4 h-4 w-4 text-primary" />
+                                <input
+                                  value={location}
+                                  onChange={(event) => setLocation(event.target.value)}
+                                  className={`${FIELD_CLASS} pl-11`}
+                                  placeholder="Unidade, pátio ou endereço"
+                                />
+                              </span>
+                            </Field>
+                          </div>
+                        </Panel>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryRestricted((value) => !value)}
+                        className={`flex w-full items-center justify-between gap-4 rounded-2xl border p-4 text-left transition ${
+                          deliveryRestricted
+                            ? "border-amber-500/35 bg-amber-500/10"
+                            : "border-border/80 bg-background/40 hover:border-primary/25"
+                        }`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <span
+                            className={`flex h-11 w-11 items-center justify-center rounded-xl ${deliveryRestricted ? "bg-amber-500/15 text-amber-500" : "bg-muted text-muted-foreground"}`}
+                          >
+                            <LockKeyhole className="h-5 w-5" />
+                          </span>
+                          <span>
+                            <strong className="block text-sm">Restrição de entrega</strong>
+                            <span className="mt-0.5 block text-xs text-muted-foreground">
+                              Impede liberação sem autorização formal registrada.
+                            </span>
+                          </span>
+                        </span>
+                        <span
+                          className={`relative h-7 w-12 shrink-0 rounded-full transition ${deliveryRestricted ? "bg-amber-500" : "bg-muted"}`}
+                        >
+                          <span
+                            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${deliveryRestricted ? "left-6" : "left-1"}`}
+                          />
+                        </span>
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {step === 3 ? (
+                    <div className="space-y-6">
+                      <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-background/35 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+                            Leitura do checklist
+                          </p>
+                          <p className="mt-1 text-sm font-bold">
+                            {CHECKLIST_ITEMS.length} itens de presença + 3 medições técnicas
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.1em]">
+                          <StatusCount
+                            tone="success"
+                            value={checklistSummary.present}
+                            label="Presentes"
+                          />
+                          <StatusCount
+                            tone="danger"
+                            value={checklistSummary.absent}
+                            label="Ausentes"
+                          />
+                          <StatusCount
+                            tone="neutral"
+                            value={checklistSummary.uninformed}
+                            label="Pendentes"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {CHECKLIST_ITEMS.map(([key, label], index) => {
+                          const value = checklist[key] ?? "nao_informado";
+                          return (
+                            <div
+                              key={key}
+                              className="rounded-2xl border border-border/75 bg-background/40 p-3.5 transition hover:border-primary/25"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="flex items-center gap-2.5 text-xs font-black">
+                                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-muted text-[10px] text-muted-foreground">
+                                    {String(index + 1).padStart(2, "0")}
+                                  </span>
+                                  {label}
+                                </span>
+                                <Wrench className="h-3.5 w-3.5 text-muted-foreground/60" />
+                              </div>
+                              <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-background/70 p-1">
+                                <ChecklistChoice
+                                  active={value === "presente"}
+                                  tone="success"
+                                  icon={Check}
+                                  label="Sim"
+                                  onClick={() =>
+                                    setChecklist((current) => ({ ...current, [key]: "presente" }))
+                                  }
+                                />
+                                <ChecklistChoice
+                                  active={value === "ausente"}
+                                  tone="danger"
+                                  icon={X}
+                                  label="Não"
+                                  onClick={() =>
+                                    setChecklist((current) => ({ ...current, [key]: "ausente" }))
+                                  }
+                                />
+                                <ChecklistChoice
+                                  active={value === "nao_informado"}
+                                  tone="neutral"
+                                  icon={Minus}
+                                  label="N/I"
+                                  onClick={() =>
+                                    setChecklist((current) => ({
+                                      ...current,
+                                      [key]: "nao_informado",
+                                    }))
+                                  }
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                            Medições técnicas
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Registre a condição observada e os valores do veículo no momento da
+                            vistoria.
+                          </p>
+                        </div>
+                        <div className="grid gap-3 xl:grid-cols-3">
+                          <div className="rounded-2xl border border-border/75 bg-background/40 p-3.5 transition hover:border-primary/25">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-2.5 text-xs font-black">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[10px] text-primary">
+                                  07
+                                </span>
+                                Nível do óleo
+                              </span>
+                              <Gauge className="h-3.5 w-3.5 text-primary/70" />
+                            </div>
+                            <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-background/70 p-1">
+                              {(
+                                [
+                                  ["adequado", "Adequado"],
+                                  ["baixo", "Baixo"],
+                                  ["critico", "Crítico"],
+                                  ["nao_verificado", "Não verificado"],
+                                ] as const
+                              ).map(([value, label]) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => updateTechnicalData({ oil_level: value })}
+                                  className={`rounded-lg px-2 py-2 text-[10px] font-black transition ${
+                                    technicalData.oil_level === value
+                                      ? value === "critico"
+                                        ? "bg-destructive/15 text-destructive"
+                                        : value === "baixo"
+                                          ? "bg-amber-500/15 text-amber-500"
+                                          : value === "adequado"
+                                            ? "bg-success/15 text-success"
+                                            : "bg-muted text-foreground"
+                                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                                  }`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-border/75 bg-background/40 p-3.5 transition hover:border-primary/25">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-2.5 text-xs font-black">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[10px] text-primary">
+                                  08
+                                </span>
+                                Rodas e aro
+                              </span>
+                              <Wrench className="h-3.5 w-3.5 text-primary/70" />
+                            </div>
+                            <div className="mt-3 grid grid-cols-[minmax(0,1fr)_5.75rem] gap-2">
+                              <label className="space-y-1">
+                                <span className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                                  Marca
+                                </span>
+                                <input
+                                  value={technicalData.wheel_brand ?? ""}
+                                  onChange={(event) =>
+                                    updateTechnicalData({ wheel_brand: event.target.value })
+                                  }
+                                  className="h-10 w-full rounded-xl border border-border/80 bg-background/75 px-3 text-xs font-bold outline-none transition focus:border-primary/65 focus:ring-4 focus:ring-primary/10"
+                                  placeholder="Ex.: Michelin"
+                                />
+                              </label>
+                              <label className="space-y-1">
+                                <span className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                                  Aro
+                                </span>
+                                <input
+                                  value={technicalData.wheel_rim ?? ""}
+                                  onChange={(event) =>
+                                    updateTechnicalData({ wheel_rim: event.target.value })
+                                  }
+                                  className="h-10 w-full rounded-xl border border-border/80 bg-background/75 px-3 text-xs font-bold outline-none transition focus:border-primary/65 focus:ring-4 focus:ring-primary/10"
+                                  placeholder="17"
+                                />
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-border/75 bg-background/40 p-3.5 transition hover:border-primary/25">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="flex items-center gap-2.5 text-xs font-black">
+                                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-[10px] text-primary">
+                                  09
+                                </span>
+                                Quilometragem
+                              </span>
+                              <Gauge className="h-3.5 w-3.5 text-primary/70" />
+                            </div>
+                            <label className="relative mt-3 block">
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={technicalData.mileage_km ?? ""}
+                                onChange={(event) =>
+                                  updateTechnicalData({
+                                    mileage_km:
+                                      event.target.value === "" ? null : Number(event.target.value),
+                                  })
+                                }
+                                className="h-[3.65rem] w-full rounded-xl border border-border/80 bg-background/75 px-4 pr-14 text-lg font-black outline-none transition focus:border-primary/65 focus:ring-4 focus:ring-primary/10"
+                                placeholder="0"
+                              />
+                              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                                km
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <FindingField
+                          index="01"
+                          title="Identificação e sinais"
+                          value={identificationFindings}
+                          onChange={setIdentificationFindings}
+                          placeholder="Chassi, motor, placas, etiquetas e demais sinais..."
+                        />
+                        <FindingField
+                          index="02"
+                          title="Estrutura e integridade"
+                          value={structureFindings}
+                          onChange={setStructureFindings}
+                          placeholder="Estrutura, fixações, vidros e componentes..."
+                        />
+                        <FindingField
+                          index="03"
+                          title="Estado de conservação"
+                          value={conservationFindings}
+                          onChange={setConservationFindings}
+                          placeholder="Condições gerais observadas..."
+                        />
+                        <FindingField
+                          index="04"
+                          title="Acessórios e itens adicionais"
+                          value={accessoriesFindings}
+                          onChange={setAccessoriesFindings}
+                          placeholder="Itens presentes, ausentes ou divergentes..."
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {step === 4 ? (
+                    <div className="space-y-5">
+                      <Panel icon={Gauge} title="Condição operacional e diagnóstico" tone="primary">
+                        <div className="grid gap-4 lg:grid-cols-3">
+                          <Field label="Nível de combustível">
+                            <select
+                              value={technicalData.fuel_level ?? "nao_verificado"}
+                              onChange={(event) =>
+                                updateTechnicalData({
+                                  fuel_level: event.target.value as NonNullable<
+                                    typeof technicalData.fuel_level
+                                  >,
+                                })
+                              }
+                              className={FIELD_CLASS}
+                            >
+                              <option value="nao_verificado">Não verificado</option>
+                              <option value="vazio">Vazio</option>
+                              <option value="reserva">Reserva</option>
+                              <option value="um_quarto">1/4</option>
+                              <option value="meio">1/2</option>
+                              <option value="tres_quartos">3/4</option>
+                              <option value="cheio">Cheio</option>
+                            </select>
+                          </Field>
+                          <Field label="Estado do veículo">
+                            <select
+                              value={technicalData.vehicle_condition ?? "nao_informado"}
+                              onChange={(event) =>
+                                updateTechnicalData({
+                                  vehicle_condition: event.target.value as NonNullable<
+                                    typeof technicalData.vehicle_condition
+                                  >,
+                                })
+                              }
+                              className={FIELD_CLASS}
+                            >
+                              <option value="nao_informado">Não informado</option>
+                              <option value="servivel">Servível</option>
+                              <option value="inservivel">Inservível</option>
+                            </select>
+                          </Field>
+                          <Field label="Avarias aparentes">
+                            <input
+                              value={technicalData.damage_notes ?? ""}
+                              onChange={(event) =>
+                                updateTechnicalData({ damage_notes: event.target.value })
+                              }
+                              className={FIELD_CLASS}
+                              placeholder="Ex.: sem avarias aparentes"
+                            />
+                          </Field>
+                        </div>
+                        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          <AssessmentQuestion
+                            label="Produto de furto ou roubo?"
+                            value={assessment.stolen_or_robbed}
+                            onChange={(value) => updateAssessment({ stolen_or_robbed: value })}
+                          />
+                          <AssessmentQuestion
+                            label="Possui outras restrições?"
+                            value={assessment.other_restrictions}
+                            onChange={(value) => updateAssessment({ other_restrictions: value })}
+                          />
+                          <AssessmentQuestion
+                            label="Há divergência em sinais identificadores?"
+                            value={assessment.identifier_divergence}
+                            onChange={(value) => updateAssessment({ identifier_divergence: value })}
+                          />
+                          <AssessmentQuestion
+                            label="Características originais identificadas?"
+                            value={assessment.original_characteristics_identified}
+                            onChange={(value) =>
+                              updateAssessment({ original_characteristics_identified: value })
+                            }
+                          />
+                          <AssessmentQuestion
+                            label="Veículo submetido ao OBD?"
+                            value={assessment.obd_examined}
+                            onChange={(value) => updateAssessment({ obd_examined: value })}
+                          />
+                          <AssessmentQuestion
+                            label="O veículo foi periciado?"
+                            value={assessment.expert_examined}
+                            onChange={(value) => updateAssessment({ expert_examined: value })}
+                          />
+                          <AssessmentQuestion
+                            label="Adulteração de sinais constatada?"
+                            value={assessment.tampering_confirmed}
+                            onChange={(value) => updateAssessment({ tampering_confirmed: value })}
+                          />
+                        </div>
+                      </Panel>
+
+                      {assessment.identifier_divergence === "sim" ? (
+                        <Panel
+                          icon={Fingerprint}
+                          title="Indícios de divergência ou ausência de sinais"
+                        >
+                          <div className="grid gap-2 lg:grid-cols-2">
+                            {DIVERGENCE_INDICATORS.map(([key, label]) => {
+                              const selected = assessment.divergence_indicators?.includes(key);
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = assessment.divergence_indicators ?? [];
+                                    updateAssessment({
+                                      divergence_indicators: selected
+                                        ? current.filter((item) => item !== key)
+                                        : [...current, key],
+                                    });
+                                  }}
+                                  className={`flex items-start gap-3 rounded-2xl border p-3.5 text-left text-xs font-bold leading-5 transition ${
+                                    selected
+                                      ? "border-primary/40 bg-primary/10 text-foreground"
+                                      : "border-border/75 bg-background/45 text-muted-foreground hover:border-primary/25 hover:text-foreground"
+                                  }`}
+                                >
+                                  <span
+                                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}
+                                  >
+                                    {selected ? <Check className="h-3 w-3" /> : null}
+                                  </span>
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </Panel>
+                      ) : null}
+
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <FindingField
+                          index="05"
+                          title="Resultados obtidos"
+                          value={resultFindings}
+                          onChange={setResultFindings}
+                          placeholder="Consolide os sinais examinados, divergências e conclusão técnica..."
+                        />
+                        <FindingField
+                          index="06"
+                          title="Providências adotadas"
+                          value={measuresTaken}
+                          onChange={setMeasuresTaken}
+                          placeholder="Ex.: requisição pericial, comunicação ao DETRAN, encaminhamento..."
+                        />
+                      </div>
+
+                      <details className="group rounded-3xl border border-border/75 bg-background/35">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                              Questionário administrativo
+                            </p>
+                            <p className="mt-1 text-sm font-black">
+                              Custódia, notificações e destinação
+                            </p>
+                          </div>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground transition group-open:rotate-90" />
+                        </summary>
+                        <div className="grid gap-3 border-t border-border/70 p-5 md:grid-cols-2">
+                          {CUSTODY_QUESTIONNAIRE.map(([key, label]) => (
+                            <AssessmentQuestion
+                              key={key}
+                              label={label}
+                              value={assessment.questionnaire?.[key]}
+                              onChange={(value) =>
+                                updateAssessment({
+                                  questionnaire: {
+                                    ...assessment.questionnaire,
+                                    [key]: value,
+                                  },
+                                })
+                              }
+                            />
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  ) : null}
+
+                  {step === 5 ? (
+                    <div className="space-y-5">
+                      <div className="grid gap-4 lg:grid-cols-[1fr_0.42fr]">
+                        <Panel icon={UsersRound} title="Vínculos e observações">
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <Field label="Pessoas vinculadas" hint="Uma pessoa por linha">
+                              <textarea
+                                value={linkedPeopleText}
+                                onChange={(event) => setLinkedPeopleText(event.target.value)}
+                                rows={7}
+                                className={TEXTAREA_CLASS}
+                                placeholder="Nome — vínculo ou condição"
+                              />
+                            </Field>
+                            <Field label="Observações do vistoriador" hint="Síntese técnica">
+                              <textarea
+                                value={notes}
+                                onChange={(event) => setNotes(event.target.value)}
+                                rows={7}
+                                className={TEXTAREA_CLASS}
+                                placeholder="Observações complementares"
+                              />
+                            </Field>
+                          </div>
+                          {editingInspection ? (
+                            <div className="mt-4">
+                              <Field label="Motivo da alteração" hint="Obrigatório para auditoria">
+                                <input
+                                  value={changeReason}
+                                  onChange={(event) => setChangeReason(event.target.value)}
+                                  className={FIELD_CLASS}
+                                  placeholder="Ex.: complementação das constatações"
+                                />
+                              </Field>
+                            </div>
+                          ) : null}
+                        </Panel>
+
+                        <div className="rounded-3xl border border-primary/25 bg-primary/[0.055] p-5">
+                          <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/12 text-primary">
+                            <ClipboardCheck className="h-5 w-5" />
+                          </span>
+                          <p className="mt-4 text-[10px] font-black uppercase tracking-[0.17em] text-primary">
+                            Prontidão do registro
+                          </p>
+                          <p className="mt-2 text-4xl font-black tracking-tight">{completeness}%</p>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/70">
+                            <div
+                              className="h-full rounded-full bg-primary"
+                              style={{ width: `${completeness}%` }}
+                            />
+                          </div>
+                          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+                            Campos não informados permanecem identificados no relatório, sem impedir
+                            o registro da versão.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-3xl border border-border/75 bg-background/35">
+                        <div className="flex items-center justify-between border-b border-border/70 px-5 py-4">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.17em] text-primary">
+                              Resumo para conferência
+                            </p>
+                            <h3 className="mt-1 font-black">Dados que seguirão para o relatório</h3>
+                          </div>
+                          <BadgeCheck className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="grid gap-px bg-border/60 sm:grid-cols-2 xl:grid-cols-4">
+                          <Review
+                            label="Veículo"
+                            value={selectedVehicle?.internal_id || "Não selecionado"}
+                          />
+                          <Review label="Placa" value={selectedVehicle?.plate || "Não informada"} />
+                          <Review
+                            label="B.O. / ocorrência"
+                            value={policeReportNumber || "Não informado"}
+                          />
+                          <Review label="Data" value={inspectionDate || "Não informada"} />
+                          <Review
+                            label="Motivo"
+                            value={
+                              PRESENTATION_REASON_LABELS[presentationReason] || "Não informado"
+                            }
+                          />
+                          <Review
+                            label="Instituição"
+                            value={INSTITUTION_LABELS[presentingInstitution] || "Não informada"}
+                          />
+                          <Review label="Local" value={location || "Não informado"} />
+                          <Review
+                            label="Custódia"
+                            value={YARD_LABELS[yardType] || "Não informada"}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+
+            <footer className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border/80 bg-card/95 px-5 py-4 backdrop-blur-xl md:px-7">
               <button
                 type="button"
-                onClick={nextStep}
-                disabled={loading}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
+                onClick={step === 1 ? () => void navigate({ to: "/vistorias" }) : previousStep}
+                className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold transition hover:border-primary/30 hover:bg-muted"
               >
-                Continuar <ArrowRight className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" /> {step === 1 ? "Cancelar" : "Etapa anterior"}
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void saveInspection()}
-                disabled={saving || loading}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground transition hover:brightness-110 disabled:opacity-60"
-              >
-                {saving ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ClipboardCheck className="h-4 w-4" />
-                )}
-                {saving
-                  ? "Salvando..."
-                  : editingInspection
-                    ? "Salvar nova versão"
-                    : "Salvar vistoria"}
-              </button>
-            )}
-          </footer>
-        </section>
+              <div className="hidden items-center gap-2 text-[10px] font-bold text-muted-foreground sm:flex">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" /> Alterações locais até o
+                salvamento
+              </div>
+              {step < STEPS.length ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_90%,transparent)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60"
+                >
+                  Avançar para {STEPS.find((item) => item.id === step + 1)?.label ?? "revisão"}{" "}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void saveInspection()}
+                  disabled={saving || loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_90%,transparent)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60"
+                >
+                  {saving ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4" />
+                  )}
+                  {saving
+                    ? "Registrando versão..."
+                    : editingInspection
+                      ? "Salvar nova versão"
+                      : "Concluir vistoria"}
+                </button>
+              )}
+            </footer>
+          </section>
+        </div>
       </div>
     </AppLayout>
   );
@@ -635,48 +1333,238 @@ export default function VehicleInspectionFormPage({ inspectionId }: { inspection
 
 function SectionTitle({
   icon: Icon,
+  eyebrow,
   title,
   description,
 }: {
   icon: typeof CarFront;
+  eyebrow: string;
   title: string;
   description: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="flex min-w-0 items-center gap-3.5">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 text-primary shadow-[0_0_24px_-12px_color-mix(in_oklab,var(--primary)_90%,transparent)]">
         <Icon className="h-5 w-5" />
       </span>
-      <div>
-        <h2 className="font-black">{title}</h2>
-        <p className="text-xs text-muted-foreground">{description}</p>
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
+        <h2 className="mt-1 text-lg font-black tracking-tight">{title}</h2>
+        <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="space-y-2 text-sm font-semibold">
-      <span>{label}</span>
+    <label className="block space-y-2 text-sm font-semibold">
+      <span className="flex items-center justify-between gap-3">
+        <span>{label}</span>
+        {hint ? (
+          <span className="text-[9px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+            {hint}
+          </span>
+        ) : null}
+      </span>
       {children}
     </label>
   );
 }
 
-function TextArea({
+function HeroMetric({
   label,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon: typeof Gauge;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-border/75 bg-background/45 p-3 backdrop-blur-sm">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-0.5 truncate text-sm font-black">{value}</p>
+        <p className="truncate text-[10px] text-muted-foreground">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function VehicleDatum({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Fingerprint;
+  label: string;
+  value: unknown;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 bg-background/75 p-4">
+      <Icon className="h-4 w-4 shrink-0 text-primary" />
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.13em] text-muted-foreground">
+          {label}
+        </p>
+        <p className="mt-1 truncate text-xs font-black">
+          {value ? String(value) : "Não informado"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Panel({
+  icon: Icon,
+  title,
+  children,
+  tone = "neutral",
+}: {
+  icon: typeof Building2;
+  title: string;
+  children: ReactNode;
+  tone?: "primary" | "neutral";
+}) {
+  return (
+    <section
+      className={`rounded-3xl border p-5 ${tone === "primary" ? "border-primary/25 bg-primary/[0.045]" : "border-border/75 bg-background/35"}`}
+    >
+      <div className="mb-5 flex items-center gap-3 border-b border-border/65 pb-4">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </span>
+        <h3 className="font-black">{title}</h3>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ChecklistChoice({
+  active,
+  tone,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  tone: "success" | "danger" | "neutral";
+  icon: typeof Check;
+  label: string;
+  onClick: () => void;
+}) {
+  const activeClass =
+    tone === "success"
+      ? "bg-emerald-500/15 text-emerald-500"
+      : tone === "danger"
+        ? "bg-rose-500/15 text-rose-500"
+        : "bg-muted text-foreground";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] font-black transition ${active ? activeClass : "text-muted-foreground hover:bg-muted/60"}`}
+      aria-pressed={active}
+    >
+      <Icon className="h-3 w-3" /> {label}
+    </button>
+  );
+}
+
+function AssessmentQuestion({
+  label,
+  value = "nao_informado",
+  onChange,
+}: {
+  label: string;
+  value?: VehicleInspectionAnswer;
+  onChange: (value: VehicleInspectionAnswer) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/75 bg-background/45 p-3.5">
+      <p className="min-h-10 text-xs font-bold leading-5">{label}</p>
+      <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-background/70 p-1">
+        <ChecklistChoice
+          active={value === "sim"}
+          tone="success"
+          icon={Check}
+          label="Sim"
+          onClick={() => onChange("sim")}
+        />
+        <ChecklistChoice
+          active={value === "nao"}
+          tone="danger"
+          icon={X}
+          label="Não"
+          onClick={() => onChange("nao")}
+        />
+        <ChecklistChoice
+          active={value === "nao_informado"}
+          tone="neutral"
+          icon={Minus}
+          label="N/I"
+          onClick={() => onChange("nao_informado")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusCount({
+  tone,
+  value,
+  label,
+}: {
+  tone: "success" | "danger" | "neutral";
+  value: number;
+  label: string;
+}) {
+  const toneClass =
+    tone === "success"
+      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-500"
+      : tone === "danger"
+        ? "border-rose-500/25 bg-rose-500/10 text-rose-500"
+        : "border-border bg-muted/60 text-muted-foreground";
+  return (
+    <span className={`rounded-full border px-3 py-1.5 ${toneClass}`}>
+      {value} {label}
+    </span>
+  );
+}
+
+function FindingField({
+  index,
+  title,
   value,
   onChange,
   placeholder,
 }: {
-  label: string;
+  index: string;
+  title: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
 }) {
   return (
-    <Field label={label}>
+    <label className="rounded-2xl border border-border/75 bg-background/35 p-4 transition focus-within:border-primary/35 focus-within:bg-primary/[0.025]">
+      <span className="mb-3 flex items-center gap-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-[10px] font-black text-primary">
+          {index}
+        </span>
+        <span>
+          <span className="block text-sm font-black">{title}</span>
+          <span className="text-[10px] text-muted-foreground">Constatação técnica</span>
+        </span>
+      </span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -684,17 +1572,17 @@ function TextArea({
         className={TEXTAREA_CLASS}
         placeholder={placeholder}
       />
-    </Field>
+    </label>
   );
 }
 
 function Review({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0 bg-background/75 p-4">
       <p className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 truncate font-bold">{value}</p>
+      <p className="mt-1.5 truncate text-sm font-black">{value}</p>
     </div>
   );
 }

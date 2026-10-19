@@ -6,6 +6,8 @@ export type VehicleInspectionFindings = {
   conservation?: string;
   accessories?: string;
   observations?: string;
+  result?: string;
+  measures_taken?: string;
 };
 
 export const INSPECTION_PRESENTATION_REASONS = [
@@ -47,7 +49,72 @@ export const INSPECTION_YARD_TYPES = [
 
 export type InspectionYardType = (typeof INSPECTION_YARD_TYPES)[number];
 
-export type VehicleInspectionChecklist = Record<string, "presente" | "ausente" | "nao_informado">;
+export type VehicleInspectionChecklistStatus = "presente" | "ausente" | "nao_informado";
+
+export type VehicleInspectionOilLevel = "adequado" | "baixo" | "critico" | "nao_verificado";
+
+export type VehicleInspectionAnswer = "sim" | "nao" | "nao_informado";
+
+export type VehicleInspectionFuelLevel =
+  "vazio" | "reserva" | "um_quarto" | "meio" | "tres_quartos" | "cheio" | "nao_verificado";
+
+export type VehicleInspectionVehicleCondition = "servivel" | "inservivel" | "nao_informado";
+
+export type VehicleInspectionQuestionnaireKey =
+  | "registered_before_law_13352"
+  | "related_to_drug_trafficking"
+  | "proceeding_information_unavailable"
+  | "seizure_date_unavailable"
+  | "judicial_auction_requested"
+  | "detran_infraction_requested"
+  | "public_notice_requested"
+  | "early_disposal_requested"
+  | "owner_or_insurer_notified"
+  | "awaiting_public_notice"
+  | "under_judicial_restriction"
+  | "administrative_occurrence_linked"
+  | "authorized_to_circulate"
+  | "available_for_auction";
+
+export type VehicleInspectionAssessment = {
+  stolen_or_robbed?: VehicleInspectionAnswer;
+  other_restrictions?: VehicleInspectionAnswer;
+  identifier_divergence?: VehicleInspectionAnswer;
+  original_characteristics_identified?: VehicleInspectionAnswer;
+  obd_examined?: VehicleInspectionAnswer;
+  expert_examined?: VehicleInspectionAnswer;
+  tampering_confirmed?: VehicleInspectionAnswer;
+  divergence_indicators?: string[];
+  questionnaire?: Partial<Record<VehicleInspectionQuestionnaireKey, VehicleInspectionAnswer>>;
+};
+
+export type VehicleInspectionTechnicalData = {
+  oil_level?: VehicleInspectionOilLevel;
+  wheel_brand?: string;
+  wheel_rim?: string;
+  mileage_km?: number | null;
+  fuel_level?: VehicleInspectionFuelLevel;
+  vehicle_condition?: VehicleInspectionVehicleCondition;
+  damage_notes?: string;
+  assessment?: VehicleInspectionAssessment;
+};
+
+export type VehicleInspectionChecklist = Partial<
+  Record<
+    | "estepe"
+    | "chave_de_rodas"
+    | "triangulo"
+    | "macaco"
+    | "tapetes"
+    | "chave_crv_crlv"
+    | "nivel_oleo"
+    | "rodas_aro"
+    | "quilometragem",
+    VehicleInspectionChecklistStatus
+  >
+> & {
+  technical?: VehicleInspectionTechnicalData;
+};
 
 export const INSPECTION_PHOTO_CATEGORIES = [
   "veiculo",

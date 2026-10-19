@@ -680,18 +680,22 @@ function Dashboard() {
           />
         </div>
         <div
-          className="absolute -top-2 right-1 hidden select-none items-center gap-3 text-[#35ddf5] lg:flex"
-          aria-label="SIED"
+          className="absolute -top-3 right-4 hidden h-16 w-16 select-none items-center justify-center lg:flex xl:right-6"
+          aria-label="Marca institucional SIED"
         >
-          <span className="flex h-12 w-9 items-center justify-center" aria-hidden="true">
+          <span
+            className="absolute inset-2 rounded-full bg-[#27d8f2]/[0.07] blur-xl"
+            aria-hidden="true"
+          />
+          <span
+            className="relative flex h-14 w-11 items-center justify-center rotate-0"
+            aria-hidden="true"
+          >
             <img
               src="/sied-core-mark.svg?v=1"
               alt=""
-              className="h-full w-full object-contain drop-shadow-[0_0_10px_rgba(45,211,238,0.65)]"
+              className="h-full w-full object-contain object-center drop-shadow-[0_0_9px_rgba(45,211,238,0.58)]"
             />
-          </span>
-          <span className="text-base font-bold tracking-wide drop-shadow-[0_0_10px_rgba(45,211,238,0.48)]">
-            SIED
           </span>
         </div>
       </div>
