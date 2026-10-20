@@ -123,6 +123,7 @@ export interface NexoPessoa {
   vinculos: NexoVinculo[];
   fotos: NexoFoto[];
   created_at: string;
+  updated_at?: string;
 }
 
 export interface NexoDocumentoExtra {

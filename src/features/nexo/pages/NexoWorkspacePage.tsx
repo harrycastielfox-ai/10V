@@ -907,6 +907,13 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             onSaveOrganization={saveOrganization}
             onSavePerson={savePerson}
             onSaveTerritory={saveTerritory}
+            onResolvePersonConflict={async () => {
+              await reload();
+              setCreateKind(null);
+              setCreateOrganizationId(null);
+              setEditTarget(null);
+              setNotice("Versão mais recente da ficha carregada");
+            }}
           />
         ) : null}
         {notice ? (

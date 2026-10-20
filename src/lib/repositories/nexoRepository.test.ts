@@ -14,7 +14,7 @@ const {
   softDeleteNexoVeiculoVinculo,
 } = await import("./nexoRepository");
 
-const person = NEXO_DEMO_PESSOAS[0];
+const person = { ...NEXO_DEMO_PESSOAS[0], updated_at: "2026-10-20T12:00:00.000Z" };
 const historic = { ...person.vinculos[0], id: "past-link", status: "desvinculado" as const };
 const active = {
   ...person.vinculos[0],
@@ -124,79 +124,108 @@ describe("NEXO persistence regressions", () => {
     );
   });
 
-  it("edits the active membership even when a former membership is returned first", async () => {
+  it("sends the expected version and active membership in the atomic edit", async () => {
     await updateNexoPessoa({ ...person, vinculos: [historic, active] }, input);
 
     expect(state.rpc).toHaveBeenCalledWith(
-      "nexo_gerenciar_vinculo",
+      "nexo_atualizar_pessoa_completa",
       expect.objectContaining({
-        p_vinculo_id: active.id,
-        p_acao: "atualizar",
-        p_funcao: "Integrante",
+        p_pessoa_id: person.id,
+        p_expected_updated_at: person.updated_at,
+        p_payload: expect.objectContaining({
+          pessoa: expect.objectContaining({ nome: person.nome }),
+          vinculo: expect.objectContaining({
+            organizacao_id: active.organizacao_id,
+            status: "confirmado",
+            funcao: "Integrante",
+            superior_vinculo_id: active.superior_vinculo_id,
+          }),
+        }),
       }),
     );
-    expect(state.from.mock.calls).toEqual([["nexo_pessoas"]]);
+    expect(state.from).not.toHaveBeenCalled();
   });
 
-  it("transfers the active membership instead of changing a historical one", async () => {
+  it("clears the former superior when requesting an organization transfer", async () => {
     await updateNexoPessoa(
       { ...person, vinculos: [historic, active] },
-      {
-        ...input,
-        organizacao_id: "next-organization",
-      },
+      { ...input, organizacao_id: "next-organization" },
     );
     expect(state.rpc).toHaveBeenCalledWith(
-      "nexo_gerenciar_vinculo",
+      "nexo_atualizar_pessoa_completa",
       expect.objectContaining({
-        p_vinculo_id: active.id,
-        p_acao: "transferir",
-        p_organizacao_id: "next-organization",
+        p_payload: expect.objectContaining({
+          vinculo: expect.objectContaining({
+            organizacao_id: "next-organization",
+            superior_vinculo_id: null,
+          }),
+        }),
       }),
     );
   });
 
-  it("does not reactivate historical memberships when saving personal details", async () => {
+  it("keeps historical memberships inactive when no organization is selected", async () => {
     await updateNexoPessoa({ ...person, vinculos: [historic] }, { ...input, organizacao_id: "" });
-    expect(state.rpc).not.toHaveBeenCalled();
-    expect(state.from.mock.calls).toEqual([["nexo_pessoas"]]);
+    expect(state.rpc).toHaveBeenCalledWith(
+      "nexo_atualizar_pessoa_completa",
+      expect.objectContaining({
+        p_payload: expect.objectContaining({
+          vinculo: expect.objectContaining({ organizacao_id: null }),
+        }),
+      }),
+    );
+    expect(state.from).not.toHaveBeenCalled();
   });
 
-  it("reactivates an explicitly selected past organization without violating its unique link", async () => {
+  it("requests reactivation when a past organization is explicitly selected", async () => {
     await updateNexoPessoa(
       { ...person, vinculos: [historic] },
-      {
-        ...input,
-        organizacao_id: historic.organizacao_id,
-      },
+      { ...input, organizacao_id: historic.organizacao_id },
     );
     expect(state.rpc).toHaveBeenCalledWith(
-      "nexo_gerenciar_vinculo",
+      "nexo_atualizar_pessoa_completa",
       expect.objectContaining({
-        p_vinculo_id: historic.id,
-        p_acao: "atualizar",
-        p_status: "confirmado",
+        p_payload: expect.objectContaining({
+          vinculo: expect.objectContaining({
+            organizacao_id: historic.organizacao_id,
+            status: "confirmado",
+          }),
+        }),
       }),
     );
-    expect(state.from.mock.calls).toEqual([["nexo_pessoas"]]);
+    expect(state.from).not.toHaveBeenCalled();
   });
 
-  it("unlinks through the audited RPC with an accepted RPC status", async () => {
+  it("requests an unlink inside the same atomic edit", async () => {
     await updateNexoPessoa(
       { ...person, vinculos: [historic, active] },
-      {
-        ...input,
-        vinculo_status: "desvinculado",
-      },
+      { ...input, vinculo_status: "desvinculado" },
     );
     expect(state.rpc).toHaveBeenCalledWith(
-      "nexo_gerenciar_vinculo",
+      "nexo_atualizar_pessoa_completa",
       expect.objectContaining({
-        p_vinculo_id: active.id,
-        p_acao: "remover",
-        p_status: "nao_confirmado",
+        p_payload: expect.objectContaining({
+          vinculo: expect.objectContaining({ status: "desvinculado" }),
+        }),
       }),
     );
+  });
+
+  it("turns a stale-version database error into an actionable edit conflict", async () => {
+    state.rpc.mockReturnValueOnce({
+      abortSignal: vi.fn().mockReturnThis(),
+      then: (resolve: (result: unknown) => unknown) =>
+        Promise.resolve({
+          data: null,
+          error: { message: "nexo_edicao_conflito", details: "A ficha mudou." },
+        }).then(resolve),
+    });
+
+    await expect(updateNexoPessoa({ ...person, vinculos: [active] }, input)).rejects.toMatchObject({
+      code: "NEXO_EDIT_CONFLICT",
+      message: expect.stringContaining("outro operador"),
+    });
+    expect(state.from).not.toHaveBeenCalled();
   });
 
   it.each([

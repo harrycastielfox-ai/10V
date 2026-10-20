@@ -8,10 +8,10 @@ O NEXO pode ser usado diariamente quando uma equipe consegue cadastrar, consulta
 
 ## Prioridade 0 — integridade do trabalho
 
-- [~] Tornar a criação e a edição da ficha transacionais no banco. Criação concluída; edição pendente.
+- [x] Tornar a criação e a edição da ficha transacionais no banco.
 - [x] Tornar a criação idempotente para que uma resposta perdida não gere uma segunda pessoa.
 - [ ] Tratar falha de fotografia como pendência recuperável depois que a ficha for salva.
-- [ ] Detectar edição concorrente usando `updated_at` e oferecer recarga/conciliação.
+- [x] Detectar edição concorrente usando `updated_at` e oferecer recarga da versão atual.
 - [x] Alertar sobre possíveis duplicidades por CPF, RG e combinação de identidade antes de salvar.
 - [x] Impedir fechamento acidental de formulário alterado e avisar ao recarregar a página.
 
@@ -50,7 +50,10 @@ O NEXO pode ser usado diariamente quando uma equipe consegue cadastrar, consulta
 ## Evidências atuais
 
 - CI executa lint, TypeScript, Vitest e o build de produção.
-- Suíte local validada com 61 arquivos e 459 testes aprovados.
+- Suíte local validada com 61 arquivos e 460 testes aprovados.
+- Edição de pessoa, endereço e vínculo ocorre em uma única RPC transacional.
+- Conflitos de versão interrompem a gravação antes de qualquer alteração e oferecem recarga explícita.
+- RLS da tabela compartilhada de endereços permite ao NEXO somente registros criados pelo operador ou vinculados a fichas acessíveis.
 - Auditoria de criação, atualização e exclusão do NEXO existe no banco.
 - Hierarquia mantém eventos próprios.
 - Vínculos de procedimentos já usam paginação e retentativa de leitura.

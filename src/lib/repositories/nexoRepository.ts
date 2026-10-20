@@ -73,7 +73,7 @@ const PESSOA_SELECT = `
   idade_aproximada, idade_aproximada_valor, em_situacao_rua, usa_tornozeleira, altura_cm, tipo_fisico,
   estado_aparente, sinais_particulares, documentos_extras, contatos,
   telefone, observacoes, foto_perfil_path, foto_relatorio_path, endereco_id,
-  usar_local_faccao, created_at,
+  usar_local_faccao, created_at, updated_at,
   endereco:localizacao_enderecos (
     id, logradouro, numero, bairro, municipio, uf, ponto_referencia,
     como_chegar, link_navegacao, latitude, longitude
@@ -444,131 +444,92 @@ export async function createNexoPessoa(
 }
 
 export async function updateNexoPessoa(current: NexoPessoa, input: NexoPessoaInput): Promise<void> {
-  let enderecoId = current.endereco_id;
+  const currentLink = current.vinculos.find((link) => link.status !== "desvinculado");
   const hasOwnAddress =
     !input.em_situacao_rua && !input.usar_local_faccao && Boolean(input.endereco.logradouro.trim());
-
-  if (hasOwnAddress) {
-    const enderecoPayload = {
-      logradouro: input.endereco.logradouro.trim(),
-      numero: clean(input.endereco.numero),
-      bairro: clean(input.endereco.bairro),
-      municipio: input.endereco.municipio.trim() || "Itabela",
-      uf: input.endereco.uf.trim().toUpperCase() || "BA",
-      ponto_referencia: clean(input.endereco.ponto_referencia),
-      como_chegar: clean(input.endereco.como_chegar),
-      link_navegacao: clean(input.endereco.link_navegacao),
-      latitude: input.endereco.latitude,
-      longitude: input.endereco.longitude,
-    };
-    if (enderecoId) {
-      const { error } = await supabase
-        .from("localizacao_enderecos")
-        .update(enderecoPayload)
-        .eq("id", enderecoId);
-      if (error) throw error;
-    } else {
-      const { data, error } = await supabase
-        .from("localizacao_enderecos")
-        .insert(enderecoPayload)
-        .select("id")
-        .single();
-      if (error) throw error;
-      enderecoId = data.id;
-    }
-  } else {
-    enderecoId = null;
+  if (!current.updated_at) {
+    throw new Error("A versão desta ficha não está disponível. Reabra o cadastro antes de editar.");
   }
 
-  const { error: personError } = await supabase
-    .from("nexo_pessoas")
-    .update({
-      nome: input.nome.trim(),
-      apelido: clean(input.apelido),
-      cpf: clean(input.cpf),
-      rg: clean(input.rg),
-      data_nascimento: input.idade_aproximada ? null : input.data_nascimento || null,
-      naturalidade: clean(input.naturalidade),
-      nome_mae: clean(input.nome_mae),
-      nome_pai: clean(input.nome_pai),
-      nome_social: clean(input.nome_social),
-      sexo: clean(input.sexo),
-      raca_cor: clean(input.raca_cor),
-      estado_civil: clean(input.estado_civil),
-      nacionalidade: input.nacionalidade.trim() || "Brasileira",
-      escolaridade: clean(input.escolaridade),
-      profissao: clean(input.profissao),
-      idade_aproximada: input.idade_aproximada,
-      idade_aproximada_valor: input.idade_aproximada ? input.idade_aproximada_valor : null,
-      em_situacao_rua: input.em_situacao_rua,
-      usa_tornozeleira: input.usa_tornozeleira,
-      altura_cm: input.altura_cm,
-      tipo_fisico: clean(input.tipo_fisico),
-      estado_aparente: clean(input.estado_aparente),
-      sinais_particulares: clean(input.sinais_particulares),
-      documentos_extras: input.documentos_extras,
-      contatos: input.contatos,
-      telefone: clean(input.telefone),
-      observacoes: clean(input.observacoes),
-      endereco_id: enderecoId,
-      usar_local_faccao: input.usar_local_faccao,
-    })
-    .eq("id", current.id)
-    .is("deleted_at", null);
-  if (personError) throw personError;
-
-  const currentLink = current.vinculos.find((link) => link.status !== "desvinculado");
-  if (input.organizacao_id && currentLink) {
-    if (
-      input.organizacao_id !== currentLink.organizacao_id &&
-      input.vinculo_status !== "desvinculado"
-    ) {
-      await manageNexoVinculo({
-        vinculo_id: currentLink.id,
-        acao: "transferir",
-        organizacao_id: input.organizacao_id,
-        status: input.vinculo_status,
-        funcao: input.vinculo_funcao,
-        confianca: input.vinculo_confianca,
-        fonte_resumo: input.fonte_resumo,
-        superior_vinculo_id: null,
-      });
-    } else {
-      await manageNexoVinculo({
-        vinculo_id: currentLink.id,
-        acao: input.vinculo_status === "desvinculado" ? "remover" : "atualizar",
-        status: input.vinculo_status,
-        funcao: input.vinculo_funcao,
-        confianca: input.vinculo_confianca,
-        fonte_resumo: input.fonte_resumo,
-        superior_vinculo_id: currentLink.superior_vinculo_id,
-      });
-    }
-  } else if (input.organizacao_id) {
-    const historicalLink = current.vinculos.find(
-      (link) => link.organizacao_id === input.organizacao_id,
+  try {
+    await runSupabaseMutation<string>("edição completa da pessoa no NEXO", (signal) =>
+      supabase
+        .rpc("nexo_atualizar_pessoa_completa", {
+          p_pessoa_id: current.id,
+          p_expected_updated_at: current.updated_at,
+          p_payload: {
+            pessoa: {
+              nome: input.nome.trim(),
+              apelido: clean(input.apelido),
+              cpf: clean(input.cpf),
+              rg: clean(input.rg),
+              data_nascimento: input.idade_aproximada ? null : input.data_nascimento || null,
+              naturalidade: clean(input.naturalidade),
+              nome_mae: clean(input.nome_mae),
+              nome_pai: clean(input.nome_pai),
+              nome_social: clean(input.nome_social),
+              sexo: clean(input.sexo),
+              raca_cor: clean(input.raca_cor),
+              estado_civil: clean(input.estado_civil),
+              nacionalidade: input.nacionalidade.trim() || "Brasileira",
+              escolaridade: clean(input.escolaridade),
+              profissao: clean(input.profissao),
+              idade_aproximada: input.idade_aproximada,
+              idade_aproximada_valor: input.idade_aproximada ? input.idade_aproximada_valor : null,
+              em_situacao_rua: input.em_situacao_rua,
+              usa_tornozeleira: input.usa_tornozeleira,
+              altura_cm: input.altura_cm,
+              tipo_fisico: clean(input.tipo_fisico),
+              estado_aparente: clean(input.estado_aparente),
+              sinais_particulares: clean(input.sinais_particulares),
+              documentos_extras: input.documentos_extras,
+              contatos: input.contatos,
+              telefone: clean(input.telefone),
+              observacoes: clean(input.observacoes),
+              usar_local_faccao: input.usar_local_faccao,
+            },
+            endereco: hasOwnAddress
+              ? {
+                  ...input.endereco,
+                  logradouro: input.endereco.logradouro.trim(),
+                  numero: clean(input.endereco.numero),
+                  bairro: clean(input.endereco.bairro),
+                  municipio: input.endereco.municipio.trim() || "Itabela",
+                  uf: input.endereco.uf.trim().toUpperCase() || "BA",
+                  ponto_referencia: clean(input.endereco.ponto_referencia),
+                  como_chegar: clean(input.endereco.como_chegar),
+                  link_navegacao: clean(input.endereco.link_navegacao),
+                }
+              : null,
+            vinculo: {
+              organizacao_id: input.organizacao_id || null,
+              status: input.vinculo_status,
+              funcao: clean(input.vinculo_funcao),
+              confianca: input.vinculo_confianca,
+              fonte_resumo: clean(input.fonte_resumo),
+              superior_vinculo_id:
+                currentLink?.organizacao_id === input.organizacao_id
+                  ? currentLink.superior_vinculo_id
+                  : null,
+            },
+          },
+        })
+        .abortSignal(signal),
     );
-    if (historicalLink) {
-      await manageNexoVinculo({
-        vinculo_id: historicalLink.id,
-        acao: input.vinculo_status === "desvinculado" ? "remover" : "atualizar",
-        status: input.vinculo_status,
-        funcao: input.vinculo_funcao,
-        confianca: input.vinculo_confianca,
-        fonte_resumo: input.fonte_resumo,
-      });
-    } else {
-      await createNexoVinculo({
-        pessoa_id: current.id,
-        organizacao_id: input.organizacao_id,
-        status: input.vinculo_status,
-        funcao: input.vinculo_funcao,
-        confianca: input.vinculo_confianca,
-        fonte_resumo: input.fonte_resumo,
-      });
+  } catch (cause) {
+    const databaseMessage = [
+      (cause as { message?: string } | null)?.message,
+      (cause as { details?: string } | null)?.details,
+      (cause as { hint?: string } | null)?.hint,
+    ].join(" ");
+    if (databaseMessage.includes("nexo_edicao_conflito")) {
+      const conflict = new Error(
+        "Esta ficha foi alterada por outro operador enquanto você a editava. Nenhuma alteração local foi gravada.",
+      ) as Error & { code: string };
+      conflict.code = "NEXO_EDIT_CONFLICT";
+      throw conflict;
     }
-  } else if (currentLink) {
-    await manageNexoVinculo({ vinculo_id: currentLink.id, acao: "remover" });
+    throw cause;
   }
 
   if (input.foto_perfil) {

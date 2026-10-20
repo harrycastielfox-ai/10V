@@ -155,6 +155,7 @@ export function NexoCreateDialog({
   onSaveOrganization,
   onSavePerson,
   onSaveTerritory,
+  onResolvePersonConflict,
 }: {
   kind: CreateKind;
   initialOrganizationId?: string | null;
@@ -167,6 +168,7 @@ export function NexoCreateDialog({
   onSaveOrganization: (input: NexoOrganizacaoInput) => Promise<void>;
   onSavePerson: (input: NexoPessoaInput, creationRequestId: string) => Promise<void>;
   onSaveTerritory: (input: NexoTerritorioInput) => Promise<void>;
+  onResolvePersonConflict: () => Promise<void>;
 }) {
   const initialLink = initialPerson?.vinculos.find((link) => link.status !== "desvinculado");
   const [organization, setOrganization] = useState<NexoOrganizacaoInput>(() =>
@@ -241,6 +243,7 @@ export function NexoCreateDialog({
   }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [personConflict, setPersonConflict] = useState(false);
   const [personStep, setPersonStep] = useState(0);
   const personCreationRequestIdRef = useRef(crypto.randomUUID());
   const acceptedDuplicateSnapshotRef = useRef("");
@@ -308,6 +311,7 @@ export function NexoCreateDialog({
       }
     }
     setError("");
+    setPersonConflict(false);
     setSaving(true);
     try {
       if (kind === "territorio") await onSaveTerritory(territory);
@@ -315,6 +319,7 @@ export function NexoCreateDialog({
       if (kind === "pessoa") await onSavePerson(person, personCreationRequestIdRef.current);
       onClose();
     } catch (cause) {
+      setPersonConflict((cause as { code?: string } | null)?.code === "NEXO_EDIT_CONFLICT");
       setError(cause instanceof Error ? cause.message : "Não foi possível salvar o registro.");
     } finally {
       setSaving(false);
@@ -708,12 +713,40 @@ export function NexoCreateDialog({
             </>
           ) : null}
           {error ? (
-            <p
+            <div
               role="alert"
               className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700"
             >
-              {error}
-            </p>
+              <p>{error}</p>
+              {personConflict ? (
+                <button
+                  type="button"
+                  className="mt-3 rounded-lg border border-red-300 bg-white px-3 py-2 font-bold text-red-700 hover:bg-red-100"
+                  onClick={async () => {
+                    if (
+                      !window.confirm(
+                        "Descartar suas alterações e carregar a versão mais recente desta ficha?",
+                      )
+                    )
+                      return;
+                    setSaving(true);
+                    try {
+                      await onResolvePersonConflict();
+                    } catch (cause) {
+                      setError(
+                        cause instanceof Error
+                          ? cause.message
+                          : "Não foi possível carregar a versão mais recente.",
+                      );
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                >
+                  Descartar e carregar versão atual
+                </button>
+              ) : null}
+            </div>
           ) : null}
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#dbe6ed] bg-white p-4">
             {kind === "pessoa" && personStep > 0 ? (
