@@ -2,9 +2,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NEXO_DEMO_PESSOAS } from "@/features/nexo/nexoDemoData";
 import type { NexoPessoaInput } from "@/features/nexo/nexoTypes";
 
-const state = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }));
+const state = vi.hoisted(() => ({
+  from: vi.fn(),
+  rpc: vi.fn(),
+  storageFrom: vi.fn(),
+  upload: vi.fn(),
+  remove: vi.fn(),
+  update: vi.fn(),
+}));
 vi.mock("@/lib/supabaseClient", () => ({
-  supabase: { from: state.from, rpc: state.rpc },
+  supabase: {
+    from: state.from,
+    rpc: state.rpc,
+    storage: { from: state.storageFrom },
+  },
 }));
 
 const {
@@ -75,13 +86,20 @@ const input: NexoPessoaInput = {
 describe("NEXO persistence regressions", () => {
   beforeEach(() => {
     state.from.mockReset();
+    state.update.mockReset().mockReturnThis();
+    state.upload.mockReset().mockResolvedValue({ data: { path: "new-photo" }, error: null });
+    state.remove.mockReset().mockResolvedValue({ data: [], error: null });
+    state.storageFrom.mockReset().mockReturnValue({
+      upload: state.upload,
+      remove: state.remove,
+    });
     state.rpc.mockReset().mockReturnValue({
       abortSignal: vi.fn().mockReturnThis(),
       then: (resolve: (result: unknown) => unknown) =>
         Promise.resolve({ data: true, error: null }).then(resolve),
     });
     const builder = {
-      update: vi.fn().mockReturnThis(),
+      update: state.update,
       eq: vi.fn().mockReturnThis(),
       is: vi.fn().mockReturnThis(),
       then: (resolve: (result: unknown) => unknown) =>
@@ -107,7 +125,7 @@ describe("NEXO persistence regressions", () => {
         },
         "creation-request",
       ),
-    ).resolves.toBe("created-person");
+    ).resolves.toEqual({ personId: "created-person", photoPending: false });
 
     expect(state.rpc).toHaveBeenCalledWith(
       "nexo_criar_pessoa_completa",
@@ -122,6 +140,25 @@ describe("NEXO persistence regressions", () => {
         }),
       }),
     );
+  });
+
+  it("keeps the created person and reports a recoverable pending photo when upload fails", async () => {
+    state.rpc.mockReturnValueOnce({
+      abortSignal: vi.fn().mockReturnThis(),
+      then: (resolve: (result: unknown) => unknown) =>
+        Promise.resolve({ data: "created-person", error: null }).then(resolve),
+    });
+    state.upload.mockResolvedValueOnce({ data: null, error: { message: "storage unavailable" } });
+
+    await expect(
+      createNexoPessoa(
+        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
+        "creation-request",
+      ),
+    ).resolves.toEqual({ personId: "created-person", photoPending: true });
+
+    expect(state.rpc).toHaveBeenCalledWith("nexo_criar_pessoa_completa", expect.any(Object));
+    expect(state.update).not.toHaveBeenCalled();
   });
 
   it("sends the expected version and active membership in the atomic edit", async () => {
@@ -226,6 +263,63 @@ describe("NEXO persistence regressions", () => {
       message: expect.stringContaining("outro operador"),
     });
     expect(state.from).not.toHaveBeenCalled();
+  });
+
+  it("keeps an atomic edit successful when its photo upload remains pending", async () => {
+    state.upload.mockResolvedValueOnce({ data: null, error: { message: "storage unavailable" } });
+
+    await expect(
+      updateNexoPessoa(
+        { ...person, vinculos: [active] },
+        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
+      ),
+    ).resolves.toEqual({ personId: person.id, photoPending: true });
+
+    expect(state.rpc).toHaveBeenCalledWith("nexo_atualizar_pessoa_completa", expect.any(Object));
+    expect(state.update).not.toHaveBeenCalled();
+  });
+
+  it("attaches one photo to profile and report and cleans replaced objects", async () => {
+    await expect(
+      updateNexoPessoa(
+        {
+          ...person,
+          foto_perfil_path: "pessoas/person/old-profile.jpg",
+          foto_relatorio_path: "pessoas/person/old-report.jpg",
+          vinculos: [active],
+        },
+        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
+      ),
+    ).resolves.toEqual({ personId: person.id, photoPending: false });
+
+    const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
+    expect(state.update).toHaveBeenCalledWith({
+      foto_perfil_path: uploadedPath,
+      foto_relatorio_path: uploadedPath,
+    });
+    expect(state.remove).toHaveBeenCalledWith([
+      "pessoas/person/old-profile.jpg",
+      "pessoas/person/old-report.jpg",
+    ]);
+  });
+
+  it("removes a new object when linking the uploaded photo to the person fails", async () => {
+    state.from.mockReturnValueOnce({
+      update: state.update,
+      eq: vi.fn().mockReturnThis(),
+      then: (resolve: (result: unknown) => unknown) =>
+        Promise.resolve({ data: null, error: { message: "database unavailable" } }).then(resolve),
+    });
+
+    await expect(
+      updateNexoPessoa(
+        { ...person, vinculos: [active] },
+        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
+      ),
+    ).resolves.toEqual({ personId: person.id, photoPending: true });
+
+    const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
+    expect(state.remove).toHaveBeenCalledWith([uploadedPath]);
   });
 
   it.each([

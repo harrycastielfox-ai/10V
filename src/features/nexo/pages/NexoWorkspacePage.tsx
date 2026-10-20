@@ -136,7 +136,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
   }, []);
   useEffect(() => {
     if (!notice) return;
-    const timeout = window.setTimeout(() => setNotice(""), 3500);
+    const duration = notice.includes("fotografia ficou pendente") ? 8000 : 3500;
+    const timeout = window.setTimeout(() => setNotice(""), duration);
     return () => window.clearTimeout(timeout);
   }, [notice]);
 
@@ -305,6 +306,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
   }
 
   async function savePerson(input: NexoPessoaInput, creationRequestId: string) {
+    let photoPending = false;
     if (preview) {
       const existing =
         editTarget?.kind === "person"
@@ -345,18 +347,20 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           ? people.find((item) => item.id === editTarget.id)
           : undefined;
       if (existing) {
-        await repo.updateNexoPessoa(existing, input);
+        photoPending = (await repo.updateNexoPessoa(existing, input)).photoPending;
       } else {
-        await repo.createNexoPessoa(input, creationRequestId);
+        photoPending = (await repo.createNexoPessoa(input, creationRequestId)).photoPending;
       }
       await reload();
     }
     setNotice(
-      editTarget
-        ? "Cadastro da pessoa atualizado"
-        : preview
-          ? "Pessoa criada apenas nesta demonstração"
-          : "Pessoa cadastrada",
+      photoPending
+        ? "Ficha salva. A fotografia ficou pendente; reabra o cadastro para reenviar."
+        : editTarget
+          ? "Cadastro da pessoa atualizado"
+          : preview
+            ? "Pessoa criada apenas nesta demonstração"
+            : "Pessoa cadastrada",
     );
   }
 

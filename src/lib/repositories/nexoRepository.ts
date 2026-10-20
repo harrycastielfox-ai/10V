@@ -348,22 +348,45 @@ export async function createNexoObservacao(input: {
   return data as unknown as NexoObservacao;
 }
 
-async function uploadPessoaImage(personId: string, file: File, category: "perfil" | "relatorio") {
-  const path = `pessoas/${personId}/${category}-${crypto.randomUUID()}.${extensionFor(file)}`;
+export interface NexoPessoaSaveResult {
+  personId: string;
+  photoPending: boolean;
+}
+
+async function attachPessoaProfilePhoto(
+  personId: string,
+  file: File,
+  previousPaths: Array<string | null | undefined> = [],
+) {
+  const path = `pessoas/${personId}/perfil-${crypto.randomUUID()}.${extensionFor(file)}`;
   const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type || "image/jpeg",
     upsert: false,
   });
   if (uploadError) throw uploadError;
-  const column = category === "perfil" ? "foto_perfil_path" : "foto_relatorio_path";
   const { error: updateError } = await supabase
     .from("nexo_pessoas")
-    .update({ [column]: path })
+    .update({ foto_perfil_path: path, foto_relatorio_path: path })
     .eq("id", personId);
   if (updateError) {
     await supabase.storage.from(PRIVATE_BUCKET).remove([path]);
     throw updateError;
+  }
+
+  const obsoletePaths = [
+    ...new Set(previousPaths.filter((item): item is string => Boolean(item))),
+  ].filter((item) => item !== path);
+  if (obsoletePaths.length) {
+    const { error: cleanupError } = await supabase.storage
+      .from(PRIVATE_BUCKET)
+      .remove(obsoletePaths);
+    if (cleanupError && import.meta.env.DEV) {
+      console.warn(
+        "A fotografia foi atualizada, mas arquivos antigos não puderam ser limpos.",
+        cleanupError,
+      );
+    }
   }
   return path;
 }
@@ -371,7 +394,7 @@ async function uploadPessoaImage(personId: string, file: File, category: "perfil
 export async function createNexoPessoa(
   input: NexoPessoaInput,
   creationRequestId: string,
-): Promise<string> {
+): Promise<NexoPessoaSaveResult> {
   const data = await runSupabaseMutation<string>("cadastro completo da pessoa no NEXO", (signal) =>
     supabase
       .rpc("nexo_criar_pessoa_completa", {
@@ -432,18 +455,24 @@ export async function createNexoPessoa(
       .abortSignal(signal),
   );
   const personId = String(data);
+  let photoPending = false;
   if (input.foto_perfil) {
-    const path = await uploadPessoaImage(personId, input.foto_perfil, "perfil");
-    const { error: reportPhotoError } = await supabase
-      .from("nexo_pessoas")
-      .update({ foto_relatorio_path: path })
-      .eq("id", personId);
-    if (reportPhotoError) throw reportPhotoError;
+    try {
+      await attachPessoaProfilePhoto(personId, input.foto_perfil);
+    } catch (error) {
+      photoPending = true;
+      if (import.meta.env.DEV) {
+        console.warn("A pessoa foi cadastrada, mas a fotografia ficou pendente.", error);
+      }
+    }
   }
-  return personId;
+  return { personId, photoPending };
 }
 
-export async function updateNexoPessoa(current: NexoPessoa, input: NexoPessoaInput): Promise<void> {
+export async function updateNexoPessoa(
+  current: NexoPessoa,
+  input: NexoPessoaInput,
+): Promise<NexoPessoaSaveResult> {
   const currentLink = current.vinculos.find((link) => link.status !== "desvinculado");
   const hasOwnAddress =
     !input.em_situacao_rua && !input.usar_local_faccao && Boolean(input.endereco.logradouro.trim());
@@ -532,14 +561,21 @@ export async function updateNexoPessoa(current: NexoPessoa, input: NexoPessoaInp
     throw cause;
   }
 
+  let photoPending = false;
   if (input.foto_perfil) {
-    const path = await uploadPessoaImage(current.id, input.foto_perfil, "perfil");
-    const { error } = await supabase
-      .from("nexo_pessoas")
-      .update({ foto_relatorio_path: path })
-      .eq("id", current.id);
-    if (error) throw error;
+    try {
+      await attachPessoaProfilePhoto(current.id, input.foto_perfil, [
+        current.foto_perfil_path,
+        current.foto_relatorio_path,
+      ]);
+    } catch (error) {
+      photoPending = true;
+      if (import.meta.env.DEV) {
+        console.warn("A ficha foi atualizada, mas a fotografia ficou pendente.", error);
+      }
+    }
   }
+  return { personId: current.id, photoPending };
 }
 
 export async function uploadNexoAlbumPhoto(
