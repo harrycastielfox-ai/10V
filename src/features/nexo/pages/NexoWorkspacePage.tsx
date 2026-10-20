@@ -304,7 +304,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     );
   }
 
-  async function savePerson(input: NexoPessoaInput) {
+  async function savePerson(input: NexoPessoaInput, creationRequestId: string) {
     if (preview) {
       const existing =
         editTarget?.kind === "person"
@@ -347,7 +347,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
       if (existing) {
         await repo.updateNexoPessoa(existing, input);
       } else {
-        await repo.createNexoPessoa(input);
+        await repo.createNexoPessoa(input, creationRequestId);
       }
       await reload();
     }
@@ -897,6 +897,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                 : null
             }
             organizations={organizations}
+            people={people}
             territories={territories}
             onClose={() => {
               setCreateKind(null);

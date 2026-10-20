@@ -86,7 +86,10 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Acesso Restrito — SIED" },
-      { name: "description", content: "Tela de autenticação do Sistema Integrado de Evidências e Dados." },
+      {
+        name: "description",
+        content: "Tela de autenticação do Sistema Integrado de Evidências e Dados.",
+      },
     ],
   }),
   component: LoginPage,
@@ -415,14 +418,19 @@ function LoginSplash({ active }: { active: boolean }) {
             Identidade institucional
           </p>
           <h2 className="login-splash-word mt-3 text-5xl font-black tracking-[0.14em] text-[#effcff] drop-shadow-[0_0_16px_rgba(214,251,255,0.22)] sm:text-6xl">
-            <span>S</span><span>I</span><span>E</span><span>D</span>
+            <span>S</span>
+            <span>I</span>
+            <span>E</span>
+            <span>D</span>
           </h2>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#9ac7da]">
             Sistema Integrado de Evidências e Dados
           </p>
           <div className="mt-6 flex items-center justify-center gap-3 sm:justify-start">
             <span className="h-px w-9 bg-[#45dff7]/70" />
-            <span className="text-[10px] uppercase tracking-[0.17em] text-[#70abc3]">Inicializando ambiente seguro</span>
+            <span className="text-[10px] uppercase tracking-[0.17em] text-[#70abc3]">
+              Inicializando ambiente seguro
+            </span>
           </div>
         </div>
       </div>
@@ -693,9 +701,7 @@ function LoginPage() {
             <h1 className="text-5xl font-black tracking-[0.1em] text-[#effaff] drop-shadow-[0_3px_8px_rgba(71,190,255,0.18)]">
               SIED
             </h1>
-            <p className="mt-2 text-base text-[#93bfd8]">
-              Sistema Integrado de Evidências e Dados
-            </p>
+            <p className="mt-2 text-base text-[#93bfd8]">Sistema Integrado de Evidências e Dados</p>
             <p className="mt-1.5 text-[10px] uppercase tracking-wider text-[#6d98b2]">
               DT Itabela · 23ª COORPIN
             </p>

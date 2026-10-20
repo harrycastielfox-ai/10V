@@ -9,7 +9,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type {
   NexoOrganizacao,
   NexoOrganizacaoInput,
@@ -18,6 +18,7 @@ import type {
   NexoTerritorio,
   NexoTerritorioInput,
 } from "../nexoTypes";
+import { findPossibleNexoPersonDuplicates } from "../nexoPersonDuplicates";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { NexoPersonWizard, PersonWizardProgress } from "./NexoPersonWizard";
 
@@ -28,6 +29,24 @@ const field =
   "h-11 w-full rounded-xl border border-[#d9e5ed] bg-white px-3 text-sm text-[#18384f] outline-none placeholder:text-[#567184] focus:border-[#33a0b4]";
 const textarea =
   "min-h-24 w-full rounded-xl border border-[#d9e5ed] bg-white px-3 py-2 text-sm text-[#18384f] outline-none placeholder:text-[#567184] focus:border-[#33a0b4]";
+
+function registrationSnapshot(
+  organization: NexoOrganizacaoInput,
+  person: NexoPessoaInput,
+  territory: NexoTerritorioInput,
+) {
+  const fileKey = (file: File | null) =>
+    file ? `${file.name}:${file.size}:${file.lastModified}` : null;
+  return JSON.stringify({
+    organization,
+    person: {
+      ...person,
+      foto_perfil: fileKey(person.foto_perfil),
+      foto_relatorio: fileKey(person.foto_relatorio),
+    },
+    territory,
+  });
+}
 
 function Field({
   label,
@@ -130,6 +149,7 @@ export function NexoCreateDialog({
   initialOrganization = null,
   initialPerson = null,
   organizations,
+  people,
   territories,
   onClose,
   onSaveOrganization,
@@ -141,10 +161,11 @@ export function NexoCreateDialog({
   initialOrganization?: NexoOrganizacao | null;
   initialPerson?: NexoPessoa | null;
   organizations: NexoOrganizacao[];
+  people: NexoPessoa[];
   territories: NexoTerritorio[];
   onClose: () => void;
   onSaveOrganization: (input: NexoOrganizacaoInput) => Promise<void>;
-  onSavePerson: (input: NexoPessoaInput) => Promise<void>;
+  onSavePerson: (input: NexoPessoaInput, creationRequestId: string) => Promise<void>;
   onSaveTerritory: (input: NexoTerritorioInput) => Promise<void>;
 }) {
   const initialLink = initialPerson?.vinculos.find((link) => link.status !== "desvinculado");
@@ -221,6 +242,11 @@ export function NexoCreateDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [personStep, setPersonStep] = useState(0);
+  const personCreationRequestIdRef = useRef(crypto.randomUUID());
+  const acceptedDuplicateSnapshotRef = useRef("");
+  const initialSnapshotRef = useRef(registrationSnapshot(organization, person, territory));
+  const hasUnsavedChanges =
+    registrationSnapshot(organization, person, territory) !== initialSnapshotRef.current;
   const title =
     kind === "territorio"
       ? "Marcar área de influência"
@@ -232,6 +258,25 @@ export function NexoCreateDialog({
           ? "Editar pessoa"
           : "Cadastrar pessoa";
   const editing = Boolean(initialOrganization || initialPerson);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges || saving) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges, saving]);
+
+  function requestClose() {
+    if (saving) return;
+    if (
+      hasUnsavedChanges &&
+      !window.confirm(
+        "Descartar as alterações deste cadastro? Os dados preenchidos serão perdidos.",
+      )
+    )
+      return;
+    onClose();
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -245,12 +290,29 @@ export function NexoCreateDialog({
       setPersonStep(0);
       return;
     }
+    if (kind === "pessoa" && !initialPerson) {
+      const personSnapshot = registrationSnapshot(organization, person, territory);
+      const duplicates = findPossibleNexoPersonDuplicates(person, people);
+      if (duplicates.length && acceptedDuplicateSnapshotRef.current !== personSnapshot) {
+        const examples = duplicates
+          .slice(0, 3)
+          .map(({ person: match, reasons }) => `${match.nome} (${reasons.join(", ")})`)
+          .join("\n");
+        if (
+          !window.confirm(
+            `Encontramos cadastro(s) possivelmente duplicado(s):\n\n${examples}\n\nDeseja cadastrar mesmo assim?`,
+          )
+        )
+          return;
+        acceptedDuplicateSnapshotRef.current = personSnapshot;
+      }
+    }
     setError("");
     setSaving(true);
     try {
       if (kind === "territorio") await onSaveTerritory(territory);
       if (kind === "organizacao") await onSaveOrganization(organization);
-      if (kind === "pessoa") await onSavePerson(person);
+      if (kind === "pessoa") await onSavePerson(person, personCreationRequestIdRef.current);
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível salvar o registro.");
@@ -271,7 +333,7 @@ export function NexoCreateDialog({
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071d30]/70 p-3 backdrop-blur-sm"
-      onMouseDown={() => !saving && onClose()}
+      onMouseDown={requestClose}
     >
       <section
         role="dialog"
@@ -290,7 +352,7 @@ export function NexoCreateDialog({
           <button
             type="button"
             disabled={saving}
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-lg border border-white/10 p-2 text-[#b9d5e2] transition hover:bg-white/10 hover:text-white"
             aria-label="Voltar"
           >
@@ -314,7 +376,7 @@ export function NexoCreateDialog({
           <button
             type="button"
             disabled={saving}
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Fechar"
             className="rounded-lg border border-white/10 p-2 text-[#b9d5e2] transition hover:bg-white/10 hover:text-white"
           >

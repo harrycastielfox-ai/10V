@@ -98,7 +98,8 @@ function getStatusBadgeClass(status?: string | null) {
 
 function getPrioridadeBadgeClass(prioridade?: string | null) {
   const normalized = normalizeText(prioridade);
-  if (normalized.includes("urgente")) return "border-destructive/35 bg-destructive/10 text-destructive";
+  if (normalized.includes("urgente"))
+    return "border-destructive/35 bg-destructive/10 text-destructive";
   if (normalized.includes("alta")) return "border-warning/40 bg-warning/10 text-warning";
   if (normalized.includes("media")) return "border-warning/40 bg-warning/10 text-warning";
   if (normalized.includes("baixa") || normalized.includes("normal"))
@@ -187,7 +188,8 @@ function getTimelineIconCircleClass(event: TimelineEvent) {
     return "border-warning/40 bg-warning/10 text-warning";
   }
   if (event.key === "judicial-decision") return "border-border bg-muted/40 text-foreground";
-  if (event.key === "special-tracking") return "border-violet-400/35 bg-violet-500/10 text-violet-500";
+  if (event.key === "special-tracking")
+    return "border-violet-400/35 bg-violet-500/10 text-violet-500";
   if (event.tone === "success") return "border-primary/35 bg-primary/10 text-primary";
   if (event.tone === "danger") return "border-destructive/40 bg-destructive/10 text-destructive";
   if (event.tone === "warning") return "border-warning/40 bg-warning/10 text-warning";
@@ -308,7 +310,8 @@ function getOperationalTone(
     if (!item.data_vencimento) return "slate";
     const due = new Date(item.data_vencimento);
     const today = new Date();
-    return due.getTime() < new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    return due.getTime() <
+      new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
       ? "red"
       : "amber";
   }
@@ -699,7 +702,13 @@ function DetalheRepresentacao() {
               <DetailSection
                 key={title}
                 title={title}
-                icon={title === "Identificação Judicial" ? <Scale className="h-4 w-4" /> : <Gavel className="h-4 w-4" />}
+                icon={
+                  title === "Identificação Judicial" ? (
+                    <Scale className="h-4 w-4" />
+                  ) : (
+                    <Gavel className="h-4 w-4" />
+                  )
+                }
                 contentClassName="p-0"
                 className={hasPrintableRepresentacaoSection(items) ? "" : "sipi-print-empty-card"}
               >
@@ -720,7 +729,10 @@ function DetalheRepresentacao() {
             ))}
           </div>
 
-          <DetailSection title="Classificação e observações" icon={<ShieldCheck className="h-4 w-4" />}>
+          <DetailSection
+            title="Classificação e observações"
+            icon={<ShieldCheck className="h-4 w-4" />}
+          >
             {classificacaoItems.length > 0 ? (
               <div className="mb-3 border-b border-border/55 pb-3">
                 <ProcedureDataGrid
@@ -752,7 +764,11 @@ function DetalheRepresentacao() {
             </DetailSection>
           ) : null}
 
-          <DetailSection title="Histórico de status" icon={<Clock3 className="h-4 w-4" />} className="sipi-print-hidden">
+          <DetailSection
+            title="Histórico de status"
+            icon={<Clock3 className="h-4 w-4" />}
+            className="sipi-print-hidden"
+          >
             {statusHistory.length > 0 ? (
               <div className="grid gap-2 md:grid-cols-2">
                 {statusHistory.slice(0, 8).map((event) => (
@@ -898,7 +914,9 @@ function OperationalMetric({
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
           {label}
         </p>
-        <p className={`self-center break-words text-sm font-bold leading-5 ${OPERATIONAL_TONES[tone]}`}>
+        <p
+          className={`self-center break-words text-sm font-bold leading-5 ${OPERATIONAL_TONES[tone]}`}
+        >
           {value}
         </p>
         <p
@@ -925,7 +943,13 @@ const PROCEDURE_VALUE_TONES = {
   slate: "text-foreground",
 } as const;
 
-function ProcedureDataGrid({ items, columns = 3 }: { items: ProcedureDataItem[]; columns?: 2 | 3 }) {
+function ProcedureDataGrid({
+  items,
+  columns = 3,
+}: {
+  items: ProcedureDataItem[];
+  columns?: 2 | 3;
+}) {
   return (
     <dl className={`grid ${columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
       {items.map(({ label, value, copyValue, tone = "slate" }) => (
@@ -936,7 +960,9 @@ function ProcedureDataGrid({ items, columns = 3 }: { items: ProcedureDataItem[];
           <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
             {label}
           </dt>
-          <dd className={`mt-1 min-w-0 text-sm font-semibold leading-5 ${PROCEDURE_VALUE_TONES[tone]}`}>
+          <dd
+            className={`mt-1 min-w-0 text-sm font-semibold leading-5 ${PROCEDURE_VALUE_TONES[tone]}`}
+          >
             {copyValue ? (
               <CopyableDetailValue value={copyValue} />
             ) : (

@@ -50,13 +50,18 @@ export function VistoriasSidebar({ profile }: { profile: UserProfile }) {
             <span className="block font-bold tracking-wide text-sidebar-foreground transition-colors group-hover:text-primary">
               SIED
             </span>
-            <span className="-mt-0.5 block truncate text-xs text-muted-foreground">System Protect</span>
+            <span className="-mt-0.5 block truncate text-xs text-muted-foreground">
+              System Protect
+            </span>
           </span>
         </Link>
         <AppearanceSwitcher />
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2" aria-label="Navegação de vistorias">
+      <nav
+        className="min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2"
+        aria-label="Navegação de vistorias"
+      >
         {sections.map((section) => (
           <div
             key={section.label}
@@ -111,8 +116,12 @@ export function VistoriasSidebar({ profile }: { profile: UserProfile }) {
             </span>
           )}
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-semibold text-sidebar-foreground">{profile.nome}</span>
-            <span className="block truncate text-[10px] text-muted-foreground">{profile.cargo}</span>
+            <span className="block truncate text-xs font-semibold text-sidebar-foreground">
+              {profile.nome}
+            </span>
+            <span className="block truncate text-[10px] text-muted-foreground">
+              {profile.cargo}
+            </span>
           </span>
         </Link>
         <button

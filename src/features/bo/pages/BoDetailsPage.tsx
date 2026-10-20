@@ -360,7 +360,9 @@ function DetailField({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-xl border border-border bg-muted/40 p-4 ${wide ? "sm:col-span-2" : ""}`}>
+    <div
+      className={`rounded-xl border border-border bg-muted/40 p-4 ${wide ? "sm:col-span-2" : ""}`}
+    >
       <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </span>

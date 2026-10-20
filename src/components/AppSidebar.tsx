@@ -101,9 +101,7 @@ export function AppSidebar({ profile }: { profile: UserProfile }) {
             <div className="font-bold tracking-wide text-sidebar-foreground transition-colors group-hover:text-primary">
               SIED
             </div>
-            <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              System Protect
-            </div>
+            <div className="-mt-0.5 truncate text-xs text-muted-foreground">System Protect</div>
           </div>
         </Link>
         <AppearanceSwitcher />

@@ -90,9 +90,7 @@ export function ObjectsSidebar({ profile }: { profile: UserProfile }) {
             <div className="font-bold tracking-wide text-sidebar-foreground group-hover:text-warning">
               SIED
             </div>
-            <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              System Protect
-            </div>
+            <div className="-mt-0.5 truncate text-xs text-muted-foreground">System Protect</div>
           </div>
         </Link>
         <AppearanceSwitcher />

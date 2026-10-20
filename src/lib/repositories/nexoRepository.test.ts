@@ -7,8 +7,12 @@ vi.mock("@/lib/supabaseClient", () => ({
   supabase: { from: state.from, rpc: state.rpc },
 }));
 
-const { updateNexoPessoa, softDeleteNexoTerritorio, softDeleteNexoVeiculoVinculo } =
-  await import("./nexoRepository");
+const {
+  createNexoPessoa,
+  updateNexoPessoa,
+  softDeleteNexoTerritorio,
+  softDeleteNexoVeiculoVinculo,
+} = await import("./nexoRepository");
 
 const person = NEXO_DEMO_PESSOAS[0];
 const historic = { ...person.vinculos[0], id: "past-link", status: "desvinculado" as const };
@@ -71,7 +75,11 @@ const input: NexoPessoaInput = {
 describe("NEXO persistence regressions", () => {
   beforeEach(() => {
     state.from.mockReset();
-    state.rpc.mockReset().mockResolvedValue({ data: true, error: null });
+    state.rpc.mockReset().mockReturnValue({
+      abortSignal: vi.fn().mockReturnThis(),
+      then: (resolve: (result: unknown) => unknown) =>
+        Promise.resolve({ data: true, error: null }).then(resolve),
+    });
     const builder = {
       update: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
@@ -80,6 +88,40 @@ describe("NEXO persistence regressions", () => {
         Promise.resolve({ data: null, error: null }).then(resolve),
     };
     state.from.mockReturnValue(builder);
+  });
+
+  it("sends a stable request id and the whole civil profile in the atomic creation", async () => {
+    state.rpc.mockReturnValueOnce({
+      abortSignal: vi.fn().mockReturnThis(),
+      then: (resolve: (result: unknown) => unknown) =>
+        Promise.resolve({ data: "created-person", error: null }).then(resolve),
+    });
+
+    await expect(
+      createNexoPessoa(
+        {
+          ...input,
+          nome_social: "Nome social",
+          altura_cm: 175,
+          usa_tornozeleira: true,
+        },
+        "creation-request",
+      ),
+    ).resolves.toBe("created-person");
+
+    expect(state.rpc).toHaveBeenCalledWith(
+      "nexo_criar_pessoa_completa",
+      expect.objectContaining({
+        p_payload: expect.objectContaining({
+          request_id: "creation-request",
+          pessoa: expect.objectContaining({
+            nome_social: "Nome social",
+            altura_cm: 175,
+            usa_tornozeleira: true,
+          }),
+        }),
+      }),
+    );
   });
 
   it("edits the active membership even when a former membership is returned first", async () => {

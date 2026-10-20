@@ -90,7 +90,9 @@ export function VehiclesMobileNavigation({
         </div>
       </header>
       <nav
-        aria-label={isVistorias ? "Navegação do módulo de vistorias" : "Navegação do módulo de veículos"}
+        aria-label={
+          isVistorias ? "Navegação do módulo de vistorias" : "Navegação do módulo de veículos"
+        }
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <div className="mx-auto grid min-h-16 max-w-lg grid-cols-3 items-stretch">

@@ -163,7 +163,9 @@ function CreateAccountPage() {
             <span className="h-px w-8 bg-primary/35" />
           </div>
           <h1 className="text-2xl font-black tracking-wide text-foreground">SIED</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sistema Integrado de Evidências e Dados</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Sistema Integrado de Evidências e Dados
+          </p>
         </header>
 
         <div className="space-y-6 px-5 py-6 sm:px-8">

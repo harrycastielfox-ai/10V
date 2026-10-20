@@ -72,9 +72,7 @@ export function VehiclesSidebar({ profile }: { profile: UserProfile }) {
             <div className="font-bold tracking-wide text-sidebar-foreground group-hover:text-info">
               SIED
             </div>
-            <div className="-mt-0.5 truncate text-xs text-muted-foreground">
-              System Protect
-            </div>
+            <div className="-mt-0.5 truncate text-xs text-muted-foreground">System Protect</div>
           </div>
         </Link>
         <AppearanceSwitcher />

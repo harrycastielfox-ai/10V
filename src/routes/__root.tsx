@@ -45,17 +45,20 @@ export const Route = createRootRoute({
       { title: "SIED — Sistema Integrado de Evidências e Dados" },
       {
         name: "description",
-        content: "Sistema integrado para procedimentos, evidências, vistorias e dados operacionais.",
+        content:
+          "Sistema integrado para procedimentos, evidências, vistorias e dados operacionais.",
       },
       { property: "og:title", content: "SIED — Sistema Integrado de Evidências e Dados" },
       { name: "twitter:title", content: "SIED — Sistema Integrado de Evidências e Dados" },
       {
         property: "og:description",
-        content: "Sistema integrado para procedimentos, evidências, vistorias e dados operacionais.",
+        content:
+          "Sistema integrado para procedimentos, evidências, vistorias e dados operacionais.",
       },
       {
         name: "twitter:description",
-        content: "Sistema integrado para procedimentos, evidências, vistorias e dados operacionais.",
+        content:
+          "Sistema integrado para procedimentos, evidências, vistorias e dados operacionais.",
       },
       { name: "twitter:card", content: "summary" },
       { property: "og:type", content: "website" },

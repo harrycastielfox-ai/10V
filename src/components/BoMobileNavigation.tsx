@@ -75,12 +75,7 @@ export function BoMobileNavigation({ profile }: { profile: UserProfile }) {
             canManageBos(profile) ? "grid-cols-3" : "grid-cols-2"
           }`}
         >
-          <MobileItem
-            to="/bo"
-            icon={LayoutDashboard}
-            label="Visão geral"
-            active={overviewActive}
-          />
+          <MobileItem to="/bo" icon={LayoutDashboard} label="Visão geral" active={overviewActive} />
           <MobileItem
             to="/bo/boletins"
             icon={ClipboardList}

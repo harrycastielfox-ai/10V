@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
+import { runSupabaseMutation } from "@/lib/repositories/supabaseQuery";
 import type {
   NexoHierarquiaEvento,
   NexoFoto,
@@ -36,14 +37,25 @@ async function signedUrl(path: string | null | undefined) {
   return data.signedUrl;
 }
 
+async function optionalSignedUrl(path: string | null | undefined) {
+  try {
+    return await signedUrl(path);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn("Não foi possível carregar uma fotografia privada do NEXO.", error);
+    }
+    return null;
+  }
+}
+
 async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
   const [fotoPerfil, fotoRelatorio, fotos] = await Promise.all([
-    signedUrl(pessoa.foto_perfil_path),
-    signedUrl(pessoa.foto_relatorio_path),
+    optionalSignedUrl(pessoa.foto_perfil_path),
+    optionalSignedUrl(pessoa.foto_relatorio_path),
     Promise.all(
       (pessoa.fotos ?? []).map(async (foto) => ({
         ...foto,
-        url: await signedUrl(foto.storage_path),
+        url: await optionalSignedUrl(foto.storage_path),
       })),
     ),
   ]);
@@ -356,69 +368,70 @@ async function uploadPessoaImage(personId: string, file: File, category: "perfil
   return path;
 }
 
-export async function createNexoPessoa(input: NexoPessoaInput): Promise<string> {
-  const { data, error } = await supabase.rpc("nexo_criar_pessoa_completa", {
-    p_payload: {
-      pessoa: {
-        nome: input.nome.trim(),
-        apelido: clean(input.apelido),
-        cpf: clean(input.cpf),
-        rg: clean(input.rg),
-        data_nascimento: input.idade_aproximada ? null : input.data_nascimento || null,
-        naturalidade: clean(input.naturalidade),
-        nome_mae: clean(input.nome_mae),
-        nome_pai: clean(input.nome_pai),
-        telefone: clean(input.telefone),
-        observacoes: clean(input.observacoes),
-        usar_local_faccao: input.usar_local_faccao,
-      },
-      endereco:
-        !input.em_situacao_rua && !input.usar_local_faccao && input.endereco.logradouro.trim()
-          ? {
-              ...input.endereco,
-              numero: clean(input.endereco.numero),
-              bairro: clean(input.endereco.bairro),
-              ponto_referencia: clean(input.endereco.ponto_referencia),
-              como_chegar: clean(input.endereco.como_chegar),
-              link_navegacao: clean(input.endereco.link_navegacao),
-            }
-          : null,
-      vinculo: input.organizacao_id
-        ? {
-            organizacao_id: input.organizacao_id,
-            status: input.vinculo_status,
-            funcao: clean(input.vinculo_funcao),
-            confianca: input.vinculo_confianca,
-            fonte_resumo: clean(input.fonte_resumo),
-          }
-        : null,
-    },
-  });
-  if (error) throw error;
+export async function createNexoPessoa(
+  input: NexoPessoaInput,
+  creationRequestId: string,
+): Promise<string> {
+  const data = await runSupabaseMutation<string>("cadastro completo da pessoa no NEXO", (signal) =>
+    supabase
+      .rpc("nexo_criar_pessoa_completa", {
+        p_payload: {
+          request_id: creationRequestId,
+          pessoa: {
+            nome: input.nome.trim(),
+            apelido: clean(input.apelido),
+            cpf: clean(input.cpf),
+            rg: clean(input.rg),
+            data_nascimento: input.idade_aproximada ? null : input.data_nascimento || null,
+            naturalidade: clean(input.naturalidade),
+            nome_mae: clean(input.nome_mae),
+            nome_pai: clean(input.nome_pai),
+            telefone: clean(input.telefone),
+            observacoes: clean(input.observacoes),
+            usar_local_faccao: input.usar_local_faccao,
+            nome_social: clean(input.nome_social),
+            sexo: clean(input.sexo),
+            raca_cor: clean(input.raca_cor),
+            estado_civil: clean(input.estado_civil),
+            nacionalidade: input.nacionalidade.trim() || "Brasileira",
+            escolaridade: clean(input.escolaridade),
+            profissao: clean(input.profissao),
+            idade_aproximada: input.idade_aproximada,
+            idade_aproximada_valor: input.idade_aproximada ? input.idade_aproximada_valor : null,
+            em_situacao_rua: input.em_situacao_rua,
+            usa_tornozeleira: input.usa_tornozeleira,
+            altura_cm: input.altura_cm,
+            tipo_fisico: clean(input.tipo_fisico),
+            estado_aparente: clean(input.estado_aparente),
+            sinais_particulares: clean(input.sinais_particulares),
+            documentos_extras: input.documentos_extras,
+            contatos: input.contatos,
+          },
+          endereco:
+            !input.em_situacao_rua && !input.usar_local_faccao && input.endereco.logradouro.trim()
+              ? {
+                  ...input.endereco,
+                  numero: clean(input.endereco.numero),
+                  bairro: clean(input.endereco.bairro),
+                  ponto_referencia: clean(input.endereco.ponto_referencia),
+                  como_chegar: clean(input.endereco.como_chegar),
+                  link_navegacao: clean(input.endereco.link_navegacao),
+                }
+              : null,
+          vinculo: input.organizacao_id
+            ? {
+                organizacao_id: input.organizacao_id,
+                status: input.vinculo_status,
+                funcao: clean(input.vinculo_funcao),
+                confianca: input.vinculo_confianca,
+                fonte_resumo: clean(input.fonte_resumo),
+              }
+            : null,
+        },
+      })
+      .abortSignal(signal),
+  );
   const personId = String(data);
-  const { error: profileError } = await supabase
-    .from("nexo_pessoas")
-    .update({
-      nome_social: clean(input.nome_social),
-      sexo: clean(input.sexo),
-      raca_cor: clean(input.raca_cor),
-      estado_civil: clean(input.estado_civil),
-      nacionalidade: input.nacionalidade.trim() || "Brasileira",
-      escolaridade: clean(input.escolaridade),
-      profissao: clean(input.profissao),
-      idade_aproximada: input.idade_aproximada,
-      idade_aproximada_valor: input.idade_aproximada ? input.idade_aproximada_valor : null,
-      em_situacao_rua: input.em_situacao_rua,
-      usa_tornozeleira: input.usa_tornozeleira,
-      altura_cm: input.altura_cm,
-      tipo_fisico: clean(input.tipo_fisico),
-      estado_aparente: clean(input.estado_aparente),
-      sinais_particulares: clean(input.sinais_particulares),
-      documentos_extras: input.documentos_extras,
-      contatos: input.contatos,
-    })
-    .eq("id", personId);
-  if (profileError) throw profileError;
   if (input.foto_perfil) {
     const path = await uploadPessoaImage(personId, input.foto_perfil, "perfil");
     const { error: reportPhotoError } = await supabase

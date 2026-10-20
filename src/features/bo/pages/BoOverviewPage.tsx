@@ -99,7 +99,9 @@ export default function BoOverviewPage() {
             <BarChart3 className="h-6 w-6" />
           </span>
           <div className="min-w-0">
-            <h1 className="text-2xl font-black tracking-tight lg:text-3xl">SIED — Boletim de Ocorrência</h1>
+            <h1 className="text-2xl font-black tracking-tight lg:text-3xl">
+              SIED — Boletim de Ocorrência
+            </h1>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <p className="text-sm text-muted-foreground">
                 Visão operacional dos boletins de ocorrência
