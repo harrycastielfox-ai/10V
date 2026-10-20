@@ -17,7 +17,7 @@ import {
   UsersRound,
   Wrench,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { VehicleInspectionPrintSheet } from "@/components/VehicleInspectionPrintSheet";
 import type {
@@ -167,29 +167,40 @@ export default function VehicleInspectionDetailsPage({ inspectionId }: { inspect
   const [error, setError] = useState("");
   const [openingPdf, setOpeningPdf] = useState(false);
 
-  const loadDetails = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError("");
-    try {
-      const [inspectionResult, photoResult, versionResult] = await Promise.all([
-        getVehicleInspection(inspectionId),
-        listVehicleInspectionPhotos(inspectionId),
-        listVehicleInspectionVersions(inspectionId),
-      ]);
-      if (!inspectionResult) throw new Error("Vistoria não encontrada.");
-      setInspection(inspectionResult);
-      setPhotos(photoResult);
-      setVersions(versionResult);
-    } catch {
-      setError("Não foi possível carregar os detalhes completos da vistoria.");
-    } finally {
-      setLoading(false);
-    }
+    setInspection(null);
+    setPhotos([]);
+    setVersions([]);
+    void Promise.allSettled([
+      getVehicleInspection(inspectionId),
+      listVehicleInspectionPhotos(inspectionId),
+      listVehicleInspectionVersions(inspectionId),
+    ])
+      .then(([inspectionResult, photoResult, versionResult]) => {
+        if (cancelled) return;
+        if (inspectionResult.status === "rejected" || !inspectionResult.value) {
+          setError("Não foi possível carregar os detalhes da vistoria.");
+          return;
+        }
+        setInspection(inspectionResult.value);
+        if (photoResult.status === "fulfilled") setPhotos(photoResult.value);
+        if (versionResult.status === "fulfilled") setVersions(versionResult.value);
+        if (photoResult.status === "rejected" || versionResult.status === "rejected") {
+          setError(
+            "A vistoria foi carregada, mas não foi possível consultar todas as fotografias ou o histórico. Atualize a página para tentar novamente.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [inspectionId]);
-
-  useEffect(() => {
-    void loadDetails();
-  }, [loadDetails]);
 
   const photosByCategory = useMemo(() => {
     const groups = new Map<InspectionPhotoCategory, VehicleInspectionPhoto[]>();
@@ -200,9 +211,21 @@ export default function VehicleInspectionDetailsPage({ inspectionId }: { inspect
   }, [photos]);
 
   async function openPdf() {
-    if (!inspection) return;
+    if (!inspection || openingPdf) return;
     if (!inspection.pdf_storage_path) {
-      window.print();
+      setOpeningPdf(true);
+      try {
+        await Promise.all(
+          Array.from(document.querySelectorAll<HTMLImageElement>(".sipi-vistoria-print-photo")).map(
+            (image) => image.decode().catch(() => undefined),
+          ),
+        );
+        window.print();
+      } catch {
+        setError("Não foi possível preparar o relatório para impressão.");
+      } finally {
+        setOpeningPdf(false);
+      }
       return;
     }
     const pdfWindow = window.open("about:blank", "_blank");

@@ -27,7 +27,9 @@ const {
   getVehicleInspection,
   getVehicleInspectionPdfUrl,
   inspectionFindingsToText,
+  listVehicleInspectionPhotos,
   listVehicleInspections,
+  updateVehicleInspection,
   uploadVehicleInspectionPdf,
 } = await import("./vistoriasRepository");
 
@@ -38,11 +40,13 @@ function mutationResult(data: unknown) {
 function inspectionQueryResult(data: unknown) {
   const builder = {
     select: vi.fn(),
+    eq: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
     abortSignal: vi.fn(async () => ({ data, error: null })),
   };
   builder.select.mockReturnValue(builder);
+  builder.eq.mockReturnValue(builder);
   builder.order.mockReturnValue(builder);
   builder.limit.mockReturnValue(builder);
   state.from.mockReturnValue(builder);
@@ -218,6 +222,50 @@ describe("vistoriasRepository", () => {
       p_storage_path: "vistoria-1/v2/arq.pdf",
       p_pdf_sha256: "a".repeat(64),
     });
+  });
+
+  it("não informa sucesso ao atualizar uma vistoria sem retorno da RPC", async () => {
+    state.rpc.mockReturnValue(mutationResult(null));
+
+    await expect(
+      updateVehicleInspection(
+        "vistoria-1",
+        { vehicle_id: "veiculo-1", inspection_date: "2026-10-19" },
+        "Complementação",
+      ),
+    ).rejects.toThrow("Não foi possível atualizar o relatório de vistoria.");
+  });
+
+  it("não informa sucesso ao anexar PDF sem a confirmação da vistoria", async () => {
+    state.rpc.mockReturnValue(mutationResult(null));
+
+    await expect(
+      attachVehicleInspectionPdf("vistoria-1", 2, "vistoria-1/v2/arq.pdf", "a".repeat(64)),
+    ).rejects.toThrow("Não foi possível vincular o PDF à vistoria.");
+  });
+
+  it("exibe a imagem original quando a miniatura não pode ser assinada", async () => {
+    inspectionQueryResult([
+      {
+        id: "foto-1",
+        inspection_id: "vistoria-1",
+        vehicle_photo_id: "veiculo-foto-1",
+        category: "veiculo",
+        vehicle_photo: [
+          { id: "veiculo-foto-1", storage_path: "original.webp", thumbnail_path: "thumb.webp" },
+        ],
+      },
+    ]);
+    state.createSignedUrl.mockImplementation(async (path: string) =>
+      path === "original.webp"
+        ? { data: { signedUrl: "https://storage.example/original.webp" }, error: null }
+        : { data: null, error: { message: "Miniatura indisponível" } },
+    );
+
+    const [photo] = await listVehicleInspectionPhotos("vistoria-1");
+
+    expect(photo.vehicle_photo?.thumbnail_url).toBe("https://storage.example/original.webp");
+    expect(photo.vehicle_photo?.original_url).toBe("https://storage.example/original.webp");
   });
 
   it("envia PDF para um caminho imutável sem permitir sobrescrita", async () => {

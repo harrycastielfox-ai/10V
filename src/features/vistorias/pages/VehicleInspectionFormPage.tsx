@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,8 +39,8 @@ import { getBoStatusLabel, type BoRecord } from "@/features/bo/boTypes";
 import { listBos } from "@/lib/repositories/boRepository";
 import {
   createVehicleInspection,
+  getVehicleInspection,
   listVehicleInspectionPhotos,
-  listVehicleInspections,
   listVehiclesForInspection,
   updateVehicleInspection,
   uploadVehicleInspectionPhotos,
@@ -60,6 +60,10 @@ import {
   type VehicleInspectionOstensibleData,
   type VehicleInspectionPhoto,
 } from "@/features/vistorias/vistoriaTypes";
+import {
+  getLocalInspectionDate,
+  isValidInspectionDate,
+} from "@/features/vistorias/inspectionFormUtils";
 
 const PHOTO_CATEGORY_LABELS: Record<InspectionPhotoCategory, string> = {
   veiculo: "Vista geral do veículo",
@@ -234,7 +238,7 @@ export default function VehicleInspectionFormPage({
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>(1);
   const [vehicleId, setVehicleId] = useState("");
-  const [inspectionDate, setInspectionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [inspectionDate, setInspectionDate] = useState(getLocalInspectionDate);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [boId, setBoId] = useState("");
@@ -258,6 +262,9 @@ export default function VehicleInspectionFormPage({
   const [ostensibleData, setOstensibleData] = useState<VehicleInspectionOstensibleData>({});
   const [savedPhotos, setSavedPhotos] = useState<VehicleInspectionPhoto[]>([]);
   const [pendingPhotos, setPendingPhotos] = useState<PendingInspectionPhoto[]>([]);
+  const pendingPhotoUrls = useRef(new Set<string>());
+  const saveInProgress = useRef(false);
+  const canEdit = !inspectionId || editingInspection?.id === inspectionId;
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === vehicleId) ?? null;
   const selectedBo =
@@ -295,23 +302,28 @@ export default function VehicleInspectionFormPage({
   ) {
     const selected = Array.from(files ?? []);
     if (!selected.length) return;
-    setPendingPhotos((current) => [
-      ...current,
-      ...selected.map((file) => ({
+    const added = selected.map((file) => {
+      const previewUrl = URL.createObjectURL(file);
+      pendingPhotoUrls.current.add(previewUrl);
+      return {
         id: crypto.randomUUID(),
         file,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl,
         category,
         caption:
           defaultCaption ?? (category === "veiculo" ? "Vista do veículo na apresentação" : ""),
-      })),
-    ]);
+      };
+    });
+    setPendingPhotos((current) => [...current, ...added]);
   }
 
   function removePendingPhoto(photoId: string) {
     setPendingPhotos((current) => {
       const removed = current.find((photo) => photo.id === photoId);
-      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      if (removed) {
+        URL.revokeObjectURL(removed.previewUrl);
+        pendingPhotoUrls.current.delete(removed.previewUrl);
+      }
       return current.filter((photo) => photo.id !== photoId);
     });
   }
@@ -388,6 +400,7 @@ export default function VehicleInspectionFormPage({
           }
         : {}),
     findings: {
+      ...editingInspection?.findings,
       identification: identificationFindings,
       structure: structureFindings,
       conservation: conservationFindings,
@@ -427,18 +440,39 @@ export default function VehicleInspectionFormPage({
   ];
 
   useEffect(() => {
+    const urls = pendingPhotoUrls.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setEditingInspection(null);
+    setSavedPhotos([]);
+    setPendingPhotos([]);
+    pendingPhotoUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    pendingPhotoUrls.current.clear();
+    setChangeReason("");
+    setStep(1);
+    setError(null);
     void Promise.all([
       listVehiclesForInspection(),
-      inspectionId ? listVehicleInspections(200) : Promise.resolve([]),
+      inspectionId ? getVehicleInspection(inspectionId) : Promise.resolve(null),
       listBos().catch(() => []),
     ])
-      .then(([vehicleRows, inspectionRows, boRows]) => {
+      .then(([vehicleRows, inspection, boRows]) => {
         if (cancelled) return;
-        setVehicles(vehicleRows);
+        setVehicles(
+          inspection?.vehicle &&
+            !vehicleRows.some((vehicle) => vehicle.id === inspection.vehicle_id)
+            ? [inspection.vehicle, ...vehicleRows]
+            : vehicleRows,
+        );
         setBoRecords(boRows);
         if (!inspectionId) return;
-        const inspection = inspectionRows.find((item) => item.id === inspectionId);
         if (!inspection) {
           setError("A vistoria informada não foi encontrada.");
           return;
@@ -487,8 +521,13 @@ export default function VehicleInspectionFormPage({
   }, [inspectionId]);
 
   function nextStep() {
-    if (step === 1 && !vehicleId) {
-      setError("Selecione um veículo para continuar.");
+    if (!canEdit || saving) return;
+    if (step === 1 && (!vehicleId || !isValidInspectionDate(inspectionDate))) {
+      setError(
+        !vehicleId
+          ? "Selecione um veículo para continuar."
+          : "Informe uma data válida para a vistoria.",
+      );
       return;
     }
     setError(null);
@@ -501,11 +540,18 @@ export default function VehicleInspectionFormPage({
   }
 
   async function saveInspection() {
+    if (saveInProgress.current || !canEdit) return;
     if (!vehicleId) {
       setError("Selecione um veículo antes de salvar a vistoria.");
       setStep(1);
       return;
     }
+    if (!isValidInspectionDate(inspectionDate)) {
+      setError("Informe uma data válida para a vistoria.");
+      setStep(1);
+      return;
+    }
+    saveInProgress.current = true;
     setSaving(true);
     setError(null);
     try {
@@ -524,6 +570,7 @@ export default function VehicleInspectionFormPage({
         delivery_restricted: deliveryRestricted,
         checklist,
         findings: {
+          ...editingInspection?.findings,
           identification: identificationFindings,
           structure: structureFindings,
           conservation: conservationFindings,
@@ -562,6 +609,7 @@ export default function VehicleInspectionFormPage({
       const savedInspection = editingInspection
         ? await updateVehicleInspection(editingInspection.id, input, changeReason)
         : await createVehicleInspection(input);
+      setEditingInspection({ ...savedInspection, vehicle: selectedVehicle, bo: selectedBo });
       const failedPhotoIds = new Set<string>();
       for (const photo of pendingPhotos) {
         try {
@@ -576,15 +624,19 @@ export default function VehicleInspectionFormPage({
             failedPhotoIds.add(photo.id);
           } else {
             URL.revokeObjectURL(photo.previewUrl);
+            pendingPhotoUrls.current.delete(photo.previewUrl);
           }
         } catch {
           failedPhotoIds.add(photo.id);
         }
       }
+      setPendingPhotos((current) => current.filter((photo) => failedPhotoIds.has(photo.id)));
       if (failedPhotoIds.size) {
-        setEditingInspection(savedInspection);
-        setPendingPhotos((current) => current.filter((photo) => failedPhotoIds.has(photo.id)));
-        setSavedPhotos(await listVehicleInspectionPhotos(savedInspection.id));
+        try {
+          setSavedPhotos(await listVehicleInspectionPhotos(savedInspection.id));
+        } catch {
+          // A falha ao atualizar a galeria não deve ocultar o salvamento já concluído.
+        }
         setError(
           `A vistoria foi salva, mas ${failedPhotoIds.size} fotografia(s) não foram enviadas. Revise e tente novamente.`,
         );
@@ -595,6 +647,7 @@ export default function VehicleInspectionFormPage({
     } catch {
       setError("Não foi possível salvar a vistoria. Verifique os dados e tente novamente.");
     } finally {
+      saveInProgress.current = false;
       setSaving(false);
     }
   }
@@ -683,6 +736,7 @@ export default function VehicleInspectionFormPage({
                   <button
                     key={item.id}
                     type="button"
+                    disabled={loading || saving || !canEdit}
                     onClick={() => setStep(item.id)}
                     className={`group relative flex w-full items-center gap-3 rounded-2xl px-3 py-3.5 text-left transition duration-200 ${
                       active
@@ -788,7 +842,7 @@ export default function VehicleInspectionFormPage({
                   <p className="text-sm font-bold">Preparando estação de vistoria...</p>
                 </div>
               ) : (
-                <>
+                <fieldset disabled={saving || !canEdit} className="min-w-0 border-0 p-0">
                   {error ? (
                     <div className="mb-5 flex items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
                       <X className="h-4 w-4 shrink-0" /> {error}
@@ -1783,7 +1837,7 @@ export default function VehicleInspectionFormPage({
                       </div>
                     </div>
                   ) : null}
-                </>
+                </fieldset>
               )}
             </div>
 
@@ -1792,6 +1846,7 @@ export default function VehicleInspectionFormPage({
             >
               <button
                 type="button"
+                disabled={saving}
                 onClick={step === 1 ? () => void navigate({ to: "/vistorias" }) : previousStep}
                 className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-bold transition hover:border-primary/30 hover:bg-muted"
               >
@@ -1805,7 +1860,7 @@ export default function VehicleInspectionFormPage({
                 <button
                   type="button"
                   onClick={nextStep}
-                  disabled={loading}
+                  disabled={loading || saving || !canEdit}
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_90%,transparent)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60"
                 >
                   Avançar para {STEPS.find((item) => item.id === step + 1)?.label ?? "revisão"}{" "}
@@ -1815,7 +1870,7 @@ export default function VehicleInspectionFormPage({
                 <button
                   type="button"
                   onClick={() => void saveInspection()}
-                  disabled={saving || loading}
+                  disabled={saving || loading || !canEdit}
                   className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-black text-primary-foreground shadow-[0_10px_24px_-12px_color-mix(in_oklab,var(--primary)_90%,transparent)] transition hover:-translate-y-0.5 hover:brightness-110 disabled:opacity-60"
                 >
                   {saving ? (

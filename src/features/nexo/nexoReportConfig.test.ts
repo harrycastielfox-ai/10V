@@ -79,6 +79,42 @@ describe("configuração de relatórios NEXO", () => {
     ]);
   });
 
+  it("reconhece a mesma imagem pelo arquivo quando seus links assinados são diferentes", () => {
+    const signedPerson: NexoPessoa = {
+      ...person,
+      foto_relatorio_path: "reference",
+      foto_relatorio_url: "/reference.jpg?token=report",
+      foto_perfil_path: "reference",
+      foto_perfil_url: "/reference.jpg?token=profile",
+      fotos: [
+        { ...person.fotos[0], url: "/reference.jpg?token=album" },
+        person.fotos[1],
+        { ...person.fotos[1], id: "duplicate", url: "/extra.jpg?token=renewed" },
+      ],
+    };
+    expect(listNexoReportPhotos(signedPerson)).toEqual([
+      {
+        key: `${person.id}:principal`,
+        personId: person.id,
+        url: "/reference.jpg?token=report",
+        caption: "Imagem principal",
+        kind: "principal",
+      },
+      {
+        key: `${person.id}:foto:extra`,
+        personId: person.id,
+        url: "/extra.jpg",
+        caption: "Imagem complementar",
+        kind: "album",
+      },
+    ]);
+    const config = createNexoReportConfig();
+    config.photoOverrides[`${person.id}:principal`] = { included: false };
+    expect(selectedNexoReportPhotos(signedPerson, config).map((photo) => photo.url)).toEqual([
+      "/extra.jpg",
+    ]);
+  });
+
   it("respeita exclusão individual, legenda vazia e exclusão de todas as fotos da pessoa", () => {
     const config = createNexoReportConfig();
     config.photoOverrides[`${person.id}:principal`] = { included: false };

@@ -42,6 +42,10 @@ import {
 } from "@/lib/repositories/vistoriasRepository";
 import type { VehicleInspection } from "@/features/vistorias/vistoriaTypes";
 import {
+  getLocalInspectionDate,
+  isValidInspectionDate,
+} from "@/features/vistorias/inspectionFormUtils";
+import {
   INSPECTION_PRESENTATION_REASONS,
   INSPECTION_PRESENTING_INSTITUTIONS,
   INSPECTION_PHOTO_CATEGORIES,
@@ -186,7 +190,7 @@ function VistoriasRoute() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vehicleId, setVehicleId] = useState("");
-  const [inspectionDate, setInspectionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [inspectionDate, setInspectionDate] = useState(getLocalInspectionDate);
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [policeReportNumber, setPoliceReportNumber] = useState("");
@@ -269,7 +273,7 @@ function VistoriasRoute() {
     setEditingInspection(null);
     setFormStep(1);
     setVehicleId("");
-    setInspectionDate(new Date().toISOString().slice(0, 10));
+    setInspectionDate(getLocalInspectionDate());
     setLocation("");
     setNotes("");
     setPoliceReportNumber("");
@@ -313,8 +317,14 @@ function VistoriasRoute() {
   }
 
   async function handleCreateInspection() {
+    if (saving) return;
     if (!vehicleId) {
       setError("Selecione um veículo antes de salvar a vistoria.");
+      return;
+    }
+    if (!isValidInspectionDate(inspectionDate)) {
+      setError("Informe uma data válida para a vistoria.");
+      setFormStep(1);
       return;
     }
     setSaving(true);
@@ -325,6 +335,11 @@ function VistoriasRoute() {
         inspection_date: inspectionDate,
         location,
         inspector_notes: notes,
+        bo_id:
+          editingInspection &&
+          policeReportNumber.trim() === (editingInspection.police_report_number ?? "").trim()
+            ? editingInspection.bo_id
+            : null,
         police_report_number: policeReportNumber,
         presentation_reason: (presentationReason || null) as InspectionPresentationReason | null,
         presenting_institution: (presentingInstitution ||
@@ -334,6 +349,7 @@ function VistoriasRoute() {
         delivery_restricted: deliveryRestricted,
         checklist,
         findings: {
+          ...editingInspection?.findings,
           identification: identificationFindings,
           structure: structureFindings,
           conservation: conservationFindings,
@@ -367,8 +383,12 @@ function VistoriasRoute() {
         : await createVehicleInspection(input);
       setInspections((current) =>
         editingInspection
-          ? current.map((item) => (item.id === saved.id ? saved : item))
-          : [saved, ...current],
+          ? current.map((item) =>
+              item.id === saved.id
+                ? { ...item, ...saved, bo: saved.bo_id === item.bo_id ? item.bo : null }
+                : item,
+            )
+          : [{ ...saved, vehicle: selectedVehicle }, ...current],
       );
       setSelectedInspectionId(saved.id);
       setShowForm(false);
@@ -381,6 +401,12 @@ function VistoriasRoute() {
   }
 
   function beginEdit(inspection: VehicleInspection) {
+    if (inspection.vehicle) {
+      const vehicle = inspection.vehicle;
+      setVehicles((current) =>
+        current.some((item) => item.id === vehicle.id) ? current : [vehicle, ...current],
+      );
+    }
     setEditingInspection(inspection);
     setShowForm(true);
     setFormStep(1);
@@ -440,8 +466,13 @@ function VistoriasRoute() {
       );
       if (updated) {
         setInspections((current) =>
-          current.map((item) => (item.id === inspection.id ? updated : item)),
+          current.map((item) => (item.id === inspection.id ? { ...item, ...updated } : item)),
         );
+        setHistory((current) => {
+          const next = { ...current };
+          delete next[inspection.id];
+          return next;
+        });
       }
     } catch {
       setError("Não foi possível anexar o PDF da vistoria.");
@@ -694,6 +725,7 @@ function VistoriasRoute() {
                       Veículo cadastrado
                       <select
                         value={vehicleId}
+                        disabled={saving || Boolean(editingInspection)}
                         onChange={(event) => {
                           setVehicleId(event.target.value);
                           setError(null);

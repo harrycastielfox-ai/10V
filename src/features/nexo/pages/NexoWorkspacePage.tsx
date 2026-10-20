@@ -43,6 +43,7 @@ import { NexoReportConfigurator } from "../components/NexoReportConfigurator";
 import { NexoReportsHub } from "../components/NexoReportsHub";
 import { createNexoReportConfig, type NexoReportConfig } from "../nexoReportConfig";
 import type { NexoSearchTarget, NexoWorkspaceView } from "../nexoWorkspaceSearch";
+import { previewPersonFromInput } from "./previewPersonFromInput";
 
 type View = NexoWorkspaceView;
 type DossierTarget = { kind: "person" | "organization"; id: string };
@@ -56,91 +57,6 @@ const VIEWS: { id: View; label: string; icon: typeof MapPinned }[] = [
   { id: "procedimentos", label: "Procedimentos", icon: FileText },
   { id: "relatorios", label: "Relatórios", icon: FileBarChart },
 ];
-
-function previewPersonFromInput(
-  input: NexoPessoaInput,
-  id: string,
-  organization: NexoOrganizacao | undefined,
-  existing?: NexoPessoa,
-): NexoPessoa {
-  const addressId =
-    !input.em_situacao_rua && !input.usar_local_faccao && input.endereco.logradouro
-      ? existing?.endereco_id || crypto.randomUUID()
-      : null;
-  const photoUrl = input.foto_perfil
-    ? URL.createObjectURL(input.foto_perfil)
-    : existing?.foto_perfil_url || null;
-  return {
-    id,
-    nome: input.nome,
-    apelido: input.apelido || null,
-    cpf: input.cpf || null,
-    rg: input.rg || null,
-    data_nascimento: input.idade_aproximada ? null : input.data_nascimento || null,
-    naturalidade: input.naturalidade || null,
-    nome_mae: input.nome_mae || null,
-    nome_pai: input.nome_pai || null,
-    nome_social: input.nome_social || null,
-    sexo: input.sexo || null,
-    raca_cor: input.raca_cor || null,
-    estado_civil: input.estado_civil || null,
-    nacionalidade: input.nacionalidade || "Brasileira",
-    escolaridade: input.escolaridade || null,
-    profissao: input.profissao || null,
-    idade_aproximada: input.idade_aproximada,
-    idade_aproximada_valor: input.idade_aproximada ? input.idade_aproximada_valor : null,
-    em_situacao_rua: input.em_situacao_rua,
-    usa_tornozeleira: input.usa_tornozeleira,
-    altura_cm: input.altura_cm,
-    tipo_fisico: input.tipo_fisico || null,
-    estado_aparente: input.estado_aparente || null,
-    sinais_particulares: input.sinais_particulares || null,
-    documentos_extras: input.documentos_extras,
-    contatos: input.contatos,
-    telefone: input.telefone || null,
-    observacoes: input.observacoes || null,
-    foto_perfil_path: existing?.foto_perfil_path || null,
-    foto_relatorio_path: existing?.foto_relatorio_path || null,
-    foto_perfil_url: photoUrl,
-    foto_relatorio_url: photoUrl,
-    endereco_id: addressId,
-    endereco: addressId
-      ? {
-          id: addressId,
-          ...input.endereco,
-          numero: input.endereco.numero || null,
-          bairro: input.endereco.bairro || null,
-          ponto_referencia: input.endereco.ponto_referencia || null,
-          como_chegar: input.endereco.como_chegar || null,
-          link_navegacao: input.endereco.link_navegacao || null,
-        }
-      : null,
-    usar_local_faccao: input.usar_local_faccao,
-    vinculos: organization
-      ? [
-          {
-            id: existing?.vinculos[0]?.id || crypto.randomUUID(),
-            superior_vinculo_id:
-              existing?.vinculos[0]?.organizacao_id === organization.id &&
-              input.vinculo_status !== "desvinculado"
-                ? existing.vinculos[0].superior_vinculo_id
-                : null,
-            pessoa_id: id,
-            organizacao_id: organization.id,
-            status: input.vinculo_status,
-            funcao: input.vinculo_funcao || null,
-            confianca: input.vinculo_confianca,
-            fonte_resumo: input.fonte_resumo || null,
-            desde: existing?.vinculos[0]?.desde || null,
-            ate: null,
-            organizacao: organization,
-          },
-        ]
-      : [],
-    fotos: existing?.fotos || [],
-    created_at: existing?.created_at || new Date().toISOString(),
-  };
-}
 
 export default function NexoWorkspacePage({ preview = false }: { preview?: boolean }) {
   const [view, setView] = useState<View>("painel");
@@ -397,9 +313,29 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
       const id = existing?.id || crypto.randomUUID();
       const org = organizations.find((item) => item.id === input.organizacao_id);
       const person = previewPersonFromInput(input, id, org, existing);
+      const endedLinkId = existing?.vinculos.find(
+        (link) =>
+          link.status !== "desvinculado" &&
+          person.vinculos.some(
+            (updated) => updated.id === link.id && updated.status === "desvinculado",
+          ),
+      )?.id;
       setPeople((current) =>
         existing
-          ? current.map((item) => (item.id === existing.id ? person : item))
+          ? current.map((item) =>
+              item.id === existing.id
+                ? person
+                : endedLinkId
+                  ? {
+                      ...item,
+                      vinculos: item.vinculos.map((link) =>
+                        link.superior_vinculo_id === endedLinkId
+                          ? { ...link, superior_vinculo_id: null }
+                          : link,
+                      ),
+                    }
+                  : item,
+            )
           : [person, ...current],
       );
     } else {
@@ -913,6 +849,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             people={people}
             territories={territories}
             records={reportRecords}
+            onProcedureRecordsChange={setReportRecords}
             previewHierarchyEvents={previewHierarchyEvents}
             previewNotes={reportNotes}
             onPreviewNoteCreated={(note) => setReportNotes((current) => [note, ...current])}

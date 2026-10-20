@@ -123,6 +123,7 @@ function snapshotValue(snapshot: Record<string, unknown>, ...keys: string[]) {
 
 function formatInspectionDate(value: string, long = false) {
   const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return "Não informada";
   return new Intl.DateTimeFormat(
     "pt-BR",
     long ? { day: "2-digit", month: "long", year: "numeric" } : undefined,
@@ -142,9 +143,8 @@ function formatDateTime(value: string | null | undefined) {
 function inspectionStatusLabel(status: VehicleInspection["status"]) {
   const labels: Record<string, string> = {
     rascunho: "Em elaboração",
-    em_revisao: "Em revisão",
-    concluida: "Concluída",
-    cancelada: "Cancelada",
+    emitido: "Relatório emitido",
+    cancelado: "Cancelado",
   };
   return labels[status] ?? status;
 }

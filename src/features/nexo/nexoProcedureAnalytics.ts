@@ -89,17 +89,14 @@ function cvliFromBo(bo: BoRecord) {
 
 function validDate(value: string | null | undefined) {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(`${value}T12:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : null;
 }
 
 function validTime(value: string | null | undefined) {
-  if (!value) return null;
-  const match = value.match(/^(\d{2}):(\d{2})/);
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  return hour < 24 && minute < 60 ? `${match[1]}:${match[2]}` : null;
+  return value && /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?$/.test(value)
+    ? value.slice(0, 5)
+    : null;
 }
 
 export function validProcedureCoordinates(
@@ -261,14 +258,11 @@ export function buildNexoProcedureRows(input: {
 export function geocodedProcedureIncidents(rows: NexoProcedureRow[]) {
   const byIncident = new Map<string, NexoProcedureRow>();
   for (const row of rows) {
+    if (!validProcedureCoordinates(row.latitude, row.longitude)) continue;
     const current = byIncident.get(row.incidentId);
-    if (!current || (current.latitude === null && row.latitude !== null)) {
-      byIncident.set(row.incidentId, row);
-    }
+    if (!current) byIncident.set(row.incidentId, row);
   }
-  return [...byIncident.values()].filter(
-    (row) => validProcedureCoordinates(row.latitude, row.longitude) !== null,
-  );
+  return [...byIncident.values()];
 }
 
 export function filterNexoProcedureRows(rows: NexoProcedureRow[], filters: NexoProcedureFilters) {

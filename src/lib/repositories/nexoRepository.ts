@@ -134,12 +134,11 @@ export async function createNexoTerritorio(input: NexoTerritorioInput): Promise<
 }
 
 export async function softDeleteNexoTerritorio(id: string) {
-  const { error } = await supabase
-    .from("nexo_territorios")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("deleted_at", null);
+  const { data, error } = await supabase.rpc("soft_delete_nexo_territorio", {
+    p_territorio_id: id,
+  });
   if (error) throw error;
+  if (!data) throw new Error("Este local já foi removido ou não está mais disponível.");
 }
 
 const VEHICLE_LINK_SELECT = `
@@ -267,7 +266,7 @@ export async function manageNexoVinculo(input: {
     p_vinculo_id: input.vinculo_id,
     p_acao: input.acao,
     p_organizacao_id: input.organizacao_id || null,
-    p_status: input.status || "nao_confirmado",
+    p_status: input.status === "desvinculado" ? "nao_confirmado" : input.status || "nao_confirmado",
     p_funcao: clean(input.funcao || ""),
     p_confianca: input.confianca ?? 0,
     p_fonte_resumo: clean(input.fonte_resumo || ""),
@@ -505,7 +504,7 @@ export async function updateNexoPessoa(current: NexoPessoa, input: NexoPessoaInp
     .is("deleted_at", null);
   if (personError) throw personError;
 
-  const currentLink = current.vinculos[0];
+  const currentLink = current.vinculos.find((link) => link.status !== "desvinculado");
   if (input.organizacao_id && currentLink) {
     if (
       input.organizacao_id !== currentLink.organizacao_id &&
@@ -522,36 +521,41 @@ export async function updateNexoPessoa(current: NexoPessoa, input: NexoPessoaInp
         superior_vinculo_id: null,
       });
     } else {
-      const { error } = await supabase
-        .from("nexo_vinculos")
-        .update({
-          status: input.vinculo_status,
-          funcao: clean(input.vinculo_funcao),
-          confianca: input.vinculo_confianca,
-          fonte_resumo: clean(input.fonte_resumo),
-          superior_vinculo_id:
-            input.vinculo_status === "desvinculado" ? null : currentLink.superior_vinculo_id,
-          ate:
-            input.vinculo_status === "desvinculado" ? new Date().toISOString().slice(0, 10) : null,
-        })
-        .eq("id", currentLink.id);
-      if (error) throw error;
+      await manageNexoVinculo({
+        vinculo_id: currentLink.id,
+        acao: input.vinculo_status === "desvinculado" ? "remover" : "atualizar",
+        status: input.vinculo_status,
+        funcao: input.vinculo_funcao,
+        confianca: input.vinculo_confianca,
+        fonte_resumo: input.fonte_resumo,
+        superior_vinculo_id: currentLink.superior_vinculo_id,
+      });
     }
   } else if (input.organizacao_id) {
-    await createNexoVinculo({
-      pessoa_id: current.id,
-      organizacao_id: input.organizacao_id,
-      status: input.vinculo_status,
-      funcao: input.vinculo_funcao,
-      confianca: input.vinculo_confianca,
-      fonte_resumo: input.fonte_resumo,
-    });
+    const historicalLink = current.vinculos.find(
+      (link) => link.organizacao_id === input.organizacao_id,
+    );
+    if (historicalLink) {
+      await manageNexoVinculo({
+        vinculo_id: historicalLink.id,
+        acao: input.vinculo_status === "desvinculado" ? "remover" : "atualizar",
+        status: input.vinculo_status,
+        funcao: input.vinculo_funcao,
+        confianca: input.vinculo_confianca,
+        fonte_resumo: input.fonte_resumo,
+      });
+    } else {
+      await createNexoVinculo({
+        pessoa_id: current.id,
+        organizacao_id: input.organizacao_id,
+        status: input.vinculo_status,
+        funcao: input.vinculo_funcao,
+        confianca: input.vinculo_confianca,
+        fonte_resumo: input.fonte_resumo,
+      });
+    }
   } else if (currentLink) {
-    const { error } = await supabase
-      .from("nexo_vinculos")
-      .update({ status: "desvinculado", ate: new Date().toISOString().slice(0, 10) })
-      .eq("id", currentLink.id);
-    if (error) throw error;
+    await manageNexoVinculo({ vinculo_id: currentLink.id, acao: "remover" });
   }
 
   if (input.foto_perfil) {

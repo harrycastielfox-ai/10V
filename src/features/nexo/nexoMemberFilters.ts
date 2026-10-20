@@ -49,6 +49,7 @@ export function filterNexoOrganizationMembers(
     records.flatMap((record) => (record.pessoa_id ? [record.pessoa_id] : [])),
   );
   const query = normalize(filters.busca);
+  const documentQuery = /^[\d\s./-]+$/.test(query) ? query.replace(/\D/g, "") : "";
 
   return members.filter(({ person, link }) => {
     if (query) {
@@ -63,7 +64,10 @@ export function filterNexoOrganizationMembers(
       ]
         .map(normalize)
         .join(" ");
-      if (!searchable.includes(query)) return false;
+      const documentMatch =
+        documentQuery &&
+        [person.cpf, person.rg].some((value) => value?.replace(/\D/g, "").includes(documentQuery));
+      if (!searchable.includes(query) && !documentMatch) return false;
     }
     if (filters.funcao && normalize(link?.funcao) !== normalize(filters.funcao)) return false;
     if (filters.status && link?.status !== filters.status) return false;

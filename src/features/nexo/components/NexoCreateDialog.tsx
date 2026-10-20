@@ -147,6 +147,7 @@ export function NexoCreateDialog({
   onSavePerson: (input: NexoPessoaInput) => Promise<void>;
   onSaveTerritory: (input: NexoTerritorioInput) => Promise<void>;
 }) {
+  const initialLink = initialPerson?.vinculos.find((link) => link.status !== "desvinculado");
   const [organization, setOrganization] = useState<NexoOrganizacaoInput>(() =>
     initialOrganization
       ? {
@@ -203,15 +204,15 @@ export function NexoCreateDialog({
             latitude: initialPerson.endereco?.latitude ?? null,
             longitude: initialPerson.endereco?.longitude ?? null,
           },
-          organizacao_id: initialPerson.vinculos[0]?.organizacao_id || "",
+          organizacao_id: initialLink?.organizacao_id || "",
           usar_local_faccao: initialPerson.usar_local_faccao,
-          vinculo_status: initialPerson.vinculos[0]?.status || "nao_confirmado",
-          vinculo_funcao: initialPerson.vinculos[0]?.funcao || "",
-          vinculo_confianca: initialPerson.vinculos[0]?.confianca || 0,
-          fonte_resumo: initialPerson.vinculos[0]?.fonte_resumo || "",
+          vinculo_status: initialLink?.status || "nao_confirmado",
+          vinculo_funcao: initialLink?.funcao || "",
+          vinculo_confianca: initialLink?.confianca || 0,
+          fonte_resumo: initialLink?.fonte_resumo || "",
         }
       : {}),
-    organizacao_id: initialPerson?.vinculos[0]?.organizacao_id || initialOrganizationId || "",
+    organizacao_id: initialLink?.organizacao_id || initialOrganizationId || "",
   }));
   const [territory, setTerritory] = useState<NexoTerritorioInput>(() => ({
     ...emptyTerritory,
@@ -234,6 +235,16 @@ export function NexoCreateDialog({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
+    if (kind === "pessoa" && personStep < PERSON_STEP_COUNT - 1) {
+      nextPersonStep();
+      return;
+    }
+    if (kind === "pessoa" && !person.nome.trim()) {
+      setError("Informe o nome completo para continuar.");
+      setPersonStep(0);
+      return;
+    }
     setError("");
     setSaving(true);
     try {
@@ -260,7 +271,7 @@ export function NexoCreateDialog({
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center bg-[#071d30]/70 p-3 backdrop-blur-sm"
-      onMouseDown={onClose}
+      onMouseDown={() => !saving && onClose()}
     >
       <section
         role="dialog"
@@ -278,6 +289,7 @@ export function NexoCreateDialog({
         <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[#24445e] bg-gradient-to-r from-[#071725] via-[#0b263b] to-[#103650] px-5 py-4 text-white shadow-[0_12px_30px_-24px_rgba(3,20,34,.9)] sm:px-7">
           <button
             type="button"
+            disabled={saving}
             onClick={onClose}
             className="rounded-lg border border-white/10 p-2 text-[#b9d5e2] transition hover:bg-white/10 hover:text-white"
             aria-label="Voltar"
@@ -301,6 +313,7 @@ export function NexoCreateDialog({
           </div>
           <button
             type="button"
+            disabled={saving}
             onClick={onClose}
             aria-label="Fechar"
             className="rounded-lg border border-white/10 p-2 text-[#b9d5e2] transition hover:bg-white/10 hover:text-white"
@@ -310,6 +323,8 @@ export function NexoCreateDialog({
         </div>
         {kind === "pessoa" ? <PersonWizardProgress step={personStep} /> : null}
         <form
+          inert={saving}
+          aria-busy={saving}
           onSubmit={(event) => void submit(event)}
           className={`space-y-7 p-5 sm:p-7 ${kind === "pessoa" ? "flex min-h-[440px] flex-col lg:min-h-[520px]" : ""}`}
         >
@@ -611,7 +626,10 @@ export function NexoCreateDialog({
                   onSelect={() => {}}
                   drawingPoints={territory.pontos}
                   onMapClick={(point) =>
-                    setTerritory((current) => ({ ...current, pontos: [...current.pontos, point] }))
+                    setTerritory((current) => ({
+                      ...current,
+                      pontos: [...current.pontos, point],
+                    }))
                   }
                 />
                 <div className="mt-2 flex items-center justify-between text-xs text-[#8a9dab]">

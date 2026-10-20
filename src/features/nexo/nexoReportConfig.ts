@@ -95,22 +95,30 @@ export function normalizeNexoReportConfig(config?: NexoReportConfig): NexoReport
 export function listNexoReportPhotos(person: NexoPessoa): NexoReportPhoto[] {
   const photos: NexoReportPhoto[] = [];
   const seen = new Set<string>();
+  const seenPaths = new Set<string>();
   const principal = person.foto_relatorio_url || person.foto_perfil_url;
   if (principal) {
+    const principalPath = person.foto_relatorio_url
+      ? person.foto_relatorio_path
+      : person.foto_perfil_path;
+    const principalPhoto = person.fotos.find(
+      (photo) => (principalPath && photo.storage_path === principalPath) || photo.url === principal,
+    );
     seen.add(principal);
+    if (principalPath) seenPaths.add(principalPath);
+    if (principalPhoto?.storage_path) seenPaths.add(principalPhoto.storage_path);
     photos.push({
       key: `${person.id}:principal`,
       personId: person.id,
       url: principal,
-      caption:
-        person.fotos.find((photo) => photo.url === principal)?.legenda ||
-        "Fotografia de referência",
+      caption: principalPhoto?.legenda || "Fotografia de referência",
       kind: "principal",
     });
   }
   for (const photo of person.fotos) {
-    if (!photo.url || seen.has(photo.url)) continue;
+    if (!photo.url || seen.has(photo.url) || seenPaths.has(photo.storage_path)) continue;
     seen.add(photo.url);
+    if (photo.storage_path) seenPaths.add(photo.storage_path);
     photos.push({
       key: `${person.id}:foto:${photo.id}`,
       personId: person.id,
@@ -119,7 +127,11 @@ export function listNexoReportPhotos(person: NexoPessoa): NexoReportPhoto[] {
       kind: "album",
     });
   }
-  if (person.foto_perfil_url && !seen.has(person.foto_perfil_url)) {
+  if (
+    person.foto_perfil_url &&
+    !seen.has(person.foto_perfil_url) &&
+    !(person.foto_perfil_path && seenPaths.has(person.foto_perfil_path))
+  ) {
     photos.push({
       key: `${person.id}:perfil`,
       personId: person.id,

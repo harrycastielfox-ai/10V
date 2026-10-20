@@ -157,7 +157,8 @@ export async function updateVehicleInspection(
       .abortSignal(signal),
   );
 
-  return data as VehicleInspection;
+  if (!data) throw new Error("Não foi possível atualizar o relatório de vistoria.");
+  return data;
 }
 
 export type VehicleInspectionVersion = {
@@ -232,8 +233,8 @@ export async function listVehicleInspectionPhotos(inspectionId: string) {
         ...entry,
         vehicle_photo: {
           id: rawPhoto.id,
-          original_url: original.data?.signedUrl ?? null,
-          thumbnail_url: thumbnail.data?.signedUrl ?? null,
+          original_url: original.data?.signedUrl ?? thumbnail.data?.signedUrl ?? null,
+          thumbnail_url: thumbnail.data?.signedUrl ?? original.data?.signedUrl ?? null,
         },
       } as VehicleInspectionPhoto;
     }),
@@ -302,6 +303,7 @@ export async function attachVehicleInspectionPdf(
         .abortSignal(signal),
   );
 
+  if (!data) throw new Error("Não foi possível vincular o PDF à vistoria.");
   return data;
 }
 

@@ -38,7 +38,7 @@ import type {
   NexoVinculo,
   NexoVinculoManagementInput,
 } from "../nexoTypes";
-import { NEXO_DEMO_REGISTROS } from "../nexoDemoData";
+import { NEXO_PRESENTATION_DATA } from "../nexoPresentationData";
 import {
   filterNexoOrganizationMembers,
   hasActiveMemberFilters,
@@ -720,7 +720,7 @@ function NotesPanel({
 
   async function addNote() {
     const content = draft.trim();
-    if (!content) return;
+    if (saving || !content) return;
     setSaving(true);
     setError("");
     try {
@@ -769,6 +769,7 @@ function NotesPanel({
         </div>
         <button
           type="button"
+          disabled={saving}
           onClick={() => setComposerOpen((open) => !open)}
           className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white"
         >
@@ -783,6 +784,7 @@ function NotesPanel({
           </label>
           <textarea
             autoFocus
+            disabled={saving}
             maxLength={10000}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
@@ -969,18 +971,23 @@ function ProcedurePanel({
   target,
   preview,
   people,
+  records,
+  onRecordsChange,
 }: {
   target: DossierTarget;
   preview: boolean;
   people: NexoPessoa[];
+  records: NexoRegistroVinculado[];
+  onRecordsChange?: (records: NexoRegistroVinculado[]) => void;
 }) {
-  const [links, setLinks] = useState<NexoRegistroVinculado[]>([]);
+  const [allRecords, setAllRecords] = useState(records);
   const [cases, setCases] = useState<InqueritoRecord[]>([]);
   const [reports, setReports] = useState<BoRecord[]>([]);
   const [kind, setKind] = useState<"inquerito" | "bo">("inquerito");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(!preview);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const scope = useMemo(
     () =>
@@ -989,47 +996,60 @@ function ProcedurePanel({
         : ({ kind: "organizacao", organizacaoId: target.id } as const),
     [target.id, target.kind],
   );
+  const links = useMemo(
+    () => selectNexoRecords(scope, people, allRecords),
+    [scope, people, allRecords],
+  );
+
+  useEffect(() => setAllRecords(records), [records]);
+
+  function updateRecords(next: NexoRegistroVinculado[]) {
+    setAllRecords(next);
+    onRecordsChange?.(next);
+  }
 
   useEffect(() => {
     setError("");
     if (preview) {
-      setLinks(selectNexoRecords(scope, people, NEXO_DEMO_REGISTROS));
+      const catalog = [...NEXO_PRESENTATION_DATA.records, ...records];
       setCases(
-        NEXO_DEMO_REGISTROS.filter((item) => item.inquerito_id && item.inquerito).map(
-          (item) =>
-            ({
-              id: item.inquerito_id,
-              numero_ppe: item.inquerito?.numero_ppe,
-              tipo: item.inquerito?.tipo,
-              situacao: item.inquerito?.situacao,
-              tipificacao: null,
-            }) as InqueritoRecord,
-        ),
+        catalog
+          .filter((item) => item.inquerito_id && item.inquerito)
+          .map(
+            (item) =>
+              ({
+                id: item.inquerito_id,
+                numero_ppe: item.inquerito?.numero_ppe,
+                tipo: item.inquerito?.tipo,
+                situacao: item.inquerito?.situacao,
+                tipificacao: null,
+              }) as InqueritoRecord,
+          ),
       );
       setReports(
-        NEXO_DEMO_REGISTROS.filter((item) => item.bo_id && item.bo).map(
-          (item) =>
-            ({
-              id: item.bo_id,
-              numero_bo: item.bo?.numero_bo,
-              infracao_penal: item.bo?.infracao_penal,
-              status: item.bo?.status,
-            }) as BoRecord,
-        ),
+        catalog
+          .filter((item) => item.bo_id && item.bo)
+          .map(
+            (item) =>
+              ({
+                id: item.bo_id,
+                numero_bo: item.bo?.numero_bo,
+                infracao_penal: item.bo?.infracao_penal,
+                status: item.bo?.status,
+              }) as BoRecord,
+          ),
       );
+      setLoading(false);
       return;
     }
     let cancelled = false;
+    setLoading(true);
     void Promise.all([
-      import("@/lib/repositories/nexoIntegrationsRepository").then((repo) =>
-        repo.listNexoRegistrosVinculados(),
-      ),
       import("@/lib/repositories/inqueritosRepository").then((repo) => repo.listInqueritos()),
       import("@/lib/repositories/boRepository").then((repo) => repo.listBos()),
     ])
-      .then(([foundLinks, foundCases, foundReports]) => {
+      .then(([foundCases, foundReports]) => {
         if (cancelled) return;
-        setLinks(selectNexoRecords(scope, people, foundLinks));
         setCases(foundCases);
         setReports(foundReports);
       })
@@ -1038,16 +1058,21 @@ function ProcedurePanel({
           setError(
             cause instanceof Error ? cause.message : "Não foi possível carregar os procedimentos.",
           );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [people, preview, scope]);
+  }, [preview, records]);
 
   const matches = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("pt-BR");
     if (normalized.length < 2) return [];
-    return (kind === "inquerito" ? cases : reports)
+    return [
+      ...new Map((kind === "inquerito" ? cases : reports).map((item) => [item.id, item])).values(),
+    ]
       .filter((item) => {
         const text =
           "numero_ppe" in item
@@ -1068,46 +1093,46 @@ function ProcedurePanel({
   }, [cases, kind, links, query, reports, target.id, target.kind]);
 
   async function add(item: InqueritoRecord | BoRecord) {
+    if (saving || loading) return;
     setSaving(true);
     setError("");
     try {
-      if (preview) {
-        const isCase = kind === "inquerito";
-        setLinks((current) => [
-          {
-            id: crypto.randomUUID(),
-            pessoa_id: target.kind === "person" ? target.id : null,
-            organizacao_id: target.kind === "organization" ? target.id : null,
-            inquerito_id: isCase ? item.id : null,
-            bo_id: isCase ? null : item.id,
-            observacao: null,
-            created_at: new Date().toISOString(),
-            inquerito: isCase
-              ? {
-                  numero_ppe: "numero_ppe" in item ? item.numero_ppe : null,
-                  tipo: "tipo" in item ? item.tipo : null,
-                  situacao: "situacao" in item ? item.situacao : null,
-                }
-              : null,
-            bo: !isCase
-              ? {
-                  numero_bo: ("numero_bo" in item ? item.numero_bo : "") ?? "",
-                  infracao_penal: ("infracao_penal" in item ? item.infracao_penal : "") ?? "",
-                  status: ("status" in item ? item.status : "") ?? "",
-                }
-              : null,
-          },
-          ...current,
-        ]);
-        setQuery("");
-        return;
-      }
-      const repo = await import("@/lib/repositories/nexoIntegrationsRepository");
-      await repo.createNexoRegistroVinculado({
+      const isCase = kind === "inquerito";
+      const input = {
         ...(target.kind === "person" ? { pessoa_id: target.id } : { organizacao_id: target.id }),
-        ...(kind === "inquerito" ? { inquerito_id: item.id } : { bo_id: item.id }),
-      });
-      setLinks(selectNexoRecords(scope, people, await repo.listNexoRegistrosVinculados()));
+        ...(isCase ? { inquerito_id: item.id } : { bo_id: item.id }),
+      };
+      const created = preview
+        ? null
+        : await import("@/lib/repositories/nexoIntegrationsRepository").then((repo) =>
+            repo.createNexoRegistroVinculado(input),
+          );
+      updateRecords([
+        {
+          id: created?.id || crypto.randomUUID(),
+          pessoa_id: target.kind === "person" ? target.id : null,
+          organizacao_id: target.kind === "organization" ? target.id : null,
+          inquerito_id: isCase ? item.id : null,
+          bo_id: isCase ? null : item.id,
+          observacao: null,
+          created_at: created?.created_at || new Date().toISOString(),
+          inquerito: isCase
+            ? {
+                numero_ppe: "numero_ppe" in item ? item.numero_ppe : null,
+                tipo: "tipo" in item ? item.tipo : null,
+                situacao: "situacao" in item ? item.situacao : null,
+              }
+            : null,
+          bo: !isCase
+            ? {
+                numero_bo: ("numero_bo" in item ? item.numero_bo : "") ?? "",
+                infracao_penal: ("infracao_penal" in item ? item.infracao_penal : "") ?? "",
+                status: ("status" in item ? item.status : "") ?? "",
+              }
+            : null,
+        },
+        ...allRecords,
+      ]);
       setQuery("");
     } catch (cause) {
       setError(
@@ -1119,6 +1144,7 @@ function ProcedurePanel({
   }
 
   async function remove(linkId: string) {
+    if (saving) return;
     if (confirmRemoveId !== linkId) {
       setConfirmRemoveId(linkId);
       return;
@@ -1130,7 +1156,7 @@ function ProcedurePanel({
         const repo = await import("@/lib/repositories/nexoIntegrationsRepository");
         await repo.deleteNexoRegistroVinculado(linkId);
       }
-      setLinks((current) => current.filter((item) => item.id !== linkId));
+      updateRecords(allRecords.filter((item) => item.id !== linkId));
       setConfirmRemoveId(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível remover o vínculo.");
@@ -1234,7 +1260,7 @@ function ProcedurePanel({
             <button
               key={item.id}
               type="button"
-              disabled={saving}
+              disabled={saving || loading}
               onClick={() => void add(item)}
               className="flex w-full items-center gap-2 rounded-lg bg-white px-3 py-2 text-left text-xs text-[#344f64] hover:bg-[#e8f5f8] disabled:opacity-50"
             >
@@ -1246,7 +1272,11 @@ function ProcedurePanel({
             </button>
           ))}
         </div>
-        {query.trim().length >= 2 && matches.length === 0 ? (
+        {loading ? (
+          <p role="status" className="mt-2 text-xs text-[#567184]">
+            Carregando registros disponíveis…
+          </p>
+        ) : query.trim().length >= 2 && matches.length === 0 ? (
           <p className="mt-2 text-xs text-[#567184]">Nenhum registro disponível para essa busca.</p>
         ) : null}
       </div>
@@ -1265,6 +1295,7 @@ export function NexoDossier({
   people,
   territories,
   records,
+  onProcedureRecordsChange,
   previewHierarchyEvents = [],
   previewNotes = [],
   onPreviewNoteCreated,
@@ -1285,6 +1316,7 @@ export function NexoDossier({
   people: NexoPessoa[];
   territories: NexoTerritorio[];
   records: NexoRegistroVinculado[];
+  onProcedureRecordsChange?: (records: NexoRegistroVinculado[]) => void;
   previewHierarchyEvents?: NexoHierarquiaEvento[];
   previewNotes?: NexoObservacao[];
   onPreviewNoteCreated?: (note: NexoObservacao) => void;
@@ -1310,6 +1342,24 @@ export function NexoDossier({
   const [savedHierarchyEvents, setSavedHierarchyEvents] = useState<NexoHierarquiaEvento[]>([]);
   const [hierarchyError, setHierarchyError] = useState("");
   const [selectedTerritory, setSelectedTerritory] = useState<NexoTerritorio | null>(null);
+  const [removingTerritoryId, setRemovingTerritoryId] = useState<string | null>(null);
+  const [territoryError, setTerritoryError] = useState("");
+
+  async function removeTerritory(id: string) {
+    if (removingTerritoryId) return;
+    setRemovingTerritoryId(id);
+    setTerritoryError("");
+    try {
+      await onDeleteTerritory(id);
+      setSelectedTerritory((current) => (current?.id === id ? null : current));
+    } catch (cause) {
+      setTerritoryError(
+        cause instanceof Error ? cause.message : "Não foi possível remover o local.",
+      );
+    } finally {
+      setRemovingTerritoryId(null);
+    }
+  }
   const [memberFilters, setMemberFilters] = useState<NexoMemberFilters>({
     ...EMPTY_MEMBER_FILTERS,
   });
@@ -2199,7 +2249,13 @@ export function NexoDossier({
             </div>
           ) : null}
           {tab === "procedimentos" ? (
-            <ProcedurePanel target={target} preview={preview} people={people} />
+            <ProcedurePanel
+              target={target}
+              preview={preview}
+              people={people}
+              records={records}
+              onRecordsChange={onProcedureRecordsChange}
+            />
           ) : null}
           {tab === "historico" ? (
             <div className="rounded-2xl border border-[#dde8f0] bg-white p-5 sm:p-6">
@@ -2363,6 +2419,11 @@ export function NexoDossier({
           ) : null}
           {tab === "localizacao" && organization ? (
             <div className="space-y-3">
+              {territoryError ? (
+                <p role="alert" className="rounded-lg bg-red-50 p-3 text-xs text-red-700">
+                  {territoryError}
+                </p>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#d9e5ec] bg-white p-4">
                 <div>
                   <h3 className="text-sm font-black text-[#1e405b]">
@@ -2388,7 +2449,8 @@ export function NexoDossier({
                   >
                     <button
                       type="button"
-                      onClick={() => void onDeleteTerritory(territory.id)}
+                      disabled={Boolean(removingTerritoryId)}
+                      onClick={() => void removeTerritory(territory.id)}
                       aria-label={`Remover ${territory.bairro}`}
                       title="Remover local"
                       className="absolute right-3 top-3 rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-600 hover:bg-red-100"

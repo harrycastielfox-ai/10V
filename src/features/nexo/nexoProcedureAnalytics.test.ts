@@ -131,6 +131,32 @@ describe("NEXO procedural analytics", () => {
     expect(summary.neighborhoods[0].key).toBe("sao jose");
   });
 
+  it("rejects malformed times instead of accepting a valid-looking prefix", () => {
+    for (const time of ["21:35invalid", "21:35:99", "21:35:00Z", "24:00", "21:60"]) {
+      const rows = build(
+        [inquiry("one")],
+        [],
+        [],
+        [
+          {
+            id: "context-1",
+            inquerito_id: "one",
+            bo_id: null,
+            data_fato: null,
+            hora_fato: time,
+            bairro: null,
+            latitude: null,
+            longitude: null,
+            fonte: "Relatório conferido",
+            updated_at: "2026-10-17T12:00:00Z",
+          },
+        ],
+      );
+      expect(rows[0].factTime, time).toBeNull();
+      expect(summarizeNexoProcedures(rows).knownTimes, time).toBe(0);
+    }
+  });
+
   it("filters by factual period and CVLI without including undated cases", () => {
     const rows = build([
       inquiry("in", { data_fato: "2026-10-12" }),
@@ -172,5 +198,24 @@ describe("NEXO procedural analytics", () => {
     expect(mapped[0]).toMatchObject({ incidentId: "one", latitude: -16.5702 });
     expect(validProcedureCoordinates(-91, -39)).toBeNull();
     expect(validProcedureCoordinates(0, 0)).toEqual({ latitude: 0, longitude: 0 });
+  });
+
+  it("keeps a valid linked map location when another record has an incomplete or invalid pair", () => {
+    const [base] = build([inquiry("shared")]);
+    const valid = {
+      ...base,
+      id: "bo:valid",
+      latitude: -16.5702,
+      longitude: -39.5635,
+    };
+    for (const coordinates of [
+      { latitude: -16.57, longitude: null },
+      { latitude: -16.57, longitude: Number.NaN },
+      { latitude: 95, longitude: -39.56 },
+    ]) {
+      const invalid = { ...base, ...coordinates };
+      expect(geocodedProcedureIncidents([invalid, valid])).toEqual([valid]);
+      expect(geocodedProcedureIncidents([valid, invalid])).toEqual([valid]);
+    }
   });
 });

@@ -1,6 +1,7 @@
 import { CarFront, ExternalLink, Link2, Plus, Search, ShieldCheck, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { VehicleListRecord } from "@/features/vehicles/vehicleTypes";
+import { useDebouncedValue } from "@/features/vehicles/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errorMessage";
 import type { NexoVeiculoTipoPosse, NexoVeiculoVinculo } from "../nexoTypes";
 
@@ -24,49 +25,73 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
   const [source, setSource] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [searching, setSearching] = useState(false);
+  const search = useDebouncedValue(query.trim());
+  const scopeKey = `${target.kind}:${target.id}`;
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
 
-  async function reload() {
-    if (preview) return;
-    const [repo, vehiclesRepo] = await Promise.all([
-      import("@/lib/repositories/nexoRepository"),
-      import("@/lib/repositories/vehiclesRepository"),
-    ]);
-    const [allLinks, foundVehicles] = await Promise.all([
-      repo.listNexoVeiculosVinculados(),
-      vehiclesRepo.listVehiclesPage({ limit: 100 }),
-    ]);
-    setLinks(
-      allLinks.filter((link) =>
-        target.kind === "person" ? link.pessoa_id === target.id : link.organizacao_id === target.id,
-      ),
-    );
-    setVehicles(foundVehicles);
-  }
+  const reload = useCallback(async () => {
+    if (preview || currentScope.current !== scopeKey) return;
+    const repo = await import("@/lib/repositories/nexoRepository");
+    const allLinks = await repo.listNexoVeiculosVinculados();
+    if (currentScope.current === scopeKey) {
+      setLinks(
+        allLinks.filter((link) =>
+          target.kind === "person"
+            ? link.pessoa_id === target.id
+            : link.organizacao_id === target.id,
+        ),
+      );
+    }
+  }, [preview, scopeKey, target.id, target.kind]);
 
   useEffect(() => {
+    let cancelled = false;
+    setLinks([]);
+    setSelectedId("");
+    setQuery("");
+    setSource("");
     setError("");
-    void reload().catch((cause) =>
-      setError(cause instanceof Error ? cause.message : "Não foi possível carregar os veículos."),
-    );
-    // O alvo é a identidade estável do dossiê; reload é intencionalmente local ao painel.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview, target.id, target.kind]);
+    void reload().catch((cause) => {
+      if (!cancelled) setError(getErrorMessage(cause, "Não foi possível carregar os veículos."));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setVehicles([]);
+    if (preview || !search) {
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    void import("@/lib/repositories/vehiclesRepository")
+      .then((repo) => repo.listVehiclesPage({ limit: 100, search }))
+      .then((found) => {
+        if (!cancelled) setVehicles(found);
+      })
+      .catch((cause) => {
+        if (!cancelled) setError(getErrorMessage(cause, "Não foi possível buscar os veículos."));
+      })
+      .finally(() => {
+        if (!cancelled) setSearching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [preview, search, scopeKey]);
 
   const available = useMemo(() => {
-    const normalized = query.trim().toLocaleLowerCase("pt-BR");
     const linkedIds = new Set(links.map((link) => link.veiculo_id));
-    return vehicles
-      .filter((vehicle) => !linkedIds.has(vehicle.id))
-      .filter((vehicle) =>
-        `${vehicle.plate || ""} ${vehicle.brand_model || ""} ${vehicle.internal_id}`
-          .toLocaleLowerCase("pt-BR")
-          .includes(normalized),
-      )
-      .slice(0, 8);
-  }, [links, query, vehicles]);
+    return vehicles.filter((vehicle) => !linkedIds.has(vehicle.id)).slice(0, 8);
+  }, [links, vehicles]);
 
   async function linkVehicle() {
-    if (!selectedId) return;
+    if (!selectedId || saving || preview) return;
     setSaving(true);
     setError("");
     try {
@@ -84,7 +109,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
       setSource("");
       await reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível vincular o veículo.");
+      setError(getErrorMessage(cause, "Não foi possível vincular o veículo."));
     } finally {
       setSaving(false);
     }
@@ -96,6 +121,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
     )
       return;
     setSaving(true);
+    setError("");
     try {
       const repo = await import("@/lib/repositories/nexoRepository");
       await repo.softDeleteNexoVeiculoVinculo(id);
@@ -146,11 +172,12 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
               </span>
               <div className="min-w-0">
                 <strong className="block truncate text-sm text-[#183b55]">
-                  {link.veiculo.brand_model || "Veículo sem modelo informado"}
+                  {link.veiculo?.brand_model ||
+                    (link.veiculo ? "Veículo sem modelo informado" : "Veículo indisponível")}
                 </strong>
                 <p className="mt-1 text-xs text-[#718697]">
-                  {link.veiculo.plate || "Placa não informada"} ·{" "}
-                  {link.veiculo.color || "Cor não informada"}
+                  {link.veiculo?.plate || "Placa não informada"} ·{" "}
+                  {link.veiculo?.color || "Cor não informada"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="rounded-full bg-[#edf5f8] px-2 py-1 text-[10px] font-bold text-[#34778d]">
@@ -162,12 +189,14 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
                 </div>
               </div>
             </div>
-            <a
-              href={`/veiculos/${link.veiculo_id}`}
-              className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#21758e]"
-            >
-              Abrir ficha completa <ExternalLink className="h-3.5 w-3.5" />
-            </a>
+            {link.veiculo ? (
+              <a
+                href={`/veiculos/${link.veiculo_id}`}
+                className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#21758e]"
+              >
+                Abrir ficha completa <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            ) : null}
           </article>
         ))}
       </div>
@@ -191,29 +220,42 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
             <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#8ba0af]" />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSelectedId("");
+              }}
               placeholder="Buscar placa, modelo ou código interno"
               className="h-11 w-full rounded-xl border border-[#d5e2ea] bg-white pl-10 pr-3 text-sm outline-none focus:border-[#3995aa]"
             />
           </label>
           {query.trim() ? (
             <div className="mt-2 max-h-48 space-y-1 overflow-y-auto">
-              {available.map((vehicle) => (
-                <button
-                  key={vehicle.id}
-                  type="button"
-                  onClick={() => setSelectedId(vehicle.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left ${selectedId === vehicle.id ? "border-[#4ca8b9] bg-[#e9f7f9]" : "border-transparent bg-white hover:border-[#c9dce5]"}`}
-                >
-                  <CarFront className="h-4 w-4 text-[#4c8da1]" />
-                  <span className="min-w-0 flex-1 truncate text-xs font-bold text-[#345268]">
-                    {vehicle.plate || "Sem placa"} · {vehicle.brand_model || vehicle.internal_id}
-                  </span>
-                  {selectedId === vehicle.id ? (
-                    <ShieldCheck className="h-4 w-4 text-[#1689a1]" />
-                  ) : null}
-                </button>
-              ))}
+              {searching || search !== query.trim() ? (
+                <p role="status" className="p-2 text-xs text-[#718697]">
+                  Buscando veículos…
+                </p>
+              ) : !available.length ? (
+                <p role="status" className="p-2 text-xs text-[#718697]">
+                  Nenhum veículo disponível para esta busca.
+                </p>
+              ) : null}
+              {search === query.trim() &&
+                available.map((vehicle) => (
+                  <button
+                    key={vehicle.id}
+                    type="button"
+                    onClick={() => setSelectedId(vehicle.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left ${selectedId === vehicle.id ? "border-[#4ca8b9] bg-[#e9f7f9]" : "border-transparent bg-white hover:border-[#c9dce5]"}`}
+                  >
+                    <CarFront className="h-4 w-4 text-[#4c8da1]" />
+                    <span className="min-w-0 flex-1 truncate text-xs font-bold text-[#345268]">
+                      {vehicle.plate || "Sem placa"} · {vehicle.brand_model || vehicle.internal_id}
+                    </span>
+                    {selectedId === vehicle.id ? (
+                      <ShieldCheck className="h-4 w-4 text-[#1689a1]" />
+                    ) : null}
+                  </button>
+                ))}
             </div>
           ) : null}
           <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_130px_1.3fr_auto]">
@@ -245,7 +287,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
             />
             <button
               type="button"
-              disabled={!selectedId || saving}
+              disabled={!selectedId || saving || searching || search !== query.trim()}
               onClick={() => void linkVehicle()}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1689a1] px-4 text-xs font-black text-white disabled:opacity-40"
             >

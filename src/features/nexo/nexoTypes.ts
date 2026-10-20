@@ -236,7 +236,7 @@ export interface NexoVeiculoVinculo {
     situation: string | null;
     procedure_number: string | null;
     police_report_number: string | null;
-  };
+  } | null;
 }
 
 export interface NexoPessoaInput {
