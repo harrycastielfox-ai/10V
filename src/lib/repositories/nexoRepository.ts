@@ -183,12 +183,11 @@ export async function createNexoVeiculoVinculo(input: {
 }
 
 export async function softDeleteNexoVeiculoVinculo(id: string) {
-  const { error } = await supabase
-    .from("nexo_veiculos_vinculos")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id)
-    .is("deleted_at", null);
+  const { data, error } = await supabase.rpc("soft_delete_nexo_veiculo_vinculo", {
+    p_vinculo_id: id,
+  });
   if (error) throw error;
+  if (!data) throw new Error("Este vínculo já foi removido ou não está mais disponível.");
 }
 
 export async function createNexoOrganizacao(input: NexoOrganizacaoInput): Promise<NexoOrganizacao> {

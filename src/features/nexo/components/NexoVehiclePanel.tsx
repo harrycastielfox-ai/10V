@@ -1,6 +1,7 @@
 import { CarFront, ExternalLink, Link2, Plus, Search, ShieldCheck, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { VehicleListRecord } from "@/features/vehicles/vehicleTypes";
+import { getErrorMessage } from "@/lib/errorMessage";
 import type { NexoVeiculoTipoPosse, NexoVeiculoVinculo } from "../nexoTypes";
 
 type Target = { kind: "person"; id: string } | { kind: "organization"; id: string };
@@ -100,7 +101,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
       await repo.softDeleteNexoVeiculoVinculo(id);
       await reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Não foi possível remover o vínculo.");
+      setError(getErrorMessage(cause, "Não foi possível remover o vínculo."));
     } finally {
       setSaving(false);
     }
