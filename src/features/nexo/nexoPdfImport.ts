@@ -390,9 +390,17 @@ export async function readNexoPdfPhotos(file: File): Promise<NexoPdfPhotoCandida
         if (operatorList.fnArray[index] === OPS.transform && args && args.length >= 6) {
           lastTransform = Array.from(args.slice(0, 6), Number);
         }
-        if (operatorList.fnArray[index] !== OPS.paintImageXObject || !lastTransform) continue;
+        const operation = operatorList.fnArray[index];
+        const isImageOperation =
+          operation === OPS.paintImageXObject ||
+          operation === OPS.paintImageXObjectRepeat ||
+          operation === OPS.paintInlineImageXObject;
+        if (!isImageOperation || !lastTransform) continue;
         const imageId = args?.[0];
-        if (typeof imageId === "string") imageOps.push({ id: imageId, matrix: lastTransform });
+        imageOps.push({
+          id: typeof imageId === "string" ? imageId : `inline-${index}`,
+          matrix: lastTransform,
+        });
       }
       if (!imageOps.length) continue;
 
