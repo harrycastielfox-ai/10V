@@ -1344,6 +1344,13 @@ export function NexoDossier({
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deletingPerson, setDeletingPerson] = useState(false);
+  const [confirmation, setConfirmation] = useState<{
+    title: string;
+    description: string;
+    actionLabel: string;
+    run: () => Promise<void>;
+  } | null>(null);
+  const [confirmationBusy, setConfirmationBusy] = useState(false);
   const [managedLink, setManagedLink] = useState<{ person: NexoPessoa; link: NexoVinculo } | null>(
     null,
   );
@@ -1739,18 +1746,24 @@ export function NexoDossier({
                 <button
                   type="button"
                   disabled={deletingPerson}
-                  onClick={async () => {
-                    if (!window.confirm(`Apagar o cadastro de ${person.nome}? Essa ação ficará registrada para auditoria e removerá a ficha da listagem.`)) return;
-                    setDeletingPerson(true);
-                    setDeleteError("");
-                    try {
-                      await onDeletePerson(person);
-                    } catch (cause) {
-                      setDeleteError(cause instanceof Error ? cause.message : "Não foi possível apagar o cadastro.");
-                    } finally {
-                      setDeletingPerson(false);
-                    }
-                  }}
+                  onClick={() =>
+                    setConfirmation({
+                      title: "Apagar cadastro",
+                      description: `A ficha de ${person.nome} será removida da listagem e a ação ficará registrada para auditoria.`,
+                      actionLabel: "Apagar cadastro",
+                      run: async () => {
+                        setDeletingPerson(true);
+                        setDeleteError("");
+                        try {
+                          await onDeletePerson(person);
+                        } catch (cause) {
+                          setDeleteError(cause instanceof Error ? cause.message : "Não foi possível apagar o cadastro.");
+                        } finally {
+                          setDeletingPerson(false);
+                        }
+                      },
+                    })
+                  }
                   className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:bg-red-100 disabled:opacity-60"
                 >
                   <Trash2 className="h-4 w-4" /> {deletingPerson ? "Apagando…" : "Apagar cadastro"}
@@ -2404,18 +2417,24 @@ export function NexoDossier({
                         type="button"
                         aria-label={`Remover foto ${photo.legenda || "do álbum"}`}
                         disabled={deletingPhotoId === photo.id}
-                        onClick={async () => {
-                          if (!window.confirm("Remover esta foto do álbum? O arquivo também será removido.")) return;
-                          setDeletingPhotoId(photo.id);
-                          setDeleteError("");
-                          try {
-                            await onDeletePhoto(person, photo.id);
-                          } catch (cause) {
-                            setDeleteError(cause instanceof Error ? cause.message : "Não foi possível remover a foto.");
-                          } finally {
-                            setDeletingPhotoId(null);
-                          }
-                        }}
+                        onClick={() =>
+                          setConfirmation({
+                            title: "Remover foto do álbum",
+                            description: "A imagem será removida do álbum e o arquivo privado será excluído.",
+                            actionLabel: "Remover foto",
+                            run: async () => {
+                              setDeletingPhotoId(photo.id);
+                              setDeleteError("");
+                              try {
+                                await onDeletePhoto(person, photo.id);
+                              } catch (cause) {
+                                setDeleteError(cause instanceof Error ? cause.message : "Não foi possível remover a foto.");
+                              } finally {
+                                setDeletingPhotoId(null);
+                              }
+                            },
+                          })
+                        }
                         className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -2504,7 +2523,14 @@ export function NexoDossier({
                     <button
                       type="button"
                       disabled={Boolean(removingTerritoryId)}
-                      onClick={() => void removeTerritory(territory.id)}
+                      onClick={() =>
+                        setConfirmation({
+                          title: "Remover local",
+                          description: `O local ${territory.bairro} será removido deste dossiê e a ação ficará registrada para auditoria.`,
+                          actionLabel: "Remover local",
+                          run: () => removeTerritory(territory.id),
+                        })
+                      }
                       aria-label={`Remover ${territory.bairro}`}
                       title="Remover local"
                       className="absolute right-3 top-3 rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-600 hover:bg-red-100"
@@ -2585,6 +2611,38 @@ export function NexoDossier({
           onSelect={setSelectedTerritory}
           onClose={() => setSelectedTerritory(null)}
         />
+      ) : null}
+      {confirmation ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#102333]/45 p-4 backdrop-blur-[2px]">
+          <div role="dialog" aria-modal="true" aria-labelledby="nexo-confirm-title" className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-red-50 p-2.5 text-red-600"><Trash2 className="h-5 w-5" /></div>
+              <div>
+                <h2 id="nexo-confirm-title" className="text-base font-black text-[#173d5b]">{confirmation.title}</h2>
+                <p className="mt-2 text-sm leading-6 text-[#567184]">{confirmation.description}</p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" disabled={confirmationBusy} onClick={() => setConfirmation(null)} className="rounded-xl border border-[#d5e1e8] px-4 py-2.5 text-sm font-bold text-[#567184] hover:bg-[#f5f8fa]">Cancelar</button>
+              <button
+                type="button"
+                disabled={confirmationBusy}
+                onClick={async () => {
+                  setConfirmationBusy(true);
+                  try {
+                    await confirmation.run();
+                    setConfirmation(null);
+                  } finally {
+                    setConfirmationBusy(false);
+                  }
+                }}
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {confirmationBusy ? "Processando…" : confirmation.actionLabel}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
