@@ -19,6 +19,7 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Trash2,
   Unlink,
   UserCog,
   UserMinus,
@@ -1305,6 +1306,8 @@ export function NexoDossier({
   onReport,
   onEdit,
   onUploadPhoto,
+  onDeletePhoto,
+  onDeletePerson,
   onCreateLink,
   onManageLink,
   onCreatePersonForOrganization,
@@ -1326,6 +1329,8 @@ export function NexoDossier({
   onReport: () => void;
   onEdit: (target: DossierTarget) => void;
   onUploadPhoto: (person: NexoPessoa, file: File) => Promise<void>;
+  onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
+  onDeletePerson: (person: NexoPessoa) => Promise<void>;
   onCreateLink: (input: NexoLinkInput) => Promise<void>;
   onManageLink: (input: NexoVinculoManagementInput) => Promise<void>;
   onCreatePersonForOrganization: (organizationId: string) => void;
@@ -1336,6 +1341,9 @@ export function NexoDossier({
   const [expanded, setExpanded] = useState(target.kind === "organization");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingPerson, setDeletingPerson] = useState(false);
   const [managedLink, setManagedLink] = useState<{ person: NexoPessoa; link: NexoVinculo } | null>(
     null,
   );
@@ -1727,6 +1735,27 @@ export function NexoDossier({
               >
                 <Pencil className="h-4 w-4" /> Editar cadastro
               </button>
+              {person ? (
+                <button
+                  type="button"
+                  disabled={deletingPerson}
+                  onClick={async () => {
+                    if (!window.confirm(`Apagar o cadastro de ${person.nome}? Essa ação ficará registrada para auditoria e removerá a ficha da listagem.`)) return;
+                    setDeletingPerson(true);
+                    setDeleteError("");
+                    try {
+                      await onDeletePerson(person);
+                    } catch (cause) {
+                      setDeleteError(cause instanceof Error ? cause.message : "Não foi possível apagar o cadastro.");
+                    } finally {
+                      setDeletingPerson(false);
+                    }
+                  }}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                >
+                  <Trash2 className="h-4 w-4" /> {deletingPerson ? "Apagando…" : "Apagar cadastro"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={onReport}
@@ -2347,6 +2376,11 @@ export function NexoDossier({
                   {uploadError}
                 </p>
               ) : null}
+              {deleteError ? (
+                <p role="alert" className="mt-3 text-xs text-red-700">
+                  {deleteError}
+                </p>
+              ) : null}
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {person.fotos.map((photo) => (
                   <figure
@@ -2364,8 +2398,28 @@ export function NexoDossier({
                         Imagem protegida
                       </div>
                     )}
-                    <figcaption className="p-2 text-xs text-[#5b7184]">
-                      {value(photo.legenda)}
+                    <figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-[#5b7184]">
+                      <span className="min-w-0 truncate">{value(photo.legenda)}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remover foto ${photo.legenda || "do álbum"}`}
+                        disabled={deletingPhotoId === photo.id}
+                        onClick={async () => {
+                          if (!window.confirm("Remover esta foto do álbum? O arquivo também será removido.")) return;
+                          setDeletingPhotoId(photo.id);
+                          setDeleteError("");
+                          try {
+                            await onDeletePhoto(person, photo.id);
+                          } catch (cause) {
+                            setDeleteError(cause instanceof Error ? cause.message : "Não foi possível remover a foto.");
+                          } finally {
+                            setDeletingPhotoId(null);
+                          }
+                        }}
+                        className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </figcaption>
                   </figure>
                 ))}

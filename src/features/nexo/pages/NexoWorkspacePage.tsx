@@ -427,6 +427,33 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     setNotice("Foto adicionada à ficha");
   }
 
+  async function deletePhoto(person: NexoPessoa, photoId: string) {
+    if (preview) {
+      setPeople((current) =>
+        current.map((item) =>
+          item.id === person.id ? { ...item, fotos: item.fotos.filter((photo) => photo.id !== photoId) } : item,
+        ),
+      );
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.deleteNexoAlbumPhoto(photoId, person.id);
+      await reload();
+    }
+    setNotice("Foto removida do álbum");
+  }
+
+  async function deletePerson(person: NexoPessoa) {
+    if (preview) {
+      setPeople((current) => current.filter((item) => item.id !== person.id));
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.softDeleteNexoPessoa(person.id);
+      await reload();
+    }
+    setDossier(null);
+    setNotice("Cadastro apagado");
+  }
+
   async function saveLink(input: NexoLinkInput) {
     if (preview) {
       const organization = organizations.find((item) => item.id === input.organizacao_id);
@@ -873,6 +900,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
               setCreateKind(target.kind === "person" ? "pessoa" : "organizacao");
             }}
             onUploadPhoto={uploadPhoto}
+            onDeletePhoto={deletePhoto}
+            onDeletePerson={deletePerson}
             onCreateLink={saveLink}
             onManageLink={manageLink}
             onCreatePersonForOrganization={(organizationId) => {

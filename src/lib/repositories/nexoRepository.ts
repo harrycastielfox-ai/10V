@@ -607,3 +607,34 @@ export async function uploadNexoAlbumPhoto(
   }
   return { ...(data as NexoFoto), url: await signedUrl(path) };
 }
+
+export async function deleteNexoAlbumPhoto(photoId: string, personId: string): Promise<void> {
+  const { data: photo, error: readError } = await supabase
+    .from("nexo_fotos")
+    .select("id, pessoa_id, storage_path")
+    .eq("id", photoId)
+    .eq("pessoa_id", personId)
+    .single();
+  if (readError) throw readError;
+
+  const { error: deleteError } = await supabase
+    .from("nexo_fotos")
+    .delete()
+    .eq("id", photo.id)
+    .eq("pessoa_id", personId);
+  if (deleteError) throw deleteError;
+
+  if (photo.storage_path) {
+    const { error: storageError } = await supabase.storage
+      .from(PRIVATE_BUCKET)
+      .remove([photo.storage_path]);
+    if (storageError && import.meta.env.DEV) {
+      console.warn("A foto foi removida do álbum, mas a limpeza do arquivo falhou.", storageError);
+    }
+  }
+}
+
+export async function softDeleteNexoPessoa(personId: string): Promise<void> {
+  const { error } = await supabase.rpc("nexo_remover_pessoa", { p_pessoa_id: personId });
+  if (error) throw error;
+}
