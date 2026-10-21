@@ -21,6 +21,7 @@ const props: ComponentProps<typeof NexoDossier> = {
   onDeletePhoto: save,
   onUploadResource: save,
   onDeleteResource: save,
+  onUpdateResourceObservation: save,
   onDeletePerson: save,
   onUploadOrganizationPhoto: save,
   onDeleteOrganizationPhoto: save,

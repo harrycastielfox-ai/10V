@@ -23,6 +23,7 @@ const {
   updateNexoPessoa,
   softDeleteNexoTerritorio,
   softDeleteNexoVeiculoVinculo,
+  updateNexoPessoaRecurso,
 } = await import("./nexoRepository");
 
 const person = { ...NEXO_DEMO_PESSOAS[0], updated_at: "2026-10-20T12:00:00.000Z" };
@@ -424,4 +425,40 @@ describe("NEXO persistence regressions", () => {
       expect(state.from).not.toHaveBeenCalled();
     },
   );
+
+  it("updates only the observation of an attached PDF", async () => {
+    const resourceBuilder = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({
+        data: {
+          id: "resource-id",
+          pessoa_id: person.id,
+          storage_path: "pessoas/person/recursos/resource-id.pdf",
+          original_filename: "inquerito.pdf",
+          mime_type: "application/pdf",
+          size_bytes: 128,
+          sha256: "a".repeat(64),
+          observacao: "Relatório final",
+          created_at: "2026-10-21T12:00:00.000Z",
+          created_by: "operator-id",
+        },
+        error: null,
+      }),
+    };
+    state.from.mockReturnValue(resourceBuilder);
+    state.storageFrom.mockReturnValue({
+      createSignedUrl: vi
+        .fn()
+        .mockResolvedValue({ data: { signedUrl: "https://signed.test" }, error: null }),
+    });
+
+    await expect(
+      updateNexoPessoaRecurso("resource-id", person.id, "  Relatório final  "),
+    ).resolves.toMatchObject({ observacao: "Relatório final", url: "https://signed.test" });
+    expect(resourceBuilder.update).toHaveBeenCalledWith({ observacao: "Relatório final" });
+    expect(resourceBuilder.eq).toHaveBeenCalledWith("id", "resource-id");
+    expect(resourceBuilder.eq).toHaveBeenCalledWith("pessoa_id", person.id);
+  });
 });

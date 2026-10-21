@@ -1312,6 +1312,7 @@ export function NexoDossier({
   onDeletePhoto,
   onUploadResource,
   onDeleteResource,
+  onUpdateResourceObservation,
   onDeletePerson,
   onUploadOrganizationPhoto,
   onDeleteOrganizationPhoto,
@@ -1340,6 +1341,11 @@ export function NexoDossier({
   onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
   onUploadResource: (person: NexoPessoa, file: File, observacao: string) => Promise<void>;
   onDeleteResource: (person: NexoPessoa, resourceId: string) => Promise<void>;
+  onUpdateResourceObservation: (
+    person: NexoPessoa,
+    resourceId: string,
+    observacao: string,
+  ) => Promise<void>;
   onDeletePerson: (person: NexoPessoa) => Promise<void>;
   onUploadOrganizationPhoto: (
     organization: NexoOrganizacao,
@@ -1364,6 +1370,9 @@ export function NexoDossier({
   const [resourceObservation, setResourceObservation] = useState("");
   const [resourceUploading, setResourceUploading] = useState(false);
   const [deletingResourceId, setDeletingResourceId] = useState<string | null>(null);
+  const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
+  const [editingResourceObservation, setEditingResourceObservation] = useState("");
+  const [savingResourceId, setSavingResourceId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deletingPerson, setDeletingPerson] = useState(false);
   const [confirmation, setConfirmation] = useState<{
@@ -2535,6 +2544,19 @@ export function NexoDossier({
                         </div>
                         <button
                           type="button"
+                          aria-label={`Editar observação de ${resource.original_filename}`}
+                          disabled={savingResourceId === resource.id}
+                          onClick={() => {
+                            setEditingResourceId(resource.id);
+                            setEditingResourceObservation(resource.observacao ?? "");
+                            setDeleteError("");
+                          }}
+                          className="rounded-lg border border-[#cfe0e8] p-1.5 text-[#3569a8] hover:bg-[#edf5ff] disabled:opacity-50"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
                           aria-label={`Remover recurso ${resource.original_filename}`}
                           disabled={deletingResourceId === resource.id}
                           onClick={() =>
@@ -2562,6 +2584,61 @@ export function NexoDossier({
                           <strong className="text-[#31536a]">Observação:</strong>{" "}
                           {resource.observacao}
                         </p>
+                      ) : null}
+                      {editingResourceId === resource.id ? (
+                        <div className="border-b border-[#edf2f5] bg-[#f8fbfd] px-4 py-3">
+                          <label className="block text-xs font-bold text-[#567184]">
+                            Observação do recurso
+                            <textarea
+                              value={editingResourceObservation}
+                              onChange={(event) =>
+                                setEditingResourceObservation(event.target.value)
+                              }
+                              maxLength={4000}
+                              rows={3}
+                              disabled={savingResourceId === resource.id}
+                              className="mt-1 block w-full resize-y rounded-xl border border-[#d9e5ed] bg-white px-3 py-2 text-sm font-normal text-[#18384f] outline-none focus:border-[#33a0b4]"
+                            />
+                          </label>
+                          <div className="mt-2 flex justify-end gap-2">
+                            <button
+                              type="button"
+                              disabled={savingResourceId === resource.id}
+                              onClick={() => setEditingResourceId(null)}
+                              className="rounded-lg border border-[#d5e1e8] px-3 py-2 text-xs font-bold text-[#567184] hover:bg-white disabled:opacity-50"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={savingResourceId === resource.id}
+                              onClick={async () => {
+                                setSavingResourceId(resource.id);
+                                setDeleteError("");
+                                try {
+                                  await onUpdateResourceObservation(
+                                    person,
+                                    resource.id,
+                                    editingResourceObservation,
+                                  );
+                                  setEditingResourceId(null);
+                                } catch (cause) {
+                                  setDeleteError(
+                                    cause instanceof Error
+                                      ? cause.message
+                                      : "Não foi possível atualizar a observação.",
+                                  );
+                                } finally {
+                                  setSavingResourceId(null);
+                                }
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#173d5b] px-3 py-2 text-xs font-bold text-white hover:bg-[#205575] disabled:opacity-50"
+                            >
+                              <Save className="h-3.5 w-3.5" />
+                              {savingResourceId === resource.id ? "Salvando…" : "Salvar"}
+                            </button>
+                          </div>
+                        </div>
                       ) : null}
                       {resource.url ? (
                         <iframe

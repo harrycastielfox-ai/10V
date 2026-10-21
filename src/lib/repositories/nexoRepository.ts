@@ -953,6 +953,24 @@ export async function deleteNexoPessoaRecurso(resourceId: string, personId: stri
   }
 }
 
+export async function updateNexoPessoaRecurso(
+  resourceId: string,
+  personId: string,
+  observacao: string,
+): Promise<NexoRecursoPdf> {
+  const { data, error } = await supabase
+    .from("nexo_pessoa_recursos")
+    .update({ observacao: clean(observacao) })
+    .eq("id", resourceId)
+    .eq("pessoa_id", personId)
+    .select(
+      "id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256, observacao, created_at, created_by",
+    )
+    .single();
+  if (error) throw error;
+  return { ...(data as NexoRecursoPdf), url: await signedUrl(data.storage_path) };
+}
+
 export async function softDeleteNexoPessoa(personId: string): Promise<void> {
   const { error } = await supabase.rpc("nexo_remover_pessoa", { p_pessoa_id: personId });
   if (!error) return;

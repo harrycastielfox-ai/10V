@@ -499,6 +499,34 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     setNotice("PDF removido da ficha");
   }
 
+  async function updateResourceObservation(
+    person: NexoPessoa,
+    resourceId: string,
+    observacao: string,
+  ) {
+    const current = person.recursos?.find((item) => item.id === resourceId);
+    if (!current) throw new Error("O PDF selecionado não está mais disponível.");
+    const resource = preview
+      ? { ...current, observacao: observacao.trim() || null }
+      : await (async () => {
+          const repo = await import("@/lib/repositories/nexoRepository");
+          return repo.updateNexoPessoaRecurso(resourceId, person.id, observacao);
+        })();
+    setPeople((currentPeople) =>
+      currentPeople.map((item) =>
+        item.id === person.id
+          ? {
+              ...item,
+              recursos: (item.recursos ?? []).map((item) =>
+                item.id === resourceId ? { ...item, ...resource } : item,
+              ),
+            }
+          : item,
+      ),
+    );
+    setNotice("Observação do PDF atualizada");
+  }
+
   async function deletePerson(person: NexoPessoa) {
     if (preview) {
       setPeople((current) => current.filter((item) => item.id !== person.id));
@@ -1026,6 +1054,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             onDeletePhoto={deletePhoto}
             onUploadResource={uploadResource}
             onDeleteResource={deleteResource}
+            onUpdateResourceObservation={updateResourceObservation}
             onDeletePerson={deletePerson}
             onUploadOrganizationPhoto={uploadOrganizationPhoto}
             onDeleteOrganizationPhoto={deleteOrganizationPhoto}
