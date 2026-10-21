@@ -81,4 +81,4 @@ docs/            # decisões de produto, contratos de dados, diagnósticos de se
 - Operações críticas (procedimentos, representações, usuários, permissões) devem gerar registro em auditoria.
 - Indicadores exibidos no sistema não devem ser inventados — a classificação de cada indicador (real, aproximado, heurístico) está documentada em `docs/central-pendencias-contrato-indicadores.md`.
 
-Para mais contexto de produto e decisões arquiteturais, veja a pasta [`docs/`](docs/), especialmente [`docs/visao-produto-sied.md`](docs/visao-produto-sied.md) e [`docs/identidade-sied.md`](docs/identidade-sied.md).
+Para mais contexto de produto e decisões arquiteturais, veja a pasta [`docs/`](docs), especialmente [`docs/visao-produto-sied.md`](docs/visao-produto-sied.md), [`docs/identidade-sied.md`](docs/identidade-sied.md) e o [`roadmap estratégico do NEXO`](docs/roadmap-nexo.md).
