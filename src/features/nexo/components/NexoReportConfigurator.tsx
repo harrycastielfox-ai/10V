@@ -7,6 +7,8 @@ import {
   FileText,
   Image,
   Printer,
+  Save,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -23,6 +25,14 @@ import {
   type NexoReportConfig,
   type NexoReportData,
 } from "../nexoReportConfig";
+import {
+  NEXO_REPORT_PRESETS_STORAGE_KEY,
+  parseNexoReportPresets,
+  removeNexoReportPreset,
+  serializeNexoReportPresets,
+  upsertNexoReportPreset,
+  type NexoReportPreset,
+} from "../nexoReportPresets";
 import type { NexoReportScope } from "../nexoTypes";
 import { NexoReport } from "./NexoReport";
 
@@ -51,6 +61,11 @@ export function NexoReportConfigurator({
   const [observationPickerOpen, setObservationPickerOpen] = useState(false);
   const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [presets, setPresets] = useState<NexoReportPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
+  const [activePresetId, setActivePresetId] = useState<string | undefined>();
+  const [activePresetVersion, setActivePresetVersion] = useState<number | undefined>();
+  const [presetNotice, setPresetNotice] = useState("");
   const data = useMemo(
     () => ({ organizacoes, pessoas, territorios, registros, observacoes }),
     [organizacoes, pessoas, territorios, registros, observacoes],
@@ -85,6 +100,75 @@ export function NexoReportConfigurator({
       document.body.style.overflow = previousBodyOverflow;
     };
   }, []);
+
+  useEffect(() => {
+    setPresets(
+      parseNexoReportPresets(
+        window.localStorage.getItem(NEXO_REPORT_PRESETS_STORAGE_KEY),
+        (value) => normalizeNexoReportConfig(value as NexoReportConfig),
+      ),
+    );
+  }, []);
+
+  function persistPresets(next: NexoReportPreset[]) {
+    setPresets(next);
+    window.localStorage.setItem(NEXO_REPORT_PRESETS_STORAGE_KEY, serializeNexoReportPresets(next));
+  }
+
+  function savePreset() {
+    const result = upsertNexoReportPreset(
+      presets,
+      presetName,
+      normalizeNexoReportConfig(config),
+      activePresetId,
+    );
+    if (!result.preset) {
+      setPresetNotice("Informe um nome para salvar o modelo.");
+      return;
+    }
+    persistPresets(result.presets);
+    setActivePresetId(result.preset.id);
+    setActivePresetVersion(result.preset.version);
+    setPresetName(result.preset.name);
+    setPresetNotice(`Modelo salvo na versão ${result.preset.version}.`);
+  }
+
+  function loadPreset(presetId: string) {
+    const preset = presets.find((item) => item.id === presetId);
+    if (!preset) {
+      setActivePresetId(undefined);
+      setActivePresetVersion(undefined);
+      setPresetName("");
+      return;
+    }
+    const latest = preset.versions.find((entry) => entry.version === preset.version);
+    setConfig(normalizeNexoReportConfig(latest?.config || preset.config));
+    setActivePresetId(preset.id);
+    setActivePresetVersion(preset.version);
+    setPresetName(preset.name);
+    setPresetNotice(`Modelo “${preset.name}” · versão ${preset.version} carregada.`);
+  }
+
+  function loadPresetVersion(version: number) {
+    const preset = presets.find((item) => item.id === activePresetId);
+    const snapshot = preset?.versions.find((entry) => entry.version === version);
+    if (!snapshot) return;
+    setConfig(normalizeNexoReportConfig(snapshot.config));
+    setActivePresetVersion(snapshot.version);
+    setPresetNotice(`Versão ${snapshot.version} carregada para revisão.`);
+  }
+
+  function deletePreset() {
+    if (!activePresetId) return;
+    const removed = presets.find((item) => item.id === activePresetId);
+    persistPresets(removeNexoReportPreset(presets, activePresetId));
+    setActivePresetId(undefined);
+    setActivePresetVersion(undefined);
+    setPresetName("");
+    setPresetNotice(
+      removed ? `Modelo “${removed.name}” removido deste navegador.` : "Modelo removido.",
+    );
+  }
 
   function switchScope(kind: NexoReportScope["kind"]) {
     setScope(
@@ -258,6 +342,79 @@ export function NexoReportConfigurator({
                   >
                     Selecionar todas as seções
                   </button>
+                </div>
+                <div className="mt-4 rounded-xl border border-[#dce8ee] bg-[#f7fafc] p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="min-w-[220px] flex-1 text-[11px] font-semibold text-[#47677c]">
+                      Modelo reutilizável
+                      <select
+                        value={activePresetId || ""}
+                        onChange={(event) => loadPreset(event.target.value)}
+                        className={`mt-1 ${inputClass}`}
+                      >
+                        <option value="">Novo modelo / configuração atual</option>
+                        {presets.map((preset) => (
+                          <option key={preset.id} value={preset.id}>
+                            {preset.name} · v{preset.version}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {activePresetId ? (
+                      <label className="min-w-[140px] text-[11px] font-semibold text-[#47677c]">
+                        Versão
+                        <select
+                          value={activePresetVersion || ""}
+                          onChange={(event) => loadPresetVersion(Number(event.target.value))}
+                          className={`mt-1 ${inputClass}`}
+                        >
+                          {presets
+                            .find((preset) => preset.id === activePresetId)
+                            ?.versions.slice()
+                            .sort((a, b) => b.version - a.version)
+                            .map((version) => (
+                              <option key={version.version} value={version.version}>
+                                v{version.version}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                    ) : null}
+                    <label className="min-w-[220px] flex-1 text-[11px] font-semibold text-[#47677c]">
+                      Nome da versão
+                      <input
+                        value={presetName}
+                        onChange={(event) => setPresetName(event.target.value)}
+                        maxLength={120}
+                        placeholder="Ex.: Relatório individual completo"
+                        className={`mt-1 ${inputClass}`}
+                      />
+                    </label>
+                    <div className="flex items-end gap-2 self-end">
+                      <button
+                        type="button"
+                        onClick={savePreset}
+                        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#12334a] px-3 py-2 text-[11px] font-bold text-white hover:bg-[#1d4b65]"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        {activePresetId ? "Salvar nova versão" : "Salvar modelo"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!activePresetId}
+                        onClick={deletePreset}
+                        aria-label="Excluir modelo selecionado"
+                        className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#e5caca] bg-white px-3 py-2 text-[#a44747] hover:bg-[#fff6f6] disabled:opacity-40"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-[#567184]">
+                    Modelos guardam seções, fotos, legendas, fontes e observações selecionadas.
+                    Ficam salvos somente neste navegador e não alteram o cadastro original.
+                    {presetNotice ? ` ${presetNotice}` : ""}
+                  </p>
                 </div>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {NEXO_REPORT_SECTIONS.map(({ key, label, detail }) => (
