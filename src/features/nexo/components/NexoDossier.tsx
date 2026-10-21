@@ -1640,7 +1640,12 @@ export function NexoDossier({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] bg-[#f6f9fc]" onMouseDown={onClose}>
+    <div
+      className="fixed inset-0 z-[80] bg-[#f6f9fc]"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <section
         role="dialog"
         aria-modal="true"
@@ -2801,12 +2806,18 @@ export function NexoDossier({
         />
       ) : null}
       {confirmation ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#102333]/45 p-4 backdrop-blur-[2px]">
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#102333]/45 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setConfirmation(null);
+          }}
+        >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="nexo-confirm-title"
             className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="flex items-start gap-3">
               <div className="rounded-xl bg-red-50 p-2.5 text-red-600">
