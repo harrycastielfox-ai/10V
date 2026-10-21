@@ -92,7 +92,23 @@ export async function listNexoOrganizacoes(): Promise<NexoOrganizacao[]> {
     .is("deleted_at", null)
     .order("nome");
   if (error) throw error;
-  return (data ?? []) as NexoOrganizacao[];
+  const organizations = (data ?? []) as NexoOrganizacao[];
+  const { data: photos, error: photoError } = await supabase
+    .from("nexo_fotos")
+    .select("id, organizacao_id, storage_path, legenda, categoria, capturada_em")
+    .not("organizacao_id", "is", null)
+    .order("capturada_em", { ascending: false });
+  if (photoError) throw photoError;
+  const hydratedPhotos = await Promise.all(
+    ((photos ?? []) as Array<NexoFoto & { organizacao_id: string }>).map(async (photo) => ({
+      ...photo,
+      url: await optionalSignedUrl(photo.storage_path),
+    })),
+  );
+  return organizations.map((organization) => ({
+    ...organization,
+    fotos: hydratedPhotos.filter((photo) => photo.organizacao_id === organization.id),
+  }));
 }
 
 export async function listNexoPessoas(): Promise<NexoPessoa[]> {
@@ -240,6 +256,60 @@ export async function updateNexoOrganizacao(
     .single();
   if (error) throw error;
   return data as NexoOrganizacao;
+}
+
+export async function softDeleteNexoOrganizacao(id: string): Promise<void> {
+  const { data, error } = await supabase.rpc("nexo_remover_organizacao", {
+    p_organizacao_id: id,
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Esta facção já foi removida ou não está mais disponível.");
+}
+
+export async function uploadNexoOrganizacaoPhoto(
+  organizationId: string,
+  file: File,
+  legenda: string,
+): Promise<NexoFoto & { organizacao_id: string; url: string | null }> {
+  const path = `organizacoes/${organizationId}/album/${crypto.randomUUID()}.${extensionFor(file)}`;
+  const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type || "image/jpeg",
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+  const { data, error } = await supabase
+    .from("nexo_fotos")
+    .insert({
+      organizacao_id: organizationId,
+      storage_path: path,
+      legenda: clean(legenda),
+      categoria: "album",
+    })
+    .select("id, organizacao_id, storage_path, legenda, categoria, capturada_em")
+    .single();
+  if (error) {
+    await supabase.storage.from(PRIVATE_BUCKET).remove([path]);
+    throw error;
+  }
+  return { ...(data as NexoFoto & { organizacao_id: string }), url: await signedUrl(path) };
+}
+
+export async function deleteNexoOrganizacaoPhoto(photoId: string, organizationId: string): Promise<void> {
+  const { data: photo, error: readError } = await supabase
+    .from("nexo_fotos")
+    .select("id, organizacao_id, storage_path")
+    .eq("id", photoId)
+    .eq("organizacao_id", organizationId)
+    .single();
+  if (readError) throw readError;
+  const { error: deleteError } = await supabase
+    .from("nexo_fotos")
+    .delete()
+    .eq("id", photo.id)
+    .eq("organizacao_id", organizationId);
+  if (deleteError) throw deleteError;
+  if (photo.storage_path) await supabase.storage.from(PRIVATE_BUCKET).remove([photo.storage_path]);
 }
 
 export async function createNexoVinculo(input: {

@@ -1308,6 +1308,9 @@ export function NexoDossier({
   onUploadPhoto,
   onDeletePhoto,
   onDeletePerson,
+  onUploadOrganizationPhoto,
+  onDeleteOrganizationPhoto,
+  onDeleteOrganization,
   onCreateLink,
   onManageLink,
   onCreatePersonForOrganization,
@@ -1331,6 +1334,9 @@ export function NexoDossier({
   onUploadPhoto: (person: NexoPessoa, file: File) => Promise<void>;
   onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
   onDeletePerson: (person: NexoPessoa) => Promise<void>;
+  onUploadOrganizationPhoto: (organization: NexoOrganizacao, file: File, legenda: string) => Promise<void>;
+  onDeleteOrganizationPhoto: (organization: NexoOrganizacao, photoId: string) => Promise<void>;
+  onDeleteOrganization: (organization: NexoOrganizacao) => Promise<void>;
   onCreateLink: (input: NexoLinkInput) => Promise<void>;
   onManageLink: (input: NexoVinculoManagementInput) => Promise<void>;
   onCreatePersonForOrganization: (organizationId: string) => void;
@@ -1341,6 +1347,7 @@ export function NexoDossier({
   const [expanded, setExpanded] = useState(target.kind === "organization");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [photoCaption, setPhotoCaption] = useState("");
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deletingPerson, setDeletingPerson] = useState(false);
@@ -1545,6 +1552,7 @@ export function NexoDossier({
           { id: "resumo", label: "Visão geral" },
           { id: "vinculos", label: "Integrantes" },
           { id: "procedimentos", label: "B.O. e inquéritos" },
+          { id: "galeria", label: "Imagens" },
           { id: "localizacao", label: "Territórios" },
           { id: "veiculos", label: "Veículos" },
           { id: "historico", label: "Linha do tempo" },
@@ -1724,6 +1732,25 @@ export function NexoDossier({
                   className="inline-flex rounded-xl border border-[#dce5ed] px-3 py-2 text-xs font-bold text-[#567184] hover:bg-[#f4f8fb]"
                 >
                   Voltar ao resumo
+                </button>
+              ) : null}
+              {organization ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfirmation({
+                      title: "Apagar facção",
+                      description: `A ficha de ${organization.nome} será removida da listagem. Vínculos, territórios e relações veiculares serão encerrados.`,
+                      actionLabel: "Apagar facção",
+                      run: async () => {
+                        try { await onDeleteOrganization(organization); }
+                        catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Não foi possível apagar a facção."); }
+                      },
+                    })
+                  }
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4" /> Apagar facção
                 </button>
               ) : null}
               <button
@@ -2448,6 +2475,53 @@ export function NexoDossier({
                   Álbum vazio. Adicione imagens complementares acima.
                 </p>
               ) : null}
+            </div>
+          ) : null}
+          {tab === "galeria" && organization ? (
+            <div>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="flex items-center gap-2 text-sm font-black text-[#1e405b]"><Camera className="h-4 w-4" /> Imagens da facção</h3>
+                  <p className="mt-1 text-xs text-[#567184]">Adicione fotos e identifique o que cada imagem representa.</p>
+                </div>
+                <label className="cursor-pointer rounded-xl bg-[#173d5b] px-3 py-2 text-xs font-bold text-white">
+                  <Plus className="mr-1 inline h-4 w-4" /> {uploading ? "Enviando…" : "Adicionar imagem"}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} className="hidden" onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    setUploading(true);
+                    setUploadError("");
+                    try { await onUploadOrganizationPhoto(organization, file, photoCaption); setPhotoCaption(""); }
+                    catch (cause) { setUploadError(cause instanceof Error ? cause.message : "Falha ao enviar a imagem."); }
+                    finally { setUploading(false); event.target.value = ""; }
+                  }} />
+                </label>
+              </div>
+              <label className="mt-3 block text-xs font-bold text-[#567184]">
+                Identificação da imagem
+                <input value={photoCaption} onChange={(event) => setPhotoCaption(event.target.value)} placeholder="Ex.: reunião, símbolo, veículo, local..." className="mt-1 h-10 w-full rounded-xl border border-[#d9e5ed] bg-white px-3 text-sm font-normal text-[#18384f] outline-none focus:border-[#33a0b4]" />
+              </label>
+              {uploadError ? <p role="alert" className="mt-3 text-xs text-red-700">{uploadError}</p> : null}
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {(organization.fotos ?? []).map((photo) => (
+                  <figure key={photo.id} className="overflow-hidden rounded-xl border border-[#dde8f0] bg-white">
+                    {photo.url ? <img src={photo.url} alt={photo.legenda || "Imagem da facção"} className="h-40 w-full object-cover" /> : <div className="flex h-40 items-center justify-center text-xs text-[#567184]">Imagem protegida</div>}
+                    <figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-[#5b7184]">
+                      <span className="min-w-0 truncate">{value(photo.legenda)}</span>
+                      <button type="button" aria-label={`Remover imagem ${photo.legenda || "da facção"}`} onClick={() => setConfirmation({
+                        title: "Remover imagem",
+                        description: "A imagem será removida da galeria da facção e o arquivo privado será excluído.",
+                        actionLabel: "Remover imagem",
+                        run: async () => {
+                          try { await onDeleteOrganizationPhoto(organization, photo.id); }
+                          catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Não foi possível remover a imagem."); }
+                        },
+                      })} className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+              {!(organization.fotos ?? []).length ? <p className="mt-4 rounded-2xl border border-dashed border-[#d4e0e9] p-8 text-center text-sm text-[#567184]">Nenhuma imagem adicionada. Use o botão acima para registrar a galeria da facção.</p> : null}
             </div>
           ) : null}
           {tab === "localizacao" && person ? (

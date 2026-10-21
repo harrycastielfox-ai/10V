@@ -244,6 +244,7 @@ export function NexoCreateDialog({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [personConflict, setPersonConflict] = useState(false);
+  const [discardConfirm, setDiscardConfirm] = useState(false);
   const [personStep, setPersonStep] = useState(0);
   const personCreationRequestIdRef = useRef(crypto.randomUUID());
   const acceptedDuplicateSnapshotRef = useRef("");
@@ -271,13 +272,10 @@ export function NexoCreateDialog({
 
   function requestClose() {
     if (saving) return;
-    if (
-      hasUnsavedChanges &&
-      !window.confirm(
-        "Descartar as alterações deste cadastro? Os dados preenchidos serão perdidos.",
-      )
-    )
+    if (hasUnsavedChanges) {
+      setDiscardConfirm(true);
       return;
+    }
     onClose();
   }
 
@@ -788,6 +786,18 @@ export function NexoCreateDialog({
           </div>
         </form>
       </section>
+      {discardConfirm ? (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#071d30]/55 p-4 backdrop-blur-[2px]">
+          <div role="dialog" aria-modal="true" aria-labelledby="discard-dialog-title" className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl">
+            <h2 id="discard-dialog-title" className="text-base font-black text-[#173d5b]">Descartar alterações?</h2>
+            <p className="mt-2 text-sm leading-6 text-[#567184]">Os dados preenchidos neste cadastro serão perdidos. Essa ação não altera outros registros.</p>
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setDiscardConfirm(false)} className="rounded-xl border border-[#d5e1e8] px-4 py-2.5 text-sm font-bold text-[#567184] hover:bg-[#f5f8fa]">Continuar editando</button>
+              <button type="button" onClick={onClose} className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-700">Descartar</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -27,6 +27,7 @@ export interface NexoOrganizacao {
   area_atuacao: string | null;
   nivel_risco: "baixo" | "moderado" | "alto" | "critico";
   simbolo_path: string | null;
+  fotos?: NexoFoto[];
   created_at: string;
 }
 
@@ -76,7 +77,8 @@ export interface NexoHierarquiaEvento {
 
 export interface NexoFoto {
   id: string;
-  pessoa_id: string;
+  pessoa_id: string | null;
+  organizacao_id?: string | null;
   storage_path: string;
   legenda: string | null;
   categoria: "perfil" | "relatorio" | "album";

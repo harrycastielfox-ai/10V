@@ -454,6 +454,59 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     setNotice("Cadastro apagado");
   }
 
+  async function uploadOrganizationPhoto(organization: NexoOrganizacao, file: File, legenda: string) {
+    const photo = preview
+      ? {
+          id: crypto.randomUUID(),
+          organizacao_id: organization.id,
+          pessoa_id: null,
+          storage_path: "preview",
+          legenda: legenda.trim() || file.name,
+          categoria: "album" as const,
+          capturada_em: null,
+          url: URL.createObjectURL(file),
+        }
+      : await (async () => {
+          const repo = await import("@/lib/repositories/nexoRepository");
+          return repo.uploadNexoOrganizacaoPhoto(organization.id, file, legenda.trim() || file.name);
+        })();
+    setOrganizations((current) =>
+      current.map((item) =>
+        item.id === organization.id ? { ...item, fotos: [...(item.fotos ?? []), photo] } : item,
+      ),
+    );
+    setNotice("Imagem adicionada à facção");
+  }
+
+  async function deleteOrganizationPhoto(organization: NexoOrganizacao, photoId: string) {
+    if (preview) {
+      setOrganizations((current) =>
+        current.map((item) =>
+          item.id === organization.id
+            ? { ...item, fotos: (item.fotos ?? []).filter((photo) => photo.id !== photoId) }
+            : item,
+        ),
+      );
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.deleteNexoOrganizacaoPhoto(photoId, organization.id);
+      await reload();
+    }
+    setNotice("Imagem removida da facção");
+  }
+
+  async function deleteOrganization(organization: NexoOrganizacao) {
+    if (preview) {
+      setOrganizations((current) => current.filter((item) => item.id !== organization.id));
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.softDeleteNexoOrganizacao(organization.id);
+      await reload();
+    }
+    setDossier(null);
+    setNotice("Facção apagada");
+  }
+
   async function saveLink(input: NexoLinkInput) {
     if (preview) {
       const organization = organizations.find((item) => item.id === input.organizacao_id);
@@ -902,6 +955,9 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             onUploadPhoto={uploadPhoto}
             onDeletePhoto={deletePhoto}
             onDeletePerson={deletePerson}
+            onUploadOrganizationPhoto={uploadOrganizationPhoto}
+            onDeleteOrganizationPhoto={deleteOrganizationPhoto}
+            onDeleteOrganization={deleteOrganization}
             onCreateLink={saveLink}
             onManageLink={manageLink}
             onCreatePersonForOrganization={(organizationId) => {
