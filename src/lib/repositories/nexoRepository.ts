@@ -98,7 +98,12 @@ export async function listNexoOrganizacoes(): Promise<NexoOrganizacao[]> {
     .select("id, organizacao_id, storage_path, legenda, categoria, capturada_em")
     .not("organizacao_id", "is", null)
     .order("capturada_em", { ascending: false });
-  if (photoError) throw photoError;
+  if (photoError) {
+    if (import.meta.env.DEV) {
+      console.warn("A galeria das facções não pôde ser carregada; o restante do NEXO continuará disponível.", photoError);
+    }
+    return organizations.map((organization) => ({ ...organization, fotos: [] }));
+  }
   const hydratedPhotos = await Promise.all(
     ((photos ?? []) as Array<NexoFoto & { organizacao_id: string }>).map(async (photo) => ({
       ...photo,
