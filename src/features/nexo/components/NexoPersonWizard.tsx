@@ -9,8 +9,16 @@ import {
   ScanFace,
   Trash2,
   UserRound,
+  X,
 } from "lucide-react";
-import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import type { NexoOrganizacao, NexoPessoaInput } from "../nexoTypes";
 
 const PERSON_STEPS = [
@@ -63,15 +71,30 @@ export function NexoPersonWizard({
   initialOrganizationId: string | null;
 }) {
   const [photoPreview, setPhotoPreview] = useState("");
+  const photoObjectUrlRef = useRef("");
   const extraDocuments = person.documentos_extras ?? [];
   const contacts = person.contatos ?? [];
 
-  useEffect(
-    () => () => {
-      if (photoPreview) URL.revokeObjectURL(photoPreview);
-    },
-    [photoPreview],
-  );
+  useEffect(() => {
+    const previousUrl = photoObjectUrlRef.current;
+    if (previousUrl) URL.revokeObjectURL(previousUrl);
+
+    if (!person.foto_perfil) {
+      photoObjectUrlRef.current = "";
+      setPhotoPreview("");
+      return;
+    }
+
+    const nextUrl = URL.createObjectURL(person.foto_perfil);
+    photoObjectUrlRef.current = nextUrl;
+    setPhotoPreview(nextUrl);
+    return () => {
+      if (photoObjectUrlRef.current === nextUrl) {
+        URL.revokeObjectURL(nextUrl);
+        photoObjectUrlRef.current = "";
+      }
+    };
+  }, [person.foto_perfil]);
 
   if (step === 0) {
     return (
@@ -80,43 +103,66 @@ export function NexoPersonWizard({
           <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#4e94a8]">
             Fotografia principal
           </p>
-          <label className="mt-3 flex min-h-[310px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border-2 border-dashed border-[#a8d2dc] bg-[#edf8fa] text-center transition hover:border-[#42aabc] hover:bg-[#e5f5f8]">
-            {photoPreview ? (
-              <img
-                src={photoPreview}
-                alt="Prévia da pessoa"
-                className="h-[310px] w-full object-cover"
+          <div className="relative mt-3">
+            <label className="flex min-h-[310px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border-2 border-dashed border-[#a8d2dc] bg-[#edf8fa] text-center transition hover:border-[#42aabc] hover:bg-[#e5f5f8]">
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt="Prévia da pessoa"
+                  className="h-[310px] w-full object-cover"
+                />
+              ) : (
+                <span className="p-7">
+                  <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white text-[#25879d] shadow-sm">
+                    <Camera className="h-8 w-8" />
+                  </span>
+                  <strong className="mt-5 block text-sm text-[#1e455e]">
+                    Adicionar fotografia
+                  </strong>
+                  <small className="mt-2 block text-xs leading-relaxed text-[#728b9a]">
+                    A mesma imagem será utilizada no perfil e nos relatórios em PDF.
+                  </small>
+                  <span className="mt-4 inline-block rounded-full bg-[#173d5b] px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white">
+                    Selecionar arquivo
+                  </span>
+                </span>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  event.currentTarget.value = "";
+                  setPerson((current) => ({
+                    ...current,
+                    foto_perfil: file,
+                    foto_relatorio: file,
+                  }));
+                }}
               />
-            ) : (
-              <span className="p-7">
-                <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white text-[#25879d] shadow-sm">
-                  <Camera className="h-8 w-8" />
-                </span>
-                <strong className="mt-5 block text-sm text-[#1e455e]">Adicionar fotografia</strong>
-                <small className="mt-2 block text-xs leading-relaxed text-[#728b9a]">
-                  A mesma imagem será utilizada no perfil e nos relatórios em PDF.
-                </small>
-                <span className="mt-4 inline-block rounded-full bg-[#173d5b] px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white">
-                  Selecionar arquivo
-                </span>
-              </span>
-            )}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0] || null;
-                if (photoPreview) URL.revokeObjectURL(photoPreview);
-                setPhotoPreview(file ? URL.createObjectURL(file) : "");
-                setPerson((current) => ({
-                  ...current,
-                  foto_perfil: file,
-                  foto_relatorio: file,
-                }));
-              }}
-            />
-          </label>
+            </label>
+            {photoPreview ? (
+              <button
+                type="button"
+                aria-label="Remover fotografia"
+                title="Remover fotografia"
+                onClick={() =>
+                  setPerson((current) => ({
+                    ...current,
+                    foto_perfil: null,
+                    foto_relatorio:
+                      current.foto_relatorio === current.foto_perfil
+                        ? null
+                        : current.foto_relatorio,
+                  }))
+                }
+                className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <div>

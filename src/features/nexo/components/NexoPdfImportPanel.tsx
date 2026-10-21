@@ -95,7 +95,9 @@ export function NexoPdfImportPanel({
         setOcrStatus(message.includes("OCR") ? "pendente" : "nao_aplicado");
       }
       try {
-        setPhotos(await readNexoPdfPhotos(file));
+        const extractedPhotos = await readNexoPdfPhotos(file);
+        setPhotos(extractedPhotos);
+        setPhotoChoice(extractedPhotos[0] ? { id: extractedPhotos[0].id, target: "perfil" } : null);
       } catch (cause) {
         setPhotoError(
           cause instanceof Error ? cause.message : "Não foi possível extrair imagens deste PDF.",
@@ -271,7 +273,9 @@ export function NexoPdfImportPanel({
                 Imagens encontradas no PDF ({photos.length})
               </h3>
               <p className="mt-1 text-xs text-[#627d8e]">
-                Escolha uma imagem e a finalidade. A página de origem será registrada na revisão.
+                {photoChoice
+                  ? "A primeira imagem foi selecionada automaticamente como fotografia principal. Você pode trocar ou não importar."
+                  : "Escolha uma imagem e a finalidade. A página de origem será registrada na revisão."}
               </p>
             </div>
             {photoChoice ? (
