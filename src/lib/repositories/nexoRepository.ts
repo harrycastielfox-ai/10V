@@ -855,5 +855,41 @@ export async function deleteNexoAlbumPhoto(photoId: string, personId: string): P
 
 export async function softDeleteNexoPessoa(personId: string): Promise<void> {
   const { error } = await supabase.rpc("nexo_remover_pessoa", { p_pessoa_id: personId });
-  if (error) throw error;
+  if (!error) return;
+
+  // Older deployments may still have a stale PostgREST schema cache after the
+  // removal RPC migration. Keep the RLS-protected update as a compatibility
+  // path while the cache catches up; authorization is still enforced by the
+  // nexo_pessoas update policy.
+  const isMissingRpc =
+    error.code === "PGRST202" ||
+    error.code === "42883" ||
+    /could not find the function|function .* does not exist/i.test(error.message || "");
+  if (!isMissingRpc) throw error;
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  if (!user) throw error;
+
+  const removedAt = new Date().toISOString();
+
+  const { data, error: updateError } = await supabase
+    .from("nexo_pessoas")
+    .update({ deleted_at: removedAt, updated_at: removedAt, updated_by: user.id })
+    .eq("id", personId)
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (!data) throw error;
+
+  const { error: linksError } = await supabase
+    .from("nexo_vinculos")
+    .update({ deleted_at: removedAt, updated_at: removedAt, updated_by: user.id })
+    .eq("pessoa_id", personId)
+    .is("deleted_at", null);
+  if (linksError) throw linksError;
 }

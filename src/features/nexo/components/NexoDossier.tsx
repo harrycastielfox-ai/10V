@@ -29,6 +29,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { BoRecord } from "@/features/bo/boTypes";
 import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
+import { getErrorMessage } from "@/lib/errorMessage";
 import type {
   NexoOrganizacao,
   NexoHierarquiaEvento,
@@ -1750,17 +1751,7 @@ export function NexoDossier({
                       title: "Apagar facção",
                       description: `A ficha de ${organization.nome} será removida da listagem. Vínculos, territórios e relações veiculares serão encerrados.`,
                       actionLabel: "Apagar facção",
-                      run: async () => {
-                        try {
-                          await onDeleteOrganization(organization);
-                        } catch (cause) {
-                          setDeleteError(
-                            cause instanceof Error
-                              ? cause.message
-                              : "Não foi possível apagar a facção.",
-                          );
-                        }
-                      },
+                      run: () => onDeleteOrganization(organization),
                     })
                   }
                   className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-black text-red-700 transition hover:bg-red-100"
@@ -1798,12 +1789,6 @@ export function NexoDossier({
                         setDeleteError("");
                         try {
                           await onDeletePerson(person);
-                        } catch (cause) {
-                          setDeleteError(
-                            cause instanceof Error
-                              ? cause.message
-                              : "Não foi possível apagar o cadastro.",
-                          );
                         } finally {
                           setDeletingPerson(false);
                         }
@@ -1833,6 +1818,14 @@ export function NexoDossier({
                 <Printer className="h-4 w-4" /> Gerar relatório
               </button>
             </div>
+            {deleteError ? (
+              <p
+                role="alert"
+                className="col-span-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
+              >
+                {deleteError}
+              </p>
+            ) : null}
           </div>
           <nav
             aria-label="Seções do dossiê"
@@ -2507,12 +2500,6 @@ export function NexoDossier({
                               setDeleteError("");
                               try {
                                 await onDeletePhoto(person, photo.id);
-                              } catch (cause) {
-                                setDeleteError(
-                                  cause instanceof Error
-                                    ? cause.message
-                                    : "Não foi possível remover a foto.",
-                                );
                               } finally {
                                 setDeletingPhotoId(null);
                               }
@@ -2615,17 +2602,7 @@ export function NexoDossier({
                             description:
                               "A imagem será removida da galeria da facção e o arquivo privado será excluído.",
                             actionLabel: "Remover imagem",
-                            run: async () => {
-                              try {
-                                await onDeleteOrganizationPhoto(organization, photo.id);
-                              } catch (cause) {
-                                setDeleteError(
-                                  cause instanceof Error
-                                    ? cause.message
-                                    : "Não foi possível remover a imagem.",
-                                );
-                              }
-                            },
+                            run: () => onDeleteOrganizationPhoto(organization, photo.id),
                           })
                         }
                         className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"
@@ -2844,9 +2821,12 @@ export function NexoDossier({
                 disabled={confirmationBusy}
                 onClick={async () => {
                   setConfirmationBusy(true);
+                  setDeleteError("");
                   try {
                     await confirmation.run();
                     setConfirmation(null);
+                  } catch (cause) {
+                    setDeleteError(getErrorMessage(cause, "Não foi possível concluir a exclusão."));
                   } finally {
                     setConfirmationBusy(false);
                   }
