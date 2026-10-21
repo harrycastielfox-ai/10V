@@ -28,7 +28,9 @@ describe("NEXO approval demo", () => {
       expect(person.fotos.some((photo) => photo.url === person.foto_perfil_url)).toBe(true);
       expect(person.profissao).toContain("fictício");
       expect(person.escolaridade).toContain("fictício");
-      expect(NEXO_APPROVAL_DEMO_DATA.observations.some((note) => note.pessoa_id === person.id)).toBe(true);
+      expect(
+        NEXO_APPROVAL_DEMO_DATA.observations.some((note) => note.pessoa_id === person.id),
+      ).toBe(true);
     }
   });
 });

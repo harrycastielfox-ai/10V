@@ -12,7 +12,11 @@ const names = [
   { nome: "Bonde do Maluco — DEMONSTRAÇÃO", sigla: "BDM · DEMO", cor: "#d97706" },
 ];
 
-const toyPhoto = (id: string, personId: string | null, organizationId: string | null): NexoFoto => ({
+const toyPhoto = (
+  id: string,
+  personId: string | null,
+  organizationId: string | null,
+): NexoFoto => ({
   id,
   pessoa_id: personId,
   organizacao_id: organizationId,
@@ -38,27 +42,41 @@ const people = organizations.flatMap((organization, index) =>
     const portraitPath = `demo-public/person-${portraitNumber}.png`;
     const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.png`;
     return {
-    ...person,
-    nome: `Pessoa fictícia ${organization.sigla.split(" ")[0]} ${String(personIndex + 1).padStart(2, "0")}`,
-    apelido: `Personagem ${String(index * 3 + personIndex + 1).padStart(2, "0")} (fictício)`,
-    escolaridade: ["Ensino médio (fictício)", "Ensino fundamental (fictício)", "Ensino superior (fictício)"][personIndex],
-    profissao: ["Comerciante (fictício)", "Motorista (fictício)", "Estudante (fictício)"][personIndex],
-    estado_civil: ["Solteiro(a) (fictício)", "Casado(a) (fictício)", "Solteiro(a) (fictício)"][personIndex],
-    foto_perfil_path: portraitPath,
-    foto_relatorio_path: portraitPath,
-    foto_perfil_url: portraitUrl,
-    foto_relatorio_url: portraitUrl,
-    observacoes: `Ficha de demonstração ${personIndex + 1}: dados pessoais e fotografia sintéticos. ${disclaimer}`,
-    fotos: [
-      ...person.fotos.map((photo) => ({ ...photo, storage_path: portraitPath, url: portraitUrl })),
-      toyPhoto(nexoPresentationId(12, index * 3 + personIndex + 1), person.id, null),
-    ],
-    vinculos: person.vinculos.map((link) => ({
-      ...link,
-      organizacao: organization,
-      fonte_resumo: "Vínculo inteiramente fictício para demonstração; não representa pessoa ou investigação real.",
-    })),
-  }; }),
+      ...person,
+      nome: `Pessoa fictícia ${organization.sigla.split(" ")[0]} ${String(personIndex + 1).padStart(2, "0")}`,
+      apelido: `Personagem ${String(index * 3 + personIndex + 1).padStart(2, "0")} (fictício)`,
+      escolaridade: [
+        "Ensino médio (fictício)",
+        "Ensino fundamental (fictício)",
+        "Ensino superior (fictício)",
+      ][personIndex],
+      profissao: ["Comerciante (fictício)", "Motorista (fictício)", "Estudante (fictício)"][
+        personIndex
+      ],
+      estado_civil: ["Solteiro(a) (fictício)", "Casado(a) (fictício)", "Solteiro(a) (fictício)"][
+        personIndex
+      ],
+      foto_perfil_path: portraitPath,
+      foto_relatorio_path: portraitPath,
+      foto_perfil_url: portraitUrl,
+      foto_relatorio_url: portraitUrl,
+      observacoes: `Ficha de demonstração ${personIndex + 1}: dados pessoais e fotografia sintéticos. ${disclaimer}`,
+      fotos: [
+        ...person.fotos.map((photo) => ({
+          ...photo,
+          storage_path: portraitPath,
+          url: portraitUrl,
+        })),
+        toyPhoto(nexoPresentationId(12, index * 3 + personIndex + 1), person.id, null),
+      ],
+      vinculos: person.vinculos.map((link) => ({
+        ...link,
+        organizacao: organization,
+        fonte_resumo:
+          "Vínculo inteiramente fictício para demonstração; não representa pessoa ou investigação real.",
+      })),
+    };
+  }),
 );
 
 const observations: NexoObservacao[] = [
