@@ -88,9 +88,7 @@ describe("panorama da Central NEXO", () => {
       ],
     });
     expect(html).toContain("2 vínculos atuais registrados");
-    expect(html).toMatch(
-      /<strong[^>]*>1<\/strong><span[^>]*>vínculos atuais sem fonte resumida<\/span>/,
-    );
+    expect(html).toMatch(/<strong[^>]*>1<\/strong><span[^>]*>Fonte do vínculo<\/span>/);
     expect(html).not.toContain("3 vínculos atuais registrados");
   });
 
