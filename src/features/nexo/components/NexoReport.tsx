@@ -11,6 +11,7 @@ import {
   groupNexoReportProcedures,
   normalizeNexoReportConfig,
   selectedNexoReportPhotos,
+  selectedNexoReportSources,
   selectNexoReportData,
   type NexoReportConfig,
 } from "../nexoReportConfig";
@@ -72,6 +73,7 @@ function PersonReport({
     registros.filter((item) => item.pessoa_id === pessoa.id),
   );
   const photos = selectedNexoReportPhotos(pessoa, config);
+  const sources = selectedNexoReportSources(pessoa, config);
   const mainPhoto = photos.find((photo) => photo.kind === "principal");
   const album = photos.filter((photo) => photo.kind !== "principal");
   const personObservations = observacoes.filter(
@@ -240,31 +242,34 @@ function PersonReport({
           )}
         </section>
       ) : null}
-      {pessoa.documentos_fontes?.length ? (
+      {sources.length ? (
         <section className="nexo-report-section">
-          <h3>Fontes documentais preservadas</h3>
+          <h3>Fontes documentais selecionadas</h3>
           <table>
             <thead>
               <tr>
                 <th>Documento</th>
+                <th>Origem</th>
                 <th>Hash SHA-256</th>
                 <th>Páginas</th>
                 <th>Extração</th>
               </tr>
             </thead>
             <tbody>
-              {pessoa.documentos_fontes.map((documento) => (
-                <tr key={documento.id}>
-                  <td>{documento.original_filename}</td>
-                  <td>{documento.sha256}</td>
-                  <td>{documento.page_count ?? "Não informado"}</td>
+              {sources.map((source) => (
+                <tr key={source.key}>
                   <td>
-                    {documento.ocr_status === "concluido"
-                      ? "OCR local concluído"
-                      : documento.ocr_status === "pendente"
-                        ? "OCR pendente"
-                        : "Texto selecionável"}
+                    {source.filename}
+                    {source.observation?.trim() ? (
+                      <small style={{ display: "block", marginTop: "1mm" }}>
+                        Observação: {source.observation}
+                      </small>
+                    ) : null}
                   </td>
+                  <td>{source.kind === "recurso" ? "Recurso anexado" : "PDF de origem"}</td>
+                  <td>{source.sha256 || "Não informado"}</td>
+                  <td>{source.pageCount ?? "Não informado"}</td>
+                  <td>{source.extraction}</td>
                 </tr>
               ))}
             </tbody>

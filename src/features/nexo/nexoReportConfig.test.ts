@@ -9,8 +9,10 @@ import {
   createNexoReportConfig,
   groupNexoReportProcedures,
   listNexoReportPhotos,
+  listNexoReportSources,
   normalizeNexoReportConfig,
   selectedNexoReportPhotos,
+  selectedNexoReportSources,
   selectNexoReportData,
   summarizeNexoReport,
 } from "./nexoReportConfig";
@@ -77,6 +79,49 @@ describe("configuração de relatórios NEXO", () => {
       "/extra.jpg",
       "/profile.jpg",
     ]);
+  });
+
+  it("lista PDFs de origem e recursos anexados com chaves independentes", () => {
+    const withSources: NexoPessoa = {
+      ...person,
+      documentos_fontes: [
+        {
+          id: "source-1",
+          pessoa_id: person.id,
+          storage_path: "source-1",
+          original_filename: "identificacao.pdf",
+          mime_type: "application/pdf",
+          size_bytes: 10,
+          sha256: "hash-1",
+          page_count: 2,
+          extractor_version: "v1",
+          ocr_status: "concluido",
+          created_at: "2026-10-18T15:00:00Z",
+        },
+      ],
+      recursos: [
+        {
+          id: "resource-1",
+          pessoa_id: person.id,
+          storage_path: "resource-1",
+          original_filename: "inquerito.pdf",
+          mime_type: "application/pdf",
+          size_bytes: 20,
+          sha256: "hash-2",
+          observacao: "Documento recebido da unidade de origem",
+          created_at: "2026-10-19T15:00:00Z",
+        },
+      ],
+    };
+    expect(listNexoReportSources(withSources).map((source) => source.kind)).toEqual([
+      "importacao",
+      "recurso",
+    ]);
+    const config = createNexoReportConfig();
+    config.excludedSourceKeys = [`${person.id}:recurso:resource-1`];
+    expect(selectedNexoReportSources(withSources, config).map((source) => source.filename)).toEqual(
+      ["identificacao.pdf"],
+    );
   });
 
   it("reconhece a mesma imagem pelo arquivo quando seus links assinados são diferentes", () => {
@@ -178,6 +223,7 @@ describe("configuração de relatórios NEXO", () => {
       addresses: 0,
       observations: 0,
       photos: 0,
+      sources: 0,
     });
   });
 });

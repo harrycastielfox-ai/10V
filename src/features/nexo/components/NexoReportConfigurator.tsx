@@ -15,6 +15,7 @@ import {
   createNexoReportConfig,
   listNexoReportPhotos,
   listNexoReportObservations,
+  listNexoReportSources,
   NEXO_REPORT_SECTIONS,
   normalizeNexoReportConfig,
   selectNexoReportData,
@@ -48,6 +49,7 @@ export function NexoReportConfigurator({
   const [config, setConfig] = useState(createNexoReportConfig);
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [observationPickerOpen, setObservationPickerOpen] = useState(false);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const data = useMemo(
     () => ({ organizacoes, pessoas, territorios, registros, observacoes }),
@@ -62,6 +64,10 @@ export function NexoReportConfigurator({
   const availableObservations = useMemo(
     () => listNexoReportObservations(scope, data),
     [scope, data],
+  );
+  const availableSources = useMemo(
+    () => selected.people.flatMap((person) => listNexoReportSources(person)),
+    [selected.people],
   );
   const scopeExists =
     scope.kind === "geral" ||
@@ -152,7 +158,7 @@ export function NexoReportConfigurator({
               className="m-0 grid w-full min-w-0 items-start gap-4 border-0 p-4 sm:p-6 lg:grid-cols-[.82fr_1.18fr]"
             >
               <section
-                className={`${photoPickerOpen || observationPickerOpen ? "hidden" : ""} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5`}
+                className={`${photoPickerOpen || observationPickerOpen || sourcePickerOpen ? "hidden" : ""} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5`}
               >
                 <div className="flex items-center gap-2.5">
                   <span
@@ -228,7 +234,7 @@ export function NexoReportConfigurator({
                 ) : null}
               </section>
               <section
-                className={`${photoPickerOpen || observationPickerOpen ? "hidden" : ""} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5`}
+                className={`${photoPickerOpen || observationPickerOpen || sourcePickerOpen ? "hidden" : ""} rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
@@ -301,6 +307,18 @@ export function NexoReportConfigurator({
                           <span>Escolher observações</span>
                           <span className="rounded-md bg-white px-2 py-1 tabular-nums text-[#355a70]">
                             {summary.observations}/{availableObservations.length}
+                          </span>
+                        </button>
+                      ) : null}
+                      {key === "sources" && config.sections.sources ? (
+                        <button
+                          type="button"
+                          onClick={() => setSourcePickerOpen(true)}
+                          className="mt-3 flex w-full items-center justify-between border-t border-[#cfe1e8] pt-2 text-left text-[11px] font-bold text-[#127b92] hover:text-[#0f6073]"
+                        >
+                          <span>Escolher fontes e PDFs</span>
+                          <span className="rounded-md bg-white px-2 py-1 tabular-nums text-[#355a70]">
+                            {summary.sources}/{availableSources.length}
                           </span>
                         </button>
                       ) : null}
@@ -546,6 +564,111 @@ export function NexoReportConfigurator({
                   </div>
                 </section>
               ) : null}
+              {sourcePickerOpen && config.sections.sources ? (
+                <section className="rounded-xl border border-[#d6e3eb] bg-white p-4 sm:p-5 lg:col-span-2">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-sm font-bold text-[#12334a]">
+                        Escolher fontes e documentos
+                      </h2>
+                      <p className="mt-1 text-xs leading-relaxed text-[#567184]">
+                        Selecione os PDFs que serão identificados no relatório. A escolha não altera
+                        nem remove os arquivos originais do dossiê.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+                      <button
+                        type="button"
+                        onClick={() => setSourcePickerOpen(false)}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-[#d6e3eb] bg-white px-2.5 py-1.5 text-[#47677c] hover:bg-[#f7fafc]"
+                      >
+                        <ArrowLeft className="h-3.5 w-3.5" /> Voltar às seções
+                      </button>
+                      {availableSources.length ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfig((current) => ({
+                                ...current,
+                                excludedSourceKeys: current.excludedSourceKeys.filter(
+                                  (key) => !availableSources.some((source) => source.key === key),
+                                ),
+                              }))
+                            }
+                            className="rounded-md border border-[#cfe0e8] bg-[#f7fafc] px-2.5 py-1.5 text-[#126b80]"
+                          >
+                            Selecionar todas
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfig((current) => ({
+                                ...current,
+                                excludedSourceKeys: [
+                                  ...current.excludedSourceKeys.filter(
+                                    (key) => !availableSources.some((source) => source.key === key),
+                                  ),
+                                  ...availableSources.map((source) => source.key),
+                                ],
+                              }))
+                            }
+                            className="rounded-md border border-[#dce5eb] bg-white px-2.5 py-1.5 text-[#567184]"
+                          >
+                            Limpar seleção
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {availableSources.map((source) => {
+                      const included = !config.excludedSourceKeys.includes(source.key);
+                      const person = selected.people.find((entry) => entry.id === source.personId);
+                      return (
+                        <label
+                          key={source.key}
+                          className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#dce6ed] p-4"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={included}
+                            onChange={(event) =>
+                              setConfig((current) => ({
+                                ...current,
+                                excludedSourceKeys: event.target.checked
+                                  ? current.excludedSourceKeys.filter((key) => key !== source.key)
+                                  : [...new Set([...current.excludedSourceKeys, source.key])],
+                              }))
+                            }
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-[#168aa1]"
+                          />
+                          <span className="min-w-0">
+                            <strong className="block break-words text-xs text-[#23475e]">
+                              {source.filename}
+                            </strong>
+                            <span className="mt-1 block text-[11px] font-semibold text-[#168aa1]">
+                              {source.kind === "recurso"
+                                ? "Recurso anexado"
+                                : "PDF de origem da importação"}
+                              {person ? ` · ${person.nome}` : ""}
+                            </span>
+                            <span className="mt-2 block text-xs leading-relaxed text-[#567184]">
+                              {source.observation?.trim() || source.extraction}
+                              {source.pageCount != null ? ` · ${source.pageCount} página(s)` : ""}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                    {!availableSources.length ? (
+                      <p className="rounded-lg border border-dashed border-[#d2e1e9] p-6 text-center text-xs text-[#567184]">
+                        Nenhum PDF ou documento-fonte disponível neste recorte.
+                      </p>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
             </fieldset>
           </div>
           <footer className="shrink-0 border-t border-[#d6e3eb] bg-white px-4 py-4 sm:px-6">
@@ -596,13 +719,17 @@ export function NexoReportConfigurator({
                     <b className="font-semibold tabular-nums text-[#12334a]">{summary.photos}</b>{" "}
                     foto(s)
                   </span>
+                  <span>
+                    <b className="font-semibold tabular-nums text-[#12334a]">{summary.sources}</b>{" "}
+                    fonte(s)
+                  </span>
                 </div>
               </div>
             </div>
             <div className="mt-3 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
               <p className="text-[11px] leading-relaxed text-[#567184]">
                 <strong className="font-semibold text-[#355a70]">
-                  {summary.sections} de 6 seções selecionadas
+                  {summary.sections} de {NEXO_REPORT_SECTIONS.length} seções selecionadas
                 </strong>
                 <span className="ml-1.5">· impressão ou salvar como PDF</span>
               </p>

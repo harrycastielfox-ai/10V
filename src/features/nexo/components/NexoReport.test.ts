@@ -56,6 +56,34 @@ describe("conteúdo dos PDFs do NEXO", () => {
         url: "/foto-extra-exclusiva.jpg",
       },
     ],
+    documentos_fontes: [
+      {
+        id: "source",
+        pessoa_id: "pessoa-1",
+        storage_path: "source",
+        original_filename: "origem.pdf",
+        mime_type: "application/pdf",
+        size_bytes: 100,
+        sha256: "HASH-ORIGEM",
+        page_count: 3,
+        extractor_version: "v1",
+        ocr_status: "concluido",
+        created_at: "2026-10-18T15:00:00Z",
+      },
+    ],
+    recursos: [
+      {
+        id: "resource",
+        pessoa_id: "pessoa-1",
+        storage_path: "resource",
+        original_filename: "recurso.pdf",
+        mime_type: "application/pdf",
+        size_bytes: 200,
+        sha256: "HASH-RECURSO",
+        observacao: "Fonte complementar",
+        created_at: "2026-10-19T15:00:00Z",
+      },
+    ],
   };
   const observation: NexoObservacao = {
     id: "note",
@@ -86,6 +114,16 @@ describe("conteúdo dos PDFs do NEXO", () => {
     expect(html).not.toContain("OBSERVAÇÃO-EXCLUSIVA");
     expect(html).not.toContain("ANOTAÇÃO-DATADA-EXCLUSIVA");
     expect(html).toContain(person.nome);
+  });
+
+  it("imprime somente as fontes documentais escolhidas", () => {
+    const config = createNexoReportConfig();
+    config.excludedSourceKeys = [`${person.id}:recurso:resource`];
+    const html = renderConfigured(config);
+    expect(html).toContain("origem.pdf");
+    expect(html).toContain("HASH-ORIGEM");
+    expect(html).not.toContain("recurso.pdf");
+    expect(html).not.toContain("Fonte complementar");
   });
 
   it("exclui a descrição de uma organização sem afetar outras seções", () => {

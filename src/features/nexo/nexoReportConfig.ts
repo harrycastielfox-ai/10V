@@ -27,6 +27,11 @@ export const NEXO_REPORT_SECTIONS = [
     label: "Fotografias",
     detail: "Escolha imagens e escreva legendas para esta emissão",
   },
+  {
+    key: "sources",
+    label: "Fontes e documentos",
+    detail: "Selecione PDFs importados e recursos anexados ao dossiê",
+  },
 ] as const;
 
 export type NexoReportSection = (typeof NEXO_REPORT_SECTIONS)[number]["key"];
@@ -36,6 +41,7 @@ export interface NexoReportConfig {
   excludedPhotoPersonIds: string[];
   photoOverrides: Record<string, { included?: boolean; caption?: string }>;
   excludedObservationKeys: string[];
+  excludedSourceKeys: string[];
 }
 
 export interface NexoReportData {
@@ -54,6 +60,18 @@ export interface NexoReportPhoto {
   kind: "principal" | "album";
 }
 
+export interface NexoReportSource {
+  key: string;
+  personId: string;
+  filename: string;
+  kind: "importacao" | "recurso";
+  pageCount: number | null;
+  sha256: string;
+  extraction: string;
+  observation: string | null;
+  createdAt: string;
+}
+
 export function createNexoReportConfig(): NexoReportConfig {
   return {
     sections: {
@@ -63,10 +81,12 @@ export function createNexoReportConfig(): NexoReportConfig {
       locations: true,
       observations: true,
       photographs: true,
+      sources: true,
     },
     excludedPhotoPersonIds: [],
     photoOverrides: {},
     excludedObservationKeys: [],
+    excludedSourceKeys: [],
   };
 }
 
@@ -82,6 +102,9 @@ export function normalizeNexoReportConfig(config?: NexoReportConfig): NexoReport
     : [];
   defaults.excludedObservationKeys = Array.isArray(config.excludedObservationKeys)
     ? config.excludedObservationKeys.filter((key): key is string => typeof key === "string")
+    : [];
+  defaults.excludedSourceKeys = Array.isArray(config.excludedSourceKeys)
+    ? config.excludedSourceKeys.filter((key): key is string => typeof key === "string")
     : [];
   if (config.photoOverrides && typeof config.photoOverrides === "object") {
     for (const [key, override] of Object.entries(config.photoOverrides)) {
@@ -177,6 +200,47 @@ export function selectedNexoReportPhotos(person: NexoPessoa, config?: NexoReport
       ...photo,
       caption: options.photoOverrides[photo.key]?.caption ?? photo.caption,
     }));
+}
+
+export function listNexoReportSources(person: NexoPessoa): NexoReportSource[] {
+  const imported = (person.documentos_fontes ?? []).map((documento) => ({
+    key: `${person.id}:fonte:${documento.id}`,
+    personId: person.id,
+    filename: documento.original_filename,
+    kind: "importacao" as const,
+    pageCount: documento.page_count,
+    sha256: documento.sha256,
+    extraction:
+      documento.ocr_status === "concluido"
+        ? "OCR local concluído"
+        : documento.ocr_status === "pendente"
+          ? "OCR pendente"
+          : documento.ocr_status === "indisponivel"
+            ? "OCR indisponível"
+            : "Texto selecionável",
+    observation: null,
+    createdAt: documento.created_at,
+  }));
+  const resources = (person.recursos ?? []).map((recurso) => ({
+    key: `${person.id}:recurso:${recurso.id}`,
+    personId: person.id,
+    filename: recurso.original_filename,
+    kind: "recurso" as const,
+    pageCount: null,
+    sha256: recurso.sha256,
+    extraction: "PDF anexado ao dossiê",
+    observation: recurso.observacao,
+    createdAt: recurso.created_at,
+  }));
+  return [...imported, ...resources];
+}
+
+export function selectedNexoReportSources(person: NexoPessoa, config?: NexoReportConfig) {
+  const options = normalizeNexoReportConfig(config);
+  if (!options.sections.sources) return [];
+  return listNexoReportSources(person).filter(
+    (source) => !options.excludedSourceKeys.includes(source.key),
+  );
 }
 
 export function selectNexoReportData(scope: NexoReportScope, data: NexoReportData) {
@@ -280,6 +344,10 @@ export function summarizeNexoReport(
       : 0,
     photos: selected.people.reduce(
       (count, person) => count + selectedNexoReportPhotos(person, options).length,
+      0,
+    ),
+    sources: selected.people.reduce(
+      (count, person) => count + selectedNexoReportSources(person, options).length,
       0,
     ),
   };
