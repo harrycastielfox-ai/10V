@@ -211,7 +211,7 @@ function LoginSplash({ active }: { active: boolean }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!active || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!active) {
       setVisible(false);
       return;
     }
