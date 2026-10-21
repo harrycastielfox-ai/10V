@@ -7,6 +7,7 @@ import type {
   NexoOrganizacaoInput,
   NexoObservacao,
   NexoDocumentoFonte,
+  NexoRecursoPdf,
   NexoPessoa,
   NexoPessoaInput,
   NexoPdfSourceInput,
@@ -51,13 +52,19 @@ async function optionalSignedUrl(path: string | null | undefined) {
 }
 
 async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
-  const [fotoPerfil, fotoRelatorio, fotos] = await Promise.all([
+  const [fotoPerfil, fotoRelatorio, fotos, recursos] = await Promise.all([
     optionalSignedUrl(pessoa.foto_perfil_path),
     optionalSignedUrl(pessoa.foto_relatorio_path),
     Promise.all(
       (pessoa.fotos ?? []).map(async (foto) => ({
         ...foto,
         url: await optionalSignedUrl(foto.storage_path),
+      })),
+    ),
+    Promise.all(
+      (pessoa.recursos ?? []).map(async (recurso) => ({
+        ...recurso,
+        url: await optionalSignedUrl(recurso.storage_path),
       })),
     ),
   ]);
@@ -67,6 +74,7 @@ async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
     foto_relatorio_url: fotoRelatorio,
     fotos,
     documentos_fontes: (pessoa.documentos_fontes ?? []) as NexoDocumentoFonte[],
+    recursos: (recursos ?? []) as NexoRecursoPdf[],
   };
 }
 
@@ -89,6 +97,10 @@ const PESSOA_SELECT = `
   ,documentos_fontes:nexo_documentos_fontes (
     id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256,
     page_count, extractor_version, ocr_status, created_at
+  )
+  ,recursos:nexo_pessoa_recursos (
+    id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256,
+    observacao, created_at, created_by
   )
 `;
 
@@ -528,6 +540,16 @@ async function sha256Hex(file: File) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function validatePdfResource(file: File) {
+  if (!file.name.toLowerCase().endsWith(".pdf") || file.size < 1 || file.size > 15 * 1024 * 1024) {
+    throw new Error("O recurso precisa ser um PDF entre 1 byte e 15 MB.");
+  }
+  const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  if (String.fromCharCode(...header) !== "%PDF") {
+    throw new Error("O arquivo selecionado não tem assinatura PDF válida.");
+  }
+}
+
 async function attachPessoaPdfSource(personId: string, source: NexoPdfSourceInput) {
   const file = source.file;
   if (!file.name.toLowerCase().endsWith(".pdf") || file.size < 1 || file.size > 15 * 1024 * 1024) {
@@ -858,6 +880,75 @@ export async function deleteNexoAlbumPhoto(photoId: string, personId: string): P
       .remove([photo.storage_path]);
     if (storageError && import.meta.env.DEV) {
       console.warn("A foto foi removida do álbum, mas a limpeza do arquivo falhou.", storageError);
+    }
+  }
+}
+
+export async function uploadNexoPessoaRecurso(
+  personId: string,
+  file: File,
+  observacao: string,
+): Promise<NexoRecursoPdf> {
+  await validatePdfResource(file);
+  const resourceId = crypto.randomUUID();
+  const path = `pessoas/${personId}/recursos/${resourceId}.pdf`;
+  const hash = await sha256Hex(file);
+  const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+
+  try {
+    const { data, error } = await supabase
+      .from("nexo_pessoa_recursos")
+      .insert({
+        id: resourceId,
+        pessoa_id: personId,
+        storage_path: path,
+        original_filename: file.name.slice(0, 255),
+        mime_type: "application/pdf",
+        size_bytes: file.size,
+        sha256: hash,
+        observacao: clean(observacao),
+      })
+      .select(
+        "id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256, observacao, created_at, created_by",
+      )
+      .single();
+    if (error) throw error;
+    return { ...(data as NexoRecursoPdf), url: await signedUrl(path) };
+  } catch (error) {
+    await supabase.from("nexo_pessoa_recursos").delete().eq("id", resourceId);
+    await supabase.storage.from(PRIVATE_BUCKET).remove([path]);
+    throw error;
+  }
+}
+
+export async function deleteNexoPessoaRecurso(resourceId: string, personId: string): Promise<void> {
+  const { data: resource, error: readError } = await supabase
+    .from("nexo_pessoa_recursos")
+    .select("id, pessoa_id, storage_path")
+    .eq("id", resourceId)
+    .eq("pessoa_id", personId)
+    .single();
+  if (readError) throw readError;
+  const { error: deleteError } = await supabase
+    .from("nexo_pessoa_recursos")
+    .delete()
+    .eq("id", resource.id)
+    .eq("pessoa_id", personId);
+  if (deleteError) throw deleteError;
+  if (resource.storage_path) {
+    const { error: storageError } = await supabase.storage
+      .from(PRIVATE_BUCKET)
+      .remove([resource.storage_path]);
+    if (storageError && import.meta.env.DEV) {
+      console.warn(
+        "O recurso foi removido, mas o arquivo privado não pôde ser limpo.",
+        storageError,
+      );
     }
   }
 }

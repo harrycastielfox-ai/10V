@@ -106,6 +106,7 @@ export function previewPersonFromInput(
     usar_local_faccao: input.usar_local_faccao,
     vinculos: links,
     fotos: existing?.fotos || [],
+    recursos: existing?.recursos || [],
     created_at: existing?.created_at || new Date().toISOString(),
   };
 }

@@ -7,6 +7,7 @@ import {
   ClipboardPenLine,
   Crown,
   ExternalLink,
+  FileArchive,
   FileText,
   LockKeyhole,
   MapPin,
@@ -59,7 +60,8 @@ type Tab =
   | "localizacao"
   | "veiculos"
   | "historico"
-  | "observacoes";
+  | "observacoes"
+  | "recursos";
 
 const TAB_ICONS: Record<Tab, typeof UserRound> = {
   resumo: ShieldCheck,
@@ -70,6 +72,7 @@ const TAB_ICONS: Record<Tab, typeof UserRound> = {
   veiculos: CarFront,
   historico: CalendarClock,
   observacoes: ClipboardPenLine,
+  recursos: FileArchive,
 };
 
 const TERRITORY_CATEGORY_LABELS: Record<NexoTerritorio["categoria"], string> = {
@@ -1307,6 +1310,8 @@ export function NexoDossier({
   onEdit,
   onUploadPhoto,
   onDeletePhoto,
+  onUploadResource,
+  onDeleteResource,
   onDeletePerson,
   onUploadOrganizationPhoto,
   onDeleteOrganizationPhoto,
@@ -1333,6 +1338,8 @@ export function NexoDossier({
   onEdit: (target: DossierTarget) => void;
   onUploadPhoto: (person: NexoPessoa, file: File) => Promise<void>;
   onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
+  onUploadResource: (person: NexoPessoa, file: File, observacao: string) => Promise<void>;
+  onDeleteResource: (person: NexoPessoa, resourceId: string) => Promise<void>;
   onDeletePerson: (person: NexoPessoa) => Promise<void>;
   onUploadOrganizationPhoto: (
     organization: NexoOrganizacao,
@@ -1353,6 +1360,10 @@ export function NexoDossier({
   const [uploadError, setUploadError] = useState("");
   const [photoCaption, setPhotoCaption] = useState("");
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [resourceFile, setResourceFile] = useState<File | null>(null);
+  const [resourceObservation, setResourceObservation] = useState("");
+  const [resourceUploading, setResourceUploading] = useState(false);
+  const [deletingResourceId, setDeletingResourceId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deletingPerson, setDeletingPerson] = useState(false);
   const [confirmation, setConfirmation] = useState<{
@@ -1551,6 +1562,7 @@ export function NexoDossier({
           { id: "veiculos", label: "Veículos" },
           { id: "historico", label: "Linha do tempo" },
           { id: "observacoes", label: "Observações" },
+          { id: "recursos", label: "Recursos" },
         ]
       : [
           { id: "resumo", label: "Visão geral" },
@@ -2420,6 +2432,171 @@ export function NexoDossier({
               onPreviewNoteCreated={onPreviewNoteCreated}
             />
           </div>
+          {tab === "recursos" && person ? (
+            <div className="space-y-5">
+              <section className="rounded-2xl border border-[#d7e3eb] bg-white p-5">
+                <div className="flex items-start gap-3">
+                  <span className="rounded-xl bg-[#edf5ff] p-2.5 text-[#3569a8]">
+                    <FileArchive className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-[#1e405b]">Adicionar recurso em PDF</h3>
+                    <p className="mt-1 text-xs leading-relaxed text-[#567184]">
+                      Anexe inquéritos, relatórios ou outros documentos diretamente nesta ficha. A
+                      observação ajuda a identificar o conteúdo sem abrir o arquivo.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto] lg:items-end">
+                  <label className="block text-xs font-bold text-[#567184]">
+                    PDF
+                    <input
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      disabled={resourceUploading}
+                      onChange={(event) => setResourceFile(event.target.files?.[0] || null)}
+                      className="mt-1 block h-10 w-full cursor-pointer rounded-xl border border-[#d9e5ed] bg-white px-2 py-2 text-xs font-normal text-[#36566d] file:mr-2 file:rounded-lg file:border-0 file:bg-[#edf5ff] file:px-2 file:py-1 file:text-xs file:font-bold file:text-[#3569a8]"
+                    />
+                  </label>
+                  <label className="block text-xs font-bold text-[#567184]">
+                    Observação do recurso
+                    <textarea
+                      value={resourceObservation}
+                      onChange={(event) => setResourceObservation(event.target.value)}
+                      disabled={resourceUploading}
+                      rows={2}
+                      maxLength={4000}
+                      placeholder="Ex.: Inquérito 04/2026, peças principais e relatório final."
+                      className="mt-1 block w-full resize-y rounded-xl border border-[#d9e5ed] bg-white px-3 py-2 text-sm font-normal text-[#18384f] outline-none focus:border-[#33a0b4]"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={!resourceFile || resourceUploading}
+                    onClick={async () => {
+                      if (!resourceFile) return;
+                      setResourceUploading(true);
+                      setDeleteError("");
+                      try {
+                        await onUploadResource(person, resourceFile, resourceObservation);
+                        setResourceFile(null);
+                        setResourceObservation("");
+                      } catch (cause) {
+                        setDeleteError(
+                          cause instanceof Error ? cause.message : "Não foi possível anexar o PDF.",
+                        );
+                      } finally {
+                        setResourceUploading(false);
+                      }
+                    }}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575] disabled:opacity-45"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {resourceUploading ? "Anexando…" : "Anexar PDF"}
+                  </button>
+                </div>
+                {deleteError ? (
+                  <p role="alert" className="mt-3 text-xs font-semibold text-red-700">
+                    {deleteError}
+                  </p>
+                ) : null}
+              </section>
+
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-sm font-black text-[#1e405b]">
+                      <FileArchive className="h-4 w-4 text-[#3569a8]" /> Recursos anexados
+                    </h3>
+                    <p className="mt-1 text-xs text-[#567184]">
+                      Arquivos privados vinculados exclusivamente a esta pessoa.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#edf5ff] px-2.5 py-1 text-[11px] font-black text-[#3569a8]">
+                    {(person.recursos ?? []).length} PDF(s)
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                  {(person.recursos ?? []).map((resource) => (
+                    <article
+                      key={resource.id}
+                      className="overflow-hidden rounded-2xl border border-[#d7e3eb] bg-white shadow-sm"
+                    >
+                      <div className="flex items-start gap-3 border-b border-[#edf2f5] p-4">
+                        <FileText className="mt-0.5 h-5 w-5 shrink-0 text-[#3569a8]" />
+                        <div className="min-w-0 flex-1">
+                          <strong className="block truncate text-sm text-[#29495f]">
+                            {resource.original_filename}
+                          </strong>
+                          <span className="mt-1 block text-[11px] text-[#718797]">
+                            {Math.max(1, Math.round(resource.size_bytes / 1024))} KB · anexado em{" "}
+                            {new Date(resource.created_at).toLocaleDateString("pt-BR")}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={`Remover recurso ${resource.original_filename}`}
+                          disabled={deletingResourceId === resource.id}
+                          onClick={() =>
+                            setConfirmation({
+                              title: "Remover recurso",
+                              description: `O PDF ${resource.original_filename} será removido desta ficha e do armazenamento privado.`,
+                              actionLabel: "Remover PDF",
+                              run: async () => {
+                                setDeletingResourceId(resource.id);
+                                try {
+                                  await onDeleteResource(person, resource.id);
+                                } finally {
+                                  setDeletingResourceId(null);
+                                }
+                              },
+                            })
+                          }
+                          className="rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {resource.observacao ? (
+                        <p className="border-b border-[#edf2f5] bg-[#f8fbfd] px-4 py-3 text-xs leading-relaxed text-[#567184]">
+                          <strong className="text-[#31536a]">Observação:</strong>{" "}
+                          {resource.observacao}
+                        </p>
+                      ) : null}
+                      {resource.url ? (
+                        <iframe
+                          title={`Prévia de ${resource.original_filename}`}
+                          src={resource.url}
+                          className="h-72 w-full border-0 bg-[#f7fafc]"
+                        />
+                      ) : (
+                        <p className="px-4 py-8 text-center text-xs text-[#718797]">
+                          Prévia indisponível para este arquivo.
+                        </p>
+                      )}
+                      {resource.url ? (
+                        <div className="flex justify-end border-t border-[#edf2f5] p-3">
+                          <a
+                            href={resource.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#cfe0e8] bg-[#f2f8fa] px-3 py-2 text-xs font-bold text-[#19778f]"
+                          >
+                            Abrir em nova aba <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </div>
+                      ) : null}
+                    </article>
+                  ))}
+                </div>
+                {!person.recursos?.length ? (
+                  <p className="mt-4 rounded-2xl border border-dashed border-[#d4e0e9] p-8 text-center text-sm text-[#567184]">
+                    Nenhum recurso anexado. Selecione um PDF acima para começar.
+                  </p>
+                ) : null}
+              </section>
+            </div>
+          ) : null}
           {tab === "galeria" && person ? (
             <div>
               <div className="flex items-center justify-between gap-3">

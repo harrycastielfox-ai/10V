@@ -100,6 +100,20 @@ export interface NexoDocumentoFonte {
   created_at: string;
 }
 
+export interface NexoRecursoPdf {
+  id: string;
+  pessoa_id: string;
+  storage_path: string;
+  original_filename: string;
+  mime_type: "application/pdf";
+  size_bytes: number;
+  sha256: string;
+  observacao: string | null;
+  created_at: string;
+  created_by?: string | null;
+  url?: string | null;
+}
+
 export interface NexoPdfSourceCandidate {
   field: string;
   label: string;
@@ -155,6 +169,7 @@ export interface NexoPessoa {
   vinculos: NexoVinculo[];
   fotos: NexoFoto[];
   documentos_fontes?: NexoDocumentoFonte[];
+  recursos?: NexoRecursoPdf[];
   created_at: string;
   updated_at?: string;
 }

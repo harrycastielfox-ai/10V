@@ -27,6 +27,7 @@ import type {
   NexoVinculoManagementInput,
   NexoHierarquiaEvento,
   NexoObservacao,
+  NexoRecursoPdf,
 } from "../nexoTypes";
 import { NexoCreateDialog, type CreateKind } from "../components/NexoCreateDialog";
 import { NexoBootSequence } from "../components/NexoBootSequence";
@@ -451,6 +452,51 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
       await reload();
     }
     setNotice("Foto removida do álbum");
+  }
+
+  async function uploadResource(person: NexoPessoa, file: File, observacao: string) {
+    const resource: NexoRecursoPdf = preview
+      ? {
+          id: crypto.randomUUID(),
+          pessoa_id: person.id,
+          storage_path: "preview",
+          original_filename: file.name,
+          mime_type: "application/pdf",
+          size_bytes: file.size,
+          sha256: "",
+          observacao: observacao.trim() || null,
+          created_at: new Date().toISOString(),
+          url: URL.createObjectURL(file),
+        }
+      : await (async () => {
+          const repo = await import("@/lib/repositories/nexoRepository");
+          return repo.uploadNexoPessoaRecurso(person.id, file, observacao);
+        })();
+    setPeople((current) =>
+      current.map((item) =>
+        item.id === person.id ? { ...item, recursos: [resource, ...(item.recursos ?? [])] } : item,
+      ),
+    );
+    setNotice("PDF anexado à ficha");
+  }
+
+  async function deleteResource(person: NexoPessoa, resourceId: string) {
+    const resource = person.recursos?.find((item) => item.id === resourceId);
+    if (preview) {
+      if (resource?.url?.startsWith("blob:")) URL.revokeObjectURL(resource.url);
+      setPeople((current) =>
+        current.map((item) =>
+          item.id === person.id
+            ? { ...item, recursos: (item.recursos ?? []).filter((item) => item.id !== resourceId) }
+            : item,
+        ),
+      );
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.deleteNexoPessoaRecurso(resourceId, person.id);
+      await reload();
+    }
+    setNotice("PDF removido da ficha");
   }
 
   async function deletePerson(person: NexoPessoa) {
@@ -978,6 +1024,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             }}
             onUploadPhoto={uploadPhoto}
             onDeletePhoto={deletePhoto}
+            onUploadResource={uploadResource}
+            onDeleteResource={deleteResource}
             onDeletePerson={deletePerson}
             onUploadOrganizationPhoto={uploadOrganizationPhoto}
             onDeleteOrganizationPhoto={deleteOrganizationPhoto}
