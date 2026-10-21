@@ -163,6 +163,9 @@ describe("sugestões de cadastro a partir de PDF", () => {
     expect(result.endereco.municipio).toBe("Cidade Teste");
     expect(result.fonte_resumo).toContain("modelo.pdf");
     expect(result.fonte_resumo).toContain("O original será preservado com hash");
-    expect(result.observacoes).toContain("Nome completo (NIMBA, p. 1)");
+    expect(result.observacoes).toContain(
+      'Importação revisada do PDF "modelo.pdf": 2 campo(s) confirmado(s); fonte(s): NIMBA; página(s): 1.',
+    );
+    expect(result.observacoes).not.toContain("Nome completo (NIMBA, p. 1)");
   });
 });

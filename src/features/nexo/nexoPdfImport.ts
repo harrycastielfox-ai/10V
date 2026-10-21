@@ -519,7 +519,12 @@ export function applyNexoPdfCandidates(
       next[key] = item.value;
     }
   }
-  const reference = `Dados sugeridos por PDF e revisados no cadastro: ${fileName}; campos ${selected.map((item) => `${item.label} (${item.source}, p. ${item.page})`).join(", ")}.`;
+  const sources = [...new Set(selected.map((item) => item.source))];
+  const pages = [...new Set(selected.map((item) => item.page))].sort((a, b) => a - b);
+  const pageLabel = pages.length ? pages.join(", ") : "não informadas";
+  const reference = selected.length
+    ? `Importação revisada do PDF "${fileName}": ${selected.length} campo(s) confirmado(s); fonte(s): ${sources.join(", ")}; página(s): ${pageLabel}.`
+    : `PDF anexado para conferência: "${fileName}".`;
   next.observacoes = [person.observacoes.trim(), reference].filter(Boolean).join("\n\n");
   next.fonte_resumo = [
     person.fonte_resumo.trim(),

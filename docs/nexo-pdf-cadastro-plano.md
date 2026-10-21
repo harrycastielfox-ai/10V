@@ -10,7 +10,7 @@ Plano baseado nos três PDFs fornecidos pelo usuário em 21/10/2026. Eles contê
 - Imagens incorporadas (inclusive imagens inline e repetidas, comuns em PDFs exportados por sistemas antigos) também são detectadas em memória: o operador vê a miniatura e escolhe se ela será foto de perfil, foto do relatório ou não será importada. Imagens rasterizadas de página inteira são ignoradas para evitar confundir documento escaneado com retrato.
 - A finalidade escolhida é mantida até o salvamento: foto de perfil e foto exclusiva do relatório são gravadas nas colunas correspondentes; quando a mesma imagem é usada nas duas finalidades, um único arquivo é referenciado.
 - Páginas reconhecidas como SIGIP (ocorrência) e RENAVAM (veículo) não são tratadas como qualificação da pessoa. PDF somente em imagem informa a necessidade de OCR.
-- A fonte resumida e as observações registram nome do arquivo, campos escolhidos e páginas. A tabela de fonte preserva o original privado, hash, autor, extração e alegações selecionadas; isso ainda não substitui a conferência humana nem prova autenticidade dos valores.
+- A fonte resumida e a observação automática registram o arquivo, as fontes e as páginas de forma curta. A tabela de fonte preserva o original privado, hash, autor, extração e alegações selecionadas; isso ainda não substitui a conferência humana nem prova autenticidade dos valores.
 
 ## Etapas concluídas nesta versão
 
