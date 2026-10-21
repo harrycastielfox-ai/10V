@@ -208,6 +208,7 @@ Esta sequência não aprova a execução das fases nem estabelece prazos. Cada i
 - [`nexo-prontidao-uso-diario.md`](nexo-prontidao-uso-diario.md): critérios operacionais, integridade, recuperação, qualidade e lacunas para uso diário.
 - [`visao-produto-sied.md`](visao-produto-sied.md): visão institucional, segurança, auditoria e preferência por dados reais e indicadores explicáveis.
 - [`central-pendencias-contrato-indicadores.md`](central-pendencias-contrato-indicadores.md): contrato de indicadores e limites para não inventar métricas.
+- [`nexo-ia-assistida-avaliacao.md`](nexo-ia-assistida-avaliacao.md): avaliação inicial da assistência local, riscos, gates de segurança e decisões pendentes para IA generativa.
 - `NexoWorkspacePage.tsx`, `NexoCreateDialog.tsx`, `NexoPdfImportPanel.tsx`, `NexoPersonWizard.tsx`, `NexoDossier.tsx`, `NexoReportConfigurator.tsx`, `NexoReport.tsx`, `NexoReportsHub.tsx`, `NexoIntelligenceBoard.tsx`, `nexoPdfImport.ts` e `nexoRepository.ts`: componentes e camadas verificadas para o estado atual.
 - Testes de importação, wizard, dossiê, repositório, duplicidades, dashboard, diretório, relatórios, rotas, filtros e inteligência: evidência de comportamento existente e base para regressões futuras.
 
