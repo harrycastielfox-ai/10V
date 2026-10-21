@@ -287,21 +287,24 @@
     max-height: none !important;
   }
 
+  body:has(.nexo-print-document) > :not(.nexo-print-document) {
+    display: none !important;
+  }
+
   body:has(.nexo-print-document) .nexo-print-document,
   body:has(.nexo-print-document) .nexo-print-document * {
     visibility: visible !important;
   }
 
   body:has(.nexo-print-document) .nexo-print-document {
-    position: absolute !important;
-    inset: 0 auto auto 0 !important;
+    position: static !important;
     display: block !important;
-    width: 100% !important;
+    width: auto !important;
     color: #111827 !important;
     background: #fff !important;
     font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 8pt !important;
-    line-height: 1.35 !important;
+    font-size: 9pt !important;
+    line-height: 1.4 !important;
   }
 
   .nexo-report-letterhead {
@@ -423,8 +426,8 @@
   }
 
   .nexo-report-section {
-    margin-top: 2.2mm !important;
-    border: 0.35mm solid #263746 !important;
+    margin-top: 3mm !important;
+    border: 0.25mm solid #8fa5b2 !important;
     break-inside: avoid !important;
   }
 
@@ -432,12 +435,14 @@
     margin: 0 !important;
     padding: 1.2mm 2mm !important;
     border-bottom: 0.3mm solid #263746 !important;
-    background: #eaf0f3 !important;
+    background: #eaf3f6 !important;
     color: #17212b !important;
-    font-size: 7pt !important;
+    font-size: 8pt !important;
     font-weight: 900 !important;
     letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
+    break-after: avoid-page !important;
+    page-break-after: avoid !important;
   }
 
   .nexo-report-section > p {
@@ -475,6 +480,11 @@
     min-height: 38mm !important;
     border: 0.45mm solid #0e7490 !important;
     background: linear-gradient(105deg, #eefafd, #fff) !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  .nexo-report-person-hero-no-photo {
+    grid-template-columns: 1fr !important;
   }
   .nexo-report-person-photo {
     display: flex !important;
@@ -486,7 +496,7 @@
   .nexo-report-person-photo img {
     width: 100% !important;
     height: 38mm !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
   }
   .nexo-report-person-photo span {
     color: #0e7490 !important;
@@ -536,7 +546,7 @@
   }
   .nexo-report-grid dt {
     color: #64748b !important;
-    font-size: 5.5pt !important;
+    font-size: 7pt !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
   }
@@ -544,6 +554,7 @@
     margin: 0.5mm 0 0 !important;
     color: #111827 !important;
     font-weight: 700 !important;
+    overflow-wrap: anywhere !important;
   }
   .nexo-report-link {
     padding: 1.6mm 2mm !important;
@@ -562,13 +573,27 @@
     color: #475569 !important;
   }
 
+  /* Keep the textual dossier and the photographic annex in separate parts.
+     An annex may span several pages; each figure remains a single print unit. */
+  .nexo-report-album {
+    break-before: page !important;
+    page-break-before: always !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
   .nexo-report-album > div {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
+    display: block !important;
+    font-size: 0 !important;
   }
   .nexo-report-album figure {
+    display: inline-block !important;
+    width: 33.333% !important;
+    vertical-align: top !important;
     margin: 0 !important;
     border-right: 0.2mm solid #cbd5e1 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    font-size: 8pt !important;
   }
   .nexo-report-album img,
   .nexo-report-album figure > span {
@@ -577,7 +602,7 @@
     height: 38mm !important;
     align-items: center !important;
     justify-content: center !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     background: #e2e8f0 !important;
     color: #64748b !important;
   }
@@ -586,13 +611,13 @@
     color: #475569 !important;
     font-size: 6pt !important;
     text-align: center !important;
+    overflow-wrap: anywhere !important;
   }
 
   .nexo-report-footer {
-    position: fixed !important;
-    right: 0 !important;
-    bottom: -5mm !important;
-    left: 0 !important;
+    position: static !important;
+    margin-top: 5mm !important;
+    break-inside: avoid !important;
     display: flex !important;
     justify-content: space-between !important;
     padding-top: 1.5mm !important;

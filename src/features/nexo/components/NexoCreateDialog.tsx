@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Building2,
+  FileText,
   CornerDownLeft,
   MapPinned,
   RotateCcw,
@@ -21,6 +22,8 @@ import type {
 import { findPossibleNexoPersonDuplicates } from "../nexoPersonDuplicates";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { NexoPersonWizard, PersonWizardProgress } from "./NexoPersonWizard";
+import { NexoPdfImportPanel } from "./NexoPdfImportPanel";
+import { applyNexoPdfCandidates } from "../nexoPdfImport";
 
 export type CreateKind = "territorio" | "organizacao" | "pessoa";
 const PERSON_STEP_COUNT = 6;
@@ -246,6 +249,10 @@ export function NexoCreateDialog({
   const [personConflict, setPersonConflict] = useState(false);
   const [discardConfirm, setDiscardConfirm] = useState(false);
   const [personStep, setPersonStep] = useState(0);
+  const [personMode, setPersonMode] = useState<"choose" | "manual" | "pdf">(
+    initialPerson ? "manual" : "choose",
+  );
+  const [importNotice, setImportNotice] = useState("");
   const personCreationRequestIdRef = useRef(crypto.randomUUID());
   const acceptedDuplicateSnapshotRef = useRef("");
   const initialSnapshotRef = useRef(registrationSnapshot(organization, person, territory));
@@ -282,6 +289,7 @@ export function NexoCreateDialog({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving) return;
+    if (kind === "pessoa" && personMode !== "manual") return;
     if (kind === "pessoa" && personStep < PERSON_STEP_COUNT - 1) {
       nextPersonStep();
       return;
@@ -386,7 +394,9 @@ export function NexoCreateDialog({
             <X className="h-5 w-5" />
           </button>
         </div>
-        {kind === "pessoa" ? <PersonWizardProgress step={personStep} /> : null}
+        {kind === "pessoa" && personMode === "manual" ? (
+          <PersonWizardProgress step={personStep} />
+        ) : null}
         <form
           inert={saving}
           aria-busy={saving}
@@ -482,8 +492,79 @@ export function NexoCreateDialog({
             </>
           ) : null}
 
-          {kind === "pessoa" ? (
+          {kind === "pessoa" && personMode === "choose" ? (
             <div className="flex-1">
+              <h3 className="text-lg font-black text-[#173d5b]">Como deseja iniciar o cadastro?</h3>
+              <p className="mt-1 text-sm text-[#567184]">
+                Escolha o modo de entrada. Os dois caminhos levam à mesma revisão antes de salvar.
+              </p>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setPersonMode("manual")}
+                  className="rounded-2xl border border-[#c9dde6] bg-white p-6 text-left shadow-sm hover:border-[#35a3b5] hover:bg-[#f4fbfc]"
+                >
+                  <UserRound className="h-8 w-8 text-[#198aa0]" />
+                  <strong className="mt-4 block text-base text-[#173d5b]">Manual</strong>
+                  <span className="mt-2 block text-sm leading-6 text-[#567184]">
+                    Preencha a ficha passo a passo com as informações disponíveis.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPersonMode("pdf")}
+                  className="rounded-2xl border border-[#c9dde6] bg-white p-6 text-left shadow-sm hover:border-[#35a3b5] hover:bg-[#f4fbfc]"
+                >
+                  <FileText className="h-8 w-8 text-[#198aa0]" />
+                  <strong className="mt-4 block text-base text-[#173d5b]">Anexo PDF</strong>
+                  <span className="mt-2 block text-sm leading-6 text-[#567184]">
+                    Leia um PDF textual, escolha os campos encontrados e confira tudo na ficha.
+                  </span>
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {kind === "pessoa" && personMode === "pdf" ? (
+            <div className="flex-1">
+              <NexoPdfImportPanel
+                onBack={() => setPersonMode("choose")}
+                onApply={(candidates, fileName, photo) => {
+                  setPerson((current) => {
+                    const next = applyNexoPdfCandidates(current, candidates, fileName);
+                    if (photo) {
+                      next[photo.target === "perfil" ? "foto_perfil" : "foto_relatorio"] =
+                        photo.candidate.file;
+                      next.observacoes = `${next.observacoes}\nImagem extraída da página ${photo.candidate.page} do PDF e selecionada como foto de ${photo.target}.`;
+                    }
+                    return next;
+                  });
+                  setPersonStep(0);
+                  setImportNotice(
+                    `${candidates.length} campo(s) sugerido(s) pelo PDF. Confira a ficha e as informações de origem antes de salvar.`,
+                  );
+                  setPersonMode("manual");
+                }}
+              />
+            </div>
+          ) : null}
+
+          {kind === "pessoa" && personMode === "manual" ? (
+            <div className="flex-1">
+              {!initialPerson ? (
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#cce2e9] bg-[#ecf7f9] px-4 py-3 text-xs text-[#2d6377]">
+                  <span>
+                    {importNotice || "Cadastro manual: revise todos os dados antes de salvar."}
+                  </span>
+                  <button
+                    type="button"
+                    className="font-bold underline"
+                    onClick={() => setPersonMode("choose")}
+                  >
+                    Trocar modo
+                  </button>
+                </div>
+              ) : null}
               <NexoPersonWizard
                 step={personStep}
                 person={person}
@@ -746,54 +827,78 @@ export function NexoCreateDialog({
               ) : null}
             </div>
           ) : null}
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#dbe6ed] bg-white p-4">
-            {kind === "pessoa" && personStep > 0 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setPersonStep((current) => Math.max(current - 1, 0));
-                }}
-                className="nexo-action-secondary"
-              >
-                <ArrowLeft className="h-4 w-4" /> Anterior
-              </button>
-            ) : (
-              <span />
-            )}
-            {kind === "pessoa" && personStep < PERSON_STEP_COUNT - 1 ? (
-              <button
-                key="person-next-step"
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault();
-                  nextPersonStep();
-                }}
-                className="nexo-action-primary"
-              >
-                Próximo <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button
-                key="save-record"
-                type="submit"
-                disabled={saving}
-                className="nexo-action-primary"
-              >
-                <Save className="h-4 w-4" /> {saving ? "Salvando…" : "Salvar registro"}
-              </button>
-            )}
-          </div>
+          {kind !== "pessoa" || personMode === "manual" ? (
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#dbe6ed] bg-white p-4">
+              {kind === "pessoa" && personStep > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setPersonStep((current) => Math.max(current - 1, 0));
+                  }}
+                  className="nexo-action-secondary"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Anterior
+                </button>
+              ) : (
+                <span />
+              )}
+              {kind === "pessoa" && personStep < PERSON_STEP_COUNT - 1 ? (
+                <button
+                  key="person-next-step"
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    nextPersonStep();
+                  }}
+                  className="nexo-action-primary"
+                >
+                  Próximo <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  key="save-record"
+                  type="submit"
+                  disabled={saving}
+                  className="nexo-action-primary"
+                >
+                  <Save className="h-4 w-4" /> {saving ? "Salvando…" : "Salvar registro"}
+                </button>
+              )}
+            </div>
+          ) : null}
         </form>
       </section>
       {discardConfirm ? (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-[#071d30]/55 p-4 backdrop-blur-[2px]">
-          <div role="dialog" aria-modal="true" aria-labelledby="discard-dialog-title" className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl">
-            <h2 id="discard-dialog-title" className="text-base font-black text-[#173d5b]">Descartar alterações?</h2>
-            <p className="mt-2 text-sm leading-6 text-[#567184]">Os dados preenchidos neste cadastro serão perdidos. Essa ação não altera outros registros.</p>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="discard-dialog-title"
+            className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl"
+          >
+            <h2 id="discard-dialog-title" className="text-base font-black text-[#173d5b]">
+              Descartar alterações?
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[#567184]">
+              Os dados preenchidos neste cadastro serão perdidos. Essa ação não altera outros
+              registros.
+            </p>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setDiscardConfirm(false)} className="rounded-xl border border-[#d5e1e8] px-4 py-2.5 text-sm font-bold text-[#567184] hover:bg-[#f5f8fa]">Continuar editando</button>
-              <button type="button" onClick={onClose} className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-700">Descartar</button>
+              <button
+                type="button"
+                onClick={() => setDiscardConfirm(false)}
+                className="rounded-xl border border-[#d5e1e8] px-4 py-2.5 text-sm font-bold text-[#567184] hover:bg-[#f5f8fa]"
+              >
+                Continuar editando
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-black text-white hover:bg-red-700"
+              >
+                Descartar
+              </button>
             </div>
           </div>
         </div>

@@ -35,6 +35,7 @@ export interface NexoReportConfig {
   sections: Record<NexoReportSection, boolean>;
   excludedPhotoPersonIds: string[];
   photoOverrides: Record<string, { included?: boolean; caption?: string }>;
+  excludedObservationKeys: string[];
 }
 
 export interface NexoReportData {
@@ -65,6 +66,7 @@ export function createNexoReportConfig(): NexoReportConfig {
     },
     excludedPhotoPersonIds: [],
     photoOverrides: {},
+    excludedObservationKeys: [],
   };
 }
 
@@ -77,6 +79,9 @@ export function normalizeNexoReportConfig(config?: NexoReportConfig): NexoReport
   }
   defaults.excludedPhotoPersonIds = Array.isArray(config.excludedPhotoPersonIds)
     ? config.excludedPhotoPersonIds.filter((id): id is string => typeof id === "string")
+    : [];
+  defaults.excludedObservationKeys = Array.isArray(config.excludedObservationKeys)
+    ? config.excludedObservationKeys.filter((key): key is string => typeof key === "string")
     : [];
   if (config.photoOverrides && typeof config.photoOverrides === "object") {
     for (const [key, override] of Object.entries(config.photoOverrides)) {
@@ -216,6 +221,33 @@ export function selectNexoReportData(scope: NexoReportScope, data: NexoReportDat
   };
 }
 
+export function listNexoReportObservations(scope: NexoReportScope, data: NexoReportData) {
+  const selected = selectNexoReportData(scope, data);
+  return [
+    ...selected.organizations
+      .filter((org) => org.descricao?.trim())
+      .map((org) => ({
+        key: `organization:${org.id}`,
+        title: `Descrição de ${org.nome}`,
+        content: org.descricao!,
+      })),
+    ...selected.people
+      .filter((person) => person.observacoes?.trim())
+      .map((person) => ({
+        key: `person:${person.id}`,
+        title: `Observação de ${person.nome}`,
+        content: person.observacoes!,
+      })),
+    ...selected.observations.map((note) => ({
+      key: `note:${note.id}`,
+      title: note.pessoa_id
+        ? `Anotação de ${selected.people.find((person) => person.id === note.pessoa_id)?.nome || "pessoa"}`
+        : `Anotação de ${selected.organizations.find((org) => org.id === note.organizacao_id)?.nome || "organização"}`,
+      content: note.conteudo,
+    })),
+  ];
+}
+
 export function summarizeNexoReport(
   scope: NexoReportScope,
   data: NexoReportData,
@@ -242,9 +274,9 @@ export function summarizeNexoReport(
       ? selected.people.filter((person) => person.endereco).length
       : 0,
     observations: options.sections.observations
-      ? selected.observations.filter((observation) => observation.conteudo.trim()).length +
-        selected.people.filter((person) => person.observacoes?.trim()).length +
-        selected.organizations.filter((org) => org.descricao?.trim()).length
+      ? listNexoReportObservations(scope, data).filter(
+          (entry) => !options.excludedObservationKeys.includes(entry.key),
+        ).length
       : 0,
     photos: selected.people.reduce(
       (count, person) => count + selectedNexoReportPhotos(person, options).length,

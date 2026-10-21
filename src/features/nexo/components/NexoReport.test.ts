@@ -79,6 +79,31 @@ describe("conteúdo dos PDFs do NEXO", () => {
     );
   }
 
+  it("exclui individualmente as observações desmarcadas do documento", () => {
+    const config = createNexoReportConfig();
+    config.excludedObservationKeys = [`person:${person.id}`, `note:${observation.id}`];
+    const html = renderConfigured(config);
+    expect(html).not.toContain("OBSERVAÇÃO-EXCLUSIVA");
+    expect(html).not.toContain("ANOTAÇÃO-DATADA-EXCLUSIVA");
+    expect(html).toContain(person.nome);
+  });
+
+  it("exclui a descrição de uma organização sem afetar outras seções", () => {
+    const organization = { ...NEXO_DEMO_ORGANIZACOES[0], descricao: "DESCRIÇÃO-EXCLUSIVA" };
+    const config = createNexoReportConfig();
+    config.excludedObservationKeys = [`organization:${organization.id}`];
+    const html = renderToStaticMarkup(
+      createElement(NexoReport, {
+        scope: { kind: "organizacao", organizacaoId: organization.id },
+        organizacoes: [organization],
+        pessoas: NEXO_DEMO_PESSOAS,
+        config,
+      }),
+    );
+    expect(html).not.toContain("DESCRIÇÃO-EXCLUSIVA");
+    expect(html).toContain(organization.nome);
+  });
+
   it("remove as seções desmarcadas do DOM impresso, não apenas da aparência", () => {
     const config = createNexoReportConfig();
     for (const key of Object.keys(config.sections) as (keyof typeof config.sections)[])

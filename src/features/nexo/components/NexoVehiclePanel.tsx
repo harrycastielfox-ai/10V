@@ -15,6 +15,30 @@ const POSSESSION_LABELS: Record<NexoVeiculoTipoPosse, string> = {
   historico: "Histórico",
 };
 
+const previewLinks = new Map<string, NexoVeiculoVinculo[]>();
+const previewVehicles: VehicleListRecord[] = [
+  "Motocicleta demonstrativa",
+  "Automóvel demonstrativo",
+  "Utilitário demonstrativo",
+].map((model, index) => ({
+  id: `demo-vehicle-${index + 1}`,
+  internal_id: `VEICULO-DEMO-0${index + 1}`,
+  vehicle_type: index === 0 ? "motocicleta" : "automovel",
+  brand_model: model,
+  color: ["Vermelha", "Branca", "Azul"][index],
+  plate: `DEMO-0${index + 1}`,
+  situation: null,
+  occurrence_type: null,
+  procedure_type: null,
+  procedure_number: null,
+  police_report_number: null,
+  custody_location: null,
+  storage_location: null,
+  pending_identification: false,
+  updated_at: "2026-10-18T00:00:00.000Z",
+  total_count: 3,
+}));
+
 export function NexoVehiclePanel({ target, preview }: { target: Target; preview: boolean }) {
   const [links, setLinks] = useState<NexoVeiculoVinculo[]>([]);
   const [vehicles, setVehicles] = useState<VehicleListRecord[]>([]);
@@ -26,6 +50,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
+  const [showLinkForm, setShowLinkForm] = useState(false);
   const search = useDebouncedValue(query.trim());
   const scopeKey = `${target.kind}:${target.id}`;
   const currentScope = useRef(scopeKey);
@@ -48,7 +73,8 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
 
   useEffect(() => {
     let cancelled = false;
-    setLinks([]);
+    setLinks(preview ? (previewLinks.get(scopeKey) ?? []) : []);
+    setShowLinkForm(false);
     setSelectedId("");
     setQuery("");
     setSource("");
@@ -59,12 +85,24 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
     return () => {
       cancelled = true;
     };
-  }, [reload]);
+  }, [reload, preview, scopeKey]);
 
   useEffect(() => {
     let cancelled = false;
     setVehicles([]);
-    if (preview || !search) {
+    if (!search) {
+      setSearching(false);
+      return;
+    }
+    if (preview) {
+      const term = search.toLocaleLowerCase("pt-BR");
+      setVehicles(
+        previewVehicles.filter((vehicle) =>
+          [vehicle.plate, vehicle.brand_model, vehicle.internal_id].some((value) =>
+            value?.toLocaleLowerCase("pt-BR").includes(term),
+          ),
+        ),
+      );
       setSearching(false);
       return;
     }
@@ -91,7 +129,34 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
   }, [links, vehicles]);
 
   async function linkVehicle() {
-    if (!selectedId || saving || preview) return;
+    if (!selectedId || saving || !Number.isFinite(confidence) || confidence < 0 || confidence > 100)
+      return;
+    if (preview) {
+      const vehicle = previewVehicles.find((item) => item.id === selectedId);
+      if (!vehicle || links.some((link) => link.veiculo_id === selectedId)) return;
+      const next: NexoVeiculoVinculo[] = [
+        ...links,
+        {
+          id: `demo-link-${target.kind}-${target.id}-${vehicle.id}`,
+          veiculo_id: vehicle.id,
+          pessoa_id: target.kind === "person" ? target.id : null,
+          organizacao_id: target.kind === "organization" ? target.id : null,
+          tipo_posse: possession,
+          confianca: confidence,
+          fonte_resumo: source || null,
+          observacoes: "Vínculo fictício para demonstração.",
+          created_at: new Date().toISOString(),
+          veiculo: vehicle,
+        },
+      ];
+      previewLinks.set(scopeKey, next);
+      setLinks(next);
+      setSelectedId("");
+      setQuery("");
+      setSource("");
+      setShowLinkForm(false);
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -108,6 +173,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
       setQuery("");
       setSource("");
       await reload();
+      setShowLinkForm(false);
     } catch (cause) {
       setError(getErrorMessage(cause, "Não foi possível vincular o veículo."));
     } finally {
@@ -120,6 +186,12 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
       !window.confirm("Remover este vínculo veicular do dossiê? O veículo continuará cadastrado.")
     )
       return;
+    if (preview) {
+      const next = links.filter((link) => link.id !== id);
+      previewLinks.set(scopeKey, next);
+      setLinks(next);
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -143,12 +215,24 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
             atualizados.
           </p>
         </div>
-        <a
-          href="/veiculos/novo?origem=nexo"
-          className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575]"
-        >
-          <Plus className="h-4 w-4" /> Cadastrar novo veículo
-        </a>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setShowLinkForm((shown) => !shown)}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#a6cbd5] bg-white px-4 py-2.5 text-xs font-black text-[#17677e] hover:bg-[#edf8fa]"
+          >
+            <Link2 className="h-4 w-4" />{" "}
+            {showLinkForm ? "Fechar busca" : "Vincular veículo cadastrado"}
+          </button>
+          {!preview ? (
+            <a
+              href="/veiculos/novo?origem=nexo"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575]"
+            >
+              <Plus className="h-4 w-4" /> Cadastrar novo veículo
+            </a>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">
@@ -159,7 +243,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
           >
             <button
               type="button"
-              disabled={saving || preview}
+              disabled={saving}
               onClick={() => void unlink(link.id)}
               title="Remover vínculo"
               className="absolute right-3 top-3 rounded-lg border border-red-200 bg-red-50 p-1.5 text-red-600 hover:bg-red-100 disabled:opacity-40"
@@ -189,7 +273,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
                 </div>
               </div>
             </div>
-            {link.veiculo ? (
+            {link.veiculo && !preview ? (
               <a
                 href={`/veiculos/${link.veiculo_id}`}
                 className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#21758e]"
@@ -211,11 +295,17 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
         </div>
       ) : null}
 
-      {!preview ? (
+      {showLinkForm ? (
         <section className="rounded-2xl border border-[#d9e5ec] bg-[#f4f8fa] p-4">
           <h4 className="flex items-center gap-2 text-sm font-black text-[#203e57]">
             <Link2 className="h-4 w-4 text-[#1689a1]" /> Vincular veículo já cadastrado
           </h4>
+          {preview ? (
+            <p className="mt-2 text-xs font-semibold text-[#6b7f8e]">
+              Demonstração: pesquise “DEMO” ou “demonstrativo”. Vínculos são temporários e não
+              acessam o cadastro real.
+            </p>
+          ) : null}
           <label className="relative mt-3 block">
             <Search className="absolute left-3 top-3.5 h-4 w-4 text-[#8ba0af]" />
             <input
@@ -287,7 +377,15 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
             />
             <button
               type="button"
-              disabled={!selectedId || saving || searching || search !== query.trim()}
+              disabled={
+                !selectedId ||
+                saving ||
+                searching ||
+                search !== query.trim() ||
+                !Number.isFinite(confidence) ||
+                confidence < 0 ||
+                confidence > 100
+              }
               onClick={() => void linkVehicle()}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1689a1] px-4 text-xs font-black text-white disabled:opacity-40"
             >

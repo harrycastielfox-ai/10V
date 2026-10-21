@@ -11,9 +11,9 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import "../nexoVisual.css";
-import { NEXO_PRESENTATION_DATA } from "../nexoPresentationData";
+import { NEXO_APPROVAL_DEMO_DATA as NEXO_PRESENTATION_DATA } from "../nexoApprovalDemoData";
 import { createNexoPresentationProcedureRows } from "../nexoPresentationProcedureRows";
 import type {
   NexoOrganizacao,
@@ -916,7 +916,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           />
         ) : null}
 
-        <NexoReport
+        {reportScope && typeof document !== "undefined" ? createPortal(<NexoReport
           scope={reportScope}
           organizacoes={organizations}
           pessoas={people}
@@ -924,7 +924,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           registros={reportRecords}
           observacoes={reportNotes}
           config={reportConfig}
-        />
+        />, document.body) : null}
         {dossier ? (
           <NexoDossier
             key={`${dossier.kind}:${dossier.id}`}

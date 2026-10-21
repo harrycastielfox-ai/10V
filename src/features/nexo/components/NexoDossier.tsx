@@ -39,7 +39,6 @@ import type {
   NexoVinculo,
   NexoVinculoManagementInput,
 } from "../nexoTypes";
-import { NEXO_PRESENTATION_DATA } from "../nexoPresentationData";
 import {
   filterNexoOrganizationMembers,
   hasActiveMemberFilters,
@@ -1012,7 +1011,7 @@ function ProcedurePanel({
   useEffect(() => {
     setError("");
     if (preview) {
-      const catalog = [...NEXO_PRESENTATION_DATA.records, ...records];
+      const catalog = records;
       setCases(
         catalog
           .filter((item) => item.inquerito_id && item.inquerito)

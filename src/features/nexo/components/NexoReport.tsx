@@ -79,7 +79,7 @@ function PersonReport({
   );
   return (
     <article className="nexo-report-person">
-      <div className="nexo-report-person-hero">
+      <div className={`nexo-report-person-hero${mainPhoto ? "" : " nexo-report-person-hero-no-photo"}`}>
         {mainPhoto ? (
           <figure style={{ margin: 0, maxWidth: "32mm" }}>
             <div className="nexo-report-person-photo">
@@ -113,7 +113,7 @@ function PersonReport({
       </div>
       {config.sections.identification ? (
         <section className="nexo-report-section">
-          <h3>Identificação</h3>
+          <h3>Dados de identificação</h3>
           <dl className="nexo-report-grid">
             <div>
               <dt>Nome completo</dt>
@@ -297,7 +297,10 @@ function PersonReport({
       {config.sections.observations ? (
         <section className="nexo-report-section">
           <h3>Observações analíticas</h3>
-          <p style={{ whiteSpace: "pre-wrap" }}>{value(pessoa.observacoes)}</p>
+          {!config.excludedObservationKeys.includes(`person:${pessoa.id}`) &&
+          pessoa.observacoes?.trim() ? (
+            <p style={{ whiteSpace: "pre-wrap" }}>{pessoa.observacoes}</p>
+          ) : null}
           <ObservationEntries observations={personObservations} />
         </section>
       ) : null}
@@ -388,8 +391,9 @@ export function NexoReport({
         <strong>SIED / NEXO</strong>
       </div>
       <div className="nexo-report-disclaimer">
-        Nota técnica: menções e vínculos não confirmados representam hipóteses de inteligência e não
-        equivalem a imputação ou prova.
+        Informações conforme os registros disponíveis no NEXO. Dados não informados não devem ser
+        interpretados como negativos. Menções e vínculos não confirmados não equivalem a imputação
+        ou prova; consulte a fonte registrada para avaliar cada informação.
       </div>
       {scope.kind !== "pessoa" && (options.sections.identification || options.sections.links) ? (
         <section className="nexo-report-summary">
@@ -591,7 +595,8 @@ export function NexoReport({
         <section className="nexo-report-section">
           <h3>Observações das organizações</h3>
           {selectedData.organizations.map((organization) =>
-            organization.descricao?.trim() ? (
+            organization.descricao?.trim() &&
+            !options.excludedObservationKeys.includes(`organization:${organization.id}`) ? (
               <div key={organization.id}>
                 <h4>{organization.nome}</h4>
                 <p style={{ whiteSpace: "pre-wrap" }}>{organization.descricao}</p>
@@ -599,10 +604,22 @@ export function NexoReport({
             ) : null,
           )}
           <ObservationEntries
-            observations={selectedData.observations.filter((observation) => !observation.pessoa_id)}
+            observations={selectedData.observations.filter(
+              (observation) =>
+                !observation.pessoa_id &&
+                !options.excludedObservationKeys.includes(`note:${observation.id}`),
+            )}
           />
-          {!selectedData.organizations.some((organization) => organization.descricao?.trim()) &&
-          !selectedData.observations.some((observation) => !observation.pessoa_id) ? (
+          {!selectedData.organizations.some(
+            (organization) =>
+              organization.descricao?.trim() &&
+              !options.excludedObservationKeys.includes(`organization:${organization.id}`),
+          ) &&
+          !selectedData.observations.some(
+            (observation) =>
+              !observation.pessoa_id &&
+              !options.excludedObservationKeys.includes(`note:${observation.id}`),
+          ) ? (
             <p>Nenhuma observação cadastrada neste recorte.</p>
           ) : null}
         </section>
@@ -614,7 +631,9 @@ export function NexoReport({
           registros={selectedRecords}
           scope={scope}
           config={options}
-          observacoes={selectedData.observations}
+          observacoes={selectedData.observations.filter(
+            (observation) => !options.excludedObservationKeys.includes(`note:${observation.id}`),
+          )}
         />
       ))}
       <footer className="nexo-report-footer">
