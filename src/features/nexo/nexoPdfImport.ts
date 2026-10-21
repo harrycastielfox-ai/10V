@@ -315,6 +315,64 @@ export async function readNexoPdf(file: File): Promise<NexoPdfCandidate[]> {
   }
 }
 
+export async function readNexoPdfPageCount(file: File) {
+  const pdf = await openPdf(file);
+  try {
+    if (pdf.numPages > 30)
+      throw new Error("O PDF tem mais de 30 páginas; divida-o antes de importar.");
+    return pdf.numPages;
+  } finally {
+    await destroyPdf(pdf);
+  }
+}
+
+/** Runs OCR locally for image-only PDFs. No page image is sent to a remote service. */
+export async function readNexoPdfWithOcr(file: File): Promise<NexoPdfCandidate[]> {
+  const pdf = await openPdf(file);
+  let worker: Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>> | null = null;
+  try {
+    const { createWorker } = await import("tesseract.js");
+    worker = await createWorker("por+eng", undefined, {
+      langPath: "https://tessdata.projectnaptha.com/4.0.0",
+      logger: () => undefined,
+    });
+    if (pdf.numPages > 30)
+      throw new Error("O PDF tem mais de 30 páginas; divida-o antes de importar.");
+    const pages: NexoPdfTextPage[] = [];
+    for (let number = 1; number <= pdf.numPages; number++) {
+      const page = await pdf.getPage(number);
+      const scale = 1.75;
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      await page.render({
+        canvas,
+        canvasContext: canvas.getContext("2d")!,
+        viewport,
+      }).promise;
+      const result = await worker.recognize(canvas);
+      const lines = (result.data.blocks ?? [])
+        .flatMap((block) => block.paragraphs)
+        .flatMap((paragraph) => paragraph.lines)
+        .filter((line) => line.text.trim());
+      pages.push({
+        page: number,
+        cells: lines.map((line) => ({
+          text: line.text.trim(),
+          x: line.bbox.x0 / scale,
+          y: (viewport.height - line.bbox.y1) / scale,
+          width: (line.bbox.x1 - line.bbox.x0) / scale,
+        })),
+      });
+    }
+    return suggestNexoPdfFields(pages);
+  } finally {
+    if (worker) await worker.terminate();
+    await destroyPdf(pdf);
+  }
+}
+
 /** Extract embedded images without uploading or persisting the source PDF. */
 export async function readNexoPdfPhotos(file: File): Promise<NexoPdfPhotoCandidate[]> {
   const pdf = await openPdf(file);
@@ -457,7 +515,7 @@ export function applyNexoPdfCandidates(
   next.observacoes = [person.observacoes.trim(), reference].filter(Boolean).join("\n\n");
   next.fonte_resumo = [
     person.fonte_resumo.trim(),
-    `PDF textual: ${fileName}; ${[...new Set(selected.map((item) => item.source))].join(", ")}. Original não anexado automaticamente.`,
+    `PDF textual: ${fileName}; ${[...new Set(selected.map((item) => item.source))].join(", ")}. O original será preservado com hash após o salvamento.`,
   ]
     .filter(Boolean)
     .join("\n");

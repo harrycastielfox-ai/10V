@@ -86,6 +86,36 @@ export interface NexoFoto {
   url?: string | null;
 }
 
+export interface NexoDocumentoFonte {
+  id: string;
+  pessoa_id: string;
+  storage_path: string;
+  original_filename: string;
+  mime_type: "application/pdf";
+  size_bytes: number;
+  sha256: string;
+  page_count: number | null;
+  extractor_version: string;
+  ocr_status: "nao_aplicado" | "pendente" | "concluido" | "indisponivel";
+  created_at: string;
+}
+
+export interface NexoPdfSourceCandidate {
+  field: string;
+  label: string;
+  value: string;
+  page: number;
+  source: string;
+  confidence: "alta" | "revisar";
+}
+
+export interface NexoPdfSourceInput {
+  file: File;
+  candidates: NexoPdfSourceCandidate[];
+  page_count: number | null;
+  ocr_status: "nao_aplicado" | "pendente" | "concluido" | "indisponivel";
+}
+
 export interface NexoPessoa {
   id: string;
   nome: string;
@@ -124,6 +154,7 @@ export interface NexoPessoa {
   endereco?: NexoEndereco | null;
   vinculos: NexoVinculo[];
   fotos: NexoFoto[];
+  documentos_fontes?: NexoDocumentoFonte[];
   created_at: string;
   updated_at?: string;
 }
@@ -290,6 +321,7 @@ export interface NexoPessoaInput {
   fonte_resumo: string;
   foto_perfil: File | null;
   foto_relatorio: File | null;
+  pdf_fonte: NexoPdfSourceInput | null;
 }
 
 export interface NexoOrganizacaoInput {

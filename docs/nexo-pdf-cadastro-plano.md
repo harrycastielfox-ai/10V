@@ -5,12 +5,20 @@ Plano baseado nos três PDFs fornecidos pelo usuário em 21/10/2026. Eles contê
 ## Entrega inicial neste checkout
 
 - Ao cadastrar uma pessoa, escolher **Manual** ou **Anexo PDF**. Edição de cadastro existente continua manual.
-- PDF textual é lido **no navegador**, com limite de 15 MB e 30 páginas. O original não é enviado ou armazenado.
+- PDF textual é lido **no navegador**, com limite de 15 MB e 30 páginas. O original é preservado no bucket privado após o salvamento, com hash SHA-256 e metadados auditáveis.
 - Os candidatos mostram valor, fonte e página. Valores contraditórios e campos suspeitos exigem escolha; só os selecionados seguem para o formulário normal, onde ainda podem ser corrigidos.
 - Imagens incorporadas também são detectadas em memória: o operador vê a miniatura e escolhe se ela será foto de perfil, foto do relatório ou não será importada. Imagens rasterizadas de página inteira são ignoradas para evitar confundir documento escaneado com retrato.
 - A finalidade escolhida é mantida até o salvamento: foto de perfil e foto exclusiva do relatório são gravadas nas colunas correspondentes; quando a mesma imagem é usada nas duas finalidades, um único arquivo é referenciado.
 - Páginas reconhecidas como SIGIP (ocorrência) e RENAVAM (veículo) não são tratadas como qualificação da pessoa. PDF somente em imagem informa a necessidade de OCR.
-- A fonte resumida e as observações registram nome do arquivo, campos escolhidos e páginas. Isso **não substitui** o armazenamento do documento original nem prova autenticidade dos valores.
+- A fonte resumida e as observações registram nome do arquivo, campos escolhidos e páginas. A tabela de fonte preserva o original privado, hash, autor, extração e alegações selecionadas; isso ainda não substitui a conferência humana nem prova autenticidade dos valores.
+
+## Etapas concluídas nesta versão
+
+- Documento-fonte privado com validação de assinatura, limite de tamanho/páginas, hash SHA-256, autor, data, versão do extrator, RLS e auditoria.
+- OCR local opcional para PDFs escaneados, sem enviar imagens a serviço externo.
+- Prévia lado a lado do PDF, campos e imagens incorporadas, com escolha humana da finalidade de cada foto.
+- Persistência idempotente da ficha, fotos, documento original e alegações escolhidas, com limpeza de falha parcial.
+- Fontes documentais exibidas no dossiê e no relatório em duas partes.
 
 ## Correspondência com o cadastro atual
 
@@ -47,5 +55,5 @@ O layout deve ser mais legível que os formulários antigos, mas preservar campo
 - Testar mesmo campo em duas fontes concordantes e divergentes, multipessoas, CPF/nascimento inválidos, campos colados e SIGIP/RENAVAM sem atribuição indevida.
 - Testar PDF com um retrato, vários retratos, imagem pequena/baixa qualidade, brasão e fotos de terceiros; nenhuma imagem deve entrar na ficha sem seleção e conferência da página de origem.
 - Renderizar e conferir visualmente **todas as páginas** de relatórios curtos, longos, com fotos e sem fotos; verificar conteúdo e ausência de cortes, cabeçalhos soltos, páginas vazias e legenda separada da foto.
-- Conferir RLS, upload privado, trilha de auditoria, duplicidade/idempotência e recuperação de falhas antes de ativar persistência de documentos reais.
+- Conferir RLS, upload privado, trilha de auditoria, duplicidade/idempotência e recuperação de falhas antes de ativar persistência de documentos reais. Esta versão foi validada com testes automatizados, TypeScript, build e advisors; ainda é necessário revisar os PDFs reais somente no ambiente autorizado.
 - Publicação em `main` somente após testes, revisão visual e escopo de dados sensíveis confirmado. A prévia local não equivale a implantação em produção.

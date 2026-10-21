@@ -1333,7 +1333,11 @@ export function NexoDossier({
   onUploadPhoto: (person: NexoPessoa, file: File) => Promise<void>;
   onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
   onDeletePerson: (person: NexoPessoa) => Promise<void>;
-  onUploadOrganizationPhoto: (organization: NexoOrganizacao, file: File, legenda: string) => Promise<void>;
+  onUploadOrganizationPhoto: (
+    organization: NexoOrganizacao,
+    file: File,
+    legenda: string,
+  ) => Promise<void>;
   onDeleteOrganizationPhoto: (organization: NexoOrganizacao, photoId: string) => Promise<void>;
   onDeleteOrganization: (organization: NexoOrganizacao) => Promise<void>;
   onCreateLink: (input: NexoLinkInput) => Promise<void>;
@@ -1742,8 +1746,15 @@ export function NexoDossier({
                       description: `A ficha de ${organization.nome} será removida da listagem. Vínculos, territórios e relações veiculares serão encerrados.`,
                       actionLabel: "Apagar facção",
                       run: async () => {
-                        try { await onDeleteOrganization(organization); }
-                        catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Não foi possível apagar a facção."); }
+                        try {
+                          await onDeleteOrganization(organization);
+                        } catch (cause) {
+                          setDeleteError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "Não foi possível apagar a facção.",
+                          );
+                        }
                       },
                     })
                   }
@@ -1783,7 +1794,11 @@ export function NexoDossier({
                         try {
                           await onDeletePerson(person);
                         } catch (cause) {
-                          setDeleteError(cause instanceof Error ? cause.message : "Não foi possível apagar o cadastro.");
+                          setDeleteError(
+                            cause instanceof Error
+                              ? cause.message
+                              : "Não foi possível apagar o cadastro.",
+                          );
                         } finally {
                           setDeletingPerson(false);
                         }
@@ -1922,6 +1937,39 @@ export function NexoDossier({
                     ))}
                     {!person.contatos?.length ? (
                       <p className="text-xs text-[#567184]">Nenhum contato complementar.</p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-[#dde8f0] bg-white p-5 sm:col-span-2">
+                  <h3 className="flex items-center gap-2 text-sm font-black text-[#1e405b]">
+                    <FileText className="h-4 w-4 text-[#1a9eaa]" /> Documentos-fonte do cadastro
+                  </h3>
+                  <div className="mt-3 space-y-2">
+                    {(person.documentos_fontes ?? []).map((documento) => (
+                      <div
+                        key={documento.id}
+                        className="grid gap-2 rounded-xl bg-[#f5f8fa] px-3 py-2 text-xs sm:grid-cols-[minmax(0,1fr)_auto]"
+                      >
+                        <div className="min-w-0">
+                          <strong className="block truncate text-[#31536a]">
+                            {documento.original_filename}
+                          </strong>
+                          <span className="block text-[#758a9b]">
+                            SHA-256: {documento.sha256.slice(0, 16)}… ·{" "}
+                            {documento.page_count ?? "?"} página(s)
+                          </span>
+                        </div>
+                        <span className="font-bold text-[#567184]">
+                          {documento.ocr_status === "concluido"
+                            ? "OCR concluído"
+                            : documento.ocr_status === "pendente"
+                              ? "OCR pendente"
+                              : "Texto selecionável"}
+                        </span>
+                      </div>
+                    ))}
+                    {!person.documentos_fontes?.length ? (
+                      <p className="text-xs text-[#567184]">Nenhum documento-fonte anexado.</p>
                     ) : null}
                   </div>
                 </div>
@@ -2446,7 +2494,8 @@ export function NexoDossier({
                         onClick={() =>
                           setConfirmation({
                             title: "Remover foto do álbum",
-                            description: "A imagem será removida do álbum e o arquivo privado será excluído.",
+                            description:
+                              "A imagem será removida do álbum e o arquivo privado será excluído.",
                             actionLabel: "Remover foto",
                             run: async () => {
                               setDeletingPhotoId(photo.id);
@@ -2454,7 +2503,11 @@ export function NexoDossier({
                               try {
                                 await onDeletePhoto(person, photo.id);
                               } catch (cause) {
-                                setDeleteError(cause instanceof Error ? cause.message : "Não foi possível remover a foto.");
+                                setDeleteError(
+                                  cause instanceof Error
+                                    ? cause.message
+                                    : "Não foi possível remover a foto.",
+                                );
                               } finally {
                                 setDeletingPhotoId(null);
                               }
@@ -2480,47 +2533,109 @@ export function NexoDossier({
             <div>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h3 className="flex items-center gap-2 text-sm font-black text-[#1e405b]"><Camera className="h-4 w-4" /> Imagens da facção</h3>
-                  <p className="mt-1 text-xs text-[#567184]">Adicione fotos e identifique o que cada imagem representa.</p>
+                  <h3 className="flex items-center gap-2 text-sm font-black text-[#1e405b]">
+                    <Camera className="h-4 w-4" /> Imagens da facção
+                  </h3>
+                  <p className="mt-1 text-xs text-[#567184]">
+                    Adicione fotos e identifique o que cada imagem representa.
+                  </p>
                 </div>
                 <label className="cursor-pointer rounded-xl bg-[#173d5b] px-3 py-2 text-xs font-bold text-white">
-                  <Plus className="mr-1 inline h-4 w-4" /> {uploading ? "Enviando…" : "Adicionar imagem"}
-                  <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploading} className="hidden" onChange={async (event) => {
-                    const file = event.target.files?.[0];
-                    if (!file) return;
-                    setUploading(true);
-                    setUploadError("");
-                    try { await onUploadOrganizationPhoto(organization, file, photoCaption); setPhotoCaption(""); }
-                    catch (cause) { setUploadError(cause instanceof Error ? cause.message : "Falha ao enviar a imagem."); }
-                    finally { setUploading(false); event.target.value = ""; }
-                  }} />
+                  <Plus className="mr-1 inline h-4 w-4" />{" "}
+                  {uploading ? "Enviando…" : "Adicionar imagem"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploading}
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setUploading(true);
+                      setUploadError("");
+                      try {
+                        await onUploadOrganizationPhoto(organization, file, photoCaption);
+                        setPhotoCaption("");
+                      } catch (cause) {
+                        setUploadError(
+                          cause instanceof Error ? cause.message : "Falha ao enviar a imagem.",
+                        );
+                      } finally {
+                        setUploading(false);
+                        event.target.value = "";
+                      }
+                    }}
+                  />
                 </label>
               </div>
               <label className="mt-3 block text-xs font-bold text-[#567184]">
                 Identificação da imagem
-                <input value={photoCaption} onChange={(event) => setPhotoCaption(event.target.value)} placeholder="Ex.: reunião, símbolo, veículo, local..." className="mt-1 h-10 w-full rounded-xl border border-[#d9e5ed] bg-white px-3 text-sm font-normal text-[#18384f] outline-none focus:border-[#33a0b4]" />
+                <input
+                  value={photoCaption}
+                  onChange={(event) => setPhotoCaption(event.target.value)}
+                  placeholder="Ex.: reunião, símbolo, veículo, local..."
+                  className="mt-1 h-10 w-full rounded-xl border border-[#d9e5ed] bg-white px-3 text-sm font-normal text-[#18384f] outline-none focus:border-[#33a0b4]"
+                />
               </label>
-              {uploadError ? <p role="alert" className="mt-3 text-xs text-red-700">{uploadError}</p> : null}
+              {uploadError ? (
+                <p role="alert" className="mt-3 text-xs text-red-700">
+                  {uploadError}
+                </p>
+              ) : null}
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {(organization.fotos ?? []).map((photo) => (
-                  <figure key={photo.id} className="overflow-hidden rounded-xl border border-[#dde8f0] bg-white">
-                    {photo.url ? <img src={photo.url} alt={photo.legenda || "Imagem da facção"} className="h-40 w-full object-cover" /> : <div className="flex h-40 items-center justify-center text-xs text-[#567184]">Imagem protegida</div>}
+                  <figure
+                    key={photo.id}
+                    className="overflow-hidden rounded-xl border border-[#dde8f0] bg-white"
+                  >
+                    {photo.url ? (
+                      <img
+                        src={photo.url}
+                        alt={photo.legenda || "Imagem da facção"}
+                        className="h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-40 items-center justify-center text-xs text-[#567184]">
+                        Imagem protegida
+                      </div>
+                    )}
                     <figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-[#5b7184]">
                       <span className="min-w-0 truncate">{value(photo.legenda)}</span>
-                      <button type="button" aria-label={`Remover imagem ${photo.legenda || "da facção"}`} onClick={() => setConfirmation({
-                        title: "Remover imagem",
-                        description: "A imagem será removida da galeria da facção e o arquivo privado será excluído.",
-                        actionLabel: "Remover imagem",
-                        run: async () => {
-                          try { await onDeleteOrganizationPhoto(organization, photo.id); }
-                          catch (cause) { setDeleteError(cause instanceof Error ? cause.message : "Não foi possível remover a imagem."); }
-                        },
-                      })} className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <button
+                        type="button"
+                        aria-label={`Remover imagem ${photo.legenda || "da facção"}`}
+                        onClick={() =>
+                          setConfirmation({
+                            title: "Remover imagem",
+                            description:
+                              "A imagem será removida da galeria da facção e o arquivo privado será excluído.",
+                            actionLabel: "Remover imagem",
+                            run: async () => {
+                              try {
+                                await onDeleteOrganizationPhoto(organization, photo.id);
+                              } catch (cause) {
+                                setDeleteError(
+                                  cause instanceof Error
+                                    ? cause.message
+                                    : "Não foi possível remover a imagem.",
+                                );
+                              }
+                            },
+                          })
+                        }
+                        className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </figcaption>
                   </figure>
                 ))}
               </div>
-              {!(organization.fotos ?? []).length ? <p className="mt-4 rounded-2xl border border-dashed border-[#d4e0e9] p-8 text-center text-sm text-[#567184]">Nenhuma imagem adicionada. Use o botão acima para registrar a galeria da facção.</p> : null}
+              {!(organization.fotos ?? []).length ? (
+                <p className="mt-4 rounded-2xl border border-dashed border-[#d4e0e9] p-8 text-center text-sm text-[#567184]">
+                  Nenhuma imagem adicionada. Use o botão acima para registrar a galeria da facção.
+                </p>
+              ) : null}
             </div>
           ) : null}
           {tab === "localizacao" && person ? (
@@ -2687,16 +2802,32 @@ export function NexoDossier({
       ) : null}
       {confirmation ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#102333]/45 p-4 backdrop-blur-[2px]">
-          <div role="dialog" aria-modal="true" aria-labelledby="nexo-confirm-title" className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nexo-confirm-title"
+            className="w-full max-w-md rounded-2xl border border-[#d6e2ea] bg-white p-6 shadow-2xl"
+          >
             <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-red-50 p-2.5 text-red-600"><Trash2 className="h-5 w-5" /></div>
+              <div className="rounded-xl bg-red-50 p-2.5 text-red-600">
+                <Trash2 className="h-5 w-5" />
+              </div>
               <div>
-                <h2 id="nexo-confirm-title" className="text-base font-black text-[#173d5b]">{confirmation.title}</h2>
+                <h2 id="nexo-confirm-title" className="text-base font-black text-[#173d5b]">
+                  {confirmation.title}
+                </h2>
                 <p className="mt-2 text-sm leading-6 text-[#567184]">{confirmation.description}</p>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
-              <button type="button" disabled={confirmationBusy} onClick={() => setConfirmation(null)} className="rounded-xl border border-[#d5e1e8] px-4 py-2.5 text-sm font-bold text-[#567184] hover:bg-[#f5f8fa]">Cancelar</button>
+              <button
+                type="button"
+                disabled={confirmationBusy}
+                onClick={() => setConfirmation(null)}
+                className="rounded-xl border border-[#d5e1e8] px-4 py-2.5 text-sm font-bold text-[#567184] hover:bg-[#f5f8fa]"
+              >
+                Cancelar
+              </button>
               <button
                 type="button"
                 disabled={confirmationBusy}

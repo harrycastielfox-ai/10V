@@ -46,6 +46,14 @@ function registrationSnapshot(
       ...person,
       foto_perfil: fileKey(person.foto_perfil),
       foto_relatorio: fileKey(person.foto_relatorio),
+      pdf_fonte: person.pdf_fonte
+        ? {
+            file: fileKey(person.pdf_fonte.file),
+            candidates: person.pdf_fonte.candidates,
+            page_count: person.pdf_fonte.page_count,
+            ocr_status: person.pdf_fonte.ocr_status,
+          }
+        : null,
     },
     territory,
   });
@@ -127,6 +135,7 @@ const emptyPerson: NexoPessoaInput = {
   fonte_resumo: "",
   foto_perfil: null,
   foto_relatorio: null,
+  pdf_fonte: null,
 };
 const emptyTerritory: NexoTerritorioInput = {
   organizacao_id: "",
@@ -529,9 +538,29 @@ export function NexoCreateDialog({
             <div className="flex-1">
               <NexoPdfImportPanel
                 onBack={() => setPersonMode("choose")}
-                onApply={(candidates, fileName, photo) => {
+                onApply={(
+                  candidates,
+                  fileName,
+                  photo,
+                  sourceFile,
+                  sourcePageCount,
+                  sourceOcrStatus,
+                ) => {
                   setPerson((current) => {
                     const next = applyNexoPdfCandidates(current, candidates, fileName);
+                    next.pdf_fonte = {
+                      file: sourceFile,
+                      candidates: candidates.map((item) => ({
+                        field: item.field,
+                        label: item.label,
+                        value: item.value,
+                        page: item.page,
+                        source: item.source,
+                        confidence: item.confidence,
+                      })),
+                      page_count: sourcePageCount,
+                      ocr_status: sourceOcrStatus,
+                    };
                     if (photo) {
                       if (photo.target === "perfil") {
                         next.foto_perfil = photo.candidate.file;
@@ -555,20 +584,29 @@ export function NexoCreateDialog({
 
           {kind === "pessoa" && personMode === "manual" ? (
             <div className="flex-1">
-              {!initialPerson ? (
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#cce2e9] bg-[#ecf7f9] px-4 py-3 text-xs text-[#2d6377]">
-                  <span>
-                    {importNotice || "Cadastro manual: revise todos os dados antes de salvar."}
-                  </span>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#cce2e9] bg-[#ecf7f9] px-4 py-3 text-xs text-[#2d6377]">
+                <span>
+                  {importNotice || "Cadastro manual: revise todos os dados antes de salvar."}
+                </span>
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="button"
                     className="font-bold underline"
-                    onClick={() => setPersonMode("choose")}
+                    onClick={() => setPersonMode("pdf")}
                   >
-                    Trocar modo
+                    {initialPerson ? "Anexar ou reenviar PDF" : "Importar PDF"}
                   </button>
+                  {!initialPerson ? (
+                    <button
+                      type="button"
+                      className="font-bold underline"
+                      onClick={() => setPersonMode("choose")}
+                    >
+                      Trocar modo
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
               <NexoPersonWizard
                 step={personStep}
                 person={person}

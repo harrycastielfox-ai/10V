@@ -6,8 +6,10 @@ import type {
   NexoOrganizacao,
   NexoOrganizacaoInput,
   NexoObservacao,
+  NexoDocumentoFonte,
   NexoPessoa,
   NexoPessoaInput,
+  NexoPdfSourceInput,
   NexoTerritorio,
   NexoTerritorioInput,
   NexoVeiculoVinculo,
@@ -64,6 +66,7 @@ async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
     foto_perfil_url: fotoPerfil,
     foto_relatorio_url: fotoRelatorio,
     fotos,
+    documentos_fontes: (pessoa.documentos_fontes ?? []) as NexoDocumentoFonte[],
   };
 }
 
@@ -83,6 +86,10 @@ const PESSOA_SELECT = `
     organizacao:nexo_organizacoes (*)
   ),
   fotos:nexo_fotos (id, pessoa_id, storage_path, legenda, categoria, capturada_em)
+  ,documentos_fontes:nexo_documentos_fontes (
+    id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256,
+    page_count, extractor_version, ocr_status, created_at
+  )
 `;
 
 export async function listNexoOrganizacoes(): Promise<NexoOrganizacao[]> {
@@ -100,7 +107,10 @@ export async function listNexoOrganizacoes(): Promise<NexoOrganizacao[]> {
     .order("capturada_em", { ascending: false });
   if (photoError) {
     if (import.meta.env.DEV) {
-      console.warn("A galeria das facções não pôde ser carregada; o restante do NEXO continuará disponível.", photoError);
+      console.warn(
+        "A galeria das facções não pôde ser carregada; o restante do NEXO continuará disponível.",
+        photoError,
+      );
     }
     return organizations.map((organization) => ({ ...organization, fotos: [] }));
   }
@@ -300,7 +310,10 @@ export async function uploadNexoOrganizacaoPhoto(
   return { ...(data as NexoFoto & { organizacao_id: string }), url: await signedUrl(path) };
 }
 
-export async function deleteNexoOrganizacaoPhoto(photoId: string, organizationId: string): Promise<void> {
+export async function deleteNexoOrganizacaoPhoto(
+  photoId: string,
+  organizationId: string,
+): Promise<void> {
   const { data: photo, error: readError } = await supabase
     .from("nexo_fotos")
     .select("id, organizacao_id, storage_path")
@@ -426,6 +439,7 @@ export async function createNexoObservacao(input: {
 export interface NexoPessoaSaveResult {
   personId: string;
   photoPending: boolean;
+  documentPending: boolean;
 }
 
 type PessoaPhotoTarget = "perfil" | "relatorio";
@@ -509,6 +523,74 @@ async function attachPessoaInputPhotos(
   return uploaded;
 }
 
+async function sha256Hex(file: File) {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function attachPessoaPdfSource(personId: string, source: NexoPdfSourceInput) {
+  const file = source.file;
+  if (!file.name.toLowerCase().endsWith(".pdf") || file.size < 1 || file.size > 15 * 1024 * 1024) {
+    throw new Error("O PDF original precisa ter entre 1 byte e 15 MB.");
+  }
+  const header = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  if (String.fromCharCode(...header) !== "%PDF") {
+    throw new Error("O arquivo selecionado não tem assinatura PDF válida.");
+  }
+
+  const documentId = crypto.randomUUID();
+  const path = `pessoas/${personId}/documentos/${documentId}.pdf`;
+  const hash = await sha256Hex(file);
+  const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+
+  try {
+    const { data: document, error: documentError } = await supabase
+      .from("nexo_documentos_fontes")
+      .insert({
+        id: documentId,
+        pessoa_id: personId,
+        storage_path: path,
+        original_filename: file.name.slice(0, 255),
+        mime_type: "application/pdf",
+        size_bytes: file.size,
+        sha256: hash,
+        page_count: source.page_count,
+        extractor_version: "nexo-pdf-v1",
+        ocr_status: source.ocr_status,
+      })
+      .select("id")
+      .single();
+    if (documentError) throw documentError;
+
+    if (source.candidates.length) {
+      const { error: claimsError } = await supabase.from("nexo_documento_alegacoes").insert(
+        source.candidates.map((candidate) => ({
+          documento_id: document?.id || documentId,
+          campo: candidate.field,
+          rotulo: candidate.label,
+          valor_original: candidate.value,
+          valor_normalizado: candidate.value,
+          pagina: candidate.page,
+          fonte: candidate.source,
+          confianca: candidate.confidence,
+          estado: "aceito",
+        })),
+      );
+      if (claimsError) throw claimsError;
+    }
+  } catch (error) {
+    await supabase.from("nexo_documento_alegacoes").delete().eq("documento_id", documentId);
+    await supabase.from("nexo_documentos_fontes").delete().eq("id", documentId);
+    await supabase.storage.from(PRIVATE_BUCKET).remove([path]);
+    throw error;
+  }
+}
+
 export async function createNexoPessoa(
   input: NexoPessoaInput,
   creationRequestId: string,
@@ -574,6 +656,7 @@ export async function createNexoPessoa(
   );
   const personId = String(data);
   let photoPending = false;
+  let documentPending = false;
   if (input.foto_perfil || input.foto_relatorio) {
     try {
       await attachPessoaInputPhotos(personId, input);
@@ -584,7 +667,17 @@ export async function createNexoPessoa(
       }
     }
   }
-  return { personId, photoPending };
+  if (input.pdf_fonte) {
+    try {
+      await attachPessoaPdfSource(personId, input.pdf_fonte);
+    } catch (error) {
+      documentPending = true;
+      if (import.meta.env.DEV) {
+        console.warn("A pessoa foi cadastrada, mas o documento-fonte ficou pendente.", error);
+      }
+    }
+  }
+  return { personId, photoPending, documentPending };
 }
 
 export async function updateNexoPessoa(
@@ -680,6 +773,7 @@ export async function updateNexoPessoa(
   }
 
   let photoPending = false;
+  let documentPending = false;
   if (input.foto_perfil || input.foto_relatorio) {
     try {
       await attachPessoaInputPhotos(current.id, input, current);
@@ -690,7 +784,17 @@ export async function updateNexoPessoa(
       }
     }
   }
-  return { personId: current.id, photoPending };
+  if (input.pdf_fonte) {
+    try {
+      await attachPessoaPdfSource(current.id, input.pdf_fonte);
+    } catch (error) {
+      documentPending = true;
+      if (import.meta.env.DEV) {
+        console.warn("A ficha foi atualizada, mas o documento-fonte ficou pendente.", error);
+      }
+    }
+  }
+  return { personId: current.id, photoPending, documentPending };
 }
 
 export async function uploadNexoAlbumPhoto(

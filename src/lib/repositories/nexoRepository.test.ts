@@ -81,6 +81,7 @@ const input: NexoPessoaInput = {
   fonte_resumo: "Atualização",
   foto_perfil: null,
   foto_relatorio: null,
+  pdf_fonte: null,
 };
 
 describe("NEXO persistence regressions", () => {
@@ -125,7 +126,7 @@ describe("NEXO persistence regressions", () => {
         },
         "creation-request",
       ),
-    ).resolves.toEqual({ personId: "created-person", photoPending: false });
+    ).resolves.toEqual({ personId: "created-person", photoPending: false, documentPending: false });
 
     expect(state.rpc).toHaveBeenCalledWith(
       "nexo_criar_pessoa_completa",
@@ -155,10 +156,76 @@ describe("NEXO persistence regressions", () => {
         { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
         "creation-request",
       ),
-    ).resolves.toEqual({ personId: "created-person", photoPending: true });
+    ).resolves.toEqual({ personId: "created-person", photoPending: true, documentPending: false });
 
     expect(state.rpc).toHaveBeenCalledWith("nexo_criar_pessoa_completa", expect.any(Object));
     expect(state.update).not.toHaveBeenCalled();
+  });
+
+  it("preserves the reviewed PDF source and selected claims", async () => {
+    state.rpc.mockReturnValueOnce({
+      abortSignal: vi.fn().mockReturnThis(),
+      then: (resolve: (result: unknown) => unknown) =>
+        Promise.resolve({ data: "created-person", error: null }).then(resolve),
+    });
+    const documentBuilder = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: "source-id" }, error: null }),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+    };
+    const claimsBuilder = {
+      insert: vi.fn().mockResolvedValue({ error: null }),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+    };
+    state.from.mockImplementation((table: string) =>
+      table === "nexo_documentos_fontes" ? documentBuilder : claimsBuilder,
+    );
+
+    const source = new File(["%PDF-1.7\nsource"], "origem.pdf", { type: "application/pdf" });
+    await expect(
+      createNexoPessoa(
+        {
+          ...input,
+          pdf_fonte: {
+            file: source,
+            page_count: 2,
+            ocr_status: "nao_aplicado",
+            candidates: [
+              {
+                field: "nome",
+                label: "Nome completo",
+                value: "Pessoa Teste",
+                page: 1,
+                source: "NIMBA",
+                confidence: "alta",
+              },
+            ],
+          },
+        },
+        "creation-request",
+      ),
+    ).resolves.toMatchObject({ personId: "created-person", documentPending: false });
+
+    expect(state.upload).toHaveBeenCalledWith(
+      expect.stringContaining("pessoas/created-person/documentos/"),
+      source,
+      expect.objectContaining({ contentType: "application/pdf" }),
+    );
+    expect(documentBuilder.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pessoa_id: "created-person",
+        original_filename: "origem.pdf",
+        mime_type: "application/pdf",
+        page_count: 2,
+        sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+      }),
+    );
+    expect(claimsBuilder.insert).toHaveBeenCalledWith([
+      expect.objectContaining({ documento_id: "source-id", campo: "nome", estado: "aceito" }),
+    ]);
   });
 
   it("sends the expected version and active membership in the atomic edit", async () => {
@@ -273,7 +340,7 @@ describe("NEXO persistence regressions", () => {
         { ...person, vinculos: [active] },
         { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
       ),
-    ).resolves.toEqual({ personId: person.id, photoPending: true });
+    ).resolves.toEqual({ personId: person.id, photoPending: true, documentPending: false });
 
     expect(state.rpc).toHaveBeenCalledWith("nexo_atualizar_pessoa_completa", expect.any(Object));
     expect(state.update).not.toHaveBeenCalled();
@@ -290,7 +357,7 @@ describe("NEXO persistence regressions", () => {
         },
         { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
       ),
-    ).resolves.toEqual({ personId: person.id, photoPending: false });
+    ).resolves.toEqual({ personId: person.id, photoPending: false, documentPending: false });
 
     const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
     expect(state.update).toHaveBeenCalledWith({
@@ -317,7 +384,7 @@ describe("NEXO persistence regressions", () => {
           foto_relatorio: new File(["report"], "report.jpg", { type: "image/jpeg" }),
         },
       ),
-    ).resolves.toEqual({ personId: person.id, photoPending: false });
+    ).resolves.toEqual({ personId: person.id, photoPending: false, documentPending: false });
 
     const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
     expect(uploadedPath).toContain("/relatorio-");
@@ -338,7 +405,7 @@ describe("NEXO persistence regressions", () => {
         { ...person, vinculos: [active] },
         { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
       ),
-    ).resolves.toEqual({ personId: person.id, photoPending: true });
+    ).resolves.toEqual({ personId: person.id, photoPending: true, documentPending: false });
 
     const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
     expect(state.remove).toHaveBeenCalledWith([uploadedPath]);

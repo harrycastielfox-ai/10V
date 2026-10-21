@@ -162,7 +162,7 @@ describe("sugestões de cadastro a partir de PDF", () => {
     expect(result.nome).toBe("Pessoa Fictícia");
     expect(result.endereco.municipio).toBe("Cidade Teste");
     expect(result.fonte_resumo).toContain("modelo.pdf");
-    expect(result.fonte_resumo).toContain("Original não anexado automaticamente");
+    expect(result.fonte_resumo).toContain("O original será preservado com hash");
     expect(result.observacoes).toContain("Nome completo (NIMBA, p. 1)");
   });
 });

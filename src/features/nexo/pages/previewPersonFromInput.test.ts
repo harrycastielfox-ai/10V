@@ -51,6 +51,7 @@ const input: NexoPessoaInput = {
   fonte_resumo: "Fonte de demonstração",
   foto_perfil: null,
   foto_relatorio: null,
+  pdf_fonte: null,
 };
 
 describe("edição da pessoa no modo de demonstração", () => {

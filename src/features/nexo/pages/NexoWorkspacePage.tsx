@@ -307,6 +307,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
 
   async function savePerson(input: NexoPessoaInput, creationRequestId: string) {
     let photoPending = false;
+    let documentPending = false;
     if (preview) {
       const existing =
         editTarget?.kind === "person"
@@ -347,20 +348,28 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           ? people.find((item) => item.id === editTarget.id)
           : undefined;
       if (existing) {
-        photoPending = (await repo.updateNexoPessoa(existing, input)).photoPending;
+        const result = await repo.updateNexoPessoa(existing, input);
+        photoPending = result.photoPending;
+        documentPending = result.documentPending;
       } else {
-        photoPending = (await repo.createNexoPessoa(input, creationRequestId)).photoPending;
+        const result = await repo.createNexoPessoa(input, creationRequestId);
+        photoPending = result.photoPending;
+        documentPending = result.documentPending;
       }
       await reload();
     }
     setNotice(
-      photoPending
-        ? "Ficha salva. A fotografia ficou pendente; reabra o cadastro para reenviar."
-        : editTarget
-          ? "Cadastro da pessoa atualizado"
-          : preview
-            ? "Pessoa criada apenas nesta demonstração"
-            : "Pessoa cadastrada",
+      photoPending && documentPending
+        ? "Ficha salva. A fotografia e o documento-fonte ficaram pendentes; reabra o cadastro para reenviar."
+        : photoPending
+          ? "Ficha salva. A fotografia ficou pendente; reabra o cadastro para reenviar."
+          : documentPending
+            ? "Ficha salva. O documento-fonte ficou pendente; reabra o cadastro para reenviar."
+            : editTarget
+              ? "Cadastro da pessoa atualizado"
+              : preview
+                ? "Pessoa criada apenas nesta demonstração"
+                : "Pessoa cadastrada",
     );
   }
 
@@ -431,7 +440,9 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     if (preview) {
       setPeople((current) =>
         current.map((item) =>
-          item.id === person.id ? { ...item, fotos: item.fotos.filter((photo) => photo.id !== photoId) } : item,
+          item.id === person.id
+            ? { ...item, fotos: item.fotos.filter((photo) => photo.id !== photoId) }
+            : item,
         ),
       );
     } else {
@@ -454,7 +465,11 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     setNotice("Cadastro apagado");
   }
 
-  async function uploadOrganizationPhoto(organization: NexoOrganizacao, file: File, legenda: string) {
+  async function uploadOrganizationPhoto(
+    organization: NexoOrganizacao,
+    file: File,
+    legenda: string,
+  ) {
     const photo = preview
       ? {
           id: crypto.randomUUID(),
@@ -468,7 +483,11 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
         }
       : await (async () => {
           const repo = await import("@/lib/repositories/nexoRepository");
-          return repo.uploadNexoOrganizacaoPhoto(organization.id, file, legenda.trim() || file.name);
+          return repo.uploadNexoOrganizacaoPhoto(
+            organization.id,
+            file,
+            legenda.trim() || file.name,
+          );
         })();
     setOrganizations((current) =>
       current.map((item) =>
@@ -916,15 +935,20 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           />
         ) : null}
 
-        {reportScope && typeof document !== "undefined" ? createPortal(<NexoReport
-          scope={reportScope}
-          organizacoes={organizations}
-          pessoas={people}
-          territorios={territories}
-          registros={reportRecords}
-          observacoes={reportNotes}
-          config={reportConfig}
-        />, document.body) : null}
+        {reportScope && typeof document !== "undefined"
+          ? createPortal(
+              <NexoReport
+                scope={reportScope}
+                organizacoes={organizations}
+                pessoas={people}
+                territorios={territories}
+                registros={reportRecords}
+                observacoes={reportNotes}
+                config={reportConfig}
+              />,
+              document.body,
+            )
+          : null}
         {dossier ? (
           <NexoDossier
             key={`${dossier.kind}:${dossier.id}`}

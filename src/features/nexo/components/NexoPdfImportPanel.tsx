@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   defaultNexoPdfSelections,
   readNexoPdf,
+  readNexoPdfPageCount,
   readNexoPdfPhotos,
+  readNexoPdfWithOcr,
   type NexoPdfCandidate,
   type NexoPdfField,
   type NexoPdfPhotoSelection,
@@ -18,10 +20,19 @@ export function NexoPdfImportPanel({
     candidates: NexoPdfCandidate[],
     fileName: string,
     photo: NexoPdfPhotoSelection | null,
+    file: File,
+    pageCount: number,
+    ocrStatus: "nao_aplicado" | "pendente" | "concluido",
   ) => void;
   onBack: () => void;
 }) {
   const [fileName, setFileName] = useState("");
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
+  const [pageCount, setPageCount] = useState<number | null>(null);
+  const [ocrStatus, setOcrStatus] = useState<"nao_aplicado" | "pendente" | "concluido">(
+    "nao_aplicado",
+  );
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState("");
   const [candidates, setCandidates] = useState<NexoPdfCandidate[]>([]);
   const [chosen, setChosen] = useState<Partial<Record<NexoPdfField, string>>>({});
   const [photos, setPhotos] = useState<Awaited<ReturnType<typeof readNexoPdfPhotos>>>([]);
@@ -30,6 +41,7 @@ export function NexoPdfImportPanel({
     target: NexoPdfPhotoTarget;
   } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
   const [error, setError] = useState("");
   const [photoError, setPhotoError] = useState("");
   const groups = useMemo(() => {
@@ -41,10 +53,23 @@ export function NexoPdfImportPanel({
 
   useEffect(() => () => photos.forEach((photo) => URL.revokeObjectURL(photo.previewUrl)), [photos]);
 
+  useEffect(() => {
+    if (!sourceFile) {
+      setPdfPreviewUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(sourceFile);
+    setPdfPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [sourceFile]);
+
   async function load(file: File | undefined) {
     if (!file) return;
     setBusy(true);
     setError("");
+    setSourceFile(file);
+    setPageCount(null);
+    setOcrStatus("nao_aplicado");
     setFileName(file.name);
     setCandidates([]);
     setChosen({});
@@ -52,15 +77,23 @@ export function NexoPdfImportPanel({
     setPhotoChoice(null);
     setPhotoError("");
     try {
-      const extracted = await readNexoPdf(file);
-      if (!extracted.length) {
-        setError(
-          "Há texto no PDF, mas nenhum campo de pessoa foi reconhecido. Confira o arquivo ou use o cadastro manual.",
-        );
-        return;
+      const count = await readNexoPdfPageCount(file);
+      setPageCount(count);
+      let extracted: NexoPdfCandidate[] = [];
+      try {
+        extracted = await readNexoPdf(file);
+        setCandidates(extracted);
+        setChosen(defaultNexoPdfSelections(extracted));
+        if (!extracted.length) {
+          setError(
+            "O PDF foi aberto, mas nenhum campo de pessoa foi reconhecido. Você pode continuar no cadastro manual e manter o documento-fonte.",
+          );
+        }
+      } catch (cause) {
+        const message = cause instanceof Error ? cause.message : "Não foi possível extrair texto.";
+        setError(message);
+        setOcrStatus(message.includes("OCR") ? "pendente" : "nao_aplicado");
       }
-      setCandidates(extracted);
-      setChosen(defaultNexoPdfSelections(extracted));
       try {
         setPhotos(await readNexoPdfPhotos(file));
       } catch (cause) {
@@ -70,8 +103,30 @@ export function NexoPdfImportPanel({
       }
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Não foi possível ler o PDF.");
+      setPageCount(null);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function runOcr() {
+    if (!sourceFile || !pageCount || ocrBusy) return;
+    setOcrBusy(true);
+    setError("");
+    try {
+      const extracted = await readNexoPdfWithOcr(sourceFile);
+      setCandidates(extracted);
+      setChosen(defaultNexoPdfSelections(extracted));
+      setOcrStatus("concluido");
+      setError(
+        extracted.length
+          ? "OCR local concluído. Confira cada valor e a página original antes de continuar."
+          : "OCR local concluído, mas nenhum campo de pessoa foi reconhecido. Continue no cadastro manual se necessário.",
+      );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Não foi possível executar o OCR local.");
+    } finally {
+      setOcrBusy(false);
     }
   }
 
@@ -106,8 +161,8 @@ export function NexoPdfImportPanel({
           para o mesmo campo, escolha um após conferir a página original.
         </p>
         <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-          Nesta primeira etapa, o arquivo original não é enviado nem anexado ao dossiê. Guarde-o
-          para conferência; somente os campos selecionados serão levados à ficha.
+          O arquivo original será preservado de forma privada com hash, autor e página(s) após a
+          ficha ser salva. Somente os campos que você confirmar entram na ficha.
         </p>
       </div>
       {error ? (
@@ -115,61 +170,99 @@ export function NexoPdfImportPanel({
           role="alert"
           className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950"
         >
-          {error}
+          <>
+            <span>{error}</span>
+            {ocrStatus === "pendente" && sourceFile && pageCount ? (
+              <button
+                type="button"
+                onClick={() => void runOcr()}
+                disabled={ocrBusy}
+                className="mt-3 block rounded-lg border border-amber-300 bg-white px-3 py-2 font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+              >
+                {ocrBusy ? "Executando OCR local…" : "Tentar OCR local"}
+              </button>
+            ) : null}
+          </>
         </p>
       ) : null}
-      {groups.length ? (
-        <section className="rounded-2xl border border-[#c8dce5] bg-white p-5">
-          <h3 className="flex items-center gap-2 text-sm font-black text-[#183e57]">
-            <FileSearch className="h-4 w-4" /> Campos encontrados ({groups.length})
-          </h3>
-          <p className="mt-1 text-xs text-[#627d8e]">
-            Marque apenas o valor conferido. Você poderá corrigir os campos no formulário antes de
-            salvar.
-          </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {groups.map(([field, items]) => (
-              <div key={field} className="rounded-xl border border-[#d8e5eb] p-3">
-                <strong className="text-xs text-[#173d5b]">{items[0].label}</strong>
-                {items.length > 1 ? (
-                  <p className="mt-1 text-[11px] font-semibold text-amber-700">
-                    Confira os valores encontrados em páginas diferentes.
-                  </p>
-                ) : null}
-                <label className="mt-2 flex items-start gap-2 text-xs text-[#516b7d]">
-                  <input
-                    type="radio"
-                    name={`pdf-${field}`}
-                    checked={!chosen[field]}
-                    onChange={() => setChosen((current) => ({ ...current, [field]: undefined }))}
-                  />{" "}
-                  Não importar este campo
-                </label>
-                {items.map((item) => (
-                  <label
-                    key={item.id}
-                    className="mt-2 flex items-start gap-2 rounded-lg bg-[#f6f9fa] p-2 text-xs text-[#183e57]"
-                  >
+      <div
+        className={
+          sourceFile && pageCount
+            ? "grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"
+            : "space-y-5"
+        }
+      >
+        {sourceFile && pageCount ? (
+          <section className="overflow-hidden rounded-2xl border border-[#c8dce5] bg-[#edf3f6] p-3 lg:sticky lg:top-4 lg:self-start">
+            <div className="flex items-center justify-between gap-3 px-2 pb-3">
+              <div>
+                <h3 className="text-sm font-black text-[#183e57]">Prévia do PDF</h3>
+                <p className="mt-1 text-xs text-[#627d8e]">
+                  {pageCount} página(s) · documento original preservado após salvar
+                </p>
+              </div>
+              <FileSearch className="h-5 w-5 text-[#168da4]" />
+            </div>
+            <iframe
+              title={`Prévia de ${fileName}`}
+              src={pdfPreviewUrl}
+              className="h-[560px] w-full rounded-xl border border-[#d8e5eb] bg-white"
+            />
+          </section>
+        ) : null}
+        {groups.length ? (
+          <section className="rounded-2xl border border-[#c8dce5] bg-white p-5">
+            <h3 className="flex items-center gap-2 text-sm font-black text-[#183e57]">
+              <FileSearch className="h-4 w-4" /> Campos encontrados ({groups.length})
+            </h3>
+            <p className="mt-1 text-xs text-[#627d8e]">
+              Marque apenas o valor conferido. Você poderá corrigir os campos no formulário antes de
+              salvar.
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {groups.map(([field, items]) => (
+                <div key={field} className="rounded-xl border border-[#d8e5eb] p-3">
+                  <strong className="text-xs text-[#173d5b]">{items[0].label}</strong>
+                  {items.length > 1 ? (
+                    <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                      Confira os valores encontrados em páginas diferentes.
+                    </p>
+                  ) : null}
+                  <label className="mt-2 flex items-start gap-2 text-xs text-[#516b7d]">
                     <input
                       type="radio"
                       name={`pdf-${field}`}
-                      checked={chosen[field] === item.id}
-                      onChange={() => setChosen((current) => ({ ...current, [field]: item.id }))}
-                    />
-                    <span className="min-w-0 break-words">
-                      <span className="block font-semibold">{item.value}</span>
-                      <span className="block text-[11px] text-[#698294]">
-                        {item.source} · página {item.page} ·{" "}
-                        {item.confidence === "alta" ? "leitura direta" : "revisar"}
-                      </span>
-                    </span>
+                      checked={!chosen[field]}
+                      onChange={() => setChosen((current) => ({ ...current, [field]: undefined }))}
+                    />{" "}
+                    Não importar este campo
                   </label>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+                  {items.map((item) => (
+                    <label
+                      key={item.id}
+                      className="mt-2 flex items-start gap-2 rounded-lg bg-[#f6f9fa] p-2 text-xs text-[#183e57]"
+                    >
+                      <input
+                        type="radio"
+                        name={`pdf-${field}`}
+                        checked={chosen[field] === item.id}
+                        onChange={() => setChosen((current) => ({ ...current, [field]: item.id }))}
+                      />
+                      <span className="min-w-0 break-words">
+                        <span className="block font-semibold">{item.value}</span>
+                        <span className="block text-[11px] text-[#698294]">
+                          {item.source} · página {item.page} ·{" "}
+                          {item.confidence === "alta" ? "leitura direta" : "revisar"}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
       {photos.length ? (
         <section className="rounded-2xl border border-[#c8dce5] bg-white p-5">
           <div className="flex items-start justify-between gap-3">
@@ -259,7 +352,7 @@ export function NexoPdfImportPanel({
         </button>
         <button
           type="button"
-          disabled={!Object.values(chosen).some(Boolean) || busy}
+          disabled={!sourceFile || !pageCount || busy}
           onClick={() =>
             onApply(
               candidates.filter((item) => chosen[item.field] === item.id),
@@ -270,6 +363,9 @@ export function NexoPdfImportPanel({
                     target: photoChoice.target,
                   }
                 : null,
+              sourceFile!,
+              pageCount!,
+              ocrStatus,
             )
           }
           className="nexo-action-primary disabled:opacity-40"

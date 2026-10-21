@@ -79,7 +79,9 @@ function PersonReport({
   );
   return (
     <article className="nexo-report-person">
-      <div className={`nexo-report-person-hero${mainPhoto ? "" : " nexo-report-person-hero-no-photo"}`}>
+      <div
+        className={`nexo-report-person-hero${mainPhoto ? "" : " nexo-report-person-hero-no-photo"}`}
+      >
         {mainPhoto ? (
           <figure style={{ margin: 0, maxWidth: "32mm" }}>
             <div className="nexo-report-person-photo">
@@ -236,6 +238,37 @@ function PersonReport({
           ) : (
             <p>Nenhum vínculo cadastrado.</p>
           )}
+        </section>
+      ) : null}
+      {pessoa.documentos_fontes?.length ? (
+        <section className="nexo-report-section">
+          <h3>Fontes documentais preservadas</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Hash SHA-256</th>
+                <th>Páginas</th>
+                <th>Extração</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pessoa.documentos_fontes.map((documento) => (
+                <tr key={documento.id}>
+                  <td>{documento.original_filename}</td>
+                  <td>{documento.sha256}</td>
+                  <td>{documento.page_count ?? "Não informado"}</td>
+                  <td>
+                    {documento.ocr_status === "concluido"
+                      ? "OCR local concluído"
+                      : documento.ocr_status === "pendente"
+                        ? "OCR pendente"
+                        : "Texto selecionável"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </section>
       ) : null}
       {config.sections.procedures ? (
