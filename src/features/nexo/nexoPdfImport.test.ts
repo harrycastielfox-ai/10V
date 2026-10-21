@@ -6,6 +6,7 @@ import {
   applyNexoPdfPhotoSelection,
   defaultNexoPdfSelections,
   suggestNexoPdfFields,
+  selectNexoPdfPhotos,
   type NexoPdfTextCell,
 } from "./nexoPdfImport";
 
@@ -285,5 +286,32 @@ describe("sugestões de cadastro a partir de PDF", () => {
     expect(result).toBe(person);
     expect(result.foto_perfil).toBe(profile);
     expect(result.foto_relatorio).toBe(profile);
+  });
+
+  it("permite escolher duas imagens diferentes do mesmo PDF para finalidades distintas", () => {
+    const perfil = {
+      id: "foto-perfil",
+      page: 1,
+      width: 320,
+      height: 420,
+      file: new File(["perfil"], "perfil.png", { type: "image/png" }),
+      previewUrl: "blob:perfil",
+    };
+    const relatorio = {
+      id: "foto-relatorio",
+      page: 2,
+      width: 640,
+      height: 480,
+      file: new File(["relatorio"], "relatorio.png", { type: "image/png" }),
+      previewUrl: "blob:relatorio",
+    };
+    const selected = selectNexoPdfPhotos([{ id: "documento-1", photos: [perfil, relatorio] }], {
+      perfil: { documentId: "documento-1", photoId: perfil.id },
+      relatorio: { documentId: "documento-1", photoId: relatorio.id },
+    });
+    expect(selected).toEqual([
+      { candidate: perfil, target: "perfil" },
+      { candidate: relatorio, target: "relatorio" },
+    ]);
   });
 });

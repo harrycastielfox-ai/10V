@@ -6,6 +6,7 @@ import {
   readNexoPdfPageCount,
   readNexoPdfPhotos,
   readNexoPdfWithOcr,
+  selectNexoPdfPhotos,
   type NexoPdfCandidate,
   type NexoPdfField,
   type NexoPdfPhotoSelection,
@@ -41,8 +42,8 @@ export function NexoPdfImportPanel({
   const [documents, setDocuments] = useState<PdfDocumentState[]>([]);
   const [chosen, setChosen] = useState<Partial<Record<NexoPdfField, string>>>({});
   const [photoChoices, setPhotoChoices] = useState<
-    Record<string, { id: string; target: NexoPdfPhotoTarget }>
-  >({});
+    Record<NexoPdfPhotoTarget, { documentId: string; photoId: string } | null>
+  >({ perfil: null, relatorio: null });
   const [busy, setBusy] = useState(false);
   const [fileWarning, setFileWarning] = useState("");
   const [pdfPreviewUrls, setPdfPreviewUrls] = useState<Record<string, string>>({});
@@ -99,24 +100,27 @@ export function NexoPdfImportPanel({
     );
     if (!nextFiles.length) return;
     setBusy(true);
-    const loaded: PdfDocumentState[] = [];
-    for (const file of nextFiles) loaded.push(await loadFile(file));
-    setDocuments((current) => [...current, ...loaded]);
-    const defaults = defaultNexoPdfSelections(
-      loaded.flatMap((document) =>
-        document.candidates.map((candidate) => ({
-          ...candidate,
-          id: document.id + ":" + candidate.id,
-        })),
-      ),
-    );
-    setChosen((current) => {
-      const next = { ...current };
-      for (const [field, id] of Object.entries(defaults) as [NexoPdfField, string][])
-        if (!next[field]) next[field] = id;
-      return next;
-    });
-    setBusy(false);
+    try {
+      const loaded: PdfDocumentState[] = [];
+      for (const file of nextFiles) loaded.push(await loadFile(file));
+      setDocuments((current) => [...current, ...loaded]);
+      const defaults = defaultNexoPdfSelections(
+        loaded.flatMap((document) =>
+          document.candidates.map((candidate) => ({
+            ...candidate,
+            id: document.id + ":" + candidate.id,
+          })),
+        ),
+      );
+      setChosen((current) => {
+        const next = { ...current };
+        for (const [field, id] of Object.entries(defaults) as [NexoPdfField, string][])
+          if (!next[field]) next[field] = id;
+        return next;
+      });
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function loadFile(file: File): Promise<PdfDocumentState> {
@@ -163,22 +167,14 @@ export function NexoPdfImportPanel({
     setChosen((current) =>
       Object.fromEntries(Object.entries(current).filter(([, id]) => !candidateIds.has(id))),
     );
-    setPhotoChoices((current) => {
-      const next = { ...current };
-      delete next[documentId];
-      return next;
-    });
+    setPhotoChoices((current) => ({
+      perfil: current.perfil?.documentId === documentId ? null : current.perfil,
+      relatorio: current.relatorio?.documentId === documentId ? null : current.relatorio,
+    }));
   }
 
   function choosePhoto(documentId: string, photoId: string, target: NexoPdfPhotoTarget) {
-    setPhotoChoices((current) => {
-      const next = { ...current };
-      for (const [id, choice] of Object.entries(next)) {
-        if (id !== documentId && choice.target === target) delete next[id];
-      }
-      next[documentId] = { id: photoId, target };
-      return next;
-    });
+    setPhotoChoices((current) => ({ ...current, [target]: { documentId, photoId } }));
   }
 
   async function runOcr(documentId: string) {
@@ -213,9 +209,11 @@ export function NexoPdfImportPanel({
         })),
       );
       setChosen((current) => {
-        const next = { ...current };
+        const next = Object.fromEntries(
+          Object.entries(current).filter(([, id]) => !id?.startsWith(documentId + ":")),
+        ) as Partial<Record<NexoPdfField, string>>;
         for (const [field, id] of Object.entries(defaults) as [NexoPdfField, string][])
-          if (!next[field]) next[field] = id;
+          next[field] = id;
         return next;
       });
     } catch (cause) {
@@ -251,13 +249,7 @@ export function NexoPdfImportPanel({
       page_count: document.pageCount!,
       ocr_status: document.ocrStatus,
     }));
-    const photos = documents
-      .map((document) => {
-        const choice = photoChoices[document.id];
-        const candidate = document.photos.find((photo) => photo.id === choice?.id);
-        return candidate && choice ? { candidate, target: choice.target } : null;
-      })
-      .filter((photo): photo is NexoPdfPhotoSelection => Boolean(photo));
+    const photos = selectNexoPdfPhotos(documents, photoChoices);
     onApply(sources, photos);
   }
 
@@ -428,8 +420,18 @@ export function NexoPdfImportPanel({
                   <p className="text-xs font-black text-[#365b70]">{document.file.name}</p>
                   <div className="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {document.photos.map((photo) => {
-                      const choice = photoChoices[document.id];
-                      const selected = choice?.id === photo.id;
+                      const selectedTargets = (
+                        Object.entries(photoChoices) as [
+                          NexoPdfPhotoTarget,
+                          { documentId: string; photoId: string } | null,
+                        ][]
+                      )
+                        .filter(
+                          ([, choice]) =>
+                            choice?.documentId === document.id && choice?.photoId === photo.id,
+                        )
+                        .map(([target]) => target);
+                      const selected = selectedTargets.length > 0;
                       return (
                         <div
                           key={photo.id}
@@ -447,7 +449,8 @@ export function NexoPdfImportPanel({
                               choosePhoto(
                                 document.id,
                                 photo.id,
-                                photoChoices[document.id]?.target || "perfil",
+                                selectedTargets[0] ||
+                                  (photoChoices.perfil ? "relatorio" : "perfil"),
                               )
                             }
                           >
@@ -466,8 +469,11 @@ export function NexoPdfImportPanel({
                                 <label key={target} className="flex items-center gap-1">
                                   <input
                                     type="radio"
-                                    name={"pdf-photo-target-" + document.id}
-                                    checked={choice.target === target}
+                                    name={"pdf-photo-target-" + document.id + "-" + target}
+                                    checked={
+                                      photoChoices[target]?.documentId === document.id &&
+                                      photoChoices[target]?.photoId === photo.id
+                                    }
                                     onChange={() => choosePhoto(document.id, photo.id, target)}
                                   />
                                   {target === "perfil" ? "Perfil" : "Relatório"}

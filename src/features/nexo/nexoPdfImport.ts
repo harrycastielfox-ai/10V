@@ -60,6 +60,23 @@ export interface NexoPdfPhotoSelection {
   target: NexoPdfPhotoTarget;
 }
 
+export function selectNexoPdfPhotos(
+  documents: Array<{ id: string; photos: NexoPdfPhotoCandidate[] }>,
+  choices: Record<NexoPdfPhotoTarget, { documentId: string; photoId: string } | null>,
+): NexoPdfPhotoSelection[] {
+  return (
+    Object.entries(choices) as [
+      NexoPdfPhotoTarget,
+      { documentId: string; photoId: string } | null,
+    ][]
+  ).flatMap(([target, choice]) => {
+    if (!choice) return [];
+    const document = documents.find((item) => item.id === choice.documentId);
+    const candidate = document?.photos.find((photo) => photo.id === choice.photoId);
+    return candidate ? [{ candidate, target }] : [];
+  });
+}
+
 /** Applies the reviewed PDF image choice without making an image implicit. */
 export function applyNexoPdfPhotoSelection(
   person: NexoPessoaInput,
