@@ -2,16 +2,18 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Building2,
+  CheckCircle2,
   FileText,
   FilterX,
   Link2,
   Network,
   ShieldCheck,
   Search,
+  Sparkles,
   UserRound,
   UsersRound,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   activeDirectoryLinks,
   hasDirectoryPhoto,
@@ -19,6 +21,10 @@ import {
   uniqueDirectoryProcedureCount,
 } from "../nexoDirectoryFilters";
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
+import {
+  buildNexoPersonIntelligenceSummary,
+  type NexoPersonIntelligenceSummary,
+} from "../nexoIntelligenceSummary";
 import type {
   NexoOrganizacao,
   NexoPessoa,
@@ -54,6 +60,7 @@ export function NexoIntelligenceBoard({
   const [faction, setFaction] = useState("");
   const [status, setStatus] = useState<"all" | Exclude<NexoVinculoStatus, "desvinculado">>("all");
   const [focusedPersonId, setFocusedPersonId] = useState<string | null>(null);
+  const [summaryPersonId, setSummaryPersonId] = useState<string | null>(null);
   const links = people.flatMap((person) =>
     activeDirectoryLinks(person).map((link) => ({ ...link, person })),
   );
@@ -244,6 +251,7 @@ export function NexoIntelligenceBoard({
               setFaction("");
               setStatus("all");
               setFocusedPersonId(null);
+              setSummaryPersonId(null);
             }}
             className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#d9e6ec] px-3 text-[11px] font-bold text-[#5c7d91] hover:bg-[#eff8fa]"
           >
@@ -327,7 +335,10 @@ export function NexoIntelligenceBoard({
                         <button
                           key={member.id}
                           type="button"
-                          onClick={() => setFocusedPersonId(member.id)}
+                          onClick={() => {
+                            setFocusedPersonId(member.id);
+                            setSummaryPersonId(null);
+                          }}
                           aria-pressed={focusedPerson?.id === member.id}
                           className={`relative flex w-full items-center gap-3 rounded-xl border bg-white p-2.5 text-left hover:border-[#8fc3d0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55a9bc] ${focusedPerson?.id === member.id ? "border-[#55a9bc] ring-2 ring-[#55a9bc]/20" : "border-[#e3ebef]"}`}
                         >
@@ -411,7 +422,24 @@ export function NexoIntelligenceBoard({
               >
                 Abrir dossiê <ArrowUpRight className="h-3.5 w-3.5" />
               </button>
+              <button
+                type="button"
+                onClick={() => setSummaryPersonId(focusedPerson.id)}
+                className="mt-2 inline-flex items-center gap-2 rounded-xl border border-[#9bcbd6] bg-white px-4 py-2.5 text-[11px] font-bold text-[#286b7d] transition hover:bg-[#e5f5f8]"
+              >
+                <Sparkles className="h-3.5 w-3.5" /> Gerar síntese local
+              </button>
             </section>
+          ) : null}
+          {focusedPerson && summaryPersonId === focusedPerson.id ? (
+            <LocalSummaryCard
+              summary={buildNexoPersonIntelligenceSummary(
+                focusedPerson,
+                organizations,
+                territories,
+                records,
+              )}
+            />
           ) : null}
           <section className="rounded-[26px] border border-[#d8e5eb] bg-white p-5">
             <p className="text-[11px] font-black uppercase tracking-[.2em] text-[#b27c35]">
@@ -508,6 +536,145 @@ function IntelligenceMetric({
       </div>
       <p className="mt-3 text-[11px] font-black uppercase tracking-wide text-[#526f82]">{label}</p>
       <p className="mt-1 text-[11px] text-[#567184]">{detail}</p>
+    </div>
+  );
+}
+
+function LocalSummaryCard({ summary }: { summary: NexoPersonIntelligenceSummary }) {
+  return (
+    <section
+      className="rounded-[26px] border border-[#bcd9e1] bg-white p-5 shadow-[0_10px_28px_-22px_#173f58]"
+      aria-live="polite"
+      aria-label="Síntese estruturada local"
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f6f8] text-[#21869a]">
+          <Sparkles className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[.16em] text-[#5a9eb0]">
+            Assistência local
+          </p>
+          <h2 className="mt-1 text-lg font-black text-[#17364e]">Síntese estruturada</h2>
+          <p className="mt-2 text-[11px] leading-relaxed text-[#567184]">
+            Rascunho baseado somente nos dados cadastrados. Não envia informações para serviços
+            externos e não cria conclusões ou associações novas.
+          </p>
+        </div>
+      </div>
+      <dl className="mt-4 space-y-2 border-t border-[#edf2f5] pt-4 text-[11px]">
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-bold text-[#6a8494]">Pessoa</dt>
+          <dd className="text-right font-semibold text-[#294b61]">{summary.subject.name}</dd>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-bold text-[#6a8494]">Localização</dt>
+          <dd className="max-w-[62%] text-right font-semibold text-[#294b61]">
+            {summary.subject.location}
+          </dd>
+        </div>
+        <div className="flex items-start justify-between gap-3">
+          <dt className="font-bold text-[#6a8494]">Fotografia de perfil</dt>
+          <dd className="text-right font-semibold text-[#294b61]">
+            {summary.subject.photoAvailable ? "Disponível" : "Não disponível"}
+          </dd>
+        </div>
+      </dl>
+      <SummaryGroup title="Vínculos registrados" empty="Nenhum vínculo atual registrado.">
+        {summary.links.map((link) => (
+          <li key={`${link.organization}:${link.status}`} className="rounded-lg bg-[#f6fafb] p-2.5">
+            <strong className="block text-[#294b61]">{link.organization}</strong>
+            <span className="mt-1 block text-[#6a8494]">
+              {link.status} · {link.confidence}% · fonte: {link.source}
+            </span>
+          </li>
+        ))}
+      </SummaryGroup>
+      <SummaryGroup
+        title="Territórios relacionados"
+        empty="Nenhum território relacionado no recorte."
+      >
+        {summary.territories.map((territory) => (
+          <li
+            key={`${territory.organization}:${territory.area}:${territory.classification}`}
+            className="rounded-lg bg-[#f6fafb] p-2.5"
+          >
+            <strong className="block text-[#294b61]">
+              {territory.area} · {territory.classification}
+            </strong>
+            <span className="mt-1 block text-[#6a8494]">
+              {territory.organization} · {territory.confidence}% de confiança
+            </span>
+          </li>
+        ))}
+      </SummaryGroup>
+      <SummaryGroup
+        title="Procedimentos associados"
+        empty="Nenhum procedimento associado no recorte."
+      >
+        {summary.procedures.map((procedure) => (
+          <li
+            key={`${procedure.type}:${procedure.number}`}
+            className="rounded-lg bg-[#f6fafb] p-2.5"
+          >
+            <strong className="block text-[#294b61]">
+              {procedure.type} · {procedure.number}
+            </strong>
+            <span className="mt-1 block text-[#6a8494]">{procedure.context}</span>
+          </li>
+        ))}
+      </SummaryGroup>
+      <SummaryGroup
+        title="Lacunas para conferência"
+        empty="Nenhuma lacuna operacional identificada."
+      >
+        {summary.gaps.map((gap) => (
+          <li
+            key={gap}
+            className="flex items-start gap-2 rounded-lg bg-amber-50 p-2.5 text-amber-900"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>{gap}</span>
+          </li>
+        ))}
+      </SummaryGroup>
+      {summary.documents.length ? (
+        <div className="mt-4 border-t border-[#edf2f5] pt-4">
+          <p className="text-[11px] font-black uppercase tracking-wide text-[#5a9eb0]">
+            Documentos preservados
+          </p>
+          <ul className="mt-2 space-y-2 text-[11px] text-[#567184]">
+            {summary.documents.map((document) => (
+              <li key={document} className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#2b859a]" />
+                <span className="break-words">{document}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function SummaryGroup({
+  title,
+  empty,
+  children,
+}: {
+  title: string;
+  empty: string;
+  children: ReactNode;
+}) {
+  const hasItems = Array.isArray(children) ? children.length > 0 : Boolean(children);
+  return (
+    <div className="mt-4 border-t border-[#edf2f5] pt-4">
+      <p className="text-[11px] font-black uppercase tracking-wide text-[#5a9eb0]">{title}</p>
+      {hasItems ? (
+        <ul className="mt-2 space-y-2">{children}</ul>
+      ) : (
+        <p className="mt-2 text-[11px] text-[#6a8494]">{empty}</p>
+      )}
     </div>
   );
 }
