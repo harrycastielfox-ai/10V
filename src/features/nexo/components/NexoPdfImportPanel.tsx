@@ -97,7 +97,8 @@ export function NexoPdfImportPanel({
       try {
         const extractedPhotos = await readNexoPdfPhotos(file);
         setPhotos(extractedPhotos);
-        setPhotoChoice(extractedPhotos[0] ? { id: extractedPhotos[0].id, target: "perfil" } : null);
+        // An image must be explicitly reviewed before it can reach the person form.
+        setPhotoChoice(null);
       } catch (cause) {
         setPhotoError(
           cause instanceof Error ? cause.message : "Não foi possível extrair imagens deste PDF.",
@@ -274,8 +275,8 @@ export function NexoPdfImportPanel({
               </h3>
               <p className="mt-1 text-xs text-[#627d8e]">
                 {photoChoice
-                  ? "A primeira imagem foi selecionada automaticamente como fotografia principal. Você pode trocar ou não importar."
-                  : "Escolha uma imagem e a finalidade. A página de origem será registrada na revisão."}
+                  ? "Confira a imagem e a finalidade selecionadas. A página de origem será registrada na revisão."
+                  : "Nenhuma imagem será importada sem uma escolha explícita. Selecione uma imagem e a finalidade."}
               </p>
             </div>
             {photoChoice ? (
@@ -362,10 +363,10 @@ export function NexoPdfImportPanel({
               candidates.filter((item) => chosen[item.field] === item.id),
               fileName,
               photoChoice
-                ? {
-                    candidate: photos.find((photo) => photo.id === photoChoice.id)!,
-                    target: photoChoice.target,
-                  }
+                ? (() => {
+                    const candidate = photos.find((photo) => photo.id === photoChoice.id);
+                    return candidate ? { candidate, target: photoChoice.target } : null;
+                  })()
                 : null,
               sourceFile!,
               pageCount!,

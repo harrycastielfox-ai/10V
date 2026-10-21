@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NexoPessoaInput } from "./nexoTypes";
 import {
   applyNexoPdfCandidates,
+  applyNexoPdfPhotoSelection,
   defaultNexoPdfSelections,
   suggestNexoPdfFields,
   type NexoPdfTextCell,
@@ -167,5 +168,73 @@ describe("sugestões de cadastro a partir de PDF", () => {
       'Importação revisada do PDF "modelo.pdf": 2 campo(s) confirmado(s); fonte(s): NIMBA; página(s): 1.',
     );
     expect(result.observacoes).not.toContain("Nome completo (NIMBA, p. 1)");
+  });
+
+  it("aplica uma foto de perfil revisada também ao relatório", () => {
+    const file = new File(["imagem"], "retrato.png", { type: "image/png" });
+    const person = {
+      nome: "Pessoa Fictícia",
+      observacoes: "Observação anterior",
+      foto_perfil: null,
+      foto_relatorio: null,
+    } as unknown as NexoPessoaInput;
+
+    const result = applyNexoPdfPhotoSelection(person, {
+      candidate: {
+        id: "1:img-1",
+        page: 2,
+        width: 320,
+        height: 420,
+        file,
+        previewUrl: "blob:preview",
+      },
+      target: "perfil",
+    });
+
+    expect(result.foto_perfil).toBe(file);
+    expect(result.foto_relatorio).toBe(file);
+    expect(result.observacoes).toContain("página 2");
+    expect(result.observacoes).toContain("foto de perfil");
+  });
+
+  it("mantém a foto de perfil vazia quando a finalidade revisada é somente relatório", () => {
+    const file = new File(["imagem"], "anexo.png", { type: "image/png" });
+    const person = {
+      nome: "Pessoa Fictícia",
+      observacoes: "",
+      foto_perfil: null,
+      foto_relatorio: null,
+    } as unknown as NexoPessoaInput;
+
+    const result = applyNexoPdfPhotoSelection(person, {
+      candidate: {
+        id: "1:img-2",
+        page: 3,
+        width: 640,
+        height: 480,
+        file,
+        previewUrl: "blob:preview",
+      },
+      target: "relatorio",
+    });
+
+    expect(result.foto_perfil).toBeNull();
+    expect(result.foto_relatorio).toBe(file);
+  });
+
+  it("não altera fotos quando o operador escolhe não importar", () => {
+    const profile = new File(["perfil"], "perfil.jpg", { type: "image/jpeg" });
+    const person = {
+      nome: "Pessoa Fictícia",
+      observacoes: "",
+      foto_perfil: profile,
+      foto_relatorio: profile,
+    } as unknown as NexoPessoaInput;
+
+    const result = applyNexoPdfPhotoSelection(person, null);
+
+    expect(result).toBe(person);
+    expect(result.foto_perfil).toBe(profile);
+    expect(result.foto_relatorio).toBe(profile);
   });
 });

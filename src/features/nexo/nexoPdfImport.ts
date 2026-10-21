@@ -60,6 +60,29 @@ export interface NexoPdfPhotoSelection {
   target: NexoPdfPhotoTarget;
 }
 
+/** Applies the reviewed PDF image choice without making an image implicit. */
+export function applyNexoPdfPhotoSelection(
+  person: NexoPessoaInput,
+  selection: NexoPdfPhotoSelection | null,
+): NexoPessoaInput {
+  if (!selection) return person;
+
+  const next = { ...person };
+  if (selection.target === "perfil") {
+    next.foto_perfil = selection.candidate.file;
+    next.foto_relatorio = selection.candidate.file;
+  } else {
+    next.foto_relatorio = selection.candidate.file;
+  }
+  next.observacoes = [
+    next.observacoes.trim(),
+    `Imagem extraída da página ${selection.candidate.page} do PDF e selecionada como foto de ${selection.target}.`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  return next;
+}
+
 const labels: Record<string, { field: NexoPdfField; label: string }> = {
   nome: { field: "nome", label: "Nome completo" },
   cpf: { field: "cpf", label: "CPF" },

@@ -23,7 +23,7 @@ import { findPossibleNexoPersonDuplicates } from "../nexoPersonDuplicates";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { NexoPersonWizard, PersonWizardProgress } from "./NexoPersonWizard";
 import { NexoPdfImportPanel } from "./NexoPdfImportPanel";
-import { applyNexoPdfCandidates } from "../nexoPdfImport";
+import { applyNexoPdfCandidates, applyNexoPdfPhotoSelection } from "../nexoPdfImport";
 
 export type CreateKind = "territorio" | "organizacao" | "pessoa";
 const PERSON_STEP_COUNT = 6;
@@ -561,16 +561,7 @@ export function NexoCreateDialog({
                       page_count: sourcePageCount,
                       ocr_status: sourceOcrStatus,
                     };
-                    if (photo) {
-                      if (photo.target === "perfil") {
-                        next.foto_perfil = photo.candidate.file;
-                        next.foto_relatorio = photo.candidate.file;
-                      } else {
-                        next.foto_relatorio = photo.candidate.file;
-                      }
-                      next.observacoes = `${next.observacoes}\nImagem extraída da página ${photo.candidate.page} do PDF e selecionada como foto de ${photo.target}.`;
-                    }
-                    return next;
+                    return applyNexoPdfPhotoSelection(next, photo);
                   });
                   setPersonStep(0);
                   setImportNotice(
