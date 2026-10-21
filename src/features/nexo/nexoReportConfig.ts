@@ -70,6 +70,8 @@ export interface NexoReportSource {
   extraction: string;
   observation: string | null;
   createdAt: string;
+  storagePath: string;
+  url: string | null;
 }
 
 export function createNexoReportConfig(): NexoReportConfig {
@@ -220,6 +222,8 @@ export function listNexoReportSources(person: NexoPessoa): NexoReportSource[] {
             : "Texto selecionável",
     observation: null,
     createdAt: documento.created_at,
+    storagePath: documento.storage_path,
+    url: null,
   }));
   const resources = (person.recursos ?? []).map((recurso) => ({
     key: `${person.id}:recurso:${recurso.id}`,
@@ -231,6 +235,8 @@ export function listNexoReportSources(person: NexoPessoa): NexoReportSource[] {
     extraction: "PDF anexado ao dossiê",
     observation: recurso.observacao,
     createdAt: recurso.created_at,
+    storagePath: recurso.storage_path,
+    url: recurso.url ?? null,
   }));
   return [...imported, ...resources];
 }

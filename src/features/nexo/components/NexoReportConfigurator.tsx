@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   ArrowLeft,
+  Archive,
   Building2,
   Check,
   Eye,
@@ -34,6 +35,7 @@ import {
   type NexoReportPreset,
 } from "../nexoReportPresets";
 import type { NexoReportScope } from "../nexoTypes";
+import { buildNexoDocumentPackage, downloadNexoDocumentPackage } from "../nexoDocumentPackage";
 import { NexoReport } from "./NexoReport";
 
 const inputClass =
@@ -66,6 +68,7 @@ export function NexoReportConfigurator({
   const [activePresetId, setActivePresetId] = useState<string | undefined>();
   const [activePresetVersion, setActivePresetVersion] = useState<number | undefined>();
   const [presetNotice, setPresetNotice] = useState("");
+  const [packageBusy, setPackageBusy] = useState(false);
   const data = useMemo(
     () => ({ organizacoes, pessoas, territorios, registros, observacoes }),
     [organizacoes, pessoas, territorios, registros, observacoes],
@@ -168,6 +171,26 @@ export function NexoReportConfigurator({
     setPresetNotice(
       removed ? `Modelo “${removed.name}” removido deste navegador.` : "Modelo removido.",
     );
+  }
+
+  async function downloadPackage() {
+    setPackageBusy(true);
+    setPresetNotice("");
+    try {
+      const manifest = buildNexoDocumentPackage(scope, data, normalizeNexoReportConfig(config));
+      const result = await downloadNexoDocumentPackage(manifest);
+      setPresetNotice(
+        result.failed
+          ? `Pacote gerado com ${result.downloaded} arquivo(s); ${result.failed} ficou(aram) somente como referência.`
+          : `Pacote gerado com ${result.downloaded} arquivo(s).`,
+      );
+    } catch (cause) {
+      setPresetNotice(
+        cause instanceof Error ? cause.message : "Não foi possível gerar o pacote documental.",
+      );
+    } finally {
+      setPackageBusy(false);
+    }
   }
 
   function switchScope(kind: NexoReportScope["kind"]) {
@@ -893,7 +916,7 @@ export function NexoReportConfigurator({
               <div className="flex flex-col-reverse gap-2 sm:flex-row">
                 <button
                   type="button"
-                  disabled={busy || !summary.sections || !scopeExists}
+                  disabled={busy || packageBusy || !summary.sections || !scopeExists}
                   onClick={() => setPreviewOpen(true)}
                   className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#b9d4df] bg-white px-4 py-3 text-xs font-semibold text-[#234c63] transition hover:border-[#168aa1] hover:bg-[#f2fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
                 >
@@ -902,7 +925,16 @@ export function NexoReportConfigurator({
                 </button>
                 <button
                   type="button"
-                  disabled={busy || !summary.sections || !scopeExists}
+                  disabled={busy || packageBusy || !summary.sections || !scopeExists}
+                  onClick={() => void downloadPackage()}
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#b9d4df] bg-white px-4 py-3 text-xs font-semibold text-[#234c63] transition hover:border-[#168aa1] hover:bg-[#f2fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
+                >
+                  <Archive className="h-4 w-4" />
+                  {packageBusy ? "Montando pacote..." : "Pacote documental"}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || packageBusy || !summary.sections || !scopeExists}
                   onClick={() => onGenerate(scope, normalizeNexoReportConfig(config))}
                   className="nexo-action-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12334a] px-5 py-3 text-xs font-semibold text-white transition hover:bg-[#1d4b65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
                 >
