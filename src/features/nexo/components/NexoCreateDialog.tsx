@@ -23,7 +23,7 @@ import { findPossibleNexoPersonDuplicates } from "../nexoPersonDuplicates";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { NexoPersonWizard, PersonWizardProgress } from "./NexoPersonWizard";
 import { NexoPdfImportPanel } from "./NexoPdfImportPanel";
-import { applyNexoPdfCandidates, applyNexoPdfPhotoSelection } from "../nexoPdfImport";
+import { applyNexoPdfPhotoSelection, applyNexoPdfSources } from "../nexoPdfImport";
 
 export type CreateKind = "territorio" | "organizacao" | "pessoa";
 const PERSON_STEP_COUNT = 6;
@@ -54,6 +54,12 @@ function registrationSnapshot(
             ocr_status: person.pdf_fonte.ocr_status,
           }
         : null,
+      pdf_fontes: (person.pdf_fontes || []).map((source) => ({
+        file: fileKey(source.file),
+        candidates: source.candidates,
+        page_count: source.page_count,
+        ocr_status: source.ocr_status,
+      })),
     },
     territory,
   });
@@ -538,34 +544,15 @@ export function NexoCreateDialog({
             <div className="flex-1">
               <NexoPdfImportPanel
                 onBack={() => setPersonMode("choose")}
-                onApply={(
-                  candidates,
-                  fileName,
-                  photo,
-                  sourceFile,
-                  sourcePageCount,
-                  sourceOcrStatus,
-                ) => {
+                onApply={(sources, photos) => {
                   setPerson((current) => {
-                    const next = applyNexoPdfCandidates(current, candidates, fileName);
-                    next.pdf_fonte = {
-                      file: sourceFile,
-                      candidates: candidates.map((item) => ({
-                        field: item.field,
-                        label: item.label,
-                        value: item.value,
-                        page: item.page,
-                        source: item.source,
-                        confidence: item.confidence,
-                      })),
-                      page_count: sourcePageCount,
-                      ocr_status: sourceOcrStatus,
-                    };
-                    return applyNexoPdfPhotoSelection(next, photo);
+                    let next = applyNexoPdfSources(current, sources);
+                    for (const photo of photos) next = applyNexoPdfPhotoSelection(next, photo);
+                    return next;
                   });
                   setPersonStep(0);
                   setImportNotice(
-                    `${candidates.length} campo(s) sugerido(s) pelo PDF. Confira a ficha e as informações de origem antes de salvar.`,
+                    `${sources.length} PDF(s) processado(s) e ${sources.reduce((total, source) => total + source.candidates.length, 0)} campo(s) sugerido(s). Confira a ficha e as informações de origem antes de salvar.`,
                   );
                   setPersonMode("manual");
                 }}

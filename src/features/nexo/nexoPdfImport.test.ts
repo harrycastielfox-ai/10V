@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { NexoPessoaInput } from "./nexoTypes";
 import {
   applyNexoPdfCandidates,
+  applyNexoPdfSources,
   applyNexoPdfPhotoSelection,
   defaultNexoPdfSelections,
   suggestNexoPdfFields,
@@ -168,6 +169,54 @@ describe("sugestões de cadastro a partir de PDF", () => {
       'Importação revisada do PDF "modelo.pdf": 2 campo(s) confirmado(s); fonte(s): NIMBA; página(s): 1.',
     );
     expect(result.observacoes).not.toContain("Nome completo (NIMBA, p. 1)");
+  });
+
+  it("combina campos selecionados de dois PDFs e preserva as duas fontes", () => {
+    const person = {
+      nome: "",
+      observacoes: "",
+      fonte_resumo: "",
+      documentos_extras: [],
+      endereco: { logradouro: "", numero: "", bairro: "", municipio: "", uf: "" },
+    } as unknown as NexoPessoaInput;
+    const result = applyNexoPdfSources(person, [
+      {
+        file: new File(["%PDF-1.7\npdf-a"], "identificacao.pdf", { type: "application/pdf" }),
+        page_count: 2,
+        ocr_status: "nao_aplicado",
+        candidates: [
+          {
+            field: "nome",
+            label: "Nome completo",
+            value: "Pessoa Fictícia",
+            page: 1,
+            source: "NIMBA",
+            confidence: "alta",
+          },
+        ],
+      },
+      {
+        file: new File(["%PDF-1.7\npdf-b"], "endereco.pdf", { type: "application/pdf" }),
+        page_count: 1,
+        ocr_status: "nao_aplicado",
+        candidates: [
+          {
+            field: "endereco.municipio",
+            label: "Município",
+            value: "Itabela",
+            page: 1,
+            source: "Receita Federal",
+            confidence: "revisar",
+          },
+        ],
+      },
+    ]);
+    expect(result.nome).toBe("Pessoa Fictícia");
+    expect(result.endereco.municipio).toBe("Itabela");
+    expect(result.pdf_fontes).toHaveLength(2);
+    expect(result.pdf_fonte?.file.name).toBe("identificacao.pdf");
+    expect(result.observacoes).toContain('PDF "identificacao.pdf"');
+    expect(result.observacoes).toContain('PDF "endereco.pdf"');
   });
 
   it("aplica uma foto de perfil revisada também ao relatório", () => {

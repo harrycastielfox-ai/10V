@@ -322,6 +322,8 @@ export interface NexoPessoaInput {
   foto_perfil: File | null;
   foto_relatorio: File | null;
   pdf_fonte: NexoPdfSourceInput | null;
+  /** Additional reviewed source PDFs used to compose the same cadastro. */
+  pdf_fontes?: NexoPdfSourceInput[];
 }
 
 export interface NexoOrganizacaoInput {

@@ -1,4 +1,4 @@
-import type { NexoPessoaInput } from "./nexoTypes";
+import type { NexoPessoaInput, NexoPdfSourceInput } from "./nexoTypes";
 import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { getDocument, GlobalWorkerOptions, OPS } from "pdfjs-dist";
 
@@ -555,5 +555,27 @@ export function applyNexoPdfCandidates(
   ]
     .filter(Boolean)
     .join("\n");
+  return next;
+}
+
+/** Applies reviewed candidates from several source PDFs without changing field precedence. */
+export function applyNexoPdfSources(
+  person: NexoPessoaInput,
+  sources: NexoPdfSourceInput[],
+): NexoPessoaInput {
+  let next = person;
+  for (const source of sources) {
+    next = applyNexoPdfCandidates(
+      next,
+      source.candidates.map((candidate, index) => ({
+        ...candidate,
+        id: source.file.name + ":" + index,
+        field: candidate.field as NexoPdfField,
+      })),
+      source.file.name,
+    );
+  }
+  next.pdf_fontes = sources;
+  next.pdf_fonte = sources[0] || null;
   return next;
 }

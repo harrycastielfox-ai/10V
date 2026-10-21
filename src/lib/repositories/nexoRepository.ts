@@ -591,6 +591,15 @@ async function attachPessoaPdfSource(personId: string, source: NexoPdfSourceInpu
   }
 }
 
+async function attachPessoaPdfSources(personId: string, input: NexoPessoaInput) {
+  const sources = input.pdf_fontes?.length
+    ? input.pdf_fontes
+    : input.pdf_fonte
+      ? [input.pdf_fonte]
+      : [];
+  for (const source of sources) await attachPessoaPdfSource(personId, source);
+}
+
 export async function createNexoPessoa(
   input: NexoPessoaInput,
   creationRequestId: string,
@@ -667,9 +676,9 @@ export async function createNexoPessoa(
       }
     }
   }
-  if (input.pdf_fonte) {
+  if (input.pdf_fontes?.length || input.pdf_fonte) {
     try {
-      await attachPessoaPdfSource(personId, input.pdf_fonte);
+      await attachPessoaPdfSources(personId, input);
     } catch (error) {
       documentPending = true;
       if (import.meta.env.DEV) {
@@ -784,9 +793,9 @@ export async function updateNexoPessoa(
       }
     }
   }
-  if (input.pdf_fonte) {
+  if (input.pdf_fontes?.length || input.pdf_fonte) {
     try {
-      await attachPessoaPdfSource(current.id, input.pdf_fonte);
+      await attachPessoaPdfSources(current.id, input);
     } catch (error) {
       documentPending = true;
       if (import.meta.env.DEV) {
