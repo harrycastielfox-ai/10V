@@ -1929,6 +1929,325 @@ html[data-appearance="mixed"] .app-layout-agenda > aside {
   .print-only {
     display: none !important;
   }
+
+  .nexo-report-preview {
+    display: block;
+    width: min(210mm, calc(100vw - 42px));
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 10mm;
+    color: #111827;
+    background: #fff;
+    box-shadow: 0 14px 40px rgb(19 51 74 / 18%);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    line-height: 1.4;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead {
+    display: grid;
+    grid-template-columns: 25mm minmax(0, 1fr) 43mm;
+    min-height: 29mm;
+    border: 0.4mm solid #263746;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead > img {
+    width: 20mm;
+    height: 24mm;
+    align-self: center;
+    justify-self: center;
+    object-fit: contain;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead > div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-inline: 0.3mm solid #263746;
+    text-align: center;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead > div strong {
+    font-size: 11pt;
+    color: #0b3850;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead > div span {
+    font-size: 7pt;
+    font-weight: 700;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead > div small,
+  .nexo-report-preview .nexo-report-letterhead aside small,
+  .nexo-report-preview .nexo-report-letterhead aside span {
+    color: #64748b;
+    font-size: 5.5pt;
+    font-weight: 800;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead aside {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .nexo-report-preview .nexo-report-letterhead aside strong {
+    margin: 1mm 0;
+    color: #b91c1c;
+    font-size: 8pt;
+  }
+
+  .nexo-report-preview .nexo-report-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 2mm;
+    padding: 2mm 3mm;
+    border: 0.35mm solid #263746;
+    border-left: 2mm solid #0891b2;
+    background: #f0f7f8;
+  }
+
+  .nexo-report-preview .nexo-report-title span {
+    color: #0f2535;
+    font-size: 10pt;
+    font-weight: 900;
+  }
+
+  .nexo-report-preview .nexo-report-title strong {
+    color: #087f8c;
+    font-size: 6.5pt;
+  }
+
+  .nexo-report-preview .nexo-report-disclaimer {
+    margin-top: 2mm;
+    padding: 1.5mm 2mm;
+    border: 0.25mm solid #d5a02e;
+    background: #fff9e8;
+    color: #594718;
+    font-size: 6.5pt;
+    font-weight: 700;
+  }
+
+  .nexo-report-preview .nexo-report-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-top: 2mm;
+    border: 0.35mm solid #263746;
+  }
+
+  .nexo-report-preview .nexo-report-summary > div {
+    padding: 2mm;
+    border-right: 0.25mm solid #a8b3bc;
+    text-align: center;
+  }
+
+  .nexo-report-preview .nexo-report-summary > div:last-child {
+    border-right: 0;
+  }
+
+  .nexo-report-preview .nexo-report-summary span {
+    display: block;
+    color: #64748b;
+    font-size: 5.7pt;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .nexo-report-preview .nexo-report-summary strong {
+    display: block;
+    margin-top: 0.7mm;
+    color: #0b3850;
+    font-size: 13pt;
+  }
+
+  .nexo-report-preview .nexo-report-section {
+    margin-top: 3mm;
+    border: 0.25mm solid #8fa5b2;
+  }
+
+  .nexo-report-preview .nexo-report-section > h3 {
+    margin: 0;
+    padding: 1.2mm 2mm;
+    border-bottom: 0.3mm solid #263746;
+    background: #eaf3f6;
+    color: #17212b;
+    font-size: 7.5pt;
+    text-transform: uppercase;
+  }
+
+  .nexo-report-preview .nexo-report-section > p {
+    margin: 0;
+    padding: 1.7mm 2mm;
+    color: #25313c;
+  }
+
+  .nexo-report-preview .nexo-report-section table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .nexo-report-preview .nexo-report-section th,
+  .nexo-report-preview .nexo-report-section td {
+    padding: 1.5mm 2mm;
+    border-right: 0.2mm solid #cbd5e1;
+    border-bottom: 0.2mm solid #cbd5e1;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .nexo-report-preview .nexo-report-section th {
+    color: #475569;
+    font-size: 6pt;
+    text-transform: uppercase;
+  }
+
+  .nexo-report-preview .nexo-report-person {
+    margin-top: 4mm;
+  }
+
+  .nexo-report-preview .nexo-report-person-hero {
+    display: grid;
+    grid-template-columns: 34mm 1fr;
+    min-height: 38mm;
+    border: 0.45mm solid #0e7490;
+    background: linear-gradient(105deg, #eefafd, #fff);
+  }
+
+  .nexo-report-preview .nexo-report-person-hero-no-photo {
+    grid-template-columns: 1fr;
+  }
+
+  .nexo-report-preview .nexo-report-person-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-right: 0.35mm solid #0e7490;
+    background: #dceff3;
+  }
+
+  .nexo-report-preview .nexo-report-person-photo img {
+    width: 100%;
+    height: 38mm;
+    object-fit: contain;
+  }
+
+  .nexo-report-preview .nexo-report-person-hero > div:last-child {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3mm 4mm;
+  }
+
+  .nexo-report-preview .nexo-report-person-hero small {
+    color: #0e7490;
+    font-size: 5.8pt;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+  }
+
+  .nexo-report-preview .nexo-report-person-hero h2 {
+    margin: 1mm 0 0;
+    color: #0f2535;
+    font-size: 14pt;
+  }
+
+  .nexo-report-preview .nexo-report-person-hero p {
+    margin: 0.5mm 0;
+    color: #475569;
+  }
+
+  .nexo-report-preview .nexo-report-person-hero strong {
+    width: fit-content;
+    margin-top: 1mm;
+    padding: 0.7mm 2mm;
+    border: 0.25mm solid #0e7490;
+    color: #0e7490;
+    font-size: 6pt;
+    text-transform: uppercase;
+  }
+
+  .nexo-report-preview .nexo-report-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 0;
+  }
+
+  .nexo-report-preview .nexo-report-grid > div {
+    padding: 1.5mm 2mm;
+    border-right: 0.2mm solid #cbd5e1;
+    border-bottom: 0.2mm solid #cbd5e1;
+  }
+
+  .nexo-report-preview .nexo-report-grid dt {
+    color: #64748b;
+    font-size: 7pt;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .nexo-report-preview .nexo-report-grid dd {
+    margin: 0.5mm 0 0;
+    color: #111827;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .nexo-report-preview .nexo-report-link {
+    padding: 1.6mm 2mm;
+    border-bottom: 0.2mm solid #cbd5e1;
+  }
+
+  .nexo-report-preview .nexo-report-link p {
+    margin: 0;
+  }
+
+  .nexo-report-preview .nexo-report-link small {
+    color: #64748b;
+    font-size: 6pt;
+  }
+
+  .nexo-report-preview .nexo-report-album > div {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .nexo-report-preview .nexo-report-album figure {
+    margin: 0;
+    border-right: 0.2mm solid #cbd5e1;
+  }
+
+  .nexo-report-preview .nexo-report-album img,
+  .nexo-report-preview .nexo-report-album figure > span {
+    display: flex;
+    width: 100%;
+    height: 38mm;
+    align-items: center;
+    justify-content: center;
+    object-fit: contain;
+    background: #e2e8f0;
+  }
+
+  .nexo-report-preview .nexo-report-album figcaption {
+    padding: 1.2mm;
+    color: #475569;
+    font-size: 6pt;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .nexo-report-preview .nexo-report-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5mm;
+    padding-top: 1.5mm;
+    border-top: 0.25mm solid #94a3b8;
+    color: #64748b;
+    font-size: 5.5pt;
+  }
 }
 
 /* Mapa territorial real — mantém o Leaflet coerente com o design dark do SIED. */

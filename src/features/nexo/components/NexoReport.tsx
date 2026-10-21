@@ -364,6 +364,7 @@ export function NexoReport({
   registros = [],
   observacoes = [],
   config,
+  screenPreview = false,
 }: {
   scope: NexoReportScope | null;
   organizacoes: NexoOrganizacao[];
@@ -372,6 +373,7 @@ export function NexoReport({
   registros?: NexoRegistroVinculado[];
   observacoes?: NexoObservacao[];
   config?: NexoReportConfig;
+  screenPreview?: boolean;
 }) {
   if (!scope) return null;
   const options = normalizeNexoReportConfig(config);
@@ -398,7 +400,10 @@ export function NexoReport({
         : "RELATÓRIO INDIVIDUAL DE INTELIGÊNCIA";
 
   return (
-    <div className="print-only nexo-print-document" aria-hidden="true">
+    <div
+      className={`${screenPreview ? "nexo-report-preview" : "print-only"} nexo-print-document`}
+      aria-hidden={screenPreview ? undefined : true}
+    >
       <header className="nexo-report-letterhead">
         <img src="/policia-civil-bahia-brasao-pdf.png" alt="" />
         <div>

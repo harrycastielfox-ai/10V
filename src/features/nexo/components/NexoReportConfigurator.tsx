@@ -1,5 +1,15 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { ArrowLeft, Building2, Check, FileText, Image, Printer, UserRound, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  Eye,
+  FileText,
+  Image,
+  Printer,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   createNexoReportConfig,
@@ -13,6 +23,7 @@ import {
   type NexoReportData,
 } from "../nexoReportConfig";
 import type { NexoReportScope } from "../nexoTypes";
+import { NexoReport } from "./NexoReport";
 
 const inputClass =
   "w-full rounded-lg border border-[#cfdee7] bg-white px-3 py-3 text-[13px] leading-relaxed text-[#12334a] outline-none placeholder:text-[#7b94a5] focus:border-[#168aa1] focus:ring-2 focus:ring-[#168aa1]/15 disabled:bg-[#f2f5f7]";
@@ -37,6 +48,7 @@ export function NexoReportConfigurator({
   const [config, setConfig] = useState(createNexoReportConfig);
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
   const [observationPickerOpen, setObservationPickerOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const data = useMemo(
     () => ({ organizacoes, pessoas, territorios, registros, observacoes }),
     [organizacoes, pessoas, territorios, registros, observacoes],
@@ -594,17 +606,67 @@ export function NexoReportConfigurator({
                 </strong>
                 <span className="ml-1.5">· impressão ou salvar como PDF</span>
               </p>
-              <button
-                type="button"
-                disabled={busy || !summary.sections || !scopeExists}
-                onClick={() => onGenerate(scope, normalizeNexoReportConfig(config))}
-                className="nexo-action-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12334a] px-5 py-3 text-xs font-semibold text-white transition hover:bg-[#1d4b65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
-              >
-                <Printer className="h-4 w-4" />
-                {busy ? "Preparando relatório..." : "Gerar relatório"}
-              </button>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  disabled={busy || !summary.sections || !scopeExists}
+                  onClick={() => setPreviewOpen(true)}
+                  className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#b9d4df] bg-white px-4 py-3 text-xs font-semibold text-[#234c63] transition hover:border-[#168aa1] hover:bg-[#f2fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
+                >
+                  <Eye className="h-4 w-4" />
+                  Prévia do documento
+                </button>
+                <button
+                  type="button"
+                  disabled={busy || !summary.sections || !scopeExists}
+                  onClick={() => onGenerate(scope, normalizeNexoReportConfig(config))}
+                  className="nexo-action-primary inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#12334a] px-5 py-3 text-xs font-semibold text-white transition hover:bg-[#1d4b65] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#168aa1] focus-visible:ring-offset-2 disabled:opacity-40"
+                >
+                  <Printer className="h-4 w-4" />
+                  {busy ? "Preparando relatório..." : "Gerar relatório"}
+                </button>
+              </div>
             </div>
           </footer>
+          {previewOpen ? (
+            <div className="fixed inset-0 z-[1300] flex items-center justify-center bg-[#071d30]/80 p-3 backdrop-blur-sm sm:p-6">
+              <section
+                aria-label="Prévia do documento"
+                className="flex h-full max-h-[calc(100dvh-24px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-[#c8dce5] bg-[#dfe8ed] shadow-2xl sm:max-h-[calc(100dvh-48px)]"
+              >
+                <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#c8dce5] bg-white px-4 py-3 sm:px-6">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[.14em] text-[#168aa1]">
+                      Conferência antes da exportação
+                    </p>
+                    <h2 className="mt-1 text-sm font-black text-[#12334a]">
+                      Prévia do documento A4
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewOpen(false)}
+                    aria-label="Fechar prévia do documento"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#cbdde6] text-[#36566d] transition hover:bg-[#eef6f8]"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </header>
+                <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-6">
+                  <NexoReport
+                    scope={scope}
+                    organizacoes={organizacoes}
+                    pessoas={pessoas}
+                    territorios={territorios}
+                    registros={registros}
+                    observacoes={observacoes}
+                    config={normalizeNexoReportConfig(config)}
+                    screenPreview
+                  />
+                </div>
+              </section>
+            </div>
+          ) : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
