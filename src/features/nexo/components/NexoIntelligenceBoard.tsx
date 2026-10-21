@@ -43,6 +43,12 @@ const STATUS_LABELS = {
   desvinculado: "Desvinculado",
 };
 
+const TIMELINE_DATE_LABELS = {
+  registro: "Data de registro",
+  documento: "Data do documento",
+  vinculo: "Data do vínculo",
+} as const;
+
 export function NexoIntelligenceBoard({
   organizations,
   people,
@@ -624,6 +630,32 @@ function LocalSummaryCard({ summary }: { summary: NexoPersonIntelligenceSummary 
           </li>
         ))}
       </SummaryGroup>
+      <div className="mt-4 border-t border-[#edf2f5] pt-4">
+        <p className="text-[11px] font-black uppercase tracking-wide text-[#5a9eb0]">
+          Cronologia rastreável
+        </p>
+        <p className="mt-1 text-[11px] leading-relaxed text-[#6a8494]">
+          Datas identificadas no cadastro, no documento ou no vínculo. Nenhuma data de fato é
+          inferida.
+        </p>
+        {summary.timeline.length ? (
+          <ol className="mt-3 space-y-2">
+            {summary.timeline.map((event) => (
+              <li key={event.id} className="rounded-lg bg-[#f6fafb] p-2.5">
+                <strong className="block text-[#294b61]">{event.label}</strong>
+                <span className="mt-1 block text-[#6a8494]">
+                  {new Date(event.date).toLocaleDateString("pt-BR")} ·{" "}
+                  {TIMELINE_DATE_LABELS[event.dateType]}
+                </span>
+                <span className="mt-1 block text-[#567184]">{event.detail}</span>
+                <span className="mt-1 block break-words text-[#6a8494]">Fonte: {event.source}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-2 text-[11px] text-[#6a8494]">Nenhuma data rastreável disponível.</p>
+        )}
+      </div>
       <SummaryGroup
         title="Lacunas para conferência"
         empty="Nenhuma lacuna operacional identificada."

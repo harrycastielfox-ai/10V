@@ -40,6 +40,8 @@ describe("síntese estruturada local do NEXO", () => {
     });
     expect(summary.procedures.length).toBeGreaterThan(0);
     expect(summary.territories.length).toBeGreaterThan(0);
+    expect(summary.timeline.some((event) => event.dateType === "vinculo")).toBe(true);
+    expect(summary.timeline.some((event) => event.dateType === "documento")).toBe(true);
     expect(summary.documents[0]).toContain("SHA-256 abc123");
     expect(summary.gaps).toContain("Há vínculo atual ainda não confirmado");
   });
