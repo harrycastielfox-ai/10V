@@ -533,8 +533,12 @@ export function NexoCreateDialog({
                   setPerson((current) => {
                     const next = applyNexoPdfCandidates(current, candidates, fileName);
                     if (photo) {
-                      next[photo.target === "perfil" ? "foto_perfil" : "foto_relatorio"] =
-                        photo.candidate.file;
+                      if (photo.target === "perfil") {
+                        next.foto_perfil = photo.candidate.file;
+                        next.foto_relatorio = photo.candidate.file;
+                      } else {
+                        next.foto_relatorio = photo.candidate.file;
+                      }
                       next.observacoes = `${next.observacoes}\nImagem extraída da página ${photo.candidate.page} do PDF e selecionada como foto de ${photo.target}.`;
                     }
                     return next;

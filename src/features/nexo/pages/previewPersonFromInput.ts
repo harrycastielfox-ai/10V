@@ -10,9 +10,14 @@ export function previewPersonFromInput(
     !input.em_situacao_rua && !input.usar_local_faccao && input.endereco.logradouro.trim()
       ? existing?.endereco_id || crypto.randomUUID()
       : null;
-  const photoUrl = input.foto_perfil
+  const profilePhotoUrl = input.foto_perfil
     ? URL.createObjectURL(input.foto_perfil)
     : existing?.foto_perfil_url || null;
+  const reportPhotoUrl = input.foto_relatorio
+    ? input.foto_relatorio === input.foto_perfil
+      ? profilePhotoUrl
+      : URL.createObjectURL(input.foto_relatorio)
+    : existing?.foto_relatorio_url || profilePhotoUrl;
   const currentLink = existing?.vinculos.find((link) => link.status !== "desvinculado");
   const destinationLink = existing?.vinculos.find(
     (link) => link.organizacao_id === organization?.id,
@@ -84,8 +89,8 @@ export function previewPersonFromInput(
     observacoes: input.observacoes || null,
     foto_perfil_path: existing?.foto_perfil_path || null,
     foto_relatorio_path: existing?.foto_relatorio_path || null,
-    foto_perfil_url: photoUrl,
-    foto_relatorio_url: input.foto_perfil ? photoUrl : existing?.foto_relatorio_url || photoUrl,
+    foto_perfil_url: profilePhotoUrl,
+    foto_relatorio_url: reportPhotoUrl,
     endereco_id: addressId,
     endereco: addressId
       ? {

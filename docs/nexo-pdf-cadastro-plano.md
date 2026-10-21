@@ -8,6 +8,7 @@ Plano baseado nos três PDFs fornecidos pelo usuário em 21/10/2026. Eles contê
 - PDF textual é lido **no navegador**, com limite de 15 MB e 30 páginas. O original não é enviado ou armazenado.
 - Os candidatos mostram valor, fonte e página. Valores contraditórios e campos suspeitos exigem escolha; só os selecionados seguem para o formulário normal, onde ainda podem ser corrigidos.
 - Imagens incorporadas também são detectadas em memória: o operador vê a miniatura e escolhe se ela será foto de perfil, foto do relatório ou não será importada. Imagens rasterizadas de página inteira são ignoradas para evitar confundir documento escaneado com retrato.
+- A finalidade escolhida é mantida até o salvamento: foto de perfil e foto exclusiva do relatório são gravadas nas colunas correspondentes; quando a mesma imagem é usada nas duas finalidades, um único arquivo é referenciado.
 - Páginas reconhecidas como SIGIP (ocorrência) e RENAVAM (veículo) não são tratadas como qualificação da pessoa. PDF somente em imagem informa a necessidade de OCR.
 - A fonte resumida e as observações registram nome do arquivo, campos escolhidos e páginas. Isso **não substitui** o armazenamento do documento original nem prova autenticidade dos valores.
 
@@ -17,7 +18,7 @@ Plano baseado nos três PDFs fornecidos pelo usuário em 21/10/2026. Eles contê
 | --- | --- | --- |
 | Nome, CPF, RG, nascimento, filiação, sexo, naturalidade, estado civil, profissão, escolaridade, altura, contato e endereço | Campos da pessoa já existem | Sugerir com fonte/página; conferir antes de gravar |
 | CNH e Renach | `documentos_extras` comporta números e tipos | Sugerir como documentos extras; não inferir situação da habilitação |
-| Retrato/foto da pessoa no PDF | O cadastro aceita foto de perfil e de relatório; a prévia já extrai recortes de imagens incorporadas | Persistir o documento-fonte e sua auditoria; ampliar detecção para PDFs escaneados/OCR |
+| Retrato/foto da pessoa no PDF | O cadastro aceita foto de perfil e de relatório; a prévia extrai recortes de imagens incorporadas e preserva a finalidade escolhida no salvamento | Persistir o documento-fonte e sua auditoria; ampliar detecção para PDFs escaneados/OCR |
 | Ocorrência, unidade, data, classificação e papel da pessoa | Vínculos com procedimentos têm estrutura distinta da qualificação | Não misturar na pessoa; modelar vínculo com papel, fonte e data após revisão |
 | Veículo, placa, chassi, RENAVAM e proprietário | Cadastro/vínculo de veículo é separado | Não importar como atributos da pessoa; localizar veículo existente antes de criar outro |
 | Restrições, resultados de consultas e histórico de habilitação/veículo | Sem representação granular com data e fonte para todos os estados | Criar fatos consultados, com estado `não informado`/`não consta` distinto de `sem restrição` |

@@ -303,6 +303,28 @@ describe("NEXO persistence regressions", () => {
     ]);
   });
 
+  it("keeps a report-only photo out of the profile column", async () => {
+    await expect(
+      updateNexoPessoa(
+        {
+          ...person,
+          foto_perfil_path: "pessoas/person/current-profile.jpg",
+          foto_relatorio_path: "pessoas/person/old-report.jpg",
+          vinculos: [active],
+        },
+        {
+          ...input,
+          foto_relatorio: new File(["report"], "report.jpg", { type: "image/jpeg" }),
+        },
+      ),
+    ).resolves.toEqual({ personId: person.id, photoPending: false });
+
+    const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
+    expect(uploadedPath).toContain("/relatorio-");
+    expect(state.update).toHaveBeenCalledWith({ foto_relatorio_path: uploadedPath });
+    expect(state.remove).toHaveBeenCalledWith(["pessoas/person/old-report.jpg"]);
+  });
+
   it("removes a new object when linking the uploaded photo to the person fails", async () => {
     state.from.mockReturnValueOnce({
       update: state.update,

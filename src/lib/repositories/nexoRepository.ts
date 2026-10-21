@@ -428,21 +428,31 @@ export interface NexoPessoaSaveResult {
   photoPending: boolean;
 }
 
-async function attachPessoaProfilePhoto(
+type PessoaPhotoTarget = "perfil" | "relatorio";
+
+async function attachPessoaPhoto(
   personId: string,
   file: File,
+  targets: PessoaPhotoTarget[],
   previousPaths: Array<string | null | undefined> = [],
 ) {
-  const path = `pessoas/${personId}/perfil-${crypto.randomUUID()}.${extensionFor(file)}`;
+  const primaryTarget = targets[0] || "perfil";
+  const path = `pessoas/${personId}/${primaryTarget}-${crypto.randomUUID()}.${extensionFor(file)}`;
   const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type || "image/jpeg",
     upsert: false,
   });
   if (uploadError) throw uploadError;
+  const updates = Object.fromEntries(
+    targets.map((target) => [
+      target === "perfil" ? "foto_perfil_path" : "foto_relatorio_path",
+      path,
+    ]),
+  );
   const { error: updateError } = await supabase
     .from("nexo_pessoas")
-    .update({ foto_perfil_path: path, foto_relatorio_path: path })
+    .update(updates)
     .eq("id", personId);
   if (updateError) {
     await supabase.storage.from(PRIVATE_BUCKET).remove([path]);
@@ -464,6 +474,39 @@ async function attachPessoaProfilePhoto(
     }
   }
   return path;
+}
+
+async function attachPessoaInputPhotos(
+  personId: string,
+  input: NexoPessoaInput,
+  previous: Pick<NexoPessoa, "foto_perfil_path" | "foto_relatorio_path"> = {
+    foto_perfil_path: null,
+    foto_relatorio_path: null,
+  },
+) {
+  const profileFile = input.foto_perfil;
+  const reportFile = input.foto_relatorio;
+  const uploaded: string[] = [];
+
+  if (profileFile) {
+    const sharesFile = !reportFile || reportFile === profileFile;
+    uploaded.push(
+      await attachPessoaPhoto(
+        personId,
+        profileFile,
+        sharesFile ? ["perfil", "relatorio"] : ["perfil"],
+        sharesFile
+          ? [previous.foto_perfil_path, previous.foto_relatorio_path]
+          : [previous.foto_perfil_path],
+      ),
+    );
+  }
+  if (reportFile && reportFile !== profileFile) {
+    uploaded.push(
+      await attachPessoaPhoto(personId, reportFile, ["relatorio"], [previous.foto_relatorio_path]),
+    );
+  }
+  return uploaded;
 }
 
 export async function createNexoPessoa(
@@ -531,13 +574,13 @@ export async function createNexoPessoa(
   );
   const personId = String(data);
   let photoPending = false;
-  if (input.foto_perfil) {
+  if (input.foto_perfil || input.foto_relatorio) {
     try {
-      await attachPessoaProfilePhoto(personId, input.foto_perfil);
+      await attachPessoaInputPhotos(personId, input);
     } catch (error) {
       photoPending = true;
       if (import.meta.env.DEV) {
-        console.warn("A pessoa foi cadastrada, mas a fotografia ficou pendente.", error);
+        console.warn("A pessoa foi cadastrada, mas uma fotografia ficou pendente.", error);
       }
     }
   }
@@ -637,16 +680,13 @@ export async function updateNexoPessoa(
   }
 
   let photoPending = false;
-  if (input.foto_perfil) {
+  if (input.foto_perfil || input.foto_relatorio) {
     try {
-      await attachPessoaProfilePhoto(current.id, input.foto_perfil, [
-        current.foto_perfil_path,
-        current.foto_relatorio_path,
-      ]);
+      await attachPessoaInputPhotos(current.id, input, current);
     } catch (error) {
       photoPending = true;
       if (import.meta.env.DEV) {
-        console.warn("A ficha foi atualizada, mas a fotografia ficou pendente.", error);
+        console.warn("A ficha foi atualizada, mas uma fotografia ficou pendente.", error);
       }
     }
   }
