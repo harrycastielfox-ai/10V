@@ -15,12 +15,22 @@ export interface NexoSummaryLink {
   status: string;
   confidence: number;
   source: string;
+  evidence: NexoSummaryEvidence;
+}
+
+export type NexoSummaryEvidenceKind =
+  "registro_cadastral" | "documento_de_origem" | "nao_confirmado";
+
+export interface NexoSummaryEvidence {
+  kind: NexoSummaryEvidenceKind;
+  label: string;
 }
 
 export interface NexoSummaryProcedure {
   type: "B.O." | "Inquérito";
   number: string;
   context: string;
+  evidence: NexoSummaryEvidence;
 }
 
 export interface NexoSummaryTerritory {
@@ -28,6 +38,7 @@ export interface NexoSummaryTerritory {
   organization: string;
   classification: string;
   confidence: number;
+  evidence: NexoSummaryEvidence;
 }
 
 export type NexoSummaryTimelineDateType = "registro" | "documento" | "vinculo";
@@ -39,6 +50,7 @@ export interface NexoSummaryTimelineEvent {
   label: string;
   detail: string;
   source: string;
+  evidence: NexoSummaryEvidence;
 }
 
 export interface NexoPersonIntelligenceSummary {
@@ -84,6 +96,10 @@ export function buildNexoPersonIntelligenceSummary(
     status: link.status.replaceAll("_", " "),
     confidence: link.confianca,
     source: value(link.fonte_resumo, "Fonte não informada"),
+    evidence:
+      link.status === "confirmado"
+        ? { kind: "registro_cadastral" as const, label: "Vínculo registrado" }
+        : { kind: "nao_confirmado" as const, label: "Vínculo não confirmado" },
   }));
   const linkedOrganizationIds = new Set(
     activeDirectoryLinks(person).map((link) => link.organizacao_id),
@@ -98,6 +114,7 @@ export function buildNexoPersonIntelligenceSummary(
       type: record.inquerito_id ? "Inquérito" : "B.O.",
       number: record.inquerito_id ? value(inquiry?.numero_ppe) : value(bo?.numero_bo),
       context: value(inquiry?.situacao || bo?.infracao_penal),
+      evidence: { kind: "registro_cadastral", label: "Registro cadastral" },
     });
   }
   const summaryTerritories = territories
@@ -108,6 +125,7 @@ export function buildNexoPersonIntelligenceSummary(
         organizationById.get(territory.organizacao_id)?.nome || "Organização não identificada",
       classification: territory.classificacao.replaceAll("_", " "),
       confidence: territory.confianca,
+      evidence: { kind: "registro_cadastral" as const, label: "Registro territorial" },
     }));
   const timeline: NexoSummaryTimelineEvent[] = [];
   if (validDate(person.created_at)) {
@@ -118,6 +136,7 @@ export function buildNexoPersonIntelligenceSummary(
       label: "Pessoa cadastrada",
       detail: person.nome,
       source: "Registro cadastral",
+      evidence: { kind: "registro_cadastral", label: "Registro cadastral" },
     });
   }
   for (const link of activeDirectoryLinks(person)) {
@@ -129,6 +148,10 @@ export function buildNexoPersonIntelligenceSummary(
       label: "Vínculo informado a partir de",
       detail: organizationById.get(link.organizacao_id)?.nome || "Organização não identificada",
       source: value(link.fonte_resumo, "Fonte não informada"),
+      evidence:
+        link.status === "confirmado"
+          ? { kind: "registro_cadastral", label: "Vínculo registrado" }
+          : { kind: "nao_confirmado", label: "Vínculo não confirmado" },
     });
   }
   for (const territory of territories.filter((item) =>
@@ -145,6 +168,7 @@ export function buildNexoPersonIntelligenceSummary(
       label: "Território relacionado registrado",
       detail: `${area} · ${organization}`,
       source: value(territory.fonte_resumo, "Fonte não informada"),
+      evidence: { kind: "registro_cadastral", label: "Registro territorial" },
     });
   }
   for (const record of records.filter((item) => item.pessoa_id === person.id)) {
@@ -159,6 +183,7 @@ export function buildNexoPersonIntelligenceSummary(
       label: "Procedimento associado registrado",
       detail: procedure,
       source: "Registro de vínculo do procedimento",
+      evidence: { kind: "registro_cadastral", label: "Registro cadastral" },
     });
   }
   for (const document of person.documentos_fontes || []) {
@@ -170,6 +195,7 @@ export function buildNexoPersonIntelligenceSummary(
       label: "Documento de origem anexado",
       detail: document.original_filename,
       source: `SHA-256 ${document.sha256}`,
+      evidence: { kind: "documento_de_origem", label: "Documento de origem" },
     });
   }
   const gaps: string[] = [];

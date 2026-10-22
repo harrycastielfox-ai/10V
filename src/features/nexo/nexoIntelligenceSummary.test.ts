@@ -37,11 +37,15 @@ describe("síntese estruturada local do NEXO", () => {
     expect(summary.links[0]).toMatchObject({
       status: "provavel",
       confidence: expect.any(Number),
+      evidence: { kind: "nao_confirmado", label: "Vínculo não confirmado" },
     });
     expect(summary.procedures.length).toBeGreaterThan(0);
     expect(summary.territories.length).toBeGreaterThan(0);
     expect(summary.timeline.some((event) => event.dateType === "vinculo")).toBe(true);
     expect(summary.timeline.some((event) => event.dateType === "documento")).toBe(true);
+    expect(summary.timeline.find((event) => event.dateType === "documento")?.evidence.kind).toBe(
+      "documento_de_origem",
+    );
     expect(summary.documents[0]).toContain("SHA-256 abc123");
     expect(summary.gaps).toContain("Há vínculo atual ainda não confirmado");
   });

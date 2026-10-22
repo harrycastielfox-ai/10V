@@ -591,7 +591,7 @@ function LocalSummaryCard({ summary }: { summary: NexoPersonIntelligenceSummary 
           <li key={`${link.organization}:${link.status}`} className="rounded-lg bg-[#f6fafb] p-2.5">
             <strong className="block text-[#294b61]">{link.organization}</strong>
             <span className="mt-1 block text-[#6a8494]">
-              {link.status} · {link.confidence}% · fonte: {link.source}
+              {link.status} · {link.confidence}% · {link.evidence.label} · fonte: {link.source}
             </span>
           </li>
         ))}
@@ -609,7 +609,8 @@ function LocalSummaryCard({ summary }: { summary: NexoPersonIntelligenceSummary 
               {territory.area} · {territory.classification}
             </strong>
             <span className="mt-1 block text-[#6a8494]">
-              {territory.organization} · {territory.confidence}% de confiança
+              {territory.organization} · {territory.confidence}% de confiança ·{" "}
+              {territory.evidence.label}
             </span>
           </li>
         ))}
@@ -649,6 +650,9 @@ function LocalSummaryCard({ summary }: { summary: NexoPersonIntelligenceSummary 
                 </span>
                 <span className="mt-1 block text-[#567184]">{event.detail}</span>
                 <span className="mt-1 block break-words text-[#6a8494]">Fonte: {event.source}</span>
+                <span className="mt-1 block text-[#6a8494]">
+                  Classificação: {event.evidence.label}
+                </span>
               </li>
             ))}
           </ol>
