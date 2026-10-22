@@ -28,7 +28,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { BoRecord } from "@/features/bo/boTypes";
 import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import { getErrorMessage } from "@/lib/errorMessage";
@@ -1388,6 +1388,12 @@ export function NexoDossier({
   const [editingResourceId, setEditingResourceId] = useState<string | null>(null);
   const [editingResourceObservation, setEditingResourceObservation] = useState("");
   const [savingResourceId, setSavingResourceId] = useState<string | null>(null);
+  const [previewingResourceId, setPreviewingResourceId] = useState<string | null>(null);
+  const [resourcePreview, setResourcePreview] = useState<{
+    title: string;
+    url: string;
+  } | null>(null);
+  const resourcePreviewFrame = useRef<HTMLIFrameElement>(null);
   const [deleteError, setDeleteError] = useState("");
   const [deletingPerson, setDeletingPerson] = useState(false);
   const [confirmation, setConfirmation] = useState<{
@@ -1405,6 +1411,13 @@ export function NexoDossier({
   const [selectedTerritory, setSelectedTerritory] = useState<NexoTerritorio | null>(null);
   const [removingTerritoryId, setRemovingTerritoryId] = useState<string | null>(null);
   const [territoryError, setTerritoryError] = useState("");
+
+  useEffect(
+    () => () => {
+      if (resourcePreview?.url) URL.revokeObjectURL(resourcePreview.url);
+    },
+    [resourcePreview],
+  );
 
   async function removeTerritory(id: string) {
     if (removingTerritoryId) return;
@@ -2566,7 +2579,7 @@ export function NexoDossier({
                             setEditingResourceObservation(resource.observacao ?? "");
                             setDeleteError("");
                           }}
-                          className="rounded-lg border border-[#cfe0e8] p-1.5 text-[#3569a8] hover:bg-[#edf5ff] disabled:opacity-50"
+                          className="rounded-xl border border-[#9dc5db] bg-[#e9f4fb] p-2 text-[#246891] shadow-sm hover:bg-[#d9edf8] disabled:opacity-50"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
@@ -2589,7 +2602,7 @@ export function NexoDossier({
                               },
                             })
                           }
-                          className="rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          className="rounded-xl border border-red-300 bg-red-50 p-2 text-red-700 shadow-sm hover:bg-red-100 disabled:opacity-50"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -2667,15 +2680,37 @@ export function NexoDossier({
                         </p>
                       )}
                       {resource.url ? (
-                        <div className="flex justify-end border-t border-[#edf2f5] p-3">
-                          <a
-                            href={resource.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#cfe0e8] bg-[#f2f8fa] px-3 py-2 text-xs font-bold text-[#19778f]"
+                        <div className="flex justify-end border-t border-[#dfeaf0] bg-[#f8fbfd] p-3">
+                          <button
+                            type="button"
+                            disabled={previewingResourceId === resource.id}
+                            onClick={async () => {
+                              setPreviewingResourceId(resource.id);
+                              setDeleteError("");
+                              try {
+                                const response = await fetch(resource.url!);
+                                if (!response.ok)
+                                  throw new Error("Não foi possível carregar a prévia do PDF.");
+                                setResourcePreview({
+                                  title: resource.original_filename,
+                                  url: URL.createObjectURL(await response.blob()),
+                                });
+                              } catch (cause) {
+                                setDeleteError(
+                                  getErrorMessage(
+                                    cause,
+                                    "Não foi possível carregar a prévia do PDF.",
+                                  ),
+                                );
+                              } finally {
+                                setPreviewingResourceId(null);
+                              }
+                            }}
+                            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#146f8a] px-4 py-2.5 text-xs font-black text-white shadow-md shadow-[#146f8a]/20 hover:bg-[#0f5d75] disabled:opacity-60"
                           >
-                            Abrir em nova aba <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
+                            <ExternalLink className="h-4 w-4" />
+                            {previewingResourceId === resource.id ? "Carregando…" : "Abrir preview"}
+                          </button>
                         </div>
                       ) : null}
                     </article>
@@ -3100,6 +3135,65 @@ export function NexoDossier({
           onSelect={setSelectedTerritory}
           onClose={() => setSelectedTerritory(null)}
         />
+      ) : null}
+      {resourcePreview ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#081d2d]/75 p-3 backdrop-blur-sm sm:p-6"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setResourcePreview(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nexo-resource-preview-title"
+            className="flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-white/25 bg-white shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d9e6ed] bg-[#f7fbfd] px-4 py-3 sm:px-5">
+              <div className="min-w-0">
+                <h2
+                  id="nexo-resource-preview-title"
+                  className="truncate text-sm font-black text-[#173d5b] sm:text-base"
+                >
+                  {resourcePreview.title}
+                </h2>
+                <p className="mt-0.5 text-xs text-[#60798b]">Prévia do documento anexado</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={resourcePreview.url}
+                  download={resourcePreview.title}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#9cc8d7] bg-white px-3.5 py-2 text-xs font-black text-[#176e84] shadow-sm hover:bg-[#edf8fb]"
+                >
+                  <Download className="h-4 w-4" /> Baixar
+                </a>
+                <button
+                  type="button"
+                  onClick={() => resourcePreviewFrame.current?.contentWindow?.print()}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2 text-xs font-black text-white shadow-md hover:bg-[#205575]"
+                >
+                  <Printer className="h-4 w-4" /> Imprimir
+                </button>
+                <button
+                  type="button"
+                  aria-label="Fechar prévia"
+                  title="Fechar prévia"
+                  onClick={() => setResourcePreview(null)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#c8d8e1] bg-white text-[#49677a] shadow-sm hover:bg-[#edf3f6]"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </header>
+            <iframe
+              ref={resourcePreviewFrame}
+              title={`Prévia ampliada de ${resourcePreview.title}`}
+              src={resourcePreview.url}
+              className="min-h-0 flex-1 border-0 bg-[#46515a]"
+            />
+          </section>
+        </div>
       ) : null}
       {confirmation ? (
         <div
