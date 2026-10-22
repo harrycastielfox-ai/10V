@@ -1327,6 +1327,7 @@ export function NexoDossier({
   onUploadPhoto,
   onDeletePhoto,
   onUploadDocumentImage,
+  onDeleteDocumentImage,
   onUploadResource,
   onDeleteResource,
   onUpdateResourceObservation,
@@ -1357,6 +1358,7 @@ export function NexoDossier({
   onUploadPhoto: (person: NexoPessoa, file: File) => Promise<void>;
   onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
   onUploadDocumentImage: (person: NexoPessoa, documentId: string, file: File) => Promise<void>;
+  onDeleteDocumentImage: (person: NexoPessoa, documentId: string) => Promise<void>;
   onUploadResource: (person: NexoPessoa, file: File, observacao: string) => Promise<void>;
   onDeleteResource: (person: NexoPessoa, resourceId: string) => Promise<void>;
   onUpdateResourceObservation: (
@@ -1386,6 +1388,7 @@ export function NexoDossier({
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [documentImageUploading, setDocumentImageUploading] = useState(false);
+  const [documentImageDeleting, setDocumentImageDeleting] = useState(false);
   const [documentImageError, setDocumentImageError] = useState("");
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [resourceObservation, setResourceObservation] = useState("");
@@ -3169,7 +3172,7 @@ export function NexoDossier({
             role="dialog"
             aria-modal="true"
             aria-labelledby="nexo-document-image-title"
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#d5e3ea] bg-white shadow-2xl"
+            className="w-full max-w-5xl overflow-hidden rounded-2xl border border-[#d5e3ea] bg-white shadow-2xl"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <header className="flex items-center justify-between gap-3 border-b border-[#e3edf2] bg-[#f7fbfd] px-4 py-3">
@@ -3179,22 +3182,49 @@ export function NexoDossier({
                 </h2>
                 <p className="mt-0.5 text-xs text-[#637c8d]">Imagem vinculada ao documento</p>
               </div>
-              <button
-                type="button"
-                aria-label="Fechar imagem do documento"
-                onClick={() => setSelectedDocumentId(null)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#cbdbe3] bg-white text-[#526e80] hover:bg-[#edf4f7]"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedDocument.imagem_url ? (
+                  <button
+                    type="button"
+                    aria-label="Excluir imagem do documento"
+                    title="Excluir imagem"
+                    disabled={documentImageDeleting}
+                    onClick={async () => {
+                      if (!window.confirm("Excluir a imagem vinculada a este documento?")) return;
+                      setDocumentImageDeleting(true);
+                      setDocumentImageError("");
+                      try {
+                        await onDeleteDocumentImage(person, selectedDocument.id);
+                      } catch (cause) {
+                        setDocumentImageError(
+                          getErrorMessage(cause, "Não foi possível excluir a imagem."),
+                        );
+                      } finally {
+                        setDocumentImageDeleting(false);
+                      }
+                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-red-200 bg-white text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label="Fechar imagem do documento"
+                  onClick={() => setSelectedDocumentId(null)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#cbdbe3] bg-white text-[#526e80] hover:bg-[#edf4f7]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </header>
-            <div className="p-4">
+            <div className={selectedDocument.imagem_url ? "p-0" : "p-4"}>
               {selectedDocument.imagem_url ? (
-                <figure className="overflow-hidden rounded-xl border border-[#dce7ed] bg-[#eef3f6]">
+                <figure className="overflow-hidden bg-[#eef3f6]">
                   <img
                     src={selectedDocument.imagem_url}
                     alt={`Imagem de ${selectedDocument.tipo}`}
-                    className="block max-h-[62vh] w-full object-contain"
+                    className="block max-h-[78vh] w-full object-contain"
                   />
                   <figcaption className="border-t border-[#dce7ed] bg-white px-3 py-2 text-xs text-[#647d8e]">
                     {selectedDocument.imagem_nome || "Imagem anexada"}

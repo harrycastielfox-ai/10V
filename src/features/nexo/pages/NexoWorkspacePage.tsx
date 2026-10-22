@@ -485,6 +485,36 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     setNotice("Imagem vinculada ao documento");
   }
 
+  async function deleteDocumentImage(person: NexoPessoa, documentId: string) {
+    if (preview) {
+      setPeople((current) =>
+        current.map((item) =>
+          item.id === person.id
+            ? {
+                ...item,
+                documentos_extras: item.documentos_extras.map((documento) =>
+                  documento.id === documentId
+                    ? {
+                        ...documento,
+                        imagem_path: null,
+                        imagem_nome: null,
+                        imagem_mime_type: null,
+                        imagem_url: null,
+                      }
+                    : documento,
+                ),
+              }
+            : item,
+        ),
+      );
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.deleteNexoDocumentoExtraImagem(person.id, documentId);
+      await reload();
+    }
+    setNotice("Imagem removida do documento");
+  }
+
   async function uploadResource(person: NexoPessoa, file: File, observacao: string) {
     const resource: NexoRecursoPdf = preview
       ? {
@@ -1084,6 +1114,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             onUploadPhoto={uploadPhoto}
             onDeletePhoto={deletePhoto}
             onUploadDocumentImage={uploadDocumentImage}
+            onDeleteDocumentImage={deleteDocumentImage}
             onUploadResource={uploadResource}
             onDeleteResource={deleteResource}
             onUpdateResourceObservation={updateResourceObservation}

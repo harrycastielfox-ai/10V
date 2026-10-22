@@ -154,6 +154,53 @@ export async function uploadNexoDocumentoExtraImagem(
   }
 }
 
+export async function deleteNexoDocumentoExtraImagem(
+  personId: string,
+  documentId: string,
+): Promise<void> {
+  const { data: current, error: readError } = await supabase
+    .from("nexo_pessoas")
+    .select("id, documentos_extras, updated_at")
+    .eq("id", personId)
+    .is("deleted_at", null)
+    .single();
+  if (readError) throw readError;
+
+  const documents = (current.documentos_extras ?? []) as NexoPessoa["documentos_extras"];
+  const selected = documents.find((documento) => documento.id === documentId);
+  if (!selected) throw new Error("O documento selecionado não está mais disponível.");
+  if (!selected.imagem_path) return;
+
+  const updatedDocuments = documents.map((documento) =>
+    documento.id === documentId
+      ? {
+          ...documento,
+          imagem_path: null,
+          imagem_nome: null,
+          imagem_mime_type: null,
+        }
+      : documento,
+  );
+  const { data: updated, error: updateError } = await supabase
+    .from("nexo_pessoas")
+    .update({ documentos_extras: updatedDocuments })
+    .eq("id", personId)
+    .eq("updated_at", current.updated_at)
+    .select("id")
+    .maybeSingle();
+  if (updateError) throw updateError;
+  if (!updated)
+    throw new Error(
+      "A ficha foi alterada por outro operador. Reabra o cadastro antes de excluir a imagem.",
+    );
+
+  const { error: cleanupError } = await supabase.storage
+    .from(PRIVATE_BUCKET)
+    .remove([selected.imagem_path]);
+  if (cleanupError && import.meta.env.DEV)
+    console.warn("A imagem foi desvinculada, mas o arquivo não pôde ser removido.", cleanupError);
+}
+
 const PESSOA_SELECT = `
   id, nome, apelido, cpf, rg, data_nascimento, naturalidade, nome_mae, nome_pai,
   nome_social, sexo, raca_cor, estado_civil, nacionalidade, escolaridade, profissao,
