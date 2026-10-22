@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ClipboardPenLine,
   Crown,
+  Download,
   ExternalLink,
   FileArchive,
   FileText,
@@ -92,6 +93,20 @@ const LINK_LABELS = {
   nao_confirmado: "Não confirmado",
   desvinculado: "Desvinculado",
 };
+
+async function downloadPrivateImage(url: string, filename: string) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("Não foi possível baixar esta imagem.");
+
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename || "foto.jpg";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
 
 const EMPTY_MEMBER_FILTERS: NexoMemberFilters = {
   busca: "",
@@ -2720,17 +2735,17 @@ export function NexoDossier({
                   {deleteError}
                 </p>
               ) : null}
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {person.fotos.map((photo) => (
                   <figure
                     key={photo.id}
-                    className="overflow-hidden rounded-xl border border-[#dde8f0] bg-white"
+                    className="w-full max-w-sm overflow-hidden rounded-xl border border-[#dde8f0] bg-white shadow-sm"
                   >
                     {photo.url ? (
                       <img
                         src={photo.url}
                         alt={photo.legenda || "Foto complementar"}
-                        className="h-40 w-full object-cover"
+                        className="block h-auto max-h-[28rem] w-full bg-[#f3f7f9] object-contain"
                       />
                     ) : (
                       <div className="flex h-40 items-center justify-center text-xs text-[#567184]">
@@ -2739,31 +2754,56 @@ export function NexoDossier({
                     )}
                     <figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-[#5b7184]">
                       <span className="min-w-0 truncate">{value(photo.legenda)}</span>
-                      <button
-                        type="button"
-                        aria-label={`Remover foto ${photo.legenda || "do álbum"}`}
-                        disabled={deletingPhotoId === photo.id}
-                        onClick={() =>
-                          setConfirmation({
-                            title: "Remover foto do álbum",
-                            description:
-                              "A imagem será removida do álbum e o arquivo privado será excluído.",
-                            actionLabel: "Remover foto",
-                            run: async () => {
-                              setDeletingPhotoId(photo.id);
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {photo.url ? (
+                          <button
+                            type="button"
+                            title="Baixar foto"
+                            aria-label={`Baixar foto ${photo.legenda || "do álbum"}`}
+                            onClick={async () => {
                               setDeleteError("");
                               try {
-                                await onDeletePhoto(person, photo.id);
-                              } finally {
-                                setDeletingPhotoId(null);
+                                await downloadPrivateImage(
+                                  photo.url!,
+                                  photo.legenda || `foto-${photo.id}.jpg`,
+                                );
+                              } catch (cause) {
+                                setDeleteError(
+                                  getErrorMessage(cause, "Não foi possível baixar esta foto."),
+                                );
                               }
-                            },
-                          })
-                        }
-                        className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                            }}
+                            className="inline-flex rounded-lg border border-[#bddde5] p-1.5 text-[#147e96] hover:bg-[#eef8fa]"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          aria-label={`Remover foto ${photo.legenda || "do álbum"}`}
+                          disabled={deletingPhotoId === photo.id}
+                          onClick={() =>
+                            setConfirmation({
+                              title: "Remover foto do álbum",
+                              description:
+                                "A imagem será removida do álbum e o arquivo privado será excluído.",
+                              actionLabel: "Remover foto",
+                              run: async () => {
+                                setDeletingPhotoId(photo.id);
+                                setDeleteError("");
+                                try {
+                                  await onDeletePhoto(person, photo.id);
+                                } finally {
+                                  setDeletingPhotoId(null);
+                                }
+                              },
+                            })
+                          }
+                          className="inline-flex rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
                     </figcaption>
                   </figure>
                 ))}
@@ -2828,17 +2868,17 @@ export function NexoDossier({
                   {uploadError}
                 </p>
               ) : null}
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {(organization.fotos ?? []).map((photo) => (
                   <figure
                     key={photo.id}
-                    className="overflow-hidden rounded-xl border border-[#dde8f0] bg-white"
+                    className="w-full max-w-sm overflow-hidden rounded-xl border border-[#dde8f0] bg-white shadow-sm"
                   >
                     {photo.url ? (
                       <img
                         src={photo.url}
                         alt={photo.legenda || "Imagem da facção"}
-                        className="h-40 w-full object-cover"
+                        className="block h-auto max-h-[28rem] w-full bg-[#f3f7f9] object-contain"
                       />
                     ) : (
                       <div className="flex h-40 items-center justify-center text-xs text-[#567184]">
@@ -2847,22 +2887,47 @@ export function NexoDossier({
                     )}
                     <figcaption className="flex items-center justify-between gap-2 p-2 text-xs text-[#5b7184]">
                       <span className="min-w-0 truncate">{value(photo.legenda)}</span>
-                      <button
-                        type="button"
-                        aria-label={`Remover imagem ${photo.legenda || "da facção"}`}
-                        onClick={() =>
-                          setConfirmation({
-                            title: "Remover imagem",
-                            description:
-                              "A imagem será removida da galeria da facção e o arquivo privado será excluído.",
-                            actionLabel: "Remover imagem",
-                            run: () => onDeleteOrganizationPhoto(organization, photo.id),
-                          })
-                        }
-                        className="inline-flex shrink-0 rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {photo.url ? (
+                          <button
+                            type="button"
+                            title="Baixar imagem"
+                            aria-label={`Baixar imagem ${photo.legenda || "da facção"}`}
+                            onClick={async () => {
+                              setUploadError("");
+                              try {
+                                await downloadPrivateImage(
+                                  photo.url!,
+                                  photo.legenda || `imagem-${photo.id}.jpg`,
+                                );
+                              } catch (cause) {
+                                setUploadError(
+                                  getErrorMessage(cause, "Não foi possível baixar esta imagem."),
+                                );
+                              }
+                            }}
+                            className="inline-flex rounded-lg border border-[#bddde5] p-1.5 text-[#147e96] hover:bg-[#eef8fa]"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          aria-label={`Remover imagem ${photo.legenda || "da facção"}`}
+                          onClick={() =>
+                            setConfirmation({
+                              title: "Remover imagem",
+                              description:
+                                "A imagem será removida da galeria da facção e o arquivo privado será excluído.",
+                              actionLabel: "Remover imagem",
+                              run: () => onDeleteOrganizationPhoto(organization, photo.id),
+                            })
+                          }
+                          className="inline-flex rounded-lg border border-red-200 p-1.5 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
                     </figcaption>
                   </figure>
                 ))}
