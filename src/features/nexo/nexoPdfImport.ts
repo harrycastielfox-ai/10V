@@ -169,10 +169,29 @@ function dateISO(text: string) {
     : null;
 }
 
+function looksLikeCalendarDate(text: string) {
+  const clean = text
+    .trim()
+    .replace(/^[\s:–—-]+/, "")
+    .trim();
+  if (dateISO(clean)) return true;
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(clean);
+  if (!isoMatch) return false;
+  const [, year, month, day] = isoMatch;
+  const date = new Date(`${year}-${month}-${day}T12:00:00Z`);
+  return (
+    date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() + 1 === Number(month) &&
+    date.getUTCDate() === Number(day)
+  );
+}
+
 function acceptableValue(field: NexoPdfField, value: string) {
   const digits = value.replace(/\D/g, "");
   if (field === "cpf") return digits.length === 11;
-  if (field === "rg") return digits.length >= 4 && digits.length <= 15;
+  if (field === "rg")
+    return !looksLikeCalendarDate(value) && digits.length >= 4 && digits.length <= 15;
   if (field === "sexo") return /^(?:m|f|masculino|feminino|outro|não binário)$/i.test(value);
   if (field === "documento.cnh" || field === "documento.renach")
     return digits.length >= 8 && digits.length <= 14;
@@ -536,12 +555,13 @@ export function applyNexoPdfCandidates(
   selected: NexoPdfCandidate[],
   fileName: string,
 ): NexoPessoaInput {
+  const accepted = selected.filter((item) => acceptableValue(item.field, item.value));
   const next = {
     ...person,
     endereco: { ...person.endereco },
     documentos_extras: [...person.documentos_extras],
   };
-  for (const item of selected) {
+  for (const item of accepted) {
     if (item.field.startsWith("endereco.")) {
       const key = item.field.slice("endereco.".length) as
         "logradouro" | "numero" | "bairro" | "municipio" | "uf";
@@ -559,16 +579,16 @@ export function applyNexoPdfCandidates(
       next[key] = item.value;
     }
   }
-  const sources = [...new Set(selected.map((item) => item.source))];
-  const pages = [...new Set(selected.map((item) => item.page))].sort((a, b) => a - b);
+  const sources = [...new Set(accepted.map((item) => item.source))];
+  const pages = [...new Set(accepted.map((item) => item.page))].sort((a, b) => a - b);
   const pageLabel = pages.length ? pages.join(", ") : "não informadas";
-  const reference = selected.length
-    ? `Importação revisada do PDF "${fileName}": ${selected.length} campo(s) confirmado(s); fonte(s): ${sources.join(", ")}; página(s): ${pageLabel}.`
+  const reference = accepted.length
+    ? `Importação revisada do PDF "${fileName}": ${accepted.length} campo(s) confirmado(s); fonte(s): ${sources.join(", ")}; página(s): ${pageLabel}.`
     : `PDF anexado para conferência: "${fileName}".`;
   next.observacoes = [person.observacoes.trim(), reference].filter(Boolean).join("\n\n");
   next.fonte_resumo = [
     person.fonte_resumo.trim(),
-    `PDF textual: ${fileName}; ${[...new Set(selected.map((item) => item.source))].join(", ")}. O original será preservado com hash após o salvamento.`,
+    `PDF textual: ${fileName}; ${[...new Set(accepted.map((item) => item.source))].join(", ")}. O original será preservado com hash após o salvamento.`,
   ]
     .filter(Boolean)
     .join("\n");

@@ -129,6 +129,26 @@ describe("sugestões de cadastro a partir de PDF", () => {
     expect(found[0].confidence).toBe("revisar");
   });
 
+  it("não interpreta uma data de nascimento como RG", () => {
+    const found = suggestNexoPdfFields([
+      {
+        page: 1,
+        cells: [
+          cell("NIMBA", 10, 750),
+          cell("RG", 10, 700),
+          cell("Data de Nascimento", 260, 700),
+          cell("- 17/04/2019", 10, 682),
+          cell("17/04/2019", 260, 682),
+        ],
+      },
+    ]);
+
+    expect(found).not.toContainEqual(expect.objectContaining({ field: "rg" }));
+    expect(found).toContainEqual(
+      expect.objectContaining({ field: "data_nascimento", value: "2019-04-17" }),
+    );
+  });
+
   it("aplica somente valores selecionados e deixa a procedência para auditoria", () => {
     const person = {
       nome: "",
@@ -170,6 +190,34 @@ describe("sugestões de cadastro a partir de PDF", () => {
       'Importação revisada do PDF "modelo.pdf": 2 campo(s) confirmado(s); fonte(s): NIMBA; página(s): 1.',
     );
     expect(result.observacoes).not.toContain("Nome completo (NIMBA, p. 1)");
+  });
+
+  it("não aplica uma sugestão antiga de RG quando o valor é uma data", () => {
+    const person = {
+      rg: "",
+      observacoes: "",
+      fonte_resumo: "",
+      documentos_extras: [],
+      endereco: { logradouro: "", numero: "", bairro: "", municipio: "", uf: "" },
+    } as unknown as NexoPessoaInput;
+    const result = applyNexoPdfCandidates(
+      person,
+      [
+        {
+          id: "rg-invalido",
+          field: "rg",
+          label: "RG",
+          value: "- 17/04/2019",
+          page: 1,
+          source: "NIMBA",
+          confidence: "revisar",
+        },
+      ],
+      "consulta.pdf",
+    );
+
+    expect(result.rg).toBe("");
+    expect(result.observacoes).toContain('PDF anexado para conferência: "consulta.pdf".');
   });
 
   it("combina campos selecionados de dois PDFs e preserva as duas fontes", () => {
