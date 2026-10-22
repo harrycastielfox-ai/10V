@@ -233,7 +233,7 @@ const PESSOA_SELECT = `
   estado_aparente, sinais_particulares, documentos_extras, contatos,
   telefone, observacoes, foto_perfil_path, foto_relatorio_path, endereco_id,
   usar_local_faccao, created_at, updated_at,
-  endereco:localizacao_enderecos (
+  endereco:nexo_enderecos (
     id, logradouro, numero, bairro, municipio, uf, ponto_referencia,
     como_chegar, link_navegacao, latitude, longitude
   ),

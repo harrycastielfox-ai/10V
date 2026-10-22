@@ -3,7 +3,6 @@ import type { UserProfile } from "@/lib/authz";
 
 const searchBos = vi.fn();
 const searchInqueritosForLink = vi.fn();
-const listPessoas = vi.fn();
 const searchRepresentacoesForLink = vi.fn();
 const listVehiclesPage = vi.fn();
 
@@ -12,9 +11,6 @@ vi.mock("@/lib/repositories/boRepository", () => ({
 }));
 vi.mock("@/lib/repositories/inqueritosRepository", () => ({
   searchInqueritosForLink: (...args: unknown[]) => searchInqueritosForLink(...args),
-}));
-vi.mock("@/lib/repositories/localizacaoRepository", () => ({
-  listPessoas: (...args: unknown[]) => listPessoas(...args),
 }));
 vi.mock("@/lib/repositories/representacoesRepository", () => ({
   searchRepresentacoesForLink: (...args: unknown[]) => searchRepresentacoesForLink(...args),
@@ -69,15 +65,6 @@ beforeEach(() => {
       situation: "Recuperado",
     },
   ]);
-  listPessoas.mockResolvedValue([
-    {
-      id: "p-1",
-      nome: "Fulano de Tal",
-      apelido: "Fulaninho",
-      numero_procedimento: "0231/2026",
-      numero_bo: null,
-    },
-  ]);
   searchRepresentacoesForLink.mockResolvedValue([
     {
       id: "r-1",
@@ -102,7 +89,6 @@ describe("searchEverywhere", () => {
       "procedimentos",
       "boletins",
       "veiculos",
-      "pessoas",
       "representacoes",
     ]);
     expect(itens[0]).toMatchObject({
@@ -117,7 +103,6 @@ describe("searchEverywhere", () => {
 
     expect(searchInqueritosForLink).toHaveBeenCalledTimes(1);
     expect(searchBos).not.toHaveBeenCalled();
-    expect(listPessoas).not.toHaveBeenCalled();
     expect(itens.every((item) => item.group === "procedimentos")).toBe(true);
   });
 

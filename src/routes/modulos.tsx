@@ -5,23 +5,14 @@ import {
   Car,
   Package,
   ArrowRight,
-  CalendarDays,
   ClipboardList,
   ClipboardCheck,
   Construction,
   LogOut,
-  Phone,
   Network,
 } from "lucide-react";
 import { getCurrentProfile, getProfileAvatarPublicUrl, getSession, logout } from "@/lib/auth";
-import {
-  canViewAgenda,
-  canViewLocalizacao,
-  canViewNexo,
-  isAuthorized,
-  type UserProfile,
-} from "@/lib/authz";
-import { AgendaLembreteNotification } from "@/components/AgendaLembreteNotification";
+import { canViewNexo, isAuthorized, type UserProfile } from "@/lib/authz";
 import { AppearanceSwitcher } from "@/components/AppearanceSwitcher";
 
 export const Route = createFileRoute("/modulos")({
@@ -101,28 +92,6 @@ const MODULOS: Modulo[] = [
     icon: Package,
     tone: "warning",
     to: "/objetos",
-    disponivel: true,
-  },
-  {
-    id: "agenda",
-    titulo: "AGENDAMENTO",
-    hint: "Convocações e horários",
-    descricao:
-      "Marcação de vítimas, testemunhas e autores para serem ouvidos, com cronograma da unidade.",
-    icon: CalendarDays,
-    tone: "info",
-    to: "/agenda",
-    disponivel: true,
-  },
-  {
-    id: "localizacao-operacional",
-    titulo: "CONTATO OPERACIONAL",
-    hint: "Diligências e rotas",
-    descricao:
-      "Apoio a diligências externas com cadastro de pessoas, endereços, rotas, chegada ao local, fotos e Street View.",
-    icon: Phone,
-    tone: "info",
-    to: "/localizacao",
     disponivel: true,
   },
   {
@@ -263,12 +232,7 @@ function ModulosPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {MODULOS.filter(
-            (m) =>
-              (m.id !== "localizacao-operacional" || canViewLocalizacao(profile)) &&
-              (m.id !== "agenda" || canViewAgenda(profile)) &&
-              (m.id !== "nexo" || canViewNexo(profile)),
-          ).map((m) => (
+          {MODULOS.filter((m) => m.id !== "nexo" || canViewNexo(profile)).map((m) => (
             <ModuloCard
               key={m.id}
               modulo={m}
@@ -285,10 +249,6 @@ function ModulosPage() {
             <div className="text-sm text-foreground">{aviso}</div>
           </div>
         )}
-
-        {/* É aqui que o servidor cai logo depois de entrar — o lembrete da
-            agenda precisa aparecer nesta tela, não só dentro dos módulos. */}
-        {canViewAgenda(profile) && !aviso ? <AgendaLembreteNotification /> : null}
       </div>
     </div>
   );

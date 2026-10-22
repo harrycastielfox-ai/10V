@@ -15,7 +15,6 @@ import {
   canRegisterVehicleMovements,
   canReleaseVehicles,
   canViewAuditoria,
-  canViewLocalizacao,
   canViewPrivateCases,
   canViewRepresentacoes,
   canViewVehicles,
@@ -75,22 +74,6 @@ describe("canManageUsers", () => {
     expect(canManageUsers(makeProfile({ cargo: "membro" }))).toBe(false);
     expect(canManageUsers(makeProfile({ cargo: "sipi_access" }))).toBe(false);
     expect(canManageUsers(makeProfile({ cargo: "atlas_access" }))).toBe(false);
-  });
-});
-
-describe("canViewLocalizacao", () => {
-  it("allows only admin — Contato Operacional é restrito por pedido explícito", () => {
-    expect(canViewLocalizacao(makeProfile({ cargo: "admin" }))).toBe(true);
-  });
-
-  it("blocks todos os outros cargos, mesmo autorizados", () => {
-    expect(canViewLocalizacao(makeProfile({ cargo: "membro" }))).toBe(false);
-    expect(canViewLocalizacao(makeProfile({ cargo: "atlas_access" }))).toBe(false);
-    expect(canViewLocalizacao(makeProfile({ cargo: "sipi_access" }))).toBe(false);
-    expect(canViewLocalizacao(makeProfile({ cargo: "delegado" }))).toBe(false);
-    expect(
-      canViewLocalizacao(makeProfile({ cargo: "admin", status_autorizacao: "aguardando" })),
-    ).toBe(false);
   });
 });
 

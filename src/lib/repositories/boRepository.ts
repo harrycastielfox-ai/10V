@@ -5,7 +5,7 @@ import {
   isSessionGenerationCurrent,
   registerSessionCache,
 } from "@/lib/sessionCache";
-import type { BoPayload, BoRecord } from "@/features/bo/boTypes";
+import type { BoPayload, BoRecord, BoResponsavelOption } from "@/features/bo/boTypes";
 
 const LIST_CACHE_TTL_MS = 10_000;
 let boCache: { data: BoRecord[]; fetchedAt: number } | null = null;
@@ -78,6 +78,14 @@ export async function searchBos(query: string, limit = 5) {
   );
 
   return (data ?? []) as BoRecord[];
+}
+
+export async function listBoResponsaveis() {
+  const data = await runSupabaseQuery<BoResponsavelOption[]>(
+    "servidores responsáveis por B.O.",
+    (signal) => supabase.rpc("list_bo_responsaveis").abortSignal(signal),
+  );
+  return (data ?? []) as BoResponsavelOption[];
 }
 
 export async function getBoById(id: string) {

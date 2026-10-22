@@ -7,7 +7,7 @@ import { getMobileRouteRedirect, MOBILE_VIEWPORT_QUERY } from "@/lib/mobileExper
 import { AppProfileContext } from "./AppProfileContext";
 import { MobileNavigation } from "./MobileNavigation";
 
-type AppModule = "inqueritos" | "veiculos" | "vistorias" | "objetos" | "agenda" | "bo";
+type AppModule = "inqueritos" | "veiculos" | "vistorias" | "objetos" | "bo";
 
 const AppSidebar = lazy(() =>
   import("./AppSidebar").then((module) => ({ default: module.AppSidebar })),
@@ -37,24 +37,11 @@ const ObjectsMobileNavigation = lazy(() =>
     default: module.ObjectsMobileNavigation,
   })),
 );
-const AgendaSidebar = lazy(() =>
-  import("./AgendaSidebar").then((module) => ({ default: module.AgendaSidebar })),
-);
-const AgendaMobileNavigation = lazy(() =>
-  import("./AgendaMobileNavigation").then((module) => ({
-    default: module.AgendaMobileNavigation,
-  })),
-);
 const BoSidebar = lazy(() =>
   import("./BoSidebar").then((module) => ({ default: module.BoSidebar })),
 );
 const BoMobileNavigation = lazy(() =>
   import("./BoMobileNavigation").then((module) => ({ default: module.BoMobileNavigation })),
-);
-const AgendaLembreteNotification = lazy(() =>
-  import("./AgendaLembreteNotification").then((module) => ({
-    default: module.AgendaLembreteNotification,
-  })),
 );
 
 function useMobileViewport() {
@@ -177,8 +164,6 @@ export function AppLayout({
                 <VehiclesMobileNavigation profile={profile} />
               ) : module === "objetos" ? (
                 <ObjectsMobileNavigation profile={profile} />
-              ) : module === "agenda" ? (
-                <AgendaMobileNavigation profile={profile} />
               ) : module === "bo" ? (
                 <BoMobileNavigation profile={profile} />
               ) : module === "vistorias" ? (
@@ -190,8 +175,6 @@ export function AppLayout({
               <VehiclesSidebar profile={profile} />
             ) : module === "objetos" ? (
               <ObjectsSidebar profile={profile} />
-            ) : module === "agenda" ? (
-              <AgendaSidebar profile={profile} />
             ) : module === "bo" ? (
               <BoSidebar profile={profile} />
             ) : module === "vistorias" ? (
@@ -200,7 +183,6 @@ export function AppLayout({
               <>
                 <AppSidebar profile={profile} />
                 <DueSoonNotification />
-                <AgendaLembreteNotification />
               </>
             )}
           </Suspense>

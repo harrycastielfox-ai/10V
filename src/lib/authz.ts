@@ -254,21 +254,6 @@ export function canManageObjects(
   return canCreateObjects(profile) || canReleaseObjects(profile) || canDeleteObjects(profile);
 }
 
-const AGENDA_EDITOR_ROLES: UserRole[] = ["sipi_access", "delegado", "admin"];
-
-export function canViewAgenda(
-  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
-): boolean {
-  if (!profile || !isAuthorized(profile)) return false;
-  return profile.cargo !== "membro";
-}
-
-export function canManageAgenda(
-  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
-): boolean {
-  return Boolean(profile && isAuthorized(profile) && AGENDA_EDITOR_ROLES.includes(profile.cargo));
-}
-
 const BO_EDITOR_ROLES: UserRole[] = ["sipi_access", "delegado", "admin"];
 
 export function canViewBos(
@@ -282,17 +267,6 @@ export function canManageBos(
 ): boolean {
   return Boolean(profile && isAuthorized(profile) && BO_EDITOR_ROLES.includes(profile.cargo));
 }
-
-// Contato Operacional é restrito ao cargo admin — a pedido explícito do usuário.
-const LOCALIZACAO_ROLES: UserRole[] = ["admin"];
-
-export function canViewLocalizacao(
-  profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,
-): boolean {
-  return Boolean(profile && isAuthorized(profile) && LOCALIZACAO_ROLES.includes(profile.cargo));
-}
-
-export const canManageLocalizacao = canViewLocalizacao;
 
 // NEXO concentra inteligência sensível de vínculos. O acesso exige perfil
 // especializado ou autoridade responsável pela unidade.

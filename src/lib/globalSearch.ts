@@ -1,18 +1,11 @@
-import {
-  canViewBos,
-  canViewLocalizacao,
-  canViewRepresentacoes,
-  canViewVehicles,
-} from "@/lib/authz";
+import { canViewBos, canViewRepresentacoes, canViewVehicles } from "@/lib/authz";
 import type { UserProfile } from "@/lib/authz";
 import { searchBos } from "@/lib/repositories/boRepository";
 import { searchInqueritosForLink } from "@/lib/repositories/inqueritosRepository";
-import { listPessoas } from "@/lib/repositories/localizacaoRepository";
 import { searchRepresentacoesForLink } from "@/lib/repositories/representacoesRepository";
 import { listVehiclesPage } from "@/lib/repositories/vehiclesRepository";
 
-export type GlobalSearchGroup =
-  "procedimentos" | "boletins" | "veiculos" | "pessoas" | "representacoes";
+export type GlobalSearchGroup = "procedimentos" | "boletins" | "veiculos" | "representacoes";
 
 export type GlobalSearchHit = {
   key: string;
@@ -27,7 +20,6 @@ export const GLOBAL_SEARCH_GROUP_LABELS: Record<GlobalSearchGroup, string> = {
   procedimentos: "Procedimentos",
   boletins: "Boletins de ocorrência",
   veiculos: "Veículos",
-  pessoas: "Pessoas",
   representacoes: "Representações",
 };
 
@@ -37,7 +29,6 @@ export const GLOBAL_SEARCH_GROUP_ORDER: GlobalSearchGroup[] = [
   "procedimentos",
   "boletins",
   "veiculos",
-  "pessoas",
   "representacoes",
 ];
 
@@ -103,25 +94,6 @@ export async function searchEverywhere(
           subtitle: detalhe(item.brand_model, item.color, item.situation),
           to: "/veiculos/$vehicleId",
           params: { vehicleId: item.id },
-        })),
-      ),
-    );
-  }
-
-  if (canViewLocalizacao(profile)) {
-    buscas.push(
-      listPessoas(termo).then((itens) =>
-        itens.slice(0, limitPorGrupo).map((item) => ({
-          key: `pessoa-${item.id}`,
-          group: "pessoas" as const,
-          title: item.nome,
-          subtitle: detalhe(
-            item.apelido ? `vulgo ${item.apelido}` : null,
-            item.numero_procedimento,
-            item.numero_bo,
-          ),
-          to: "/localizacao/pessoas",
-          params: {},
         })),
       ),
     );

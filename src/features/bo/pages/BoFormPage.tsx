@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import { useAppProfile } from "@/components/AppProfileContext";
 import { canManageBos } from "@/lib/authz";
-import { listResponsaveis } from "@/lib/repositories/agendaRepository";
-import { createBo, listBos, updateBo } from "@/lib/repositories/boRepository";
+import { createBo, listBoResponsaveis, listBos, updateBo } from "@/lib/repositories/boRepository";
 import { listProceduralTags } from "@/lib/repositories/proceduralTagsRepository";
 import { getInqueritoById, searchInqueritosForLink } from "@/lib/repositories/inqueritosRepository";
 import {
@@ -88,7 +87,7 @@ export default function BoFormPage({ initial }: { initial?: BoRecord }) {
   // B.O. Só a primeira deixava de fora servidor sem usuário no sistema.
   useEffect(() => {
     void Promise.all([
-      listResponsaveis()
+      listBoResponsaveis()
         .then((items) => items.map((item) => item.nome ?? ""))
         .catch(() => [] as string[]),
       listBos()

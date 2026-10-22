@@ -38,9 +38,6 @@ export function getPostAuthDestination(mobile = isMobileViewport()) {
 }
 
 export function isMobilePathAllowed(pathname: string) {
-  // O módulo de localização possui navegação própria e fluxos de campo (GPS/fotos).
-  if (isPathOrChild(pathname, "/localizacao")) return true;
-
   if (pathname.startsWith("/veiculos/")) {
     const vehiclePath = pathname.slice("/veiculos/".length);
     if (!vehiclePath || vehiclePath.includes("/") || vehiclePath === "novo") return false;
@@ -53,16 +50,6 @@ export function isMobilePathAllowed(pathname: string) {
     const objectPath = pathname.slice("/objetos/".length);
     if (!objectPath || objectPath.includes("/") || objectPath === "novo") return false;
     return true;
-  }
-
-  // A agenda é consultada no balcão e no corredor: ver o dia, o cronograma e a
-  // ficha de quem chegou precisa funcionar no celular. Marcar e editar continua
-  // sendo tarefa de mesa — formulário longo, com busca de procedimento.
-  if (isPathOrChild(pathname, "/agenda")) {
-    if (pathname === "/agenda" || pathname === "/agenda/cronograma") return true;
-    const agendaPath = pathname.slice("/agenda/".length);
-    if (!agendaPath || agendaPath === "novo" || agendaPath.startsWith("editar")) return false;
-    return !agendaPath.includes("/");
   }
 
   return (
@@ -82,9 +69,6 @@ export function getMobileRouteRedirect(pathname: string, mobile = isMobileViewpo
   if (pathname === "/objetos") return "/objetos/todos" as const;
   if (pathname.startsWith("/objetos") && !isMobilePathAllowed(pathname)) {
     return "/objetos/todos" as const;
-  }
-  if (pathname.startsWith("/agenda") && !isMobilePathAllowed(pathname)) {
-    return "/agenda" as const;
   }
   if (isMobilePathAllowed(pathname)) return null;
   return "/inqueritos" as const;

@@ -20,6 +20,12 @@ export type BoLocationCategory =
   | "rota_operacional"
   | "outro";
 
+export interface BoResponsavelOption {
+  id: string;
+  nome: string;
+  funcao_institucional: string | null;
+}
+
 export interface BoRecord {
   id: string;
   numero_bo: string;

@@ -10,13 +10,11 @@ import {
   Plus,
   Scale,
   Search,
-  UserRound,
 } from "lucide-react";
 import { useAppProfile } from "@/components/AppProfileContext";
 import { normalizeProceduralTagSearch } from "@/lib/proceduralTags";
 import {
   canCreateCases,
-  canManageAgenda,
   canManageBos,
   canCreateVehicles,
   canViewBos,
@@ -44,7 +42,6 @@ const GROUP_ICONS: Record<GlobalSearchGroup, typeof Search> = {
   procedimentos: FileText,
   boletins: ClipboardList,
   veiculos: Car,
-  pessoas: UserRound,
   representacoes: Scale,
 };
 
@@ -121,7 +118,6 @@ export function CommandPalette() {
       { title: "Novo procedimento", to: "/novo-caso", permitido: canCreateCases(profile) },
       { title: "Cadastrar B.O.", to: "/bo/novo", permitido: canManageBos(profile) },
       { title: "Cadastrar veículo", to: "/veiculos/novo", permitido: canCreateVehicles(profile) },
-      { title: "Novo agendamento", to: "/agenda/novo", permitido: canManageAgenda(profile) },
       { title: "Abrir procedimentos", to: "/inqueritos", permitido: true },
       { title: "Abrir boletins", to: "/bo/boletins", permitido: canViewBos(profile) },
       { title: "Abrir veículos", to: "/veiculos/todos", permitido: canViewVehicles(profile) },
