@@ -19,6 +19,7 @@ const props: ComponentProps<typeof NexoDossier> = {
   onEdit: noop,
   onUploadPhoto: save,
   onDeletePhoto: save,
+  onUploadDocumentImage: save,
   onUploadResource: save,
   onDeleteResource: save,
   onUpdateResourceObservation: save,

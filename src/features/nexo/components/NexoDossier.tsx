@@ -34,6 +34,7 @@ import type { InqueritoRecord } from "@/lib/repositories/inqueritosRepository";
 import { getErrorMessage } from "@/lib/errorMessage";
 import type {
   NexoOrganizacao,
+  NexoDocumentoExtra,
   NexoHierarquiaEvento,
   NexoObservacao,
   NexoPessoa,
@@ -1325,6 +1326,7 @@ export function NexoDossier({
   onEdit,
   onUploadPhoto,
   onDeletePhoto,
+  onUploadDocumentImage,
   onUploadResource,
   onDeleteResource,
   onUpdateResourceObservation,
@@ -1354,6 +1356,7 @@ export function NexoDossier({
   onEdit: (target: DossierTarget) => void;
   onUploadPhoto: (person: NexoPessoa, file: File) => Promise<void>;
   onDeletePhoto: (person: NexoPessoa, photoId: string) => Promise<void>;
+  onUploadDocumentImage: (person: NexoPessoa, documentId: string, file: File) => Promise<void>;
   onUploadResource: (person: NexoPessoa, file: File, observacao: string) => Promise<void>;
   onDeleteResource: (person: NexoPessoa, resourceId: string) => Promise<void>;
   onUpdateResourceObservation: (
@@ -1381,6 +1384,9 @@ export function NexoDossier({
   const [uploadError, setUploadError] = useState("");
   const [photoCaption, setPhotoCaption] = useState("");
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [documentImageUploading, setDocumentImageUploading] = useState(false);
+  const [documentImageError, setDocumentImageError] = useState("");
   const [resourceFile, setResourceFile] = useState<File | null>(null);
   const [resourceObservation, setResourceObservation] = useState("");
   const [resourceUploading, setResourceUploading] = useState(false);
@@ -1440,6 +1446,8 @@ export function NexoDossier({
   const organization =
     target.kind === "organization" ? organizations.find((item) => item.id === target.id) : null;
   const person = target.kind === "person" ? people.find((item) => item.id === target.id) : null;
+  const selectedDocument: NexoDocumentoExtra | null =
+    person?.documentos_extras.find((documento) => documento.id === selectedDocumentId) ?? null;
   const hierarchyEvents = preview
     ? previewHierarchyEvents.filter((event) =>
         person ? event.pessoa_id === person.id : event.organizacao_id === organization?.id,
@@ -1956,10 +1964,24 @@ export function NexoDossier({
                     {(person.documentos_extras ?? []).map((documento) => (
                       <div
                         key={documento.id}
-                        className="flex justify-between gap-3 rounded-xl bg-[#f5f8fa] px-3 py-2 text-xs"
+                        className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f8fa] px-3 py-2 text-xs"
                       >
                         <strong className="text-[#31536a]">{documento.tipo}</strong>
-                        <span className="text-[#758a9b]">{documento.numero || "Sem número"}</span>
+                        <span className="ml-auto text-[#758a9b]">
+                          {documento.numero || "Sem número"}
+                        </span>
+                        <button
+                          type="button"
+                          title={documento.imagem_url ? "Ver imagem do documento" : "Anexar imagem"}
+                          aria-label={`${documento.imagem_url ? "Ver" : "Anexar"} imagem de ${documento.tipo}`}
+                          onClick={() => {
+                            setSelectedDocumentId(documento.id);
+                            setDocumentImageError("");
+                          }}
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#9fc8d8] bg-white text-[#16748b] shadow-sm hover:bg-[#e8f6f9]"
+                        >
+                          <Search className="h-4 w-4" />
+                        </button>
                       </div>
                     ))}
                     {!person.documentos_extras?.length ? (
@@ -3135,6 +3157,88 @@ export function NexoDossier({
           onSelect={setSelectedTerritory}
           onClose={() => setSelectedTerritory(null)}
         />
+      ) : null}
+      {selectedDocument && person ? (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[#102333]/50 p-4 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedDocumentId(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nexo-document-image-title"
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-[#d5e3ea] bg-white shadow-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className="flex items-center justify-between gap-3 border-b border-[#e3edf2] bg-[#f7fbfd] px-4 py-3">
+              <div className="min-w-0">
+                <h2 id="nexo-document-image-title" className="text-sm font-black text-[#173d5b]">
+                  {selectedDocument.tipo} · {selectedDocument.numero || "Sem número"}
+                </h2>
+                <p className="mt-0.5 text-xs text-[#637c8d]">Imagem vinculada ao documento</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Fechar imagem do documento"
+                onClick={() => setSelectedDocumentId(null)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#cbdbe3] bg-white text-[#526e80] hover:bg-[#edf4f7]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+            <div className="p-4">
+              {selectedDocument.imagem_url ? (
+                <figure className="overflow-hidden rounded-xl border border-[#dce7ed] bg-[#eef3f6]">
+                  <img
+                    src={selectedDocument.imagem_url}
+                    alt={`Imagem de ${selectedDocument.tipo}`}
+                    className="block max-h-[62vh] w-full object-contain"
+                  />
+                  <figcaption className="border-t border-[#dce7ed] bg-white px-3 py-2 text-xs text-[#647d8e]">
+                    {selectedDocument.imagem_nome || "Imagem anexada"}
+                  </figcaption>
+                </figure>
+              ) : (
+                <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#9dcbd7] bg-[#f1fafb] px-6 py-10 text-center hover:bg-[#e8f6f8]">
+                  <Search className="h-8 w-8 text-[#16839a]" />
+                  <strong className="mt-3 text-sm text-[#1c526b]">
+                    {documentImageUploading ? "Anexando imagem…" : "Anexar imagem do documento"}
+                  </strong>
+                  <span className="mt-1 text-xs text-[#698393]">JPG, PNG ou WebP · até 8 MB</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={documentImageUploading}
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      setDocumentImageUploading(true);
+                      setDocumentImageError("");
+                      try {
+                        await onUploadDocumentImage(person, selectedDocument.id, file);
+                      } catch (cause) {
+                        setDocumentImageError(
+                          getErrorMessage(cause, "Não foi possível anexar a imagem."),
+                        );
+                      } finally {
+                        setDocumentImageUploading(false);
+                        event.target.value = "";
+                      }
+                    }}
+                  />
+                </label>
+              )}
+              {documentImageError ? (
+                <p role="alert" className="mt-3 text-xs font-semibold text-red-700">
+                  {documentImageError}
+                </p>
+              ) : null}
+            </div>
+          </section>
+        </div>
       ) : null}
       {resourcePreview ? (
         <div

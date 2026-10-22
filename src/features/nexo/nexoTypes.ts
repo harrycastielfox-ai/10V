@@ -192,6 +192,10 @@ export interface NexoDocumentoExtra {
   id: string;
   tipo: string;
   numero: string;
+  imagem_path?: string | null;
+  imagem_nome?: string | null;
+  imagem_mime_type?: string | null;
+  imagem_url?: string | null;
 }
 
 export interface NexoContato {

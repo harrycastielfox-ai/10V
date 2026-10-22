@@ -52,7 +52,7 @@ async function optionalSignedUrl(path: string | null | undefined) {
 }
 
 async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
-  const [fotoPerfil, fotoRelatorio, fotos, recursos] = await Promise.all([
+  const [fotoPerfil, fotoRelatorio, fotos, recursos, documentosExtras] = await Promise.all([
     optionalSignedUrl(pessoa.foto_perfil_path),
     optionalSignedUrl(pessoa.foto_relatorio_path),
     Promise.all(
@@ -67,15 +67,91 @@ async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
         url: await optionalSignedUrl(recurso.storage_path),
       })),
     ),
+    Promise.all(
+      (pessoa.documentos_extras ?? []).map(async (documento) => ({
+        ...documento,
+        imagem_url: await optionalSignedUrl(documento.imagem_path),
+      })),
+    ),
   ]);
   return {
     ...pessoa,
     foto_perfil_url: fotoPerfil,
     foto_relatorio_url: fotoRelatorio,
     fotos,
+    documentos_extras: documentosExtras,
     documentos_fontes: (pessoa.documentos_fontes ?? []) as NexoDocumentoFonte[],
     recursos: (recursos ?? []) as NexoRecursoPdf[],
   };
+}
+
+function validateDocumentImage(file: File) {
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
+    throw new Error("Selecione uma imagem JPG, PNG ou WebP.");
+  if (file.size > 8 * 1024 * 1024) throw new Error("A imagem deve ter no máximo 8 MB.");
+}
+
+export async function uploadNexoDocumentoExtraImagem(
+  personId: string,
+  documentId: string,
+  file: File,
+): Promise<void> {
+  validateDocumentImage(file);
+  const { data: current, error: readError } = await supabase
+    .from("nexo_pessoas")
+    .select("id, documentos_extras, updated_at")
+    .eq("id", personId)
+    .is("deleted_at", null)
+    .single();
+  if (readError) throw readError;
+
+  const documents = (current.documentos_extras ?? []) as NexoPessoa["documentos_extras"];
+  const selected = documents.find((documento) => documento.id === documentId);
+  if (!selected) throw new Error("O documento selecionado não está mais disponível.");
+
+  const path = `pessoas/${personId}/documentos/${documentId}/${crypto.randomUUID()}.${extensionFor(file)}`;
+  const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+
+  const updatedDocuments = documents.map((documento) =>
+    documento.id === documentId
+      ? {
+          ...documento,
+          imagem_path: path,
+          imagem_nome: file.name.slice(0, 255),
+          imagem_mime_type: file.type,
+        }
+      : documento,
+  );
+  const { data: updated, error: updateError } = await supabase
+    .from("nexo_pessoas")
+    .update({ documentos_extras: updatedDocuments })
+    .eq("id", personId)
+    .eq("updated_at", current.updated_at)
+    .select("id")
+    .maybeSingle();
+  if (updateError || !updated) {
+    await supabase.storage.from(PRIVATE_BUCKET).remove([path]);
+    if (updateError) throw updateError;
+    throw new Error(
+      "A ficha foi alterada por outro operador. Reabra o cadastro antes de anexar a imagem.",
+    );
+  }
+
+  if (selected.imagem_path) {
+    const { error: cleanupError } = await supabase.storage
+      .from(PRIVATE_BUCKET)
+      .remove([selected.imagem_path]);
+    if (cleanupError && import.meta.env.DEV)
+      console.warn(
+        "A nova imagem foi salva, mas o arquivo anterior não pôde ser removido.",
+        cleanupError,
+      );
+  }
 }
 
 const PESSOA_SELECT = `
