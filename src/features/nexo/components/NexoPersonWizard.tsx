@@ -360,13 +360,6 @@ export function NexoPersonWizard({
                 placeholder={person.nome_pai === "NÃO CONSTA" ? "Informação não consta" : ""}
               />
             </WizardField>
-            <WizardField label="Telefone">
-              <input
-                className={field}
-                value={person.telefone}
-                onChange={(event) => setPerson({ ...person, telefone: event.target.value })}
-              />
-            </WizardField>
           </div>
         </div>
       </div>
