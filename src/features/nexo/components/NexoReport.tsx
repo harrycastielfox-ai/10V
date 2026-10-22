@@ -184,6 +184,7 @@ function PersonReport({
               <dd>
                 {[pessoa.escolaridade, pessoa.profissao].filter(Boolean).join(" · ") ||
                   "Não informado"}
+                {pessoa.profissao_desatualizada ? " · Possivelmente desatualizado/Antigo" : ""}
               </dd>
             </div>
             <div>
@@ -213,7 +214,7 @@ function PersonReport({
               {pessoa.contatos
                 .map(
                   (item) =>
-                    `${item.tipo}: ${item.valor || "não informado"}${item.whatsapp ? " (WhatsApp)" : ""}`,
+                    `${item.tipo}: ${item.valor || "não informado"}${item.whatsapp ? " (WhatsApp)" : ""}${item.desatualizado ? " (Possivelmente desatualizado/Antigo)" : ""}`,
                 )
                 .join("; ")}
             </p>

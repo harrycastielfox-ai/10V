@@ -19,6 +19,24 @@ import type {
 } from "@/features/nexo/nexoTypes";
 
 const PRIVATE_BUCKET = "nexo-private";
+const PROFESSION_STATUS_CONTACT_ID = "nexo-profissao-status";
+
+function contactsWithProfessionStatus(input: NexoPessoaInput) {
+  const contacts = (input.contatos ?? []).filter(
+    (contact) => contact.id !== PROFESSION_STATUS_CONTACT_ID,
+  );
+  return input.profissao_desatualizada
+    ? [
+        ...contacts,
+        {
+          id: PROFESSION_STATUS_CONTACT_ID,
+          tipo: "__profissao_status__",
+          valor: "desatualizado",
+          whatsapp: false,
+        },
+      ]
+    : contacts;
+}
 
 function clean(value: string) {
   const normalized = value.replace(/\s+/g, " ").trim();
@@ -52,6 +70,7 @@ async function optionalSignedUrl(path: string | null | undefined) {
 }
 
 async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
+  const rawContacts = pessoa.contatos ?? [];
   const [fotoPerfil, fotoRelatorio, fotos, recursos, documentosExtras] = await Promise.all([
     optionalSignedUrl(pessoa.foto_perfil_path),
     optionalSignedUrl(pessoa.foto_relatorio_path),
@@ -76,6 +95,10 @@ async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
   ]);
   return {
     ...pessoa,
+    profissao_desatualizada: rawContacts.some(
+      (contact) => contact.id === PROFESSION_STATUS_CONTACT_ID && contact.valor === "desatualizado",
+    ),
+    contatos: rawContacts.filter((contact) => contact.id !== PROFESSION_STATUS_CONTACT_ID),
     foto_perfil_url: fotoPerfil,
     foto_relatorio_url: fotoRelatorio,
     fotos,
@@ -786,7 +809,7 @@ export async function createNexoPessoa(
             estado_aparente: clean(input.estado_aparente),
             sinais_particulares: clean(input.sinais_particulares),
             documentos_extras: input.documentos_extras,
-            contatos: input.contatos,
+            contatos: contactsWithProfessionStatus(input),
           },
           endereco:
             !input.em_situacao_rua && !input.usar_local_faccao && input.endereco.logradouro.trim()
@@ -881,7 +904,7 @@ export async function updateNexoPessoa(
               estado_aparente: clean(input.estado_aparente),
               sinais_particulares: clean(input.sinais_particulares),
               documentos_extras: input.documentos_extras,
-              contatos: input.contatos,
+              contatos: contactsWithProfessionStatus(input),
               telefone: clean(input.telefone),
               observacoes: clean(input.observacoes),
               usar_local_faccao: input.usar_local_faccao,

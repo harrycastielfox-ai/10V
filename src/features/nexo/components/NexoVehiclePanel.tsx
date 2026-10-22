@@ -1,6 +1,12 @@
 import { CarFront, ExternalLink, Link2, Plus, Search, ShieldCheck, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { VehicleListRecord } from "@/features/vehicles/vehicleTypes";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  VEHICLE_SITUATIONS,
+  VEHICLE_TYPES,
+  type VehicleListRecord,
+  type VehicleSituation,
+  type VehicleType,
+} from "@/features/vehicles/vehicleTypes";
 import { useDebouncedValue } from "@/features/vehicles/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errorMessage";
 import type { NexoVeiculoTipoPosse, NexoVeiculoVinculo } from "../nexoTypes";
@@ -16,6 +22,64 @@ const POSSESSION_LABELS: Record<NexoVeiculoTipoPosse, string> = {
 };
 
 const previewLinks = new Map<string, NexoVeiculoVinculo[]>();
+
+type QuickVehicleForm = {
+  vehicleType: VehicleType;
+  plate: string;
+  brandModel: string;
+  manufactureYear: string;
+  modelYear: string;
+  color: string;
+  renavam: string;
+  engineNumber: string;
+  chassis: string;
+  cityState: string;
+  bodyNumber: string;
+  ownerName: string;
+  ownerDocument: string;
+  situation: VehicleSituation | "";
+  detranUpdatedAt: string;
+};
+
+const emptyQuickVehicle: QuickVehicleForm = {
+  vehicleType: "automovel",
+  plate: "",
+  brandModel: "",
+  manufactureYear: "",
+  modelYear: "",
+  color: "",
+  renavam: "",
+  engineNumber: "",
+  chassis: "",
+  cityState: "",
+  bodyNumber: "",
+  ownerName: "",
+  ownerDocument: "",
+  situation: "",
+  detranUpdatedAt: "",
+};
+
+const quickFieldClass =
+  "h-11 w-full rounded-xl border border-[#d5e2ea] bg-white px-3 text-sm text-[#27495f] outline-none placeholder:text-[#91a2ae] focus:border-[#3995aa]";
+
+function QuickField({
+  label,
+  wide = false,
+  children,
+}: {
+  label: string;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <label className={wide ? "sm:col-span-2" : ""}>
+      <span className="mb-1.5 block text-[10px] font-black uppercase tracking-[.1em] text-[#668093]">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
 const previewVehicles: VehicleListRecord[] = [
   "Motocicleta demonstrativa",
   "Automóvel demonstrativo",
@@ -51,6 +115,8 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
   const [error, setError] = useState("");
   const [searching, setSearching] = useState(false);
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [showQuickForm, setShowQuickForm] = useState(false);
+  const [quickVehicle, setQuickVehicle] = useState<QuickVehicleForm>(emptyQuickVehicle);
   const search = useDebouncedValue(query.trim());
   const scopeKey = `${target.kind}:${target.id}`;
   const currentScope = useRef(scopeKey);
@@ -75,6 +141,8 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
     let cancelled = false;
     setLinks(preview ? (previewLinks.get(scopeKey) ?? []) : []);
     setShowLinkForm(false);
+    setShowQuickForm(false);
+    setQuickVehicle(emptyQuickVehicle);
     setSelectedId("");
     setQuery("");
     setSource("");
@@ -181,6 +249,95 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
     }
   }
 
+  async function createAndLinkVehicle() {
+    if (saving) return;
+    const brandModel = quickVehicle.brandModel.trim();
+    const hasIdentifier = [
+      quickVehicle.plate,
+      quickVehicle.renavam,
+      quickVehicle.engineNumber,
+      quickVehicle.chassis,
+    ].some((value) => value.trim());
+    if (!brandModel || !hasIdentifier) {
+      setError("Informe a marca/modelo e ao menos placa, RENAVAM, motor ou chassi.");
+      return;
+    }
+
+    const [brandPart, ...modelParts] = brandModel.split("/");
+    const notes = [
+      quickVehicle.cityState.trim()
+        ? `Cidade/Estado de referência: ${quickVehicle.cityState.trim()}`
+        : "",
+      quickVehicle.bodyNumber.trim()
+        ? `Número da carroceria: ${quickVehicle.bodyNumber.trim()}`
+        : "",
+      quickVehicle.detranUpdatedAt
+        ? `Última atualização informada do Detran: ${quickVehicle.detranUpdatedAt}`
+        : "",
+    ].filter(Boolean);
+    const owner = quickVehicle.ownerName.trim()
+      ? `(Outros:) ${quickVehicle.ownerName.trim()} - Proprietário${quickVehicle.ownerDocument.trim() ? ` · CPF/CNPJ ${quickVehicle.ownerDocument.trim()}` : ""}`
+      : null;
+
+    setSaving(true);
+    setError("");
+    try {
+      const vehicleRepo = await import("@/lib/repositories/vehiclesRepository");
+      const conflicts = await vehicleRepo.findVehicleIdentifierConflicts({
+        plate: quickVehicle.plate.trim() || null,
+        renavam: quickVehicle.renavam.trim() || null,
+        engineNumber: quickVehicle.engineNumber.trim() || null,
+        chassis: quickVehicle.chassis.trim() || null,
+      });
+      if (conflicts.length) {
+        throw new Error(
+          "Já existe veículo com um desses identificadores. Use “Vincular veículo cadastrado”.",
+        );
+      }
+
+      const created = await vehicleRepo.createVehicle({
+        vehicle_type: quickVehicle.vehicleType,
+        brand: brandPart?.trim() || brandModel,
+        model: modelParts.join("/").trim() || null,
+        color: quickVehicle.color.trim() || null,
+        plate: quickVehicle.plate.trim() || null,
+        plate_status: quickVehicle.plate.trim() ? "informado" : null,
+        renavam: quickVehicle.renavam.trim() || null,
+        renavam_status: quickVehicle.renavam.trim() ? "informado" : null,
+        engine_number: quickVehicle.engineNumber.trim() || null,
+        engine_status: quickVehicle.engineNumber.trim() ? "informado" : null,
+        chassis: quickVehicle.chassis.trim() || null,
+        chassis_status: quickVehicle.chassis.trim() ? "informado" : null,
+        manufacture_year: quickVehicle.manufactureYear
+          ? Number(quickVehicle.manufactureYear)
+          : null,
+        model_year: quickVehicle.modelYear ? Number(quickVehicle.modelYear) : null,
+        situation: quickVehicle.situation || null,
+        pending_identification: false,
+        is_motorized: quickVehicle.vehicleType !== "bicicleta",
+        involved_people: owner,
+        observations: notes.join("\n") || null,
+      });
+
+      const nexoRepo = await import("@/lib/repositories/nexoRepository");
+      await nexoRepo.createNexoVeiculoVinculo({
+        veiculo_id: created.id,
+        ...(target.kind === "person" ? { pessoa_id: target.id } : { organizacao_id: target.id }),
+        tipo_posse: "associado",
+        confianca: 50,
+        fonte_resumo: "Cadastro rápido realizado no dossiê NEXO",
+        observacoes: "Veículo criado e vinculado a partir do cadastro rápido.",
+      });
+      setQuickVehicle(emptyQuickVehicle);
+      setShowQuickForm(false);
+      await reload();
+    } catch (cause) {
+      setError(getErrorMessage(cause, "Não foi possível cadastrar e vincular o veículo."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function unlink(id: string) {
     if (
       !window.confirm("Remover este vínculo veicular do dossiê? O veículo continuará cadastrado.")
@@ -218,19 +375,28 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setShowLinkForm((shown) => !shown)}
+            onClick={() => {
+              setShowLinkForm((shown) => !shown);
+              setShowQuickForm(false);
+              setError("");
+            }}
             className="inline-flex items-center gap-2 rounded-xl border border-[#a6cbd5] bg-white px-4 py-2.5 text-xs font-black text-[#17677e] hover:bg-[#edf8fa]"
           >
             <Link2 className="h-4 w-4" />{" "}
             {showLinkForm ? "Fechar busca" : "Vincular veículo cadastrado"}
           </button>
           {!preview ? (
-            <a
-              href="/veiculos/novo?origem=nexo"
+            <button
+              type="button"
+              onClick={() => {
+                setShowQuickForm((shown) => !shown);
+                setShowLinkForm(false);
+                setError("");
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575]"
             >
-              <Plus className="h-4 w-4" /> Cadastrar novo veículo
-            </a>
+              <Plus className="h-4 w-4" /> {showQuickForm ? "Fechar cadastro" : "Cadastro rápido"}
+            </button>
           ) : null}
         </div>
       </div>
@@ -390,6 +556,224 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1689a1] px-4 text-xs font-black text-white disabled:opacity-40"
             >
               <Plus className="h-4 w-4" /> Vincular
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {showQuickForm && !preview ? (
+        <section className="rounded-2xl border border-[#bdd6df] bg-[#f5fafb] p-4 shadow-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="flex items-center gap-2 text-sm font-black text-[#203e57]">
+                <CarFront className="h-4 w-4 text-[#1689a1]" /> Cadastro rápido de veículo
+              </h4>
+              <p className="mt-1 text-xs text-[#6f8595]">
+                Informe os dados disponíveis. O veículo será cadastrado e vinculado a este dossiê.
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Fechar cadastro rápido"
+              onClick={() => setShowQuickForm(false)}
+              className="rounded-lg border border-[#cbdce4] bg-white p-2 text-[#557083] hover:bg-[#edf4f7]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <QuickField label="Tipo">
+              <select
+                value={quickVehicle.vehicleType}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({
+                    ...current,
+                    vehicleType: event.target.value as VehicleType,
+                  }))
+                }
+                className={quickFieldClass}
+              >
+                {VEHICLE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </QuickField>
+            <QuickField label="Placa">
+              <input
+                value={quickVehicle.plate}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({
+                    ...current,
+                    plate: event.target.value.toUpperCase(),
+                  }))
+                }
+                className={quickFieldClass}
+                placeholder="ABC1D23"
+              />
+            </QuickField>
+            <QuickField label="Marca / Modelo" wide>
+              <input
+                value={quickVehicle.brandModel}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, brandModel: event.target.value }))
+                }
+                className={quickFieldClass}
+                placeholder="HONDA / NXR 160 BROS CBS"
+              />
+            </QuickField>
+            <QuickField label="Ano fabricação">
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                value={quickVehicle.manufactureYear}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({
+                    ...current,
+                    manufactureYear: event.target.value,
+                  }))
+                }
+                className={quickFieldClass}
+                placeholder="2025"
+              />
+            </QuickField>
+            <QuickField label="Ano modelo">
+              <input
+                type="number"
+                min="1900"
+                max="2100"
+                value={quickVehicle.modelYear}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, modelYear: event.target.value }))
+                }
+                className={quickFieldClass}
+                placeholder="2026"
+              />
+            </QuickField>
+            <QuickField label="Cor">
+              <input
+                value={quickVehicle.color}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, color: event.target.value }))
+                }
+                className={quickFieldClass}
+                placeholder="Azul"
+              />
+            </QuickField>
+            <QuickField label="Cidade / Estado">
+              <input
+                value={quickVehicle.cityState}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, cityState: event.target.value }))
+                }
+                className={quickFieldClass}
+                placeholder="Porto Seguro/BA"
+              />
+            </QuickField>
+            <QuickField label="RENAVAM">
+              <input
+                value={quickVehicle.renavam}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, renavam: event.target.value }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+            <QuickField label="Número do motor">
+              <input
+                value={quickVehicle.engineNumber}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, engineNumber: event.target.value }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+            <QuickField label="Chassi" wide>
+              <input
+                value={quickVehicle.chassis}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({
+                    ...current,
+                    chassis: event.target.value.toUpperCase(),
+                  }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+            <QuickField label="Número da carroceria">
+              <input
+                value={quickVehicle.bodyNumber}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, bodyNumber: event.target.value }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+            <QuickField label="Nome do proprietário" wide>
+              <input
+                value={quickVehicle.ownerName}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, ownerName: event.target.value }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+            <QuickField label="CPF/CNPJ do proprietário">
+              <input
+                value={quickVehicle.ownerDocument}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({ ...current, ownerDocument: event.target.value }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+            <QuickField label="Situação do veículo" wide>
+              <select
+                value={quickVehicle.situation}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({
+                    ...current,
+                    situation: event.target.value as VehicleSituation | "",
+                  }))
+                }
+                className={quickFieldClass}
+              >
+                <option value="">Não informada</option>
+                {VEHICLE_SITUATIONS.map((situation) => (
+                  <option key={situation} value={situation}>
+                    {situation.replaceAll("_", " ")}
+                  </option>
+                ))}
+              </select>
+            </QuickField>
+            <QuickField label="Última atualização Detran">
+              <input
+                type="date"
+                value={quickVehicle.detranUpdatedAt}
+                onChange={(event) =>
+                  setQuickVehicle((current) => ({
+                    ...current,
+                    detranUpdatedAt: event.target.value,
+                  }))
+                }
+                className={quickFieldClass}
+              />
+            </QuickField>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#d9e6ec] pt-4">
+            <p className="text-[11px] text-[#6e8494]">
+              Marca/modelo e ao menos um identificador são obrigatórios para evitar fichas soltas.
+            </p>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void createAndLinkVehicle()}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1689a1] px-5 text-xs font-black text-white hover:bg-[#11758a] disabled:opacity-50"
+            >
+              <Plus className="h-4 w-4" /> {saving ? "Cadastrando…" : "Cadastrar e vincular"}
             </button>
           </div>
         </section>

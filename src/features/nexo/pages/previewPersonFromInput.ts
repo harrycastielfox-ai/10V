@@ -75,6 +75,7 @@ export function previewPersonFromInput(
     nacionalidade: input.nacionalidade || "Brasileira",
     escolaridade: input.escolaridade || null,
     profissao: input.profissao || null,
+    profissao_desatualizada: Boolean(input.profissao_desatualizada),
     idade_aproximada: input.idade_aproximada,
     idade_aproximada_valor: input.idade_aproximada ? input.idade_aproximada_valor : null,
     em_situacao_rua: input.em_situacao_rua,

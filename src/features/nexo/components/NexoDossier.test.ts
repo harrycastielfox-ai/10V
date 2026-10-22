@@ -47,7 +47,20 @@ describe("apresentação do dossiê NEXO", () => {
   });
 
   it("mantém fotografia e ação de abertura na prévia da pessoa", () => {
-    const person = { ...NEXO_DEMO_PESSOAS[0], foto_perfil_url: "/foto-visual.jpg" };
+    const person = {
+      ...NEXO_DEMO_PESSOAS[0],
+      foto_perfil_url: "/foto-visual.jpg",
+      profissao_desatualizada: true,
+      contatos: [
+        {
+          id: "contato-antigo",
+          tipo: "Telefone celular",
+          valor: "71999990000",
+          whatsapp: false,
+          desatualizado: true,
+        },
+      ],
+    };
     const html = renderToStaticMarkup(
       createElement(NexoDossier, {
         ...props,

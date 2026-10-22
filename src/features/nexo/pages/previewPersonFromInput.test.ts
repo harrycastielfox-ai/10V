@@ -19,6 +19,7 @@ const input: NexoPessoaInput = {
   nacionalidade: "Brasileira",
   escolaridade: "",
   profissao: "",
+  profissao_desatualizada: true,
   idade_aproximada: false,
   idade_aproximada_valor: null,
   em_situacao_rua: false,
@@ -28,7 +29,15 @@ const input: NexoPessoaInput = {
   estado_aparente: "",
   sinais_particulares: "",
   documentos_extras: [],
-  contatos: [],
+  contatos: [
+    {
+      id: "contato-antigo",
+      tipo: "Telefone celular",
+      valor: "71999990000",
+      whatsapp: false,
+      desatualizado: true,
+    },
+  ],
   telefone: "71999990000",
   observacoes: "",
   endereco: {
@@ -123,6 +132,8 @@ describe("edição da pessoa no modo de demonstração", () => {
     expect(updated.vinculos).toEqual(existing.vinculos);
     expect(updated.foto_relatorio_url).toBe("/relatorio.jpg");
     expect(updated.telefone).toBe(input.telefone);
+    expect(updated.profissao_desatualizada).toBe(true);
+    expect(updated.contatos[0].desatualizado).toBe(true);
   });
 
   it("reativa o vínculo histórico somente ao escolher explicitamente a mesma facção", () => {

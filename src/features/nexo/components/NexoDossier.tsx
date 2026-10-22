@@ -1941,7 +1941,14 @@ export function NexoDossier({
                 <Detail label="Estado civil">{value(person.estado_civil)}</Detail>
                 <Detail label="Nacionalidade">{value(person.nacionalidade)}</Detail>
                 <Detail label="Escolaridade">{value(person.escolaridade)}</Detail>
-                <Detail label="Profissão">{value(person.profissao)}</Detail>
+                <Detail label="Profissão">
+                  <span>{value(person.profissao)}</span>
+                  {person.profissao_desatualizada ? (
+                    <span className="mt-1 block text-[10px] font-black uppercase tracking-wide text-amber-700">
+                      Possivelmente desatualizado/Antigo
+                    </span>
+                  ) : null}
+                </Detail>
                 <Detail label="Identificação visual">
                   {[person.tipo_fisico, person.altura_cm ? `${person.altura_cm} cm` : null]
                     .filter(Boolean)
@@ -2004,7 +2011,14 @@ export function NexoDossier({
                           {contato.tipo}
                           {contato.whatsapp ? " · WhatsApp" : ""}
                         </strong>
-                        <span className="text-[#758a9b]">{contato.valor || "Não informado"}</span>
+                        <span className="text-right text-[#758a9b]">
+                          {contato.valor || "Não informado"}
+                          {contato.desatualizado ? (
+                            <small className="mt-1 block font-black text-amber-700">
+                              Possivelmente desatualizado/Antigo
+                            </small>
+                          ) : null}
+                        </span>
                       </div>
                     ))}
                     {!person.contatos?.length ? (

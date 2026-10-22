@@ -447,11 +447,38 @@ export function NexoPersonWizard({
             </select>
           </WizardField>
           <WizardField label="Profissão">
-            <input
-              className={field}
-              value={person.profissao}
-              onChange={(event) => setPerson({ ...person, profissao: event.target.value })}
-            />
+            <div className="space-y-2">
+              <input
+                className={field}
+                value={person.profissao}
+                onChange={(event) => setPerson({ ...person, profissao: event.target.value })}
+              />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={person.profissao_desatualizada}
+                onClick={() =>
+                  setPerson({
+                    ...person,
+                    profissao_desatualizada: !person.profissao_desatualizada,
+                  })
+                }
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black transition ${
+                  person.profissao_desatualizada
+                    ? "bg-amber-100 text-amber-800 ring-1 ring-amber-300"
+                    : "bg-[#eef3f6] text-[#6d8291]"
+                }`}
+              >
+                <span
+                  className={`h-3.5 w-3.5 rounded border ${
+                    person.profissao_desatualizada
+                      ? "border-amber-600 bg-amber-500 shadow-[inset_0_0_0_3px_white]"
+                      : "border-[#9cabb5] bg-white"
+                  }`}
+                />
+                Possivelmente desatualizado/Antigo
+              </button>
+            </div>
           </WizardField>
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -497,6 +524,7 @@ export function NexoPersonWizard({
               primary: item.tipo,
               secondary: item.valor,
               checked: item.whatsapp,
+              stale: item.desatualizado,
             }))}
             onAdd={() =>
               setPerson({
@@ -517,6 +545,14 @@ export function NexoPersonWizard({
                   item.id === id
                     ? { ...item, tipo: primary, valor: secondary, whatsapp: checked }
                     : item,
+                ),
+              })
+            }
+            onToggleStale={(id) =>
+              setPerson({
+                ...person,
+                contatos: contacts.map((item) =>
+                  item.id === id ? { ...item, desatualizado: !item.desatualizado } : item,
                 ),
               })
             }
@@ -978,14 +1014,22 @@ function CompactCollection({
   onAdd,
   onRemove,
   onUpdate,
+  onToggleStale,
 }: {
   icon: typeof FileBadge;
   title: string;
   actionLabel: string;
-  items: Array<{ id: string; primary: string; secondary: string; checked?: boolean }>;
+  items: Array<{
+    id: string;
+    primary: string;
+    secondary: string;
+    checked?: boolean;
+    stale?: boolean;
+  }>;
   onAdd: () => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, primary: string, secondary: string, checked: boolean) => void;
+  onToggleStale?: (id: string) => void;
 }) {
   const contactMode = title.includes("Contatos");
   return (
@@ -1065,6 +1109,21 @@ function CompactCollection({
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
+            {contactMode && onToggleStale ? (
+              <button
+                type="button"
+                role="switch"
+                aria-checked={Boolean(item.stale)}
+                onClick={() => onToggleStale(item.id)}
+                className={`col-span-full justify-self-start rounded-full px-3 py-1.5 text-[11px] font-black transition ${
+                  item.stale
+                    ? "bg-amber-100 text-amber-800 ring-1 ring-amber-300"
+                    : "bg-[#eef3f6] text-[#6d8291]"
+                }`}
+              >
+                Possivelmente desatualizado/Antigo
+              </button>
+            ) : null}
           </div>
         ))}
         {!items.length ? (

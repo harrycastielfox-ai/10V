@@ -161,6 +161,7 @@ export interface NexoPessoa {
   nacionalidade: string;
   escolaridade: string | null;
   profissao: string | null;
+  profissao_desatualizada?: boolean;
   idade_aproximada: boolean;
   idade_aproximada_valor: number | null;
   em_situacao_rua: boolean;
@@ -203,6 +204,7 @@ export interface NexoContato {
   tipo: string;
   valor: string;
   whatsapp: boolean;
+  desatualizado?: boolean;
 }
 
 export interface NexoRegistroVinculado {
@@ -322,6 +324,7 @@ export interface NexoPessoaInput {
   nacionalidade: string;
   escolaridade: string;
   profissao: string;
+  profissao_desatualizada?: boolean;
   idade_aproximada: boolean;
   idade_aproximada_valor: number | null;
   em_situacao_rua: boolean;
