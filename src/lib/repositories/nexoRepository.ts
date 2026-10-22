@@ -13,6 +13,8 @@ import type {
   NexoPdfSourceInput,
   NexoTerritorio,
   NexoTerritorioInput,
+  NexoVeiculoLocal,
+  NexoVeiculoLocalInput,
   NexoVeiculoVinculo,
   NexoVeiculoTipoPosse,
   NexoVinculoStatus,
@@ -392,6 +394,74 @@ export async function softDeleteNexoVeiculoVinculo(id: string) {
   });
   if (error) throw error;
   if (!data) throw new Error("Este vínculo já foi removido ou não está mais disponível.");
+}
+
+const NEXO_LOCAL_VEHICLE_SELECT = `
+  id, pessoa_id, organizacao_id, tipo, placa, marca_modelo,
+  ano_fabricacao, ano_modelo, cor, renavam, numero_motor, chassi,
+  cidade_estado, numero_carroceria, proprietario_nome, proprietario_documento,
+  situacao, detran_atualizado_em, tipo_posse, confianca, fonte_resumo,
+  observacoes, created_at, updated_at
+`;
+
+export async function listNexoVeiculosLocais(target: {
+  pessoa_id?: string;
+  organizacao_id?: string;
+}): Promise<NexoVeiculoLocal[]> {
+  const ownerField = target.pessoa_id ? "pessoa_id" : "organizacao_id";
+  const ownerId = target.pessoa_id || target.organizacao_id;
+  if (!ownerId) throw new Error("Informe a pessoa ou organização vinculada ao veículo.");
+
+  const { data, error } = await supabase
+    .from("nexo_veiculos")
+    .select(NEXO_LOCAL_VEHICLE_SELECT)
+    .eq(ownerField, ownerId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as NexoVeiculoLocal[];
+}
+
+export async function createNexoVeiculoLocal(
+  input: NexoVeiculoLocalInput,
+): Promise<NexoVeiculoLocal> {
+  const { data, error } = await supabase
+    .from("nexo_veiculos")
+    .insert({
+      pessoa_id: input.pessoa_id,
+      organizacao_id: input.organizacao_id,
+      tipo: input.tipo,
+      placa: clean(input.placa ?? ""),
+      marca_modelo: input.marca_modelo.trim(),
+      ano_fabricacao: input.ano_fabricacao,
+      ano_modelo: input.ano_modelo,
+      cor: clean(input.cor ?? ""),
+      renavam: clean(input.renavam ?? ""),
+      numero_motor: clean(input.numero_motor ?? ""),
+      chassi: clean(input.chassi ?? ""),
+      cidade_estado: clean(input.cidade_estado ?? ""),
+      numero_carroceria: clean(input.numero_carroceria ?? ""),
+      proprietario_nome: clean(input.proprietario_nome ?? ""),
+      proprietario_documento: clean(input.proprietario_documento ?? ""),
+      situacao: clean(input.situacao ?? ""),
+      detran_atualizado_em: input.detran_atualizado_em || null,
+      tipo_posse: input.tipo_posse,
+      confianca: input.confianca,
+      fonte_resumo: clean(input.fonte_resumo ?? ""),
+      observacoes: clean(input.observacoes ?? ""),
+    })
+    .select(NEXO_LOCAL_VEHICLE_SELECT)
+    .single();
+  if (error) throw error;
+  return data as NexoVeiculoLocal;
+}
+
+export async function softDeleteNexoVeiculoLocal(id: string) {
+  const { data, error } = await supabase.rpc("soft_delete_nexo_veiculo", {
+    p_veiculo_id: id,
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Este veículo já foi removido ou não está mais disponível.");
 }
 
 export async function createNexoOrganizacao(input: NexoOrganizacaoInput): Promise<NexoOrganizacao> {

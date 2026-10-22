@@ -1,4 +1,4 @@
-import { CarFront, ExternalLink, Link2, Plus, Search, ShieldCheck, X } from "lucide-react";
+import { CarFront, ExternalLink, Link2, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   VEHICLE_SITUATIONS,
@@ -9,7 +9,7 @@ import {
 } from "@/features/vehicles/vehicleTypes";
 import { useDebouncedValue } from "@/features/vehicles/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errorMessage";
-import type { NexoVeiculoTipoPosse, NexoVeiculoVinculo } from "../nexoTypes";
+import type { NexoVeiculoLocal, NexoVeiculoTipoPosse, NexoVeiculoVinculo } from "../nexoTypes";
 
 type Target = { kind: "person"; id: string } | { kind: "organization"; id: string };
 
@@ -80,6 +80,24 @@ function QuickField({
     </label>
   );
 }
+
+function VehicleFact({ label, value }: { label: string; value: string | number | null }) {
+  return (
+    <div className="min-w-0 border-b border-[#edf2f5] py-2.5">
+      <dt className="text-[10px] font-black uppercase tracking-[.08em] text-[#78909f]">{label}</dt>
+      <dd className="mt-1 break-words text-xs font-bold text-[#294b62]">
+        {value === null || value === "" ? "Não informado" : value}
+      </dd>
+    </div>
+  );
+}
+
+function formatDate(value: string | null) {
+  if (!value) return null;
+  const [year, month, day] = value.slice(0, 10).split("-");
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
 const previewVehicles: VehicleListRecord[] = [
   "Motocicleta demonstrativa",
   "Automóvel demonstrativo",
@@ -105,6 +123,7 @@ const previewVehicles: VehicleListRecord[] = [
 
 export function NexoVehiclePanel({ target, preview }: { target: Target; preview: boolean }) {
   const [links, setLinks] = useState<NexoVeiculoVinculo[]>([]);
+  const [localVehicles, setLocalVehicles] = useState<NexoVeiculoLocal[]>([]);
   const [vehicles, setVehicles] = useState<VehicleListRecord[]>([]);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -125,8 +144,14 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
   const reload = useCallback(async () => {
     if (preview || currentScope.current !== scopeKey) return;
     const repo = await import("@/lib/repositories/nexoRepository");
-    const allLinks = await repo.listNexoVeiculosVinculados();
+    const [allLinks, localRecords] = await Promise.all([
+      repo.listNexoVeiculosVinculados(),
+      repo.listNexoVeiculosLocais(
+        target.kind === "person" ? { pessoa_id: target.id } : { organizacao_id: target.id },
+      ),
+    ]);
     if (currentScope.current === scopeKey) {
+      setLocalVehicles(localRecords);
       setLinks(
         allLinks.filter((link) =>
           target.kind === "person"
@@ -140,6 +165,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
   useEffect(() => {
     let cancelled = false;
     setLinks(preview ? (previewLinks.get(scopeKey) ?? []) : []);
+    setLocalVehicles([]);
     setShowLinkForm(false);
     setShowQuickForm(false);
     setQuickVehicle(emptyQuickVehicle);
@@ -249,7 +275,7 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
     }
   }
 
-  async function createAndLinkVehicle() {
+  async function createLocalVehicle() {
     if (saving) return;
     const brandModel = quickVehicle.brandModel.trim();
     const hasIdentifier = [
@@ -263,76 +289,58 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
       return;
     }
 
-    const [brandPart, ...modelParts] = brandModel.split("/");
-    const notes = [
-      quickVehicle.cityState.trim()
-        ? `Cidade/Estado de referência: ${quickVehicle.cityState.trim()}`
-        : "",
-      quickVehicle.bodyNumber.trim()
-        ? `Número da carroceria: ${quickVehicle.bodyNumber.trim()}`
-        : "",
-      quickVehicle.detranUpdatedAt
-        ? `Última atualização informada do Detran: ${quickVehicle.detranUpdatedAt}`
-        : "",
-    ].filter(Boolean);
-    const owner = quickVehicle.ownerName.trim()
-      ? `(Outros:) ${quickVehicle.ownerName.trim()} - Proprietário${quickVehicle.ownerDocument.trim() ? ` · CPF/CNPJ ${quickVehicle.ownerDocument.trim()}` : ""}`
-      : null;
-
     setSaving(true);
     setError("");
     try {
-      const vehicleRepo = await import("@/lib/repositories/vehiclesRepository");
-      const conflicts = await vehicleRepo.findVehicleIdentifierConflicts({
-        plate: quickVehicle.plate.trim() || null,
-        renavam: quickVehicle.renavam.trim() || null,
-        engineNumber: quickVehicle.engineNumber.trim() || null,
-        chassis: quickVehicle.chassis.trim() || null,
-      });
-      if (conflicts.length) {
-        throw new Error(
-          "Já existe veículo com um desses identificadores. Use “Vincular veículo cadastrado”.",
-        );
-      }
-
-      const created = await vehicleRepo.createVehicle({
-        vehicle_type: quickVehicle.vehicleType,
-        brand: brandPart?.trim() || brandModel,
-        model: modelParts.join("/").trim() || null,
-        color: quickVehicle.color.trim() || null,
-        plate: quickVehicle.plate.trim() || null,
-        plate_status: quickVehicle.plate.trim() ? "informado" : null,
-        renavam: quickVehicle.renavam.trim() || null,
-        renavam_status: quickVehicle.renavam.trim() ? "informado" : null,
-        engine_number: quickVehicle.engineNumber.trim() || null,
-        engine_status: quickVehicle.engineNumber.trim() ? "informado" : null,
-        chassis: quickVehicle.chassis.trim() || null,
-        chassis_status: quickVehicle.chassis.trim() ? "informado" : null,
-        manufacture_year: quickVehicle.manufactureYear
-          ? Number(quickVehicle.manufactureYear)
-          : null,
-        model_year: quickVehicle.modelYear ? Number(quickVehicle.modelYear) : null,
-        situation: quickVehicle.situation || null,
-        pending_identification: false,
-        is_motorized: quickVehicle.vehicleType !== "bicicleta",
-        involved_people: owner,
-        observations: notes.join("\n") || null,
-      });
-
       const nexoRepo = await import("@/lib/repositories/nexoRepository");
-      await nexoRepo.createNexoVeiculoVinculo({
-        veiculo_id: created.id,
-        ...(target.kind === "person" ? { pessoa_id: target.id } : { organizacao_id: target.id }),
+      await nexoRepo.createNexoVeiculoLocal({
+        pessoa_id: target.kind === "person" ? target.id : null,
+        organizacao_id: target.kind === "organization" ? target.id : null,
+        tipo: quickVehicle.vehicleType,
+        placa: quickVehicle.plate.trim() || null,
+        marca_modelo: brandModel,
+        ano_fabricacao: quickVehicle.manufactureYear ? Number(quickVehicle.manufactureYear) : null,
+        ano_modelo: quickVehicle.modelYear ? Number(quickVehicle.modelYear) : null,
+        cor: quickVehicle.color.trim() || null,
+        renavam: quickVehicle.renavam.trim() || null,
+        numero_motor: quickVehicle.engineNumber.trim() || null,
+        chassi: quickVehicle.chassis.trim() || null,
+        cidade_estado: quickVehicle.cityState.trim() || null,
+        numero_carroceria: quickVehicle.bodyNumber.trim() || null,
+        proprietario_nome: quickVehicle.ownerName.trim() || null,
+        proprietario_documento: quickVehicle.ownerDocument.trim() || null,
+        situacao: quickVehicle.situation || null,
+        detran_atualizado_em: quickVehicle.detranUpdatedAt || null,
         tipo_posse: "associado",
         confianca: 50,
-        fonte_resumo: "Cadastro rápido realizado no dossiê NEXO",
-        observacoes: "Veículo criado e vinculado a partir do cadastro rápido.",
+        fonte_resumo: "Cadastro realizado diretamente no dossiê NEXO",
+        observacoes: null,
       });
       setQuickVehicle(emptyQuickVehicle);
       setShowQuickForm(false);
       await reload();
     } catch (cause) {
-      setError(getErrorMessage(cause, "Não foi possível cadastrar e vincular o veículo."));
+      setError(getErrorMessage(cause, "Não foi possível cadastrar o veículo no NEXO."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeLocalVehicle(id: string) {
+    if (
+      !window.confirm(
+        "Excluir esta ficha veicular do NEXO? Essa ação não altera os Veículos Apreendidos do SIED.",
+      )
+    )
+      return;
+    setSaving(true);
+    setError("");
+    try {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.softDeleteNexoVeiculoLocal(id);
+      await reload();
+    } catch (cause) {
+      setError(getErrorMessage(cause, "Não foi possível excluir a ficha veicular do NEXO."));
     } finally {
       setSaving(false);
     }
@@ -366,10 +374,10 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-sm font-black text-[#1e405b]">Veículos relacionados</h3>
+          <h3 className="text-sm font-black text-[#1e405b]">Veículos do dossiê</h3>
           <p className="mt-1 text-xs text-[#7d91a1]">
-            O vínculo não duplica a ficha existente e mantém placa, fotos e procedimentos
-            atualizados.
+            O cadastro feito aqui pertence somente ao NEXO. O vínculo com o SIED é uma ação separada
+            e opcional.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -395,11 +403,102 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
               }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575]"
             >
-              <Plus className="h-4 w-4" /> {showQuickForm ? "Fechar cadastro" : "Cadastro rápido"}
+              <Plus className="h-4 w-4" /> {showQuickForm ? "Fechar cadastro" : "Cadastrar no NEXO"}
             </button>
           ) : null}
         </div>
       </div>
+
+      {localVehicles.length ? (
+        <section className="space-y-3">
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-[.08em] text-[#31566d]">
+              Fichas exclusivas do NEXO
+            </h4>
+            <p className="mt-1 text-[11px] text-[#7b909f]">
+              Estes veículos não aparecem no módulo de Veículos Apreendidos.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {localVehicles.map((vehicle) => (
+              <article
+                key={vehicle.id}
+                className="relative overflow-hidden rounded-2xl border border-[#cfe0e7] bg-white shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#dce8ed] bg-[#f3f8fa] px-5 py-4">
+                  <div className="flex min-w-0 gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#dff1f5] text-[#1689a1]">
+                      <CarFront className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-black uppercase tracking-[.1em] text-[#43879a]">
+                        Ficha veicular NEXO
+                      </span>
+                      <strong className="mt-0.5 block text-sm text-[#183b55]">
+                        {vehicle.marca_modelo}
+                      </strong>
+                      <p className="mt-1 text-xs text-[#718697]">
+                        {vehicle.placa || "Placa não informada"} ·{" "}
+                        {vehicle.cor || "Cor não informada"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void removeLocalVehicle(vehicle.id)}
+                    title="Excluir ficha do NEXO"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-100 disabled:opacity-40"
+                  >
+                    <Trash2 className="h-4 w-4" /> Excluir ficha
+                  </button>
+                </div>
+                <dl className="grid gap-x-6 px-5 py-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <VehicleFact label="Tipo" value={vehicle.tipo.replaceAll("_", " ")} />
+                  <VehicleFact label="Placa" value={vehicle.placa} />
+                  <VehicleFact label="RENAVAM" value={vehicle.renavam} />
+                  <VehicleFact label="Chassi" value={vehicle.chassi} />
+                  <VehicleFact label="Número do motor" value={vehicle.numero_motor} />
+                  <VehicleFact label="Número da carroceria" value={vehicle.numero_carroceria} />
+                  <VehicleFact
+                    label="Ano modelo / fabricação"
+                    value={
+                      vehicle.ano_modelo || vehicle.ano_fabricacao
+                        ? `${vehicle.ano_modelo ?? "—"} / ${vehicle.ano_fabricacao ?? "—"}`
+                        : null
+                    }
+                  />
+                  <VehicleFact label="Cidade / Estado" value={vehicle.cidade_estado} />
+                  <VehicleFact label="Proprietário informado" value={vehicle.proprietario_nome} />
+                  <VehicleFact
+                    label="CPF/CNPJ do proprietário"
+                    value={vehicle.proprietario_documento}
+                  />
+                  <VehicleFact
+                    label="Situação informada"
+                    value={vehicle.situacao?.replaceAll("_", " ") ?? null}
+                  />
+                  <VehicleFact
+                    label="Atualização Detran"
+                    value={formatDate(vehicle.detran_atualizado_em)}
+                  />
+                </dl>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {links.length ? (
+        <div>
+          <h4 className="text-xs font-black uppercase tracking-[.08em] text-[#31566d]">
+            Vínculos com Veículos Apreendidos do SIED
+          </h4>
+          <p className="mt-1 text-[11px] text-[#7b909f]">
+            Referências opcionais a fichas já existentes no cadastro geral.
+          </p>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 lg:grid-cols-2">
         {links.map((link) => (
@@ -451,12 +550,12 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
         ))}
       </div>
 
-      {!links.length ? (
+      {!links.length && !localVehicles.length ? (
         <div className="rounded-2xl border border-dashed border-[#cadbe5] bg-white p-7 text-center">
           <CarFront className="mx-auto h-7 w-7 text-[#7ba2b2]" />
           <p className="mt-2 text-sm font-bold text-[#31546c]">Nenhum veículo relacionado</p>
           <p className="mt-1 text-xs text-[#8396a6]">
-            Selecione uma ficha existente ou cadastre um veículo novo.
+            Cadastre uma ficha exclusiva do NEXO ou vincule um veículo já existente no SIED.
           </p>
         </div>
       ) : null}
@@ -568,7 +667,8 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
                 <CarFront className="h-4 w-4 text-[#1689a1]" /> Cadastro rápido de veículo
               </h4>
               <p className="mt-1 text-xs text-[#6f8595]">
-                Informe os dados disponíveis. O veículo será cadastrado e vinculado a este dossiê.
+                Informe os dados disponíveis. A ficha ficará somente neste dossiê do NEXO e não será
+                enviada para Veículos Apreendidos.
               </p>
             </div>
             <button
@@ -770,10 +870,10 @@ export function NexoVehiclePanel({ target, preview }: { target: Target; preview:
             <button
               type="button"
               disabled={saving}
-              onClick={() => void createAndLinkVehicle()}
+              onClick={() => void createLocalVehicle()}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#1689a1] px-5 text-xs font-black text-white hover:bg-[#11758a] disabled:opacity-50"
             >
-              <Plus className="h-4 w-4" /> {saving ? "Cadastrando…" : "Cadastrar e vincular"}
+              <Plus className="h-4 w-4" /> {saving ? "Cadastrando…" : "Salvar ficha no NEXO"}
             </button>
           </div>
         </section>

@@ -308,6 +308,35 @@ export interface NexoVeiculoVinculo {
   } | null;
 }
 
+export interface NexoVeiculoLocal {
+  id: string;
+  pessoa_id: string | null;
+  organizacao_id: string | null;
+  tipo: string;
+  placa: string | null;
+  marca_modelo: string;
+  ano_fabricacao: number | null;
+  ano_modelo: number | null;
+  cor: string | null;
+  renavam: string | null;
+  numero_motor: string | null;
+  chassi: string | null;
+  cidade_estado: string | null;
+  numero_carroceria: string | null;
+  proprietario_nome: string | null;
+  proprietario_documento: string | null;
+  situacao: string | null;
+  detran_atualizado_em: string | null;
+  tipo_posse: NexoVeiculoTipoPosse;
+  confianca: number;
+  fonte_resumo: string | null;
+  observacoes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type NexoVeiculoLocalInput = Omit<NexoVeiculoLocal, "id" | "created_at" | "updated_at">;
+
 export interface NexoPessoaInput {
   nome: string;
   apelido: string;

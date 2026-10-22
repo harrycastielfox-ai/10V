@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NEXO_DEMO_PESSOAS } from "@/features/nexo/nexoDemoData";
-import type { NexoPessoaInput } from "@/features/nexo/nexoTypes";
+import type { NexoPessoaInput, NexoVeiculoLocalInput } from "@/features/nexo/nexoTypes";
 
 const state = vi.hoisted(() => ({
   from: vi.fn(),
@@ -19,7 +19,10 @@ vi.mock("@/lib/supabaseClient", () => ({
 }));
 
 const {
+  createNexoVeiculoLocal,
   createNexoPessoa,
+  listNexoVeiculosLocais,
+  softDeleteNexoVeiculoLocal,
   updateNexoPessoa,
   softDeleteNexoTerritorio,
   softDeleteNexoVeiculoVinculo,
@@ -415,6 +418,7 @@ describe("NEXO persistence regressions", () => {
   it.each([
     ["territory", softDeleteNexoTerritorio, "soft_delete_nexo_territorio", "p_territorio_id"],
     ["vehicle", softDeleteNexoVeiculoVinculo, "soft_delete_nexo_veiculo_vinculo", "p_vinculo_id"],
+    ["local vehicle", softDeleteNexoVeiculoLocal, "soft_delete_nexo_veiculo", "p_veiculo_id"],
   ] as const)(
     "uses the RLS-preserving removal operation for %s",
     async (_kind, remove, rpc, field) => {
@@ -425,6 +429,70 @@ describe("NEXO persistence regressions", () => {
       expect(state.from).not.toHaveBeenCalled();
     },
   );
+
+  it("creates a vehicle exclusively in the NEXO table", async () => {
+    const vehicleInput: NexoVeiculoLocalInput = {
+      pessoa_id: person.id,
+      organizacao_id: null,
+      tipo: "motocicleta",
+      placa: "ABC1D23",
+      marca_modelo: "HONDA / NXR 160",
+      ano_fabricacao: 2025,
+      ano_modelo: 2026,
+      cor: "Azul",
+      renavam: "123",
+      numero_motor: "MOTOR-1",
+      chassi: "CHASSI-1",
+      cidade_estado: "Itabela/BA",
+      numero_carroceria: null,
+      proprietario_nome: "Pessoa Teste",
+      proprietario_documento: "123.456.789-00",
+      situacao: "regular",
+      detran_atualizado_em: "2026-10-22",
+      tipo_posse: "associado",
+      confianca: 50,
+      fonte_resumo: "Cadastro realizado diretamente no dossiê NEXO",
+      observacoes: null,
+    };
+    const created = {
+      ...vehicleInput,
+      id: "nexo-vehicle-id",
+      created_at: "2026-10-22T12:00:00.000Z",
+      updated_at: "2026-10-22T12:00:00.000Z",
+    } as const;
+    const insert = vi.fn().mockReturnThis();
+    const select = vi.fn().mockReturnThis();
+    const single = vi.fn().mockResolvedValue({ data: created, error: null });
+    state.from.mockReturnValue({ insert, select, single });
+
+    await expect(createNexoVeiculoLocal(vehicleInput)).resolves.toEqual(created);
+
+    expect(state.from).toHaveBeenCalledWith("nexo_veiculos");
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pessoa_id: person.id,
+        marca_modelo: "HONDA / NXR 160",
+        placa: "ABC1D23",
+      }),
+    );
+    expect(state.from).not.toHaveBeenCalledWith("vehicles");
+  });
+
+  it("lists only the local vehicles that belong to the selected dossier", async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    const builder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      is: vi.fn().mockReturnThis(),
+      order,
+    };
+    state.from.mockReturnValue(builder);
+
+    await expect(listNexoVeiculosLocais({ pessoa_id: person.id })).resolves.toEqual([]);
+    expect(state.from).toHaveBeenCalledWith("nexo_veiculos");
+    expect(builder.eq).toHaveBeenCalledWith("pessoa_id", person.id);
+    expect(builder.is).toHaveBeenCalledWith("deleted_at", null);
+  });
 
   it("updates only the observation of an attached PDF", async () => {
     const resourceBuilder = {
