@@ -96,7 +96,11 @@ const PESSOA_SELECT = `
   fotos:nexo_fotos (id, pessoa_id, storage_path, legenda, categoria, capturada_em)
   ,documentos_fontes:nexo_documentos_fontes (
     id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256,
-    page_count, extractor_version, ocr_status, created_at
+    page_count, extractor_version, ocr_status, created_at,
+    alegacoes:nexo_documento_alegacoes (
+      id, documento_id, campo, rotulo, valor_original, valor_normalizado,
+      pagina, fonte, confianca, estado
+    )
   )
   ,recursos:nexo_pessoa_recursos (
     id, pessoa_id, storage_path, original_filename, mime_type, size_bytes, sha256,

@@ -9,6 +9,7 @@ import type {
   NexoRegistroVinculado,
   NexoTerritorio,
 } from "./nexoTypes";
+import { findNexoSourceComparisons, type NexoSourceComparison } from "./nexoSourceComparison";
 
 export interface NexoSummaryLink {
   organization: string;
@@ -66,6 +67,7 @@ export interface NexoPersonIntelligenceSummary {
   territories: NexoSummaryTerritory[];
   timeline: NexoSummaryTimelineEvent[];
   documents: string[];
+  comparisons: NexoSourceComparison[];
   gaps: string[];
 }
 
@@ -228,6 +230,7 @@ export function buildNexoPersonIntelligenceSummary(
       (document) =>
         `${document.original_filename} · SHA-256 ${document.sha256} · ${document.page_count ?? "páginas não informadas"}`,
     ),
+    comparisons: findNexoSourceComparisons(person),
     gaps,
   };
 }

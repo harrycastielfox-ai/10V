@@ -98,6 +98,20 @@ export interface NexoDocumentoFonte {
   extractor_version: string;
   ocr_status: "nao_aplicado" | "pendente" | "concluido" | "indisponivel";
   created_at: string;
+  alegacoes?: NexoDocumentoAlegacao[];
+}
+
+export interface NexoDocumentoAlegacao {
+  id: string;
+  documento_id: string;
+  campo: string;
+  rotulo: string;
+  valor_original: string;
+  valor_normalizado: string | null;
+  pagina: number;
+  fonte: string;
+  confianca: "alta" | "revisar";
+  estado: "sugerido" | "aceito" | "rejeitado" | "corrigido";
 }
 
 export interface NexoRecursoPdf {

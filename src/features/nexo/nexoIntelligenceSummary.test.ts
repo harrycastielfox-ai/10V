@@ -24,6 +24,47 @@ describe("síntese estruturada local do NEXO", () => {
           extractor_version: "test",
           ocr_status: "nao_aplicado" as const,
           created_at: "2026-10-21T12:00:00Z",
+          alegacoes: [
+            {
+              id: "claim-1",
+              documento_id: "doc-1",
+              campo: "nome_mae",
+              rotulo: "Nome da mãe",
+              valor_original: "Maria A",
+              valor_normalizado: "maria a",
+              pagina: 1,
+              fonte: "PDF 1",
+              confianca: "alta" as const,
+              estado: "aceito" as const,
+            },
+          ],
+        },
+        {
+          id: "doc-2",
+          pessoa_id: NEXO_DEMO_PESSOAS[0].id,
+          storage_path: "private/doc-2.pdf",
+          original_filename: "fonte-2.pdf",
+          mime_type: "application/pdf" as const,
+          size_bytes: 100,
+          sha256: "def456",
+          page_count: 2,
+          extractor_version: "test",
+          ocr_status: "nao_aplicado" as const,
+          created_at: "2026-10-21T12:01:00Z",
+          alegacoes: [
+            {
+              id: "claim-2",
+              documento_id: "doc-2",
+              campo: "nome_mae",
+              rotulo: "Nome da mãe",
+              valor_original: "Maria B",
+              valor_normalizado: "maria b",
+              pagina: 2,
+              fonte: "PDF 2",
+              confianca: "revisar" as const,
+              estado: "aceito" as const,
+            },
+          ],
         },
       ],
     };
@@ -47,6 +88,7 @@ describe("síntese estruturada local do NEXO", () => {
       "documento_de_origem",
     );
     expect(summary.documents[0]).toContain("SHA-256 abc123");
+    expect(summary.comparisons[0].alternatives).toHaveLength(2);
     expect(summary.gaps).toContain("Há vínculo atual ainda não confirmado");
   });
 

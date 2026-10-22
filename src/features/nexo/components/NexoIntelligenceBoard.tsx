@@ -674,6 +674,31 @@ function LocalSummaryCard({ summary }: { summary: NexoPersonIntelligenceSummary 
           </li>
         ))}
       </SummaryGroup>
+      <SummaryGroup
+        title="Divergências entre documentos"
+        empty="Nenhuma divergência explícita entre alegações aceitas."
+      >
+        {summary.comparisons.map((comparison) => (
+          <li
+            key={comparison.field}
+            className="rounded-lg border border-amber-200 bg-amber-50 p-2.5"
+          >
+            <strong className="block text-amber-950">{comparison.label}</strong>
+            <span className="mt-1 block text-amber-900">
+              As alternativas abaixo permanecem separadas para revisão humana; nenhuma foi escolhida
+              automaticamente.
+            </span>
+            <ul className="mt-2 space-y-1 text-amber-950">
+              {comparison.alternatives.map((alternative) => (
+                <li key={`${alternative.document}:${alternative.page}:${alternative.value}`}>
+                  {alternative.value} · {alternative.document}, p. {alternative.page} ·{" "}
+                  {alternative.source}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </SummaryGroup>
       {summary.documents.length ? (
         <div className="mt-4 border-t border-[#edf2f5] pt-4">
           <p className="text-[11px] font-black uppercase tracking-wide text-[#5a9eb0]">
