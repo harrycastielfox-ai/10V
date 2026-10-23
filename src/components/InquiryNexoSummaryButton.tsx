@@ -59,9 +59,9 @@ export function InquiryNexoSummaryButton({
   const fonte = link?.fonte_resumo ?? reportedSource;
 
   return (
-    <div className="sipi-print-hidden inline-flex items-center gap-3">
+    <div className="sipi-print-hidden inline-flex items-center gap-4">
       {sigla ? (
-        <span className="inline-flex max-w-28 items-center truncate rounded-sm border border-rose-500/35 bg-rose-500/10 px-2 py-1 text-[10px] font-extrabold text-rose-700">
+        <span className="inline-flex max-w-28 items-center truncate rounded-md border border-rose-500/35 bg-rose-500/10 px-2.5 py-1 text-xs font-extrabold text-rose-700">
           {sigla}
         </span>
       ) : null}
@@ -69,10 +69,10 @@ export function InquiryNexoSummaryButton({
         <Dialog.Trigger asChild>
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-primary bg-primary px-4 text-base font-extrabold text-primary-foreground shadow-sm transition hover:bg-primary/90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2"
+            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-primary/45 bg-primary/10 px-3 text-xs font-bold text-primary shadow-sm transition hover:border-primary/65 hover:bg-primary/15 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
             title="Abrir resumo da associação"
           >
-            <ShieldAlert className="size-5" /> Abrir resumo
+            <ShieldAlert className="size-4" /> Abrir resumo
           </button>
         </Dialog.Trigger>
         <Dialog.Portal>
