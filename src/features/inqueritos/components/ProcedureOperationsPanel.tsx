@@ -72,7 +72,8 @@ type DadosOperacionais = {
   requisicoes: Requisicao[];
 };
 
-type ModalKind = "pendencias-laudo" | "solicitar-laudo" | "requisicao" | null;
+type ModalKind =
+  "pendencias-laudo" | "solicitar-laudo" | "requisicao" | "consultar-requisicoes" | null;
 
 const EMPTY_DATA: DadosOperacionais = {
   checklist: {},
@@ -217,7 +218,6 @@ export function ProcedureOperationsPanel({
   const [savingRequisition, setSavingRequisition] = useState(false);
   const [otherReportType, setOtherReportType] = useState("");
   const [showAllReports, setShowAllReports] = useState(false);
-  const [showAllRequisitions, setShowAllRequisitions] = useState(false);
 
   useEffect(() => {
     setData(readData(storageKey));
@@ -369,7 +369,9 @@ export function ProcedureOperationsPanel({
       ? "Laudos pendentes"
       : modal === "solicitar-laudo"
         ? "Solicitar laudo"
-        : "Registrar requisição";
+        : modal === "consultar-requisicoes"
+          ? "Requisições vinculadas"
+          : "Registrar requisição";
 
   return (
     <div className="space-y-3">
@@ -520,48 +522,24 @@ export function ProcedureOperationsPanel({
               ? `${requisicoes.length} requisição(ões) vinculada(s). O status do procedimento não muda.`
               : "Nenhuma pendente. O status do procedimento não muda com as requisições."}
           </p>
-          {requisicoes.length ? (
-            <ul className="mt-2 divide-y divide-border/55 border-t border-border/55">
-              {(showAllRequisitions ? requisicoes : requisicoes.slice(0, 3)).map((item) => (
-                <li key={item.id} className="py-2">
-                  <p className="text-[11px] font-bold text-foreground">
-                    {item.origem ? `Requisição · ${item.origem}` : `Requisição ${item.tipo}`}
-                  </p>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">
-                    {item.numeroDocumento ? `Documento ${item.numeroDocumento} · ` : ""}
-                    {item.recebidaEm ? dateLabel(item.recebidaEm) : dateLabel(item.criadoEm)}
-                    {item.prazoDias ? ` · Prazo ${item.prazoDias} dias` : ""}
-                    {item.status ? ` · ${item.status}` : ""}
-                    {item.prioridade ? ` · Prioridade ${item.prioridade}` : ""}
-                  </p>
-                  {item.conteudo || item.observacao ? (
-                    <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-muted-foreground/80">
-                      {item.conteudo || item.observacao}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          {requisicoes.length > 3 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => setShowAllRequisitions((current) => !current)}
-              className="mt-2 text-[10px] font-bold text-primary hover:underline"
+              disabled={!canEdit}
+              onClick={() => openModal("requisicao")}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-2.5 text-[10px] font-bold text-warning hover:bg-warning/15 disabled:opacity-50"
             >
-              {showAllRequisitions
-                ? "Mostrar recentes"
-                : `Ver todas as ${requisicoes.length} requisições`}
+              <Plus className="h-3.5 w-3.5" /> Registrar requisição
             </button>
-          ) : null}
-          <button
-            type="button"
-            disabled={!canEdit}
-            onClick={() => openModal("requisicao")}
-            className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-md border border-warning/40 bg-warning/10 px-2.5 text-[10px] font-bold text-warning hover:bg-warning/15 disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" /> Registrar requisição
-          </button>
+            <button
+              type="button"
+              disabled={requisicoes.length === 0}
+              onClick={() => openModal("consultar-requisicoes")}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[10px] font-bold text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ListChecks className="h-3.5 w-3.5" /> Consultar requisições
+            </button>
+          </div>
         </div>
       </section>
 
@@ -579,7 +557,9 @@ export function ProcedureOperationsPanel({
                     ? "Selecione os laudos que ainda precisam ser requisitados."
                     : modal === "solicitar-laudo"
                       ? "Informe o meio e o protocolo da solicitação pericial."
-                      : "A requisição fica vinculada ao inquérito, com status e prioridade próprios; a situação geral não muda."}
+                      : modal === "consultar-requisicoes"
+                        ? "Consulte as requisições judiciais e ministeriais vinculadas exclusivamente a este procedimento."
+                        : "A requisição fica vinculada ao inquérito, com status e prioridade próprios; a situação geral não muda."}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -845,6 +825,32 @@ export function ProcedureOperationsPanel({
                   </button>
                 </div>
               </form>
+            ) : null}
+
+            {modal === "consultar-requisicoes" ? (
+              <div className="mt-5">
+                <ul className="max-h-[60vh] divide-y divide-border/55 overflow-y-auto rounded-md border border-border/60 px-3">
+                  {requisicoes.map((item) => (
+                    <li key={item.id} className="py-3">
+                      <p className="text-sm font-bold text-foreground">
+                        {item.origem ? `Requisição · ${item.origem}` : `Requisição ${item.tipo}`}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.numeroDocumento ? `Documento ${item.numeroDocumento} · ` : ""}
+                        {item.recebidaEm ? dateLabel(item.recebidaEm) : dateLabel(item.criadoEm)}
+                        {item.prazoDias ? ` · Prazo ${item.prazoDias} dias` : ""}
+                        {item.status ? ` · ${item.status}` : ""}
+                        {item.prioridade ? ` · Prioridade ${item.prioridade}` : ""}
+                      </p>
+                      {item.conteudo || item.observacao ? (
+                        <p className="mt-2 text-xs leading-5 text-foreground/85">
+                          {item.conteudo || item.observacao}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : null}
           </Dialog.Content>
         </Dialog.Portal>

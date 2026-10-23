@@ -793,7 +793,11 @@ function InqueritoDetalhes() {
   }, [caseId, pessoas, profile]);
 
   const detalhe = useMemo(() => (caso ? normalizeInqueritoForDetail(caso) : null), [caso]);
-  const movimentacoesCount = movimentacoes.length;
+  const movimentacoesProcessuais = useMemo(
+    () => movimentacoes.filter((movement) => !isRequisicaoMovement(movement)),
+    [movimentacoes],
+  );
+  const movimentacoesCount = movimentacoesProcessuais.length;
   const statusTagNames = useMemo(
     () => new Map(statusTags.map((tag) => [tag.id, tag.name])),
     [statusTags],
@@ -1038,11 +1042,11 @@ function InqueritoDetalhes() {
       setIdentifierCopied(false);
     }
   };
-  const linkedRepresentationPrintSections = movimentacoes.flatMap((movement, index) =>
+  const linkedRepresentationPrintSections = movimentacoesProcessuais.flatMap((movement, index) =>
     buildRepresentationPrintSections(
       movement,
       index,
-      movimentacoes.length,
+      movimentacoesProcessuais.length,
       movimentacaoPessoas[movement.id] ?? [],
     ),
   );
@@ -1169,13 +1173,13 @@ function InqueritoDetalhes() {
           } satisfies SipiPrintSection,
         ]
       : []),
-    ...(movimentacoes.length > 0
+    ...(movimentacoesProcessuais.length > 0
       ? [
           {
             id: "linked-representations-index",
             title: "Representações e movimentações vinculadas",
             wide: true,
-            fields: movimentacoes.map((movement, index) => ({
+            fields: movimentacoesProcessuais.map((movement, index) => ({
               id: `linked-representation-${movement.id}`,
               label: `${index + 1} - ${movement.tipo_normalizado ?? movement.tipo ?? "Movimentação processual"}`,
               value: [
@@ -1482,25 +1486,20 @@ function InqueritoDetalhes() {
                   </a>
                 ) : null}
               </div>
-              {movimentacoes.length > 0 ? (
+              {movimentacoesProcessuais.length > 0 ? (
                 <ol className="relative space-y-3 border-l border-primary/25 pl-5">
-                  {movimentacoes.map((movimentacao) => {
+                  {movimentacoesProcessuais.map((movimentacao) => {
                     const movementDate =
                       movimentacao.data_protocolo ??
                       movimentacao.data_representacao ??
                       movimentacao.updated_at ??
                       movimentacao.created_at;
                     const observation =
-                      movimentacao.requisicao_conteudo ??
                       movimentacao.observacoes_movimentacao ??
                       movimentacao.observacoes_internas ??
                       movimentacao.resumo_fatos;
-                    const isRequisicao = isRequisicaoMovement(movimentacao);
-                    const movementIdentifier = isRequisicao
-                      ? (movimentacao.requisicao_numero_documento ??
-                        movimentacao.numero_ppe ??
-                        movimentacao.codigo_interno)
-                      : (movimentacao.numero_ppe ?? movimentacao.codigo_interno);
+                    const movementIdentifier =
+                      movimentacao.numero_ppe ?? movimentacao.codigo_interno;
                     return (
                       <li key={movimentacao.id} className="relative">
                         <span className="absolute -left-[1.55rem] top-3 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
@@ -1512,25 +1511,12 @@ function InqueritoDetalhes() {
                           <div className="flex flex-wrap items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-foreground">
-                                {isRequisicao
-                                  ? "Requisição judicial/ministerial"
-                                  : displayValue(
-                                      movimentacao.tipo_normalizado ?? movimentacao.tipo ?? "",
-                                    )}
+                                {displayValue(
+                                  movimentacao.tipo_normalizado ?? movimentacao.tipo ?? "",
+                                )}
                               </p>
                               <p className="mt-1 text-[11px] text-muted-foreground">
-                                {isRequisicao
-                                  ? [
-                                      movimentacao.requisicao_origem
-                                        ? `Origem: ${movimentacao.requisicao_origem}`
-                                        : "",
-                                      movimentacao.requisicao_numero_documento
-                                        ? `Documento ${movimentacao.requisicao_numero_documento}`
-                                        : "",
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" · ") || displayValue(movementIdentifier ?? "")
-                                  : displayValue(movementIdentifier ?? "")}
+                                {displayValue(movementIdentifier ?? "")}
                               </p>
                             </div>
                             <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-primary">
@@ -1540,25 +1526,13 @@ function InqueritoDetalhes() {
                           <div className="mt-3 grid gap-2 border-t border-border/45 pt-2 text-[11px] text-muted-foreground sm:grid-cols-2">
                             <span>
                               <strong className="text-foreground">Data:</strong>{" "}
-                              {isRequisicao
-                                ? formatDateValue(
-                                    movimentacao.requisicao_data_recebimento ?? movementDate ?? "",
-                                  )
-                                : formatDateTime(movementDate ?? "")}
+                              {formatDateTime(movementDate ?? "")}
                             </span>
                             <span>
-                              <strong className="text-foreground">
-                                {isRequisicao ? "Prazo:" : "Responsável:"}
-                              </strong>{" "}
-                              {isRequisicao
-                                ? movimentacao.requisicao_prazo_dias
-                                  ? `${movimentacao.requisicao_prazo_dias} dias`
-                                  : "Sem prazo informado"
-                                : displayValue(
-                                    movimentacao.responsavel ??
-                                      movimentacao.equipe_responsavel ??
-                                      "",
-                                  )}
+                              <strong className="text-foreground">Responsável:</strong>{" "}
+                              {displayValue(
+                                movimentacao.responsavel ?? movimentacao.equipe_responsavel ?? "",
+                              )}
                             </span>
                           </div>
                           {hasPrintableFieldValue(observation ?? "") ? (
