@@ -1658,6 +1658,13 @@ function InqueritoDetalhes() {
                     ...current.filter((item) => item.id !== movement.id),
                   ])
                 }
+                onRequisitionChanged={(movement, deletedId) =>
+                  setMovimentacoes((current) =>
+                    movement
+                      ? [movement, ...current.filter((item) => item.id !== movement.id)]
+                      : current.filter((item) => item.id !== deletedId),
+                  )
+                }
               />
             </div>
             <DetailSection

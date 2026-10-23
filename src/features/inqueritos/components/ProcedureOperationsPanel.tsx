@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   createRepresentacao,
+  softDeleteRepresentacao,
   type RepresentacaoRecord,
+  updateRepresentacao,
 } from "@/lib/repositories/representacoesRepository";
 import { buildRequisicaoRepresentacaoPayload, isRequisicaoMovement } from "@/lib/requisicoes";
 import {
@@ -12,9 +14,12 @@ import {
   FlaskConical,
   ListChecks,
   Mic,
+  Pencil,
   Plus,
+  RotateCcw,
   Scale,
   Send,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -193,12 +198,14 @@ export function ProcedureOperationsPanel({
   numeroPpe,
   movimentacoes,
   onRequisitionCreated,
+  onRequisitionChanged,
 }: {
   caseId: string;
   canEdit: boolean;
   numeroPpe?: string | null;
   movimentacoes: RepresentacaoRecord[];
   onRequisitionCreated?: (movement: RepresentacaoRecord) => void;
+  onRequisitionChanged?: (movement: RepresentacaoRecord | null, deletedId?: string) => void;
 }) {
   const storageKey = `sied:procedure-actions:${caseId}`;
   const [data, setData] = useState<DadosOperacionais>(EMPTY_DATA);
@@ -216,6 +223,8 @@ export function ProcedureOperationsPanel({
   const [requisitionContent, setRequisitionContent] = useState("");
   const [requisitionError, setRequisitionError] = useState("");
   const [savingRequisition, setSavingRequisition] = useState(false);
+  const [editingRequisitionId, setEditingRequisitionId] = useState<string | null>(null);
+  const [requisitionActionId, setRequisitionActionId] = useState<string | null>(null);
   const [otherReportType, setOtherReportType] = useState("");
   const [showAllReports, setShowAllReports] = useState(false);
 
@@ -251,6 +260,7 @@ export function ProcedureOperationsPanel({
   }, [data.requisicoes, movimentacoes]);
 
   const openModal = (kind: Exclude<ModalKind, null>) => {
+    setEditingRequisitionId(null);
     setProtocol("");
     setMedium("");
     setNotes("");
@@ -265,6 +275,21 @@ export function ProcedureOperationsPanel({
     if (kind === "pendencias-laudo") setSelectedReports(data.laudosPendentes);
     if (kind === "solicitar-laudo") setSelectedReports(data.laudosPendentes);
     setModal(kind);
+  };
+
+  const editRequisition = (item: Requisicao) => {
+    const knownOrigin = ["Poder Judiciário", "Ministério Público", "Outro órgão"].includes(
+      item.origem || item.meio,
+    );
+    setEditingRequisitionId(item.id);
+    setRequisitionOrigin(knownOrigin ? item.origem || item.meio : "Outro");
+    setOtherRequisitionOrigin(knownOrigin ? "" : item.origem || item.meio);
+    setRequisitionNumber(item.numeroDocumento || item.protocolo);
+    setRequisitionReceivedAt(item.recebidaEm || todayDateInputValue());
+    setRequisitionDeadlineDays(item.prazoDias ? String(item.prazoDias) : "");
+    setRequisitionContent(item.conteudo || item.observacao);
+    setRequisitionError("");
+    setModal("requisicao");
   };
 
   const toggleReport = (type: string) => {
@@ -323,18 +348,45 @@ export function ProcedureOperationsPanel({
     setSavingRequisition(true);
     setRequisitionError("");
     try {
-      const movement = await createRepresentacao(
-        buildRequisicaoRepresentacaoPayload({
-          inqueritoId: caseId,
-          numeroPpe,
-          origem: origin,
-          numeroDocumento: requisitionNumber,
-          recebidaEm: requisitionReceivedAt,
-          prazoDias: deadlineDays,
-          conteudo: content,
-        }),
-      );
-      onRequisitionCreated?.(movement);
+      const payload = buildRequisicaoRepresentacaoPayload({
+        inqueritoId: caseId,
+        numeroPpe,
+        origem: origin,
+        numeroDocumento: requisitionNumber,
+        recebidaEm: requisitionReceivedAt,
+        prazoDias: deadlineDays,
+        conteudo: content,
+      });
+      if (editingRequisitionId) {
+        const isPersisted = movimentacoes.some((item) => item.id === editingRequisitionId);
+        if (isPersisted) {
+          const movement = await updateRepresentacao(editingRequisitionId, payload);
+          onRequisitionChanged?.(movement);
+        } else {
+          setData((current) => ({
+            ...current,
+            requisicoes: current.requisicoes.map((item) =>
+              item.id === editingRequisitionId
+                ? {
+                    ...item,
+                    tipo: origin,
+                    protocolo: requisitionNumber.trim(),
+                    meio: origin,
+                    observacao: content,
+                    origem: origin,
+                    numeroDocumento: requisitionNumber.trim(),
+                    recebidaEm: requisitionReceivedAt,
+                    prazoDias: deadlineDays,
+                    conteudo: content,
+                  }
+                : item,
+            ),
+          }));
+        }
+      } else {
+        const movement = await createRepresentacao(payload);
+        onRequisitionCreated?.(movement);
+      }
       setModal(null);
     } catch (error) {
       const message = String((error as { message?: string } | null)?.message ?? "").toLowerCase();
@@ -348,6 +400,51 @@ export function ProcedureOperationsPanel({
       );
     } finally {
       setSavingRequisition(false);
+    }
+  };
+
+  const changeRequisitionStatus = async (item: Requisicao, completed: boolean) => {
+    if (!canEdit) return;
+    setRequisitionActionId(item.id);
+    setRequisitionError("");
+    const status = completed ? "Concluída" : "Pendente de cumprimento";
+    try {
+      if (movimentacoes.some((movement) => movement.id === item.id)) {
+        const movement = await updateRepresentacao(item.id, { status });
+        onRequisitionChanged?.(movement);
+      } else {
+        setData((current) => ({
+          ...current,
+          requisicoes: current.requisicoes.map((requisicao) =>
+            requisicao.id === item.id ? { ...requisicao, status } : requisicao,
+          ),
+        }));
+      }
+    } catch {
+      setRequisitionError("Não foi possível alterar a situação da requisição.");
+    } finally {
+      setRequisitionActionId(null);
+    }
+  };
+
+  const deleteRequisition = async (item: Requisicao) => {
+    if (!canEdit || !window.confirm("Excluir esta requisição? Esta ação a removerá da consulta."))
+      return;
+    setRequisitionActionId(item.id);
+    setRequisitionError("");
+    try {
+      if (movimentacoes.some((movement) => movement.id === item.id)) {
+        await softDeleteRepresentacao(item.id);
+        onRequisitionChanged?.(null, item.id);
+      }
+      setData((current) => ({
+        ...current,
+        requisicoes: current.requisicoes.filter((requisicao) => requisicao.id !== item.id),
+      }));
+    } catch {
+      setRequisitionError("Não foi possível excluir a requisição.");
+    } finally {
+      setRequisitionActionId(null);
     }
   };
 
@@ -371,7 +468,9 @@ export function ProcedureOperationsPanel({
         ? "Solicitar laudo"
         : modal === "consultar-requisicoes"
           ? "Requisições vinculadas"
-          : "Registrar requisição";
+          : editingRequisitionId
+            ? "Editar requisição"
+            : "Registrar requisição";
 
   return (
     <div className="space-y-3">
@@ -547,311 +646,400 @@ export function ProcedureOperationsPanel({
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px]" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-[101] max-h-[90vh] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-2xl focus:outline-none">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <Dialog.Title className="text-base font-bold text-foreground">
-                  {modalTitle}
-                </Dialog.Title>
-                <Dialog.Description className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {modal === "pendencias-laudo"
-                    ? "Selecione os laudos que ainda precisam ser requisitados."
-                    : modal === "solicitar-laudo"
-                      ? "Informe o meio e o protocolo da solicitação pericial."
-                      : modal === "consultar-requisicoes"
-                        ? "Consulte as requisições judiciais e ministeriais vinculadas exclusivamente a este procedimento."
-                        : "A requisição fica vinculada ao inquérito, com status e prioridade próprios; a situação geral não muda."}
-                </Dialog.Description>
-              </div>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  aria-label="Fechar"
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </Dialog.Close>
-            </div>
-
-            {modal === "pendencias-laudo" ? (
-              <form onSubmit={savePendingReports} className="mt-5 space-y-4">
-                <fieldset>
-                  <legend className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Laudos necessários
-                  </legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {REPORT_TYPES.map((type) => (
-                      <label
-                        key={type}
-                        className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${selectedReports.includes(type) ? "border-primary/50 bg-primary/5 text-foreground" : "border-border bg-background/40 text-muted-foreground hover:bg-accent/50"}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedReports.includes(type)}
-                          onChange={() => toggleReport(type)}
-                          className="accent-primary"
-                        />
-                        {type}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                <div className="flex justify-end gap-2 border-t border-border/55 pt-3">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
-                    >
-                      Cancelar
-                    </button>
-                  </Dialog.Close>
-                  <button
-                    type="submit"
-                    disabled={!canEdit}
-                    className="h-9 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    Salvar pendências
-                  </button>
-                </div>
-              </form>
+            {modal === "consultar-requisicoes" ? (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute bottom-3 right-3 h-52 w-52 bg-contain bg-center bg-no-repeat text-warning opacity-[0.055]"
+                style={{
+                  backgroundImage: "url('/requisicoes-justica-watermark.svg')",
+                }}
+              />
             ) : null}
+            <div className="relative z-10">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <Dialog.Title className="text-base font-bold text-foreground">
+                    {modalTitle}
+                  </Dialog.Title>
+                  <Dialog.Description className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {modal === "pendencias-laudo"
+                      ? "Selecione os laudos que ainda precisam ser requisitados."
+                      : modal === "solicitar-laudo"
+                        ? "Informe o meio e o protocolo da solicitação pericial."
+                        : modal === "consultar-requisicoes"
+                          ? "Consulte as requisições judiciais e ministeriais vinculadas exclusivamente a este procedimento."
+                          : "A requisição fica vinculada ao inquérito, com status e prioridade próprios; a situação geral não muda."}
+                  </Dialog.Description>
+                </div>
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    aria-label="Fechar"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Dialog.Close>
+              </div>
 
-            {modal === "solicitar-laudo" ? (
-              <form onSubmit={saveReportRequest} className="mt-5 space-y-4">
-                <fieldset>
-                  <legend className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Tipos de perícia
-                  </legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {REPORT_TYPES.map((type) => (
-                      <label
-                        key={type}
-                        className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${selectedReports.includes(type) ? "border-emerald-600/45 bg-emerald-600/5 text-foreground" : "border-border bg-background/40 text-muted-foreground hover:bg-accent/50"}`}
+              {modal === "pendencias-laudo" ? (
+                <form onSubmit={savePendingReports} className="mt-5 space-y-4">
+                  <fieldset>
+                    <legend className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Laudos necessários
+                    </legend>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {REPORT_TYPES.map((type) => (
+                        <label
+                          key={type}
+                          className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${selectedReports.includes(type) ? "border-primary/50 bg-primary/5 text-foreground" : "border-border bg-background/40 text-muted-foreground hover:bg-accent/50"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedReports.includes(type)}
+                            onChange={() => toggleReport(type)}
+                            className="accent-primary"
+                          />
+                          {type}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div className="flex justify-end gap-2 border-t border-border/55 pt-3">
+                    <Dialog.Close asChild>
+                      <button
+                        type="button"
+                        className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
                       >
-                        <input
-                          type="checkbox"
-                          checked={selectedReports.includes(type)}
-                          onChange={() => toggleReport(type)}
-                          className="accent-emerald-600"
-                        />
-                        {type}
-                      </label>
-                    ))}
+                        Cancelar
+                      </button>
+                    </Dialog.Close>
+                    <button
+                      type="submit"
+                      disabled={!canEdit}
+                      className="h-9 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      Salvar pendências
+                    </button>
                   </div>
-                </fieldset>
-                {selectedReports.includes("Outro") ? (
+                </form>
+              ) : null}
+
+              {modal === "solicitar-laudo" ? (
+                <form onSubmit={saveReportRequest} className="mt-5 space-y-4">
+                  <fieldset>
+                    <legend className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Tipos de perícia
+                    </legend>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {REPORT_TYPES.map((type) => (
+                        <label
+                          key={type}
+                          className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${selectedReports.includes(type) ? "border-emerald-600/45 bg-emerald-600/5 text-foreground" : "border-border bg-background/40 text-muted-foreground hover:bg-accent/50"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedReports.includes(type)}
+                            onChange={() => toggleReport(type)}
+                            className="accent-emerald-600"
+                          />
+                          {type}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  {selectedReports.includes("Outro") ? (
+                    <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Especifique o laudo
+                      <input
+                        required
+                        value={otherReportType}
+                        onChange={(event) => setOtherReportType(event.target.value)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
+                      />
+                    </label>
+                  ) : null}
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Protocolo
+                      <input
+                        value={protocol}
+                        onChange={(event) => setProtocol(event.target.value)}
+                        placeholder="SEI, guia DPT, ofício..."
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/70"
+                      />
+                    </label>
+                    <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Meio de solicitação
+                      <select
+                        required
+                        value={medium}
+                        onChange={(event) => setMedium(event.target.value)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
+                      >
+                        <option value="">Selecione...</option>
+                        <option>Ofício</option>
+                        <option>SEI</option>
+                        <option>Guia pericial</option>
+                        <option>Outro</option>
+                      </select>
+                    </label>
+                  </div>
                   <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Especifique o laudo
-                    <input
-                      required
-                      value={otherReportType}
-                      onChange={(event) => setOtherReportType(event.target.value)}
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
+                    Despacho / comentário (opcional)
+                    <textarea
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      rows={3}
+                      placeholder="Ex.: requisitados laudos necroscópico e toxicológico ao IML"
+                      className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/70"
                     />
                   </label>
-                ) : null}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Protocolo
-                    <input
-                      value={protocol}
-                      onChange={(event) => setProtocol(event.target.value)}
-                      placeholder="SEI, guia DPT, ofício..."
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/70"
-                    />
-                  </label>
-                  <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Meio de solicitação
+                  <div className="flex justify-end gap-2 border-t border-border/55 pt-3">
+                    <Dialog.Close asChild>
+                      <button
+                        type="button"
+                        className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
+                      >
+                        Cancelar
+                      </button>
+                    </Dialog.Close>
+                    <button
+                      type="submit"
+                      disabled={
+                        !canEdit ||
+                        !selectedReports.length ||
+                        !medium ||
+                        (selectedReports.includes("Outro") && !otherReportType.trim())
+                      }
+                      className="h-9 rounded-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                    >
+                      Registrar solicitação
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              {modal === "requisicao" ? (
+                <form onSubmit={saveRequisition} className="mt-5 space-y-3.5">
+                  <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Origem
                     <select
                       required
-                      value={medium}
-                      onChange={(event) => setMedium(event.target.value)}
+                      value={requisitionOrigin}
+                      onChange={(event) => setRequisitionOrigin(event.target.value)}
                       className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
                     >
-                      <option value="">Selecione...</option>
-                      <option>Ofício</option>
-                      <option>SEI</option>
-                      <option>Guia pericial</option>
+                      <option>Poder Judiciário</option>
+                      <option>Ministério Público</option>
+                      <option>Outro órgão</option>
                       <option>Outro</option>
                     </select>
                   </label>
-                </div>
-                <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Despacho / comentário (opcional)
-                  <textarea
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                    rows={3}
-                    placeholder="Ex.: requisitados laudos necroscópico e toxicológico ao IML"
-                    className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/70"
-                  />
-                </label>
-                <div className="flex justify-end gap-2 border-t border-border/55 pt-3">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
-                    >
-                      Cancelar
-                    </button>
-                  </Dialog.Close>
-                  <button
-                    type="submit"
-                    disabled={
-                      !canEdit ||
-                      !selectedReports.length ||
-                      !medium ||
-                      (selectedReports.includes("Outro") && !otherReportType.trim())
-                    }
-                    className="h-9 rounded-md bg-emerald-600 px-3 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    Registrar solicitação
-                  </button>
-                </div>
-              </form>
-            ) : null}
-
-            {modal === "requisicao" ? (
-              <form onSubmit={saveRequisition} className="mt-5 space-y-3.5">
-                <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Origem
-                  <select
-                    required
-                    value={requisitionOrigin}
-                    onChange={(event) => setRequisitionOrigin(event.target.value)}
-                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
-                  >
-                    <option>Poder Judiciário</option>
-                    <option>Ministério Público</option>
-                    <option>Outro órgão</option>
-                    <option>Outro</option>
-                  </select>
-                </label>
-                {requisitionOrigin === "Outro" ? (
+                  {requisitionOrigin === "Outro" ? (
+                    <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Especifique a origem
+                      <input
+                        required
+                        maxLength={120}
+                        value={otherRequisitionOrigin}
+                        onChange={(event) => setOtherRequisitionOrigin(event.target.value)}
+                        placeholder="Nome do órgão ou da origem"
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
+                      />
+                    </label>
+                  ) : null}
                   <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Especifique a origem
+                    Nº do ofício / documento (opcional)
                     <input
-                      required
                       maxLength={120}
-                      value={otherRequisitionOrigin}
-                      onChange={(event) => setOtherRequisitionOrigin(event.target.value)}
-                      placeholder="Nome do órgão ou da origem"
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
-                    />
-                  </label>
-                ) : null}
-                <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Nº do ofício / documento (opcional)
-                  <input
-                    maxLength={120}
-                    value={requisitionNumber}
-                    onChange={(event) => setRequisitionNumber(event.target.value)}
-                    placeholder="Ofício, processo ou documento"
-                    className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/60"
-                  />
-                </label>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Recebida em
-                    <input
-                      required
-                      type="date"
-                      value={requisitionReceivedAt}
-                      onChange={(event) => setRequisitionReceivedAt(event.target.value)}
-                      className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
-                    />
-                  </label>
-                  <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Prazo em dias (opcional)
-                    <input
-                      type="number"
-                      min={1}
-                      max={3650}
-                      step={1}
-                      value={requisitionDeadlineDays}
-                      onChange={(event) => setRequisitionDeadlineDays(event.target.value)}
-                      placeholder="Sem prazo"
+                      value={requisitionNumber}
+                      onChange={(event) => setRequisitionNumber(event.target.value)}
+                      placeholder="Ofício, processo ou documento"
                       className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/60"
                     />
                   </label>
-                </div>
-                <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  O que foi requisitado
-                  <textarea
-                    required
-                    maxLength={5000}
-                    value={requisitionContent}
-                    onChange={(event) => setRequisitionContent(event.target.value)}
-                    rows={4}
-                    placeholder="Descreva objetivamente o pedido recebido"
-                    className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/60"
-                  />
-                  <p className="text-[10px] font-normal normal-case leading-4 tracking-normal text-muted-foreground/70">
-                    Exemplos: oitivas, laudos, cópia de autos ou cumprimento de diligência.
-                  </p>
-                </label>
-                {requisitionError ? (
-                  <p
-                    role="alert"
-                    className="rounded-md border border-destructive/35 bg-destructive/5 px-3 py-2 text-xs text-destructive"
-                  >
-                    {requisitionError}
-                  </p>
-                ) : null}
-                <div className="flex justify-end gap-2 border-t border-border/55 pt-3">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Recebida em
+                      <input
+                        required
+                        type="date"
+                        value={requisitionReceivedAt}
+                        onChange={(event) => setRequisitionReceivedAt(event.target.value)}
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground"
+                      />
+                    </label>
+                    <label className="space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Prazo em dias (opcional)
+                      <input
+                        type="number"
+                        min={1}
+                        max={3650}
+                        step={1}
+                        value={requisitionDeadlineDays}
+                        onChange={(event) => setRequisitionDeadlineDays(event.target.value)}
+                        placeholder="Sem prazo"
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/60"
+                      />
+                    </label>
+                  </div>
+                  <label className="block space-y-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    O que foi requisitado
+                    <textarea
+                      required
+                      maxLength={5000}
+                      value={requisitionContent}
+                      onChange={(event) => setRequisitionContent(event.target.value)}
+                      rows={4}
+                      placeholder="Descreva objetivamente o pedido recebido"
+                      className="w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/60"
+                    />
+                    <p className="text-[10px] font-normal normal-case leading-4 tracking-normal text-muted-foreground/70">
+                      Exemplos: oitivas, laudos, cópia de autos ou cumprimento de diligência.
+                    </p>
+                  </label>
+                  {requisitionError ? (
+                    <p
+                      role="alert"
+                      className="rounded-md border border-destructive/35 bg-destructive/5 px-3 py-2 text-xs text-destructive"
                     >
-                      Cancelar
+                      {requisitionError}
+                    </p>
+                  ) : null}
+                  <div className="flex justify-end gap-2 border-t border-border/55 pt-3">
+                    <Dialog.Close asChild>
+                      <button
+                        type="button"
+                        className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-muted-foreground hover:bg-accent"
+                      >
+                        Cancelar
+                      </button>
+                    </Dialog.Close>
+                    <button
+                      type="submit"
+                      disabled={
+                        !canEdit ||
+                        savingRequisition ||
+                        !requisitionContent.trim() ||
+                        (requisitionOrigin === "Outro" && !otherRequisitionOrigin.trim()) ||
+                        (Boolean(requisitionDeadlineDays) &&
+                          (!Number.isInteger(Number(requisitionDeadlineDays)) ||
+                            Number(requisitionDeadlineDays) < 1 ||
+                            Number(requisitionDeadlineDays) > 3650))
+                      }
+                      className="h-9 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {savingRequisition
+                        ? "Salvando..."
+                        : editingRequisitionId
+                          ? "Salvar alterações"
+                          : "Registrar requisição"}
                     </button>
-                  </Dialog.Close>
-                  <button
-                    type="submit"
-                    disabled={
-                      !canEdit ||
-                      savingRequisition ||
-                      !requisitionContent.trim() ||
-                      (requisitionOrigin === "Outro" && !otherRequisitionOrigin.trim()) ||
-                      (Boolean(requisitionDeadlineDays) &&
-                        (!Number.isInteger(Number(requisitionDeadlineDays)) ||
-                          Number(requisitionDeadlineDays) < 1 ||
-                          Number(requisitionDeadlineDays) > 3650))
-                    }
-                    className="h-9 rounded-md bg-primary px-3 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {savingRequisition ? "Salvando..." : "Registrar requisição"}
-                  </button>
-                </div>
-              </form>
-            ) : null}
+                  </div>
+                </form>
+              ) : null}
 
-            {modal === "consultar-requisicoes" ? (
-              <div className="mt-5">
-                <ul className="max-h-[60vh] divide-y divide-border/55 overflow-y-auto rounded-md border border-border/60 px-3">
-                  {requisicoes.map((item) => (
-                    <li key={item.id} className="py-3">
-                      <p className="text-sm font-bold text-foreground">
-                        {item.origem ? `Requisição · ${item.origem}` : `Requisição ${item.tipo}`}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {item.numeroDocumento ? `Documento ${item.numeroDocumento} · ` : ""}
-                        {item.recebidaEm ? dateLabel(item.recebidaEm) : dateLabel(item.criadoEm)}
-                        {item.prazoDias ? ` · Prazo ${item.prazoDias} dias` : ""}
-                        {item.status ? ` · ${item.status}` : ""}
-                        {item.prioridade ? ` · Prioridade ${item.prioridade}` : ""}
-                      </p>
-                      {item.conteudo || item.observacao ? (
-                        <p className="mt-2 text-xs leading-5 text-foreground/85">
-                          {item.conteudo || item.observacao}
-                        </p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+              {modal === "consultar-requisicoes" ? (
+                <div className="mt-5 space-y-3">
+                  {requisitionError ? (
+                    <p
+                      role="alert"
+                      className="rounded-md border border-destructive/35 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+                    >
+                      {requisitionError}
+                    </p>
+                  ) : null}
+                  <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
+                    {requisicoes.map((item) => {
+                      const completed = item.status?.toLocaleLowerCase("pt-BR") === "concluída";
+                      const busy = requisitionActionId === item.id;
+                      return (
+                        <li
+                          key={item.id}
+                          className={`relative rounded-lg border p-3 shadow-sm backdrop-blur-[1px] ${completed ? "border-emerald-600/30 bg-emerald-600/[0.07]" : "border-border/70 bg-card/90"}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-bold text-foreground">
+                                  {item.origem
+                                    ? `Requisição · ${item.origem}`
+                                    : `Requisição ${item.tipo}`}
+                                </p>
+                                <span
+                                  className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-wide ${completed ? "border-emerald-600/35 bg-emerald-600/10 text-emerald-700" : "border-warning/35 bg-warning/10 text-warning"}`}
+                                >
+                                  {completed ? "Concluída" : item.status || "Pendente"}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={!canEdit || busy}
+                                onClick={() => editRequisition(item)}
+                                title="Editar requisição"
+                                aria-label="Editar requisição"
+                                className="grid h-8 w-8 place-items-center rounded-md border border-border bg-background/80 text-muted-foreground transition hover:border-primary/40 hover:text-primary disabled:opacity-40"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!canEdit || busy}
+                                onClick={() => deleteRequisition(item)}
+                                title="Excluir requisição"
+                                aria-label="Excluir requisição"
+                                className="grid h-8 w-8 place-items-center rounded-md border border-border bg-background/80 text-muted-foreground transition hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive disabled:opacity-40"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {item.numeroDocumento ? `Documento ${item.numeroDocumento} · ` : ""}
+                            {item.recebidaEm
+                              ? dateLabel(item.recebidaEm)
+                              : dateLabel(item.criadoEm)}
+                            {item.prazoDias ? ` · Prazo ${item.prazoDias} dias` : ""}
+                            {item.prioridade ? ` · Prioridade ${item.prioridade}` : ""}
+                          </p>
+                          {item.conteudo || item.observacao ? (
+                            <p className="mt-2 text-xs leading-5 text-foreground/85">
+                              {item.conteudo || item.observacao}
+                            </p>
+                          ) : null}
+                          <div className="mt-3 flex justify-end border-t border-border/45 pt-2.5">
+                            {completed ? (
+                              <button
+                                type="button"
+                                disabled={!canEdit || busy}
+                                onClick={() => changeRequisitionStatus(item, false)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background/70 px-2.5 text-[10px] font-bold text-muted-foreground hover:bg-accent disabled:opacity-50"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />{" "}
+                                {busy ? "Salvando..." : "Reabrir"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={!canEdit || busy}
+                                onClick={() => changeRequisitionStatus(item, true)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-emerald-600/40 bg-emerald-600/10 px-2.5 text-[10px] font-bold text-emerald-700 hover:bg-emerald-600/15 disabled:opacity-50"
+                              >
+                                <Check className="h-3.5 w-3.5" />{" "}
+                                {busy ? "Salvando..." : "Marcar como concluída"}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
