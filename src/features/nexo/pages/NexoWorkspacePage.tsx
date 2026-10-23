@@ -136,6 +136,27 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     return () => window.removeEventListener("hashchange", sync);
   }, []);
   useEffect(() => {
+    if (preview || loading || booting) return;
+    const url = new URL(window.location.href);
+    const personId = url.searchParams.get("personId");
+    if (!personId) return;
+
+    url.searchParams.delete("personId");
+    url.hash = "pessoas";
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+
+    if (!people.some((person) => person.id === personId)) {
+      setNotice("O perfil NEXO solicitado não está disponível para este usuário.");
+      return;
+    }
+    setView("pessoas");
+    setDossier({ kind: "person", id: personId });
+  }, [booting, loading, people, preview]);
+  useEffect(() => {
     if (!notice) return;
     const duration = notice.includes("fotografia ficou pendente") ? 8000 : 3500;
     const timeout = window.setTimeout(() => setNotice(""), duration);

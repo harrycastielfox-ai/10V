@@ -17,6 +17,13 @@ export type InquiryPersonFormValue = {
   papel: InquiryPersonRole;
   nome: string;
   observacao: string;
+  nexoPessoaId: string | null;
+  nexoOrganizacaoId: string | null;
+  nexoVinculoId: string | null;
+  faccaoNomeInformada: string;
+  faccaoSiglaInformada: string;
+  funcaoFaccaoInformada: string;
+  faccaoFonteInformada: string;
   // Só valem para autor/investigado. null = não informado, diferente de false
   // ("solto" / "autoria desconhecida").
   autoriaDeterminada: boolean | null;
@@ -32,6 +39,13 @@ export function createInquiryPerson(
     papel,
     nome,
     observacao: "",
+    nexoPessoaId: null,
+    nexoOrganizacaoId: null,
+    nexoVinculoId: null,
+    faccaoNomeInformada: "",
+    faccaoSiglaInformada: "",
+    funcaoFaccaoInformada: "",
+    faccaoFonteInformada: "",
     autoriaDeterminada: null,
     preso: null,
   };

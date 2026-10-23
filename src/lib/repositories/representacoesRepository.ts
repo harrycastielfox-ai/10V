@@ -39,6 +39,11 @@ export type RepresentacaoRecord = {
   resultado_cumprimento: string | null;
   observacoes_cumprimento: string | null;
   prioridade_operacional: string | null;
+  requisicao_origem?: string | null;
+  requisicao_numero_documento?: string | null;
+  requisicao_data_recebimento?: string | null;
+  requisicao_prazo_dias?: number | null;
+  requisicao_conteudo?: string | null;
   equipe_responsavel: string | null;
   acompanhamento_especial: boolean | null;
   pedido_sigiloso: string | null;

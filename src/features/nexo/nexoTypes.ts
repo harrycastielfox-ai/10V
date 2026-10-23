@@ -45,6 +45,35 @@ export interface NexoVinculo {
   organizacao?: NexoOrganizacao | null;
 }
 
+export interface NexoInquiryOrganizationOption {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  cor: string;
+  status: NexoOrganizacaoStatus;
+}
+
+export interface NexoInquiryLinkOption {
+  id: string;
+  organizacao_id: string;
+  status: NexoVinculoStatus;
+  funcao: string | null;
+  confianca: number;
+  fonte_resumo: string | null;
+  desde: string | null;
+  ate: string | null;
+  organizacao: Pick<NexoOrganizacao, "id" | "nome" | "sigla" | "cor" | "status"> | null;
+}
+
+export interface NexoInquiryPersonOption {
+  id: string;
+  nome: string;
+  apelido: string | null;
+  cpf: string | null;
+  foto_perfil_url: string | null;
+  vinculos: NexoInquiryLinkOption[];
+}
+
 export interface NexoVinculoManagementInput {
   vinculo_id: string;
   pessoa_id: string;

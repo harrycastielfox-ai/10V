@@ -38,6 +38,7 @@ import {
   canEditCases,
   canManageProceduralTags,
   canOnlyViewPublicCases,
+  canViewNexo,
   canViewPrivateCases,
   type UserProfile,
 } from "@/lib/authz";
@@ -336,6 +337,13 @@ function EditarInquerito() {
           papel: pessoa.papel,
           nome: pessoa.nome,
           observacao: pessoa.observacao ?? "",
+          nexoPessoaId: pessoa.nexo_pessoa_id,
+          nexoOrganizacaoId: pessoa.nexo_organizacao_id,
+          nexoVinculoId: pessoa.nexo_vinculo_id,
+          faccaoNomeInformada: pessoa.faccao_nome_informada ?? "",
+          faccaoSiglaInformada: pessoa.faccao_sigla_informada ?? "",
+          funcaoFaccaoInformada: pessoa.funcao_faccao_informada ?? "",
+          faccaoFonteInformada: pessoa.faccao_fonte_informada ?? "",
           autoriaDeterminada: pessoa.autoria_determinada ?? null,
           preso: pessoa.preso ?? null,
         }));
@@ -625,11 +633,19 @@ function EditarInquerito() {
           ? pessoas
               .filter((pessoa) => pessoa.nome.trim())
               .map((pessoa, ordem) => ({
+                id: pessoa.id,
                 papel: pessoa.papel,
                 nome: pessoa.nome.trim(),
                 observacao: pessoa.observacao.trim() || null,
                 autoria_determinada: pessoa.autoriaDeterminada,
                 preso: pessoa.preso,
+                nexo_pessoa_id: pessoa.nexoPessoaId,
+                nexo_organizacao_id: pessoa.nexoOrganizacaoId,
+                nexo_vinculo_id: pessoa.nexoVinculoId,
+                faccao_nome_informada: pessoa.faccaoNomeInformada.trim() || null,
+                faccao_sigla_informada: pessoa.faccaoSiglaInformada.trim() || null,
+                funcao_faccao_informada: pessoa.funcaoFaccaoInformada.trim() || null,
+                faccao_fonte_informada: pessoa.faccaoFonteInformada.trim() || null,
                 ordem,
               }))
           : null,
@@ -876,7 +892,11 @@ function EditarInquerito() {
               </div>
             </div>
             {pessoasCarregadas ? (
-              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
+              <InquiryPeopleEditor
+                value={pessoas}
+                onChange={setPessoas}
+                canAccessNexo={canViewNexo(profile)}
+              />
             ) : (
               <div className="rounded-lg border border-amber-400/35 bg-amber-400/10 px-4 py-3 text-sm text-amber-200 md:col-span-2 lg:col-span-3">
                 Os dados principais foram carregados, mas as pessoas adicionais estao

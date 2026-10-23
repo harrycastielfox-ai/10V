@@ -8,6 +8,9 @@ import type {
   NexoObservacao,
   NexoDocumentoFonte,
   NexoRecursoPdf,
+  NexoInquiryOrganizationOption,
+  NexoInquiryLinkOption,
+  NexoInquiryPersonOption,
   NexoPessoa,
   NexoPessoaInput,
   NexoPdfSourceInput,
@@ -298,6 +301,98 @@ export async function listNexoPessoas(): Promise<NexoPessoa[]> {
     .order("nome");
   if (error) throw error;
   return Promise.all(((data ?? []) as unknown as NexoPessoa[]).map(hydratePessoa));
+}
+
+const INQUIRY_PERSON_SELECT = `
+  id, nome, apelido, cpf, foto_perfil_path,
+  vinculos:nexo_vinculos (
+    id, organizacao_id, status, funcao, confianca, fonte_resumo, desde, ate, deleted_at,
+    organizacao:nexo_organizacoes (id, nome, sigla, cor, status)
+  )
+`;
+
+async function hydrateInquiryPeople(rows: unknown): Promise<NexoInquiryPersonOption[]> {
+  const people = (rows ?? []) as NexoInquiryPersonOption[];
+  return Promise.all(
+    people.map(async (person) => ({
+      ...person,
+      foto_perfil_url: await optionalSignedUrl(
+        (person as NexoInquiryPersonOption & { foto_perfil_path?: string | null }).foto_perfil_path,
+      ),
+      vinculos: (person.vinculos ?? []).filter(
+        (link) => !(link as NexoInquiryLinkOption & { deleted_at?: string | null }).deleted_at,
+      ),
+    })),
+  );
+}
+
+export async function listNexoInquiryOrganizations(): Promise<NexoInquiryOrganizationOption[]> {
+  const { data, error } = await supabase
+    .from("nexo_organizacoes")
+    .select("id,nome,sigla,cor,status")
+    .is("deleted_at", null)
+    .order("nome");
+  if (error) throw error;
+  return (data ?? []) as NexoInquiryOrganizationOption[];
+}
+
+export async function getNexoInquiryOrganizationsByIds(
+  ids: string[],
+): Promise<NexoInquiryOrganizationOption[]> {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("nexo_organizacoes")
+    .select("id,nome,sigla,cor,status")
+    .is("deleted_at", null)
+    .in("id", uniqueIds);
+  if (error) throw error;
+  return (data ?? []) as NexoInquiryOrganizationOption[];
+}
+
+export async function searchNexoInquiryPeople(
+  query: string,
+  organizationId?: string | null,
+): Promise<NexoInquiryPersonOption[]> {
+  const term = query.trim().replace(/[%_]/g, "");
+  if (term.length < 2) return [];
+
+  const linkSelect = organizationId
+    ? INQUIRY_PERSON_SELECT.replace("vinculos:nexo_vinculos (", "vinculos:nexo_vinculos!inner (")
+    : INQUIRY_PERSON_SELECT;
+  let request = supabase
+    .from("nexo_pessoas")
+    .select(linkSelect)
+    .is("deleted_at", null)
+    .ilike("nome", `%${term}%`)
+    .order("nome")
+    .limit(12);
+
+  request = request.is("vinculos.deleted_at", null);
+  if (organizationId) {
+    request = request
+      .eq("vinculos.organizacao_id", organizationId)
+      .neq("vinculos.status", "desvinculado");
+  }
+
+  const { data, error } = await request;
+  if (error) throw error;
+  return hydrateInquiryPeople(data);
+}
+
+export async function getNexoInquiryPeopleByIds(ids: string[]): Promise<NexoInquiryPersonOption[]> {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  if (uniqueIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("nexo_pessoas")
+    .select(INQUIRY_PERSON_SELECT)
+    .is("deleted_at", null)
+    .is("vinculos.deleted_at", null)
+    .in("id", uniqueIds);
+  if (error) throw error;
+  return hydrateInquiryPeople(data);
 }
 
 export async function listNexoTerritorios(): Promise<NexoTerritorio[]> {

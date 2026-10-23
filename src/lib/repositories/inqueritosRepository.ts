@@ -96,6 +96,13 @@ export type InqueritoPessoaRecord = {
   // Só preenchidos para autor_investigado. null = não informado.
   autoria_determinada: boolean | null;
   preso: boolean | null;
+  nexo_pessoa_id: string | null;
+  nexo_organizacao_id: string | null;
+  nexo_vinculo_id: string | null;
+  faccao_nome_informada: string | null;
+  faccao_sigla_informada: string | null;
+  funcao_faccao_informada: string | null;
+  faccao_fonte_informada: string | null;
   ordem: number;
   created_at: string;
   updated_at: string;
@@ -103,7 +110,20 @@ export type InqueritoPessoaRecord = {
 
 export type InqueritoPessoaInput = Pick<
   InqueritoPessoaRecord,
-  "papel" | "nome" | "observacao" | "autoria_determinada" | "preso" | "ordem"
+  | "id"
+  | "papel"
+  | "nome"
+  | "observacao"
+  | "autoria_determinada"
+  | "preso"
+  | "nexo_pessoa_id"
+  | "nexo_organizacao_id"
+  | "nexo_vinculo_id"
+  | "faccao_nome_informada"
+  | "faccao_sigla_informada"
+  | "funcao_faccao_informada"
+  | "faccao_fonte_informada"
+  | "ordem"
 >;
 
 const LIST_CACHE_TTL_MS = 10000;
@@ -171,21 +191,48 @@ export async function getInqueritoById(id: string) {
 }
 
 export async function listInqueritoPessoas(inqueritoId: string) {
-  const data = await runSupabaseQuery<InqueritoPessoaRecord[]>(
-    "pessoas envolvidas no inquérito",
-    (signal) =>
+  type NexoReferences = {
+    inquerito_pessoa_id: string;
+    nexo_pessoa_id: string | null;
+    nexo_organizacao_id: string | null;
+    nexo_vinculo_id: string | null;
+  };
+
+  const [people, nexoReferences] = await Promise.all([
+    runSupabaseQuery<
+      Array<
+        Omit<InqueritoPessoaRecord, "nexo_pessoa_id" | "nexo_organizacao_id" | "nexo_vinculo_id">
+      >
+    >("pessoas envolvidas no inquérito", (signal) =>
       supabase
         .from("inquerito_pessoas")
         .select(
-          "id,inquerito_id,papel,nome,observacao,autoria_determinada,preso,ordem,created_at,updated_at",
+          "id,inquerito_id,papel,nome,observacao,autoria_determinada,preso,faccao_nome_informada,faccao_sigla_informada,funcao_faccao_informada,faccao_fonte_informada,ordem,created_by,created_at,updated_at",
         )
         .eq("inquerito_id", inqueritoId)
         .order("ordem", { ascending: true })
         .order("created_at", { ascending: true })
         .abortSignal(signal),
-  );
+    ),
+    runSupabaseQuery<NexoReferences[]>("referências NEXO das pessoas do inquérito", (signal) =>
+      supabase
+        .rpc("list_inquerito_pessoa_nexo_links", { p_inquerito_id: inqueritoId })
+        .abortSignal(signal),
+    ),
+  ]);
 
-  return (data ?? []) as InqueritoPessoaRecord[];
+  const referencesByPersonId = new Map(
+    (nexoReferences ?? []).map((reference) => [reference.inquerito_pessoa_id, reference]),
+  );
+  return (people ?? []).map((person) => {
+    const reference = referencesByPersonId.get(person.id);
+    return {
+      ...person,
+      nexo_pessoa_id: reference?.nexo_pessoa_id ?? null,
+      nexo_organizacao_id: reference?.nexo_organizacao_id ?? null,
+      nexo_vinculo_id: reference?.nexo_vinculo_id ?? null,
+    } satisfies InqueritoPessoaRecord;
+  });
 }
 
 export async function replaceInqueritoPessoas(
@@ -194,11 +241,19 @@ export async function replaceInqueritoPessoas(
 ) {
   const normalized = pessoas
     .map((person, index) => ({
+      id: person.id,
       papel: person.papel,
       nome: person.nome.trim(),
       observacao: person.observacao?.trim() || null,
       autoria_determinada: person.autoria_determinada ?? null,
       preso: person.preso ?? null,
+      nexo_pessoa_id: person.nexo_pessoa_id ?? null,
+      nexo_organizacao_id: person.nexo_organizacao_id ?? null,
+      nexo_vinculo_id: person.nexo_vinculo_id ?? null,
+      faccao_nome_informada: person.faccao_nome_informada?.trim() || null,
+      faccao_sigla_informada: person.faccao_sigla_informada?.trim() || null,
+      funcao_faccao_informada: person.funcao_faccao_informada?.trim() || null,
+      faccao_fonte_informada: person.faccao_fonte_informada?.trim() || null,
       ordem: index,
     }))
     .filter((person) => person.nome.length > 0);

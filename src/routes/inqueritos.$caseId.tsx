@@ -29,6 +29,7 @@ import {
   type RepresentacaoRecord,
 } from "@/lib/repositories/representacoesRepository";
 import { getCurrentProfile } from "@/lib/auth";
+import { InquiryNexoSummaryButton } from "@/components/InquiryNexoSummaryButton";
 import { isMobileViewport } from "@/lib/mobileExperience";
 import {
   formatSeizedWeaponObservationsForDisplay,
@@ -39,8 +40,13 @@ import {
   canDeleteCases,
   canEditCases,
   canOnlyViewPublicCases,
+  canViewNexo,
   type UserProfile,
 } from "@/lib/authz";
+import type {
+  NexoInquiryOrganizationOption,
+  NexoInquiryPersonOption,
+} from "@/features/nexo/nexoTypes";
 import {
   calculateInqueritoOperationalPriorityDetails,
   normalizeCaseCategory,
@@ -54,15 +60,15 @@ import {
   type ReportStatus,
 } from "@/lib/operationalContracts";
 import { getInqueritoRemessaFinalStatus } from "@/lib/remessaFinal";
+import { isRequisicaoMovement } from "@/lib/requisicoes";
+import { ProcedureOperationsPanel } from "@/features/inqueritos/components/ProcedureOperationsPanel";
 import {
-  ArrowLeft,
   BookOpen,
   CalendarDays,
   Check,
   Copy,
   FileSearch,
   FileText,
-  Flag,
   FolderOpen,
   Gavel,
   Link2,
@@ -140,6 +146,15 @@ type PersonDetailItem = {
   name: string;
   authorship?: "Autoria determinada" | "Autoria desconhecida";
   custody?: "Preso" | "Solto";
+  nexoPessoaId?: string | null;
+  nexoOrganizacaoId?: string | null;
+  nexoVinculoId?: string | null;
+  faccaoNomeInformada?: string | null;
+  faccaoSiglaInformada?: string | null;
+  funcaoFaccaoInformada?: string | null;
+  faccaoFonteInformada?: string | null;
+  nexoPessoa?: NexoInquiryPersonOption | null;
+  nexoOrganizacao?: NexoInquiryOrganizationOption | null;
 };
 
 const FALLBACK = "—";
@@ -648,12 +663,16 @@ function InqueritoDetalhes() {
   const [movimentacaoPessoas, setMovimentacaoPessoas] = useState<
     Record<string, RepresentacaoPessoaRecord[]>
   >({});
+  const [nexoPeople, setNexoPeople] = useState<NexoInquiryPersonOption[]>([]);
+  const [nexoOrganizations, setNexoOrganizations] = useState<NexoInquiryOrganizationOption[]>([]);
 
   useEffect(() => {
     (async () => {
       try {
         setErro("");
         setPessoasLoadWarning(false);
+        setNexoPeople([]);
+        setNexoOrganizations([]);
         const [
           currentProfile,
           inquerito,
@@ -727,6 +746,51 @@ function InqueritoDetalhes() {
       }
     })();
   }, [caseId, location.pathname]);
+
+  useEffect(() => {
+    const nexoPersonIds = [
+      ...new Set(
+        pessoas.map((person) => person.nexo_pessoa_id).filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const nexoOrganizationIds = [
+      ...new Set(
+        pessoas
+          .map((person) => person.nexo_organizacao_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    if (!canViewNexo(profile) || (nexoPersonIds.length === 0 && nexoOrganizationIds.length === 0)) {
+      setNexoPeople([]);
+      setNexoOrganizations([]);
+      return;
+    }
+
+    let active = true;
+    void import("@/lib/repositories/nexoRepository")
+      .then((repository) =>
+        Promise.all([
+          repository.getNexoInquiryPeopleByIds(nexoPersonIds),
+          repository.getNexoInquiryOrganizationsByIds(nexoOrganizationIds),
+        ]),
+      )
+      .then(([linkedPeople, linkedOrganizations]) => {
+        if (active) {
+          setNexoPeople(linkedPeople);
+          setNexoOrganizations(linkedOrganizations);
+        }
+      })
+      .catch((lookupError: unknown) => {
+        if (active) {
+          setNexoPeople([]);
+          setNexoOrganizations([]);
+          console.warn("[inqueritos:detalhe] resumo NEXO indisponível", lookupError);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [caseId, pessoas, profile]);
 
   const detalhe = useMemo(() => (caso ? normalizeInqueritoForDetail(caso) : null), [caso]);
   const movimentacoesCount = movimentacoes.length;
@@ -899,6 +963,10 @@ function InqueritoDetalhes() {
     : remessaStatusNormalized.includes("andamento")
       ? "amber"
       : "slate";
+  const nexoPeopleById = new Map(nexoPeople.map((person) => [person.id, person]));
+  const nexoOrganizationsById = new Map(
+    nexoOrganizations.map((organization) => [organization.id, organization]),
+  );
   const peopleDetailItems: PersonDetailItem[] =
     pessoas.length > 0
       ? pessoas.map((pessoa) => ({
@@ -920,6 +988,15 @@ function InqueritoDetalhes() {
                 ? "Autoria desconhecida"
                 : undefined,
           custody: pessoa.preso === true ? "Preso" : pessoa.preso === false ? "Solto" : undefined,
+          nexoPessoaId: pessoa.nexo_pessoa_id,
+          nexoOrganizacaoId: pessoa.nexo_organizacao_id,
+          nexoVinculoId: pessoa.nexo_vinculo_id,
+          faccaoNomeInformada: pessoa.faccao_nome_informada,
+          faccaoSiglaInformada: pessoa.faccao_sigla_informada,
+          funcaoFaccaoInformada: pessoa.funcao_faccao_informada,
+          faccaoFonteInformada: pessoa.faccao_fonte_informada,
+          nexoPessoa: nexoPeopleById.get(pessoa.nexo_pessoa_id ?? "") ?? null,
+          nexoOrganizacao: nexoOrganizationsById.get(pessoa.nexo_organizacao_id ?? "") ?? null,
         }))
       : [
           { label: "Vítima", name: detalhe.vitima },
@@ -1141,14 +1218,6 @@ function InqueritoDetalhes() {
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <span className="h-10 w-1 shrink-0 rounded-full bg-primary shadow-[0_0_14px_rgba(52,211,153,0.45)]" />
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <Link
-                to="/inqueritos"
-                aria-label="Voltar para procedimentos"
-                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 text-xs font-bold text-primary transition-colors hover:border-primary/45 hover:bg-primary/10"
-              >
-                <ArrowLeft className="h-4 w-4" /> Voltar
-              </Link>
-              <span className="hidden h-9 w-px shrink-0 bg-border/70 sm:block" />
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-sm font-extrabold text-muted-foreground sm:text-base">
@@ -1265,106 +1334,48 @@ function InqueritoDetalhes() {
           </div>
         </header>
 
-        <section className="sipi-print-hidden grid overflow-hidden rounded-lg border border-border/65 bg-card/55 sm:grid-cols-2 xl:grid-cols-5">
-          <OperationalMetric
-            icon={<FileText className="h-5 w-5" />}
-            label="Situação"
-            value={displayValue(detalhe.situacao)}
-            tone="emerald"
-          />
-          <OperationalMetric
-            icon={<CalendarDays className="h-5 w-5" />}
-            label="Prazo"
-            value={prazoSummary.label}
-            detail={prazoSummary.detail}
-            tone={prazoSummary.overdue ? "red" : "amber"}
-          />
-          <OperationalMetric
-            icon={<Flag className="h-5 w-5" />}
-            label="Prioridade"
-            value={displayValue(detalhe.prioridade)}
-            detail={
-              hasPrintableFieldValue(detalhe.prioridadeMotivo)
-                ? detalhe.prioridadeMotivo
-                : undefined
-            }
-            tone="amber"
-          />
-          <OperationalMetric
-            icon={<FolderOpen className="h-5 w-5" />}
-            label="Categoria"
-            value={displayValue(detalhe.gravidade)}
-            tone="violet"
-          />
-          <OperationalMetric
-            icon={<FileSearch className="h-5 w-5" />}
-            label="Movimentações"
-            value={String(movimentacoesCount)}
-            detail={movimentacoesCount === 1 ? "registro vinculado" : "registros vinculados"}
-            tone="slate"
-          />
-        </section>
-
         {deleteError && (
           <p className="sipi-print-hidden rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {deleteError}
           </p>
         )}
 
-        <section className="space-y-3">
-          <DetailSection
-            title="Dados do procedimento"
-            icon={<FileText className="h-4 w-4" />}
-            contentClassName="p-0"
-          >
-            <ProcedureDataGrid
-              items={[
-                {
-                  label: "Nº PPE",
-                  value: detalhe.numeroPpe,
-                  copyValue: hasPrintableFieldValue(detalhe.numeroPpe)
-                    ? detalhe.numeroPpe
-                    : undefined,
-                },
-                { label: "Origem do registro", value: detalhe.origemRegistro },
-                { label: "Categoria", value: detalhe.gravidade },
-                { label: "Tipo de procedimento", value: detalhe.tipo },
-                { label: "Cidade", value: detalhe.cidade },
-                { label: "Movimentações", value: String(movimentacoesCount) },
-              ]}
-            />
-          </DetailSection>
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_21rem]">
+          <section className="min-w-0 space-y-3">
+            <DetailSection
+              title="Dados do procedimento"
+              icon={<FileText className="h-4 w-4" />}
+              contentClassName="p-0"
+            >
+              <ProcedureDataGrid
+                items={[
+                  {
+                    label: "Nº PPE",
+                    value: detalhe.numeroPpe,
+                    copyValue: hasPrintableFieldValue(detalhe.numeroPpe)
+                      ? detalhe.numeroPpe
+                      : undefined,
+                  },
+                  { label: "Origem do registro", value: detalhe.origemRegistro },
+                  { label: "Categoria", value: detalhe.gravidade },
+                  { label: "Tipo de procedimento", value: detalhe.tipo },
+                  { label: "Cidade", value: detalhe.cidade },
+                  { label: "Situação", value: displayValue(detalhe.situacao) },
+                ]}
+              />
+            </DetailSection>
 
-          <DetailSection title="Resumo do fato" icon={<BookOpen className="h-4 w-4" />}>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              {hasPrintableFieldValue(detalhe.resumoFato) ? (
-                <p
-                  className={`max-w-[110ch] break-words text-sm font-medium leading-7 text-foreground ${showFullClassification ? "" : "max-h-[5.25rem] overflow-hidden"}`}
-                >
-                  {detalhe.resumoFato}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground">Resumo não informado.</p>
-              )}
-              {hasPrintableFieldValue(detalhe.resumoFato) && detalhe.resumoFato.length > 180 ? (
-                <button
-                  type="button"
-                  onClick={() => setShowFullClassification((current) => !current)}
-                  className="sipi-print-hidden shrink-0 self-start rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  {showFullClassification ? "Recolher texto" : "Ver texto completo"}
-                </button>
-              ) : null}
-            </div>
-            {hasPrintableFieldValue(detalhe.tipificacao) ? (
-              <div className="mt-4 border-t border-border/55 pt-3">
+            <DetailSection title="Dados do Fato" icon={<BookOpen className="h-4 w-4" />}>
+              <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                   Tipificações
                 </p>
-                <TipificacoesDisplay value={detalhe.tipificacao} />
+                {hasPrintableFieldValue(detalhe.tipificacao) ? (
+                  <TipificacoesDisplay value={detalhe.tipificacao} />
+                ) : (
+                  <p className="mt-1 text-sm text-muted-foreground">Não informado.</p>
+                )}
               </div>
-            ) : null}
-            {hasPrintableFieldValue(detalhe.motivacao) ? (
               <div className="mt-3 border-t border-border/55 pt-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                   Motivação
@@ -1373,49 +1384,322 @@ function InqueritoDetalhes() {
                   {displayValue(detalhe.motivacao)}
                 </p>
               </div>
-            ) : null}
-          </DetailSection>
-
-          <DetailSection title="Pessoas envolvidas" icon={<UserRound className="h-4 w-4" />}>
-            {pessoasLoadWarning ? (
-              <div className="sipi-print-hidden mb-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
-                Os dados do inquérito foram carregados, mas as pessoas adicionais estão
-                temporariamente indisponíveis.
+              <div className="mt-3 border-t border-border/55 pt-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  Resumo do fato
+                </p>
+                <div className="mt-1 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  {hasPrintableFieldValue(detalhe.resumoFato) ? (
+                    <p
+                      className={`max-w-[110ch] break-words text-sm font-medium leading-7 text-foreground ${showFullClassification ? "" : "max-h-[5.25rem] overflow-hidden"}`}
+                    >
+                      {detalhe.resumoFato}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Não informado.</p>
+                  )}
+                  {hasPrintableFieldValue(detalhe.resumoFato) && detalhe.resumoFato.length > 180 ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowFullClassification((current) => !current)}
+                      className="sipi-print-hidden shrink-0 self-start rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      {showFullClassification ? "Recolher texto" : "Ver texto completo"}
+                    </button>
+                  ) : null}
+                </div>
               </div>
+            </DetailSection>
+
+            <DetailSection title="Pessoas envolvidas" icon={<UserRound className="h-4 w-4" />}>
+              {pessoasLoadWarning ? (
+                <div className="sipi-print-hidden mb-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
+                  Os dados do inquérito foram carregados, mas as pessoas adicionais estão
+                  temporariamente indisponíveis.
+                </div>
+              ) : null}
+              <PeopleDetailRows
+                maxVisible={6}
+                items={peopleDetailItems}
+                canAccessNexo={canViewNexo(profile)}
+              />
+            </DetailSection>
+
+            <DetailSection
+              title="Andamento operacional"
+              icon={<CalendarClock className="h-4 w-4" />}
+            >
+              <OperationalTimeline
+                items={[
+                  ["Data do fato", formatDateValue(detalhe.dataFato)],
+                  ["Instauração", formatDateValue(detalhe.dataInstauracao)],
+                  [
+                    "Data limite",
+                    hasPrintableFieldValue(detalhe.prazo) ? prazoSummary.detail : FALLBACK,
+                    prazoSummary.overdue ? "danger" : "default",
+                  ],
+                  ["Prazo", prazoSummary.label, prazoSummary.overdue ? "danger" : "default"],
+                ]}
+              />
+            </DetailSection>
+
+            {hasComplementaryProcedureData ? (
+              <DetailSection
+                title="Informações complementares"
+                icon={<ShieldAlert className="h-4 w-4" />}
+                contentClassName="p-0"
+              >
+                <ProcedureDataGrid
+                  items={[
+                    { label: "Bairro", value: detalhe.bairro },
+                    { label: "Vinculado à facção", value: detalhe.vinculadoFaccao },
+                    { label: "Nome da facção", value: detalhe.nomeFaccao },
+                    { label: "Houve arma de fogo", value: detalhe.houveArmaFogo },
+                    { label: "Arma utilizada", value: detalhe.armaUtilizada },
+                    { label: "Observações das armas", value: detalhe.observacoesArmas },
+                  ]}
+                />
+              </DetailSection>
             ) : null}
-            <PeopleDetailRows maxVisible={6} items={peopleDetailItems} />
-          </DetailSection>
 
-          <DetailSection title="Andamento operacional" icon={<CalendarClock className="h-4 w-4" />}>
-            <OperationalTimeline
-              items={[
-                ["Data do fato", formatDateValue(detalhe.dataFato)],
-                ["Instauração", formatDateValue(detalhe.dataInstauracao)],
-                [
-                  "Data limite",
-                  hasPrintableFieldValue(detalhe.prazo) ? prazoSummary.detail : FALLBACK,
-                  prazoSummary.overdue ? "danger" : "default",
-                ],
-                ["Última atualização", formatDateTime(detalhe.ultimaEdicao)],
-              ]}
-            />
-          </DetailSection>
+            <DetailSection
+              title="Histórico de movimentações processuais"
+              icon={<Gavel className="h-4 w-4" />}
+              className="sipi-print-hidden"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {movimentacoesCount === 1
+                    ? "1 movimentação vinculada a este procedimento."
+                    : `${movimentacoesCount} movimentações vinculadas a este procedimento.`}
+                </p>
+                {canEditCases(profile) ? (
+                  <a
+                    href={`/nova-representacao?inqueritoId=${encodeURIComponent(caso.id)}&ppe=${encodeURIComponent(detalhe.numeroPpe === FALLBACK ? "" : detalhe.numeroPpe)}`}
+                    className="inline-flex h-8 shrink-0 items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 text-xs font-bold text-primary transition-colors hover:bg-primary/15"
+                  >
+                    <Gavel className="h-3.5 w-3.5" /> Registrar movimentação
+                  </a>
+                ) : null}
+              </div>
+              {movimentacoes.length > 0 ? (
+                <ol className="relative space-y-3 border-l border-primary/25 pl-5">
+                  {movimentacoes.map((movimentacao) => {
+                    const movementDate =
+                      movimentacao.data_protocolo ??
+                      movimentacao.data_representacao ??
+                      movimentacao.updated_at ??
+                      movimentacao.created_at;
+                    const observation =
+                      movimentacao.requisicao_conteudo ??
+                      movimentacao.observacoes_movimentacao ??
+                      movimentacao.observacoes_internas ??
+                      movimentacao.resumo_fatos;
+                    const isRequisicao = isRequisicaoMovement(movimentacao);
+                    const movementIdentifier = isRequisicao
+                      ? (movimentacao.requisicao_numero_documento ??
+                        movimentacao.numero_ppe ??
+                        movimentacao.codigo_interno)
+                      : (movimentacao.numero_ppe ?? movimentacao.codigo_interno);
+                    return (
+                      <li key={movimentacao.id} className="relative">
+                        <span className="absolute -left-[1.55rem] top-3 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
+                        <Link
+                          to="/representacoes/$representacaoId"
+                          params={{ representacaoId: movimentacao.id }}
+                          className="block rounded-lg border border-border/60 bg-background/45 px-3 py-3 transition-colors hover:border-primary/35 hover:bg-primary/[0.04]"
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-foreground">
+                                {isRequisicao
+                                  ? "Requisição judicial/ministerial"
+                                  : displayValue(
+                                      movimentacao.tipo_normalizado ?? movimentacao.tipo ?? "",
+                                    )}
+                              </p>
+                              <p className="mt-1 text-[11px] text-muted-foreground">
+                                {isRequisicao
+                                  ? [
+                                      movimentacao.requisicao_origem
+                                        ? `Origem: ${movimentacao.requisicao_origem}`
+                                        : "",
+                                      movimentacao.requisicao_numero_documento
+                                        ? `Documento ${movimentacao.requisicao_numero_documento}`
+                                        : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ") || displayValue(movementIdentifier ?? "")
+                                  : displayValue(movementIdentifier ?? "")}
+                              </p>
+                            </div>
+                            <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-primary">
+                              {displayValue(movimentacao.status ?? "")}
+                            </span>
+                          </div>
+                          <div className="mt-3 grid gap-2 border-t border-border/45 pt-2 text-[11px] text-muted-foreground sm:grid-cols-2">
+                            <span>
+                              <strong className="text-foreground">Data:</strong>{" "}
+                              {isRequisicao
+                                ? formatDateValue(
+                                    movimentacao.requisicao_data_recebimento ?? movementDate ?? "",
+                                  )
+                                : formatDateTime(movementDate ?? "")}
+                            </span>
+                            <span>
+                              <strong className="text-foreground">
+                                {isRequisicao ? "Prazo:" : "Responsável:"}
+                              </strong>{" "}
+                              {isRequisicao
+                                ? movimentacao.requisicao_prazo_dias
+                                  ? `${movimentacao.requisicao_prazo_dias} dias`
+                                  : "Sem prazo informado"
+                                : displayValue(
+                                    movimentacao.responsavel ??
+                                      movimentacao.equipe_responsavel ??
+                                      "",
+                                  )}
+                            </span>
+                          </div>
+                          {hasPrintableFieldValue(observation ?? "") ? (
+                            <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                              {String(observation)}
+                            </p>
+                          ) : null}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <div className="rounded-lg border border-dashed border-border/70 bg-background/25 px-4 py-5 text-center text-xs text-muted-foreground">
+                  Nenhuma movimentação processual registrada neste procedimento.
+                </div>
+              )}
+            </DetailSection>
 
-          <DetailSection
-            title="Remessa final"
-            icon={<FileSearch className="h-4 w-4" />}
-            className={
-              remessaTone === "emerald"
-                ? "border-l-[3px] border-l-emerald-500"
-                : remessaTone === "amber"
-                  ? "border-l-[3px] border-l-amber-500"
-                  : "border-l-[3px] border-l-border"
-            }
-            contentClassName="p-0"
-          >
-            <div className="grid md:grid-cols-[minmax(0,1fr)_20rem]">
+            <DetailSection
+              title="Diligências e observações"
+              icon={<NotebookPen className="h-4 w-4" />}
+            >
+              <div className="sipi-print-hidden mb-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const expandAll = !(
+                      expandedNarratives.diligencias && expandedNarratives.observacoes
+                    );
+                    setExpandedNarratives({
+                      diligencias: expandAll,
+                      observacoes: expandAll,
+                    });
+                  }}
+                  className="rounded-md border border-border/70 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/5 hover:text-primary"
+                >
+                  {expandedNarratives.diligencias && expandedNarratives.observacoes
+                    ? "Recolher tudo"
+                    : "Mostrar tudo"}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <TextPanel
+                  label="Observações e diligências"
+                  value={
+                    detalhe.diligenciasPendentes !== FALLBACK
+                      ? detalhe.diligenciasPendentes
+                      : detalhe.observacoes
+                  }
+                  expanded={expandedNarratives.diligencias}
+                  onToggle={() =>
+                    setExpandedNarratives((current) => ({
+                      ...current,
+                      diligencias: !current.diligencias,
+                    }))
+                  }
+                />
+              </div>
+            </DetailSection>
+
+            <DetailSection
+              title="Histórico de status"
+              icon={<CalendarClock className="h-4 w-4" />}
+              className="sipi-print-hidden"
+            >
+              {statusHistory.length > 0 ? (
+                <div className="space-y-2">
+                  {statusHistory.slice(0, 8).map((event) => (
+                    <div
+                      key={event.id}
+                      className="rounded-lg border border-border/60 bg-background/45 px-3 py-2"
+                    >
+                      <p className="text-xs font-semibold text-foreground">
+                        {event.previous_status_tag_id
+                          ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
+                          : ""}
+                        {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
+                      </p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        {formatDateTime(event.changed_at)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  O histórico será formado automaticamente nas próximas mudanças de status.
+                </p>
+              )}
+            </DetailSection>
+
+            <DetailSection
+              title="Atalhos"
+              icon={<Link2 className="h-4 w-4" />}
+              className="sipi-print-hidden"
+            >
+              <div className="space-y-2">
+                <ShortcutLink
+                  to="/auditoria"
+                  icon={<ShieldCheck className="h-4 w-4" />}
+                  label="Abrir auditoria"
+                />
+                <ShortcutLink
+                  to="/representacoes"
+                  icon={<Scale className="h-4 w-4" />}
+                  label="Ver movimentações processuais"
+                />
+              </div>
+            </DetailSection>
+          </section>
+
+          <aside className="order-first lg:order-none print:order-none">
+            <div className="sipi-print-hidden">
+              <ProcedureOperationsPanel
+                caseId={caso.id}
+                canEdit={canEditCases(profile)}
+                numeroPpe={detalhe.numeroPpe === FALLBACK ? null : detalhe.numeroPpe}
+                movimentacoes={movimentacoes}
+                onRequisitionCreated={(movement) =>
+                  setMovimentacoes((current) => [
+                    movement,
+                    ...current.filter((item) => item.id !== movement.id),
+                  ])
+                }
+              />
+            </div>
+            <DetailSection
+              title="Remessa final"
+              icon={<FileSearch className="h-4 w-4" />}
+              className={`mt-4 ${
+                remessaTone === "emerald"
+                  ? "border-l-[3px] border-l-emerald-500"
+                  : remessaTone === "amber"
+                    ? "border-l-[3px] border-l-amber-500"
+                    : "border-l-[3px] border-l-border"
+              }`}
+              contentClassName="p-0"
+            >
               <ProcedureDataGrid
-                columns={2}
+                columns={1}
                 items={[
                   {
                     label: "Situação da remessa",
@@ -1429,216 +1713,9 @@ function InqueritoDetalhes() {
                   { label: "Data de envio", value: formatDateValue(detalhe.dataEnvioRelatorio) },
                 ]}
               />
-              {canEditCases(profile) ? (
-                <div className="sipi-print-hidden flex items-center border-t border-border/50 p-3 md:border-l md:border-t-0">
-                  <a
-                    href={`/nova-representacao?inqueritoId=${encodeURIComponent(caso.id)}&ppe=${encodeURIComponent(detalhe.numeroPpe === FALLBACK ? "" : detalhe.numeroPpe)}&tipo=relatorio-final`}
-                    className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 text-xs font-bold text-primary transition-colors hover:bg-primary/15"
-                  >
-                    <FileText className="h-3.5 w-3.5" /> Registrar relatório final
-                  </a>
-                </div>
-              ) : null}
-            </div>
-          </DetailSection>
-
-          {hasComplementaryProcedureData ? (
-            <DetailSection
-              title="Informações complementares"
-              icon={<ShieldAlert className="h-4 w-4" />}
-              contentClassName="p-0"
-            >
-              <ProcedureDataGrid
-                items={[
-                  { label: "Bairro", value: detalhe.bairro },
-                  { label: "Vinculado à facção", value: detalhe.vinculadoFaccao },
-                  { label: "Nome da facção", value: detalhe.nomeFaccao },
-                  { label: "Houve arma de fogo", value: detalhe.houveArmaFogo },
-                  { label: "Arma utilizada", value: detalhe.armaUtilizada },
-                  { label: "Observações das armas", value: detalhe.observacoesArmas },
-                ]}
-              />
             </DetailSection>
-          ) : null}
-
-          <DetailSection
-            title="Histórico de movimentações processuais"
-            icon={<Gavel className="h-4 w-4" />}
-            className="sipi-print-hidden"
-          >
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                {movimentacoesCount === 1
-                  ? "1 movimentação vinculada a este procedimento."
-                  : `${movimentacoesCount} movimentações vinculadas a este procedimento.`}
-              </p>
-              {canEditCases(profile) ? (
-                <a
-                  href={`/nova-representacao?inqueritoId=${encodeURIComponent(caso.id)}&ppe=${encodeURIComponent(detalhe.numeroPpe === FALLBACK ? "" : detalhe.numeroPpe)}`}
-                  className="inline-flex h-8 shrink-0 items-center gap-2 rounded-md border border-primary/35 bg-primary/10 px-3 text-xs font-bold text-primary transition-colors hover:bg-primary/15"
-                >
-                  <Gavel className="h-3.5 w-3.5" /> Registrar movimentação
-                </a>
-              ) : null}
-            </div>
-            {movimentacoes.length > 0 ? (
-              <ol className="relative space-y-3 border-l border-primary/25 pl-5">
-                {movimentacoes.map((movimentacao) => {
-                  const movementDate =
-                    movimentacao.data_protocolo ??
-                    movimentacao.data_representacao ??
-                    movimentacao.updated_at ??
-                    movimentacao.created_at;
-                  const observation =
-                    movimentacao.observacoes_movimentacao ??
-                    movimentacao.observacoes_internas ??
-                    movimentacao.resumo_fatos;
-                  return (
-                    <li key={movimentacao.id} className="relative">
-                      <span className="absolute -left-[1.55rem] top-3 h-2.5 w-2.5 rounded-full border-2 border-card bg-primary shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                      <Link
-                        to="/representacoes/$representacaoId"
-                        params={{ representacaoId: movimentacao.id }}
-                        className="block rounded-lg border border-border/60 bg-background/45 px-3 py-3 transition-colors hover:border-primary/35 hover:bg-primary/[0.04]"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-foreground">
-                              {displayValue(
-                                movimentacao.tipo_normalizado ?? movimentacao.tipo ?? "",
-                              )}
-                            </p>
-                            <p className="mt-1 text-[11px] text-muted-foreground">
-                              {displayValue(
-                                movimentacao.numero_ppe ?? movimentacao.codigo_interno ?? "",
-                              )}
-                            </p>
-                          </div>
-                          <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-primary">
-                            {displayValue(movimentacao.status ?? "")}
-                          </span>
-                        </div>
-                        <div className="mt-3 grid gap-2 border-t border-border/45 pt-2 text-[11px] text-muted-foreground sm:grid-cols-2">
-                          <span>
-                            <strong className="text-foreground">Data:</strong>{" "}
-                            {formatDateTime(movementDate ?? "")}
-                          </span>
-                          <span>
-                            <strong className="text-foreground">Responsável:</strong>{" "}
-                            {displayValue(
-                              movimentacao.responsavel ?? movimentacao.equipe_responsavel ?? "",
-                            )}
-                          </span>
-                        </div>
-                        {hasPrintableFieldValue(observation ?? "") ? (
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                            {String(observation)}
-                          </p>
-                        ) : null}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <div className="rounded-lg border border-dashed border-border/70 bg-background/25 px-4 py-5 text-center text-xs text-muted-foreground">
-                Nenhuma movimentação processual registrada neste procedimento.
-              </div>
-            )}
-          </DetailSection>
-
-          <DetailSection
-            title="Diligências e observações"
-            icon={<NotebookPen className="h-4 w-4" />}
-          >
-            <div className="sipi-print-hidden mb-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  const expandAll = !(
-                    expandedNarratives.diligencias && expandedNarratives.observacoes
-                  );
-                  setExpandedNarratives({
-                    diligencias: expandAll,
-                    observacoes: expandAll,
-                  });
-                }}
-                className="rounded-md border border-border/70 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/5 hover:text-primary"
-              >
-                {expandedNarratives.diligencias && expandedNarratives.observacoes
-                  ? "Recolher tudo"
-                  : "Mostrar tudo"}
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-3">
-              <TextPanel
-                label="Observações e diligências"
-                value={
-                  detalhe.diligenciasPendentes !== FALLBACK
-                    ? detalhe.diligenciasPendentes
-                    : detalhe.observacoes
-                }
-                expanded={expandedNarratives.diligencias}
-                onToggle={() =>
-                  setExpandedNarratives((current) => ({
-                    ...current,
-                    diligencias: !current.diligencias,
-                  }))
-                }
-              />
-            </div>
-          </DetailSection>
-
-          <DetailSection
-            title="Histórico de status"
-            icon={<CalendarClock className="h-4 w-4" />}
-            className="sipi-print-hidden"
-          >
-            {statusHistory.length > 0 ? (
-              <div className="space-y-2">
-                {statusHistory.slice(0, 8).map((event) => (
-                  <div
-                    key={event.id}
-                    className="rounded-lg border border-border/60 bg-background/45 px-3 py-2"
-                  >
-                    <p className="text-xs font-semibold text-foreground">
-                      {event.previous_status_tag_id
-                        ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
-                        : ""}
-                      {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
-                    </p>
-                    <p className="mt-1 text-[10px] text-muted-foreground">
-                      {formatDateTime(event.changed_at)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                O histórico será formado automaticamente nas próximas mudanças de status.
-              </p>
-            )}
-          </DetailSection>
-
-          <DetailSection
-            title="Atalhos"
-            icon={<Link2 className="h-4 w-4" />}
-            className="sipi-print-hidden"
-          >
-            <div className="space-y-2">
-              <ShortcutLink
-                to="/auditoria"
-                icon={<ShieldCheck className="h-4 w-4" />}
-                label="Abrir auditoria"
-              />
-              <ShortcutLink
-                to="/representacoes"
-                icon={<Scale className="h-4 w-4" />}
-                label="Ver movimentações processuais"
-              />
-            </div>
-          </DetailSection>
-        </section>
+          </aside>
+        </div>
         {showDeleteModal && canDeleteCases(profile) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 max-md:hidden">
             <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl">
@@ -1670,54 +1747,6 @@ function InqueritoDetalhes() {
         )}
       </div>
     </AppLayout>
-  );
-}
-
-const OPERATIONAL_TONES = {
-  emerald: "text-primary",
-  red: "text-destructive",
-  amber: "text-warning",
-  violet: "text-violet-500",
-  slate: "text-foreground",
-} as const;
-
-function OperationalMetric({
-  icon,
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  detail?: string;
-  tone: keyof typeof OPERATIONAL_TONES;
-}) {
-  return (
-    <div className="grid min-h-[6.5rem] min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-border/60 px-4 py-4 last:border-b-0 sm:[&:nth-child(odd)]:border-r xl:border-b-0 xl:border-r xl:last:border-r-0">
-      <span
-        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-current/20 bg-current/5 ${OPERATIONAL_TONES[tone]}`}
-      >
-        {icon}
-      </span>
-      <div className="grid min-h-[3.75rem] min-w-0 grid-rows-[1rem_minmax(1.5rem,auto)_1rem] content-center">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-          {label}
-        </p>
-        <p
-          className={`self-center break-words text-sm font-bold leading-5 ${OPERATIONAL_TONES[tone]}`}
-        >
-          {value}
-        </p>
-        <p
-          aria-hidden={!detail}
-          className={`truncate text-[10px] leading-4 text-muted-foreground ${detail ? "" : "invisible"}`}
-        >
-          {detail || "Sem detalhe"}
-        </p>
-      </div>
-    </div>
   );
 }
 
@@ -1772,15 +1801,16 @@ function ProcedureDataGrid({
   columns = 3,
 }: {
   items: ProcedureDataItem[];
-  columns?: 2 | 3;
+  columns?: 1 | 2 | 3;
 }) {
+  const gridColumns =
+    columns === 1 ? "" : columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3";
+  const cellBorder = columns === 1 ? "" : "sm:border-r sm:last:border-r-0";
+
   return (
-    <dl className={`grid ${columns === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3"}`}>
+    <dl className={`grid ${gridColumns}`}>
       {items.map(({ label, value, copyValue, tone = "slate" }) => (
-        <div
-          key={label}
-          className="min-w-0 border-b border-border/50 px-4 py-3 sm:border-r sm:last:border-r-0"
-        >
+        <div key={label} className={`min-w-0 border-b border-border/50 px-4 py-3 ${cellBorder}`}>
           <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
             {label}
           </dt>
@@ -1830,9 +1860,11 @@ function DetailSection({
 function PeopleDetailRows({
   items,
   maxVisible,
+  canAccessNexo,
 }: {
   items: PersonDetailItem[];
   maxVisible?: number;
+  canAccessNexo: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const visibleItems = items.filter((item) => hasPrintableFieldValue(item.name));
@@ -1870,6 +1902,18 @@ function PeopleDetailRows({
                 {item.custody}
               </span>
             ) : null}
+            <InquiryNexoSummaryButton
+              nexoPersonId={item.nexoPessoaId ?? null}
+              nexoOrganizationId={item.nexoOrganizacaoId ?? null}
+              nexoLinkId={item.nexoVinculoId ?? null}
+              factionName={item.faccaoNomeInformada ?? null}
+              factionSigla={item.faccaoSiglaInformada ?? null}
+              reportedFunction={item.funcaoFaccaoInformada ?? null}
+              reportedSource={item.faccaoFonteInformada ?? null}
+              person={item.nexoPessoa ?? null}
+              organization={item.nexoOrganizacao ?? null}
+              canAccessNexo={canAccessNexo}
+            />
           </dd>
         </div>
       ))}

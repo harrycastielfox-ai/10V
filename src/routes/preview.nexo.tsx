@@ -36,7 +36,8 @@ function NexoPreviewPage() {
         </Link>
       </div>
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 md:px-8">
-        DEMONSTRAÇÃO: pessoas e vínculos fictícios. Os nomes das organizações são referências públicas e não indicam atuação em Itabela/BA.
+        DEMONSTRAÇÃO: pessoas e vínculos fictícios. Os nomes das organizações são referências
+        públicas e não indicam atuação em Itabela/BA.
       </div>
       <main className="min-w-0">
         <NexoWorkspacePage preview />

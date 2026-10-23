@@ -7,12 +7,14 @@ import {
   type InquiryPersonFormValue,
   type InquiryPersonRole,
 } from "@/lib/operationalContracts";
+import { InquiryNexoAffiliationFields } from "@/components/InquiryNexoAffiliationFields";
 
 export type { InquiryPersonFormValue } from "@/lib/operationalContracts";
 
 type InquiryPeopleEditorProps = {
   value: InquiryPersonFormValue[];
   onChange: (value: InquiryPersonFormValue[]) => void;
+  canAccessNexo?: boolean;
 };
 
 const ROLE_LABEL: Record<InquiryPersonRole, string> = {
@@ -75,7 +77,11 @@ function personSummary(person: InquiryPersonFormValue): string[] {
   return parts;
 }
 
-export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProps) {
+export function InquiryPeopleEditor({
+  value,
+  onChange,
+  canAccessNexo = false,
+}: InquiryPeopleEditorProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<InquiryPersonFormValue>(createInquiryPerson);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -294,6 +300,12 @@ export function InquiryPeopleEditor({ value, onChange }: InquiryPeopleEditorProp
                   className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition focus:border-primary"
                 />
               </label>
+
+              <InquiryNexoAffiliationFields
+                value={draft}
+                onChange={updateDraft}
+                canAccessNexo={canAccessNexo}
+              />
 
               <div className="rounded-xl border border-border/70 bg-background/45 p-4">
                 <p className="mb-3 text-xs text-muted-foreground">{SITUATION_HINT[draft.papel]}</p>

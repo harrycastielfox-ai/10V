@@ -15,6 +15,7 @@ import {
   type RepresentacaoRecord,
 } from "@/lib/repositories/representacoesRepository";
 import { getCurrentProfile } from "@/lib/auth";
+import { isRequisicaoMovement } from "@/lib/requisicoes";
 import {
   canDeleteRepresentacoes,
   canEditRepresentacoes,
@@ -168,7 +169,7 @@ type TimelineEvent = {
 
 function formatDateBR(value?: string | null) {
   if (!value) return null;
-  const date = new Date(value);
+  const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleDateString("pt-BR");
 }
@@ -471,45 +472,76 @@ function DetalheRepresentacao() {
   };
 
   const sigiloso = isRepresentacaoSigilosa(item);
-  const headerIdentifier = item.numero_ppe || item.processo_judicial || "Sem identificação";
+  const isRequisicao = isRequisicaoMovement(item);
+  const headerIdentifier = isRequisicao
+    ? item.requisicao_numero_documento ||
+      item.numero_ppe ||
+      item.processo_judicial ||
+      "Sem identificação"
+    : item.numero_ppe || item.processo_judicial || "Sem identificação";
   const statusAlias = getStatusAlias(item.status);
   const situacaoOperacional = getSituacaoOperacional(item.status);
   const prioridadeText = withFallback(item.prioridade_operacional);
   const cardSections: Array<{ title: string; items: Array<[string, string | null | undefined]> }> =
-    [
-      {
-        title: "Identificação Judicial",
-        items: [
-          ["PPE vinculado / Procedimento relacionado", item.numero_ppe],
-          ["Processo judicial", item.processo_judicial],
-          ["Tipo de protocolo", item.tipo],
-          ["Data do protocolo", item.data_protocolo ?? item.data_representacao],
-        ],
-      },
-      {
-        title: "Tramitação Judicial",
-        items: [
-          ["Status", item.status],
-          ["Vara / Juízo", item.vara_juizo],
-          [
-            "Prazo concedido (dias)",
-            item.prazo_concedido_dias && item.prazo_concedido_dias > 0
-              ? item.prazo_concedido_dias.toString()
-              : null,
-          ],
-          ["Data de vencimento", item.data_vencimento],
-          ["Data da decisão judicial", item.data_decisao_judicial],
-          ["Data de cumprimento", item.data_cumprimento],
-          ["Situação do cumprimento", item.cumprimento_status],
-          ["Resultado do cumprimento", item.resultado_cumprimento],
-        ],
-      },
-    ];
+    isRequisicao
+      ? [
+          {
+            title: "Dados da requisição",
+            items: [
+              ["Origem", item.requisicao_origem],
+              ["Nº do ofício / documento", item.requisicao_numero_documento],
+              [
+                "Recebida em",
+                formatDateBR(item.requisicao_data_recebimento) ?? item.requisicao_data_recebimento,
+              ],
+              [
+                "Prazo em dias",
+                item.requisicao_prazo_dias ? `${item.requisicao_prazo_dias} dias` : null,
+              ],
+              ["Status da requisição", item.status],
+              ["Prioridade", item.prioridade_operacional],
+            ],
+          },
+          {
+            title: "O que foi requisitado",
+            items: [["Descrição", item.requisicao_conteudo]],
+          },
+        ]
+      : [
+          {
+            title: "Identificação Judicial",
+            items: [
+              ["PPE vinculado / Procedimento relacionado", item.numero_ppe],
+              ["Processo judicial", item.processo_judicial],
+              ["Tipo de protocolo", item.tipo],
+              ["Data do protocolo", item.data_protocolo ?? item.data_representacao],
+            ],
+          },
+          {
+            title: "Tramitação Judicial",
+            items: [
+              ["Status", item.status],
+              ["Vara / Juízo", item.vara_juizo],
+              [
+                "Prazo concedido (dias)",
+                item.prazo_concedido_dias && item.prazo_concedido_dias > 0
+                  ? item.prazo_concedido_dias.toString()
+                  : null,
+              ],
+              ["Data de vencimento", item.data_vencimento],
+              ["Data da decisão judicial", item.data_decisao_judicial],
+              ["Data de cumprimento", item.data_cumprimento],
+              ["Situação do cumprimento", item.cumprimento_status],
+              ["Resultado do cumprimento", item.resultado_cumprimento],
+            ],
+          },
+        ];
   const visibleCardSections = cardSections
     .map((section) => ({ ...section, items: onlyPopulatedItems(section.items) }))
     .filter((section) => section.items.length > 0);
-  const observacoesTexto =
-    item.observacoes_movimentacao ?? item.observacoes_decisao ?? item.observacoes_cumprimento;
+  const observacoesTexto = isRequisicao
+    ? null
+    : (item.observacoes_movimentacao ?? item.observacoes_decisao ?? item.observacoes_cumprimento);
   const classificacaoItems = onlyPopulatedItems([
     ["Prioridade", item.prioridade_operacional],
     ["Sigilo", item.pedido_sigiloso],
@@ -518,7 +550,7 @@ function DetalheRepresentacao() {
   const summaryItems: Array<[string, string]> = [];
   if (hasPrintableRepresentacaoValue(item.status)) {
     summaryItems.push(
-      ["Status judicial", statusAlias],
+      [isRequisicao ? "Status da requisição" : "Status judicial", statusAlias],
       ["Situação", situacaoOperacional.replace("Situação: ", "")],
     );
   }
@@ -564,15 +596,37 @@ function DetalheRepresentacao() {
     <AppLayout>
       <div className="sipi-print-document mx-auto w-full max-w-[1480px] space-y-3 px-1 lg:px-2">
         <SipiPrintSheet
-          documentTitle="Ficha de Movimentação Processual"
-          documentSubtitle="Conferência, tramitação e acompanhamento da medida"
-          identifierLabel={item.numero_ppe ? "PPE" : "Processo"}
-          identifier={item.numero_ppe || item.processo_judicial || "Sem identificação"}
+          documentTitle={isRequisicao ? "Ficha de Requisição" : "Ficha de Movimentação Processual"}
+          documentSubtitle={
+            isRequisicao
+              ? "Registro da origem, do conteúdo e do prazo da requisição"
+              : "Conferência, tramitação e acompanhamento da medida"
+          }
+          identifierLabel={
+            isRequisicao
+              ? item.requisicao_numero_documento
+                ? "Ofício / documento"
+                : "PPE"
+              : item.numero_ppe
+                ? "PPE"
+                : "Processo"
+          }
+          identifier={headerIdentifier}
           summary={[
             { label: "Tipo", value: item.tipo },
-            { label: "Status judicial", value: statusAlias },
+            {
+              label: isRequisicao ? "Status da requisição" : "Status judicial",
+              value: statusAlias,
+            },
             { label: "Prioridade", value: item.prioridade_operacional },
-            { label: "Prazo", value: item.data_vencimento ? formatPrazoStatus(item) : null },
+            {
+              label: isRequisicao ? "Prazo informado" : "Prazo",
+              value: item.data_vencimento
+                ? formatPrazoStatus(item)
+                : isRequisicao && item.requisicao_prazo_dias
+                  ? `${item.requisicao_prazo_dias} dias`
+                  : null,
+            },
             {
               label: "Sigilo",
               value: sigiloso ? "Movimentação sigilosa" : null,
@@ -596,7 +650,7 @@ function DetalheRepresentacao() {
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-sm font-extrabold text-muted-foreground sm:text-base">
-                    Movimentação Nº:
+                    {isRequisicao ? "Requisição Nº:" : "Movimentação Nº:"}
                   </span>
                   <h1 className="min-w-0 max-w-full font-mono text-base font-black tracking-tight text-foreground sm:max-w-[min(42vw,34rem)] sm:text-lg">
                     <CopyableDetailValue value={headerIdentifier} />
@@ -628,7 +682,7 @@ function DetalheRepresentacao() {
             >
               <Printer className="h-4 w-4" /> Gerar PDF
             </button>
-            {canEditRepresentacoes(profile) ? (
+            {canEditRepresentacoes(profile) && !isRequisicao ? (
               <button
                 type="button"
                 onClick={() =>
@@ -703,7 +757,7 @@ function DetalheRepresentacao() {
                 key={title}
                 title={title}
                 icon={
-                  title === "Identificação Judicial" ? (
+                  title === "Identificação Judicial" || title === "Dados da requisição" ? (
                     <Scale className="h-4 w-4" />
                   ) : (
                     <Gavel className="h-4 w-4" />

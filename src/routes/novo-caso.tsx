@@ -39,6 +39,7 @@ import { getCurrentProfile } from "@/lib/auth";
 import {
   canCreateCases,
   canManageProceduralTags,
+  canViewNexo,
   canViewPrivateCases,
   type UserProfile,
 } from "@/lib/authz";
@@ -895,11 +896,19 @@ function NovoCaso() {
       const pessoasPreenchidas = pessoas
         .filter((pessoa) => pessoa.nome.trim())
         .map((pessoa, ordem) => ({
+          id: pessoa.id,
           papel: pessoa.papel,
           nome: pessoa.nome.trim(),
           observacao: pessoa.observacao.trim() || null,
           autoria_determinada: pessoa.autoriaDeterminada,
           preso: pessoa.preso,
+          nexo_pessoa_id: pessoa.nexoPessoaId,
+          nexo_organizacao_id: pessoa.nexoOrganizacaoId,
+          nexo_vinculo_id: pessoa.nexoVinculoId,
+          faccao_nome_informada: pessoa.faccaoNomeInformada.trim() || null,
+          faccao_sigla_informada: pessoa.faccaoSiglaInformada.trim() || null,
+          funcao_faccao_informada: pessoa.funcaoFaccaoInformada.trim() || null,
+          faccao_fonte_informada: pessoa.faccaoFonteInformada.trim() || null,
           ordem,
         }));
       const linksFailed = await linkComplements(
@@ -1142,7 +1151,11 @@ function NovoCaso() {
 
           {step === 3 && (
             <SectionCard title="4. Pessoas Envolvidas">
-              <InquiryPeopleEditor value={pessoas} onChange={setPessoas} />
+              <InquiryPeopleEditor
+                value={pessoas}
+                onChange={setPessoas}
+                canAccessNexo={canViewNexo(profile)}
+              />
               {/* Autoria e réu preso deixaram de ser perguntados soltos: saem do
                   que foi informado em cada investigado. Aqui fica só o resultado. */}
               <div className="md:col-span-2 lg:col-span-3">
