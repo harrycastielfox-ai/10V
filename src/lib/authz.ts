@@ -268,9 +268,9 @@ export function canManageBos(
   return Boolean(profile && isAuthorized(profile) && BO_EDITOR_ROLES.includes(profile.cargo));
 }
 
-// NEXO concentra inteligência sensível de vínculos. O acesso exige perfil
-// especializado ou autoridade responsável pela unidade.
-const NEXO_ROLES: UserRole[] = ["atlas_access", "delegado", "admin"];
+// NEXO concentra inteligência sensível de vínculos. O acesso é reservado
+// às autoridades responsáveis pela unidade.
+const NEXO_ROLES: UserRole[] = ["delegado", "admin"];
 
 export function canViewNexo(
   profile: Pick<UserProfile, "cargo" | "status_autorizacao"> | null,

@@ -10,11 +10,13 @@ import {
   canEditCases,
   canEditUserAccess,
   canEditVehicles,
+  canManageNexo,
   canManageUsers,
   canOnlyViewPublicCases,
   canRegisterVehicleMovements,
   canReleaseVehicles,
   canViewAuditoria,
+  canViewNexo,
   canViewPrivateCases,
   canViewRepresentacoes,
   canViewVehicles,
@@ -219,6 +221,31 @@ describe("vehicle permissions", () => {
     expect(canEditVehicles(profile)).toBe(false);
     expect(canRegisterVehicleMovements(profile)).toBe(false);
     expect(canReleaseVehicles(profile)).toBe(false);
+  });
+});
+
+describe("NEXO permissions", () => {
+  it("allows only authorized admin and delegado profiles", () => {
+    for (const cargo of ["admin", "delegado"] as const) {
+      const profile = makeProfile({ cargo });
+      expect(canViewNexo(profile)).toBe(true);
+      expect(canManageNexo(profile)).toBe(true);
+    }
+  });
+
+  it("blocks atlas_access and every non-authority profile", () => {
+    for (const cargo of ["atlas_access", "sipi_access", "membro"] as const) {
+      const profile = makeProfile({ cargo });
+      expect(canViewNexo(profile)).toBe(false);
+      expect(canManageNexo(profile)).toBe(false);
+    }
+  });
+
+  it("still requires the profile to be authorized", () => {
+    expect(canViewNexo(makeProfile({ cargo: "admin", status_autorizacao: "bloqueado" }))).toBe(
+      false,
+    );
+    expect(canViewNexo(null)).toBe(false);
   });
 });
 
