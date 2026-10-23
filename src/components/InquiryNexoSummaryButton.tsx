@@ -59,9 +59,9 @@ export function InquiryNexoSummaryButton({
   const fonte = link?.fonte_resumo ?? reportedSource;
 
   return (
-    <div className="sipi-print-hidden inline-flex items-center gap-4">
+    <div className="sipi-print-hidden inline-flex items-center gap-6">
       {sigla ? (
-        <span className="inline-flex max-w-28 items-center truncate rounded-md border border-rose-500/35 bg-rose-500/10 px-2.5 py-1 text-xs font-extrabold text-rose-700">
+        <span className="inline-flex max-w-28 items-center truncate rounded-sm border border-rose-500/35 bg-rose-500/10 px-2 py-1 text-[10px] font-extrabold text-rose-700">
           {sigla}
         </span>
       ) : null}
