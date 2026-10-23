@@ -342,7 +342,9 @@ export function ProcedureOperationsPanel({
       setRequisitionError(
         code === "PGRST204" || code === "42703" || message.includes("requisicao_")
           ? "Os campos de requisição ainda não estão disponíveis no banco. A migração precisa ser aplicada antes de salvar."
-          : "Não foi possível registrar a requisição. Verifique sua sessão e a permissão de gravação.",
+          : code === "23514"
+            ? "Os dados da requisição não atendem às regras de validação. Revise os campos informados e tente novamente."
+            : "Não foi possível registrar a requisição. Verifique sua sessão e a permissão de gravação.",
       );
     } finally {
       setSavingRequisition(false);

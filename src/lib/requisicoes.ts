@@ -34,7 +34,7 @@ export function buildRequisicaoRepresentacaoPayload(
     numero_ppe: input.numeroPpe?.trim() || null,
     processo_judicial: null,
     tipo: "Requisição judicial/ministerial",
-    tipo_normalizado: "Requisição judicial/ministerial",
+    tipo_normalizado: "requisicao_judicial_ministerial",
     data_representacao: input.recebidaEm,
     data_protocolo: input.recebidaEm,
     responsavel: null,

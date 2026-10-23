@@ -16,7 +16,7 @@ describe("requisicoes", () => {
     expect(payload).toMatchObject({
       inquerito_id: "case-1",
       numero_ppe: "PPE-123",
-      tipo_normalizado: "Requisição judicial/ministerial",
+      tipo_normalizado: "requisicao_judicial_ministerial",
       status: "Pendente de cumprimento",
       prioridade_operacional: "Alta",
       requisicao_origem: "Poder Judiciário",
