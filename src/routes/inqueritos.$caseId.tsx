@@ -18,11 +18,6 @@ import {
   type InqueritoRecord,
 } from "@/lib/repositories/inqueritosRepository";
 import {
-  listInqueritoStatusHistory,
-  listProceduralTags,
-} from "@/lib/repositories/proceduralTagsRepository";
-import type { ProceduralStatusHistory, ProceduralTag } from "@/lib/proceduralTags";
-import {
   listRepresentacaoPessoasByRepresentacaoIds,
   listRepresentacoesByInquerito,
   type RepresentacaoPessoaRecord,
@@ -71,7 +66,6 @@ import {
   FileText,
   FolderOpen,
   Gavel,
-  Link2,
   Lock,
   MoreVertical,
   Pencil,
@@ -657,8 +651,6 @@ function InqueritoDetalhes() {
   });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [restricted, setRestricted] = useState(false);
-  const [statusHistory, setStatusHistory] = useState<ProceduralStatusHistory[]>([]);
-  const [statusTags, setStatusTags] = useState<ProceduralTag[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<RepresentacaoRecord[]>([]);
   const [movimentacaoPessoas, setMovimentacaoPessoas] = useState<
     Record<string, RepresentacaoPessoaRecord[]>
@@ -673,14 +665,7 @@ function InqueritoDetalhes() {
         setPessoasLoadWarning(false);
         setNexoPeople([]);
         setNexoOrganizations([]);
-        const [
-          currentProfile,
-          inquerito,
-          pessoasResult,
-          historyResult,
-          tagsResult,
-          movementsResult,
-        ] = await Promise.all([
+        const [currentProfile, inquerito, pessoasResult, movementsResult] = await Promise.all([
           getCurrentProfile(),
           getInqueritoById(caseId),
           listInqueritoPessoas(caseId)
@@ -689,8 +674,6 @@ function InqueritoDetalhes() {
               console.warn("[inqueritos:detalhe] pessoas adicionais indisponiveis", peopleError);
               return { pessoasSalvas: [], failed: true };
             }),
-          listInqueritoStatusHistory(caseId).catch(() => []),
-          listProceduralTags(["inquerito_status"]).catch(() => []),
           listRepresentacoesByInquerito(caseId)
             .then(async (linkedMovements) => ({
               linkedMovements,
@@ -720,8 +703,6 @@ function InqueritoDetalhes() {
         setCaso(inquerito);
         setPessoas(pessoasResult.pessoasSalvas);
         setPessoasLoadWarning(pessoasResult.failed);
-        setStatusHistory(historyResult);
-        setStatusTags(tagsResult);
         setMovimentacoes(movementsResult.linkedMovements);
         setMovimentacaoPessoas(
           movementsResult.linkedPeople.reduce<Record<string, RepresentacaoPessoaRecord[]>>(
@@ -798,10 +779,6 @@ function InqueritoDetalhes() {
     [movimentacoes],
   );
   const movimentacoesCount = movimentacoesProcessuais.length;
-  const statusTagNames = useMemo(
-    () => new Map(statusTags.map((tag) => [tag.id, tag.name])),
-    [statusTags],
-  );
   const registrationChecks = useMemo(() => {
     if (!caso) return [];
     const raw = caso as unknown as Record<string, unknown>;
@@ -1152,27 +1129,6 @@ function InqueritoDetalhes() {
         },
       ],
     },
-    ...(statusHistory.length > 0
-      ? [
-          {
-            id: "procedure-status-history",
-            title: "Histórico de status do procedimento",
-            wide: true,
-            fields: statusHistory.map((event, index) => {
-              const previous = event.previous_status_tag_id
-                ? statusTagNames.get(event.previous_status_tag_id)
-                : null;
-              const current = statusTagNames.get(event.status_tag_id) ?? "Status atualizado";
-              return {
-                id: `procedure-status-${event.id}`,
-                label: `${index + 1} - ${previous ? `${previous} para ` : ""}${current}`,
-                value: [formatDateTime(event.changed_at), event.note].filter(Boolean).join(" | "),
-                wide: true,
-              };
-            }),
-          } satisfies SipiPrintSection,
-        ]
-      : []),
     ...(movimentacoesProcessuais.length > 0
       ? [
           {
@@ -1593,56 +1549,6 @@ function InqueritoDetalhes() {
                 />
               </div>
             </DetailSection>
-
-            <DetailSection
-              title="Histórico de status"
-              icon={<CalendarClock className="h-4 w-4" />}
-              className="sipi-print-hidden"
-            >
-              {statusHistory.length > 0 ? (
-                <div className="space-y-2">
-                  {statusHistory.slice(0, 8).map((event) => (
-                    <div
-                      key={event.id}
-                      className="rounded-lg border border-border/60 bg-background/45 px-3 py-2"
-                    >
-                      <p className="text-xs font-semibold text-foreground">
-                        {event.previous_status_tag_id
-                          ? `${statusTagNames.get(event.previous_status_tag_id) ?? "Status anterior"} → `
-                          : ""}
-                        {statusTagNames.get(event.status_tag_id) ?? "Status atualizado"}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {formatDateTime(event.changed_at)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  O histórico será formado automaticamente nas próximas mudanças de status.
-                </p>
-              )}
-            </DetailSection>
-
-            <DetailSection
-              title="Atalhos"
-              icon={<Link2 className="h-4 w-4" />}
-              className="sipi-print-hidden"
-            >
-              <div className="space-y-2">
-                <ShortcutLink
-                  to="/auditoria"
-                  icon={<ShieldCheck className="h-4 w-4" />}
-                  label="Abrir auditoria"
-                />
-                <ShortcutLink
-                  to="/representacoes"
-                  icon={<Scale className="h-4 w-4" />}
-                  label="Ver movimentações processuais"
-                />
-              </div>
-            </DetailSection>
           </section>
 
           <aside className="order-first lg:order-none print:order-none">
@@ -2029,31 +1935,6 @@ function TextPanel({
         </div>
       )}
     </div>
-  );
-}
-
-function ShortcutLink({
-  to,
-  icon,
-  label,
-}: {
-  to: "/auditoria" | "/representacoes";
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-border/50 bg-background/25 px-3 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/5"
-    >
-      <span className="flex items-center gap-2 text-primary">
-        {icon}
-        <span className="text-foreground">{label}</span>
-      </span>
-      <span aria-hidden="true" className="text-muted-foreground">
-        →
-      </span>
-    </Link>
   );
 }
 
