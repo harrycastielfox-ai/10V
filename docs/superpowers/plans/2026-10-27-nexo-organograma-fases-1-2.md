@@ -32,10 +32,12 @@
 ### Task 1: Projeção hierárquica pura
 
 **Files:**
+
 - Create: `src/features/nexo/nexoOrganogram.ts`
 - Create: `src/features/nexo/nexoOrganogram.test.ts`
 
 **Interfaces:**
+
 - Consumes: `NexoPessoa`, `NexoVinculo`.
 - Produces: `buildNexoOrganogram`, `searchNexoOrganogram`, `getNexoOrganogramAncestors`, `getVisibleNexoOrganogram` e tipos do modelo.
 
@@ -48,12 +50,14 @@
 ### Task 2: Canvas interativo e painel contextual
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `pnpm-lock.yaml`
 - Create: `src/features/nexo/components/NexoOrganogram.tsx`
 - Modify: `src/features/nexo/nexoVisual.css`
 
 **Interfaces:**
+
 - Consumes: funções do Task 1, `getNexoPersonPhotoUrl`, `onOpen(person)`, `onManage(person, link)`.
 - Produces: `NexoOrganogram` com props `organization`, `members`, `onOpen`, `onManage`, `loading?`, `error?`.
 
@@ -67,10 +71,12 @@
 ### Task 3: Integração no dossiê
 
 **Files:**
+
 - Modify: `src/features/nexo/components/NexoDossier.tsx`
 - Modify: `src/features/nexo/components/NexoDossier.test.ts`
 
 **Interfaces:**
+
 - Consumes: `NexoOrganogram` do Task 2 e diálogo existente `LinkManagementDialog`.
 - Produces: aba `organograma` exclusiva de organização, com abertura de perfil e gestão de vínculo existentes.
 
@@ -83,10 +89,12 @@
 ### Task 4: Validação, documentação e PR
 
 **Files:**
+
 - Create: `docs/nexo-organograma-fase-1-2.md`
 - Modify: `docs/roadmap-nexo.md`
 
 **Interfaces:**
+
 - Consumes: entrega dos Tasks 1–3.
 - Produces: relatório técnico, instruções localhost e evidências de validação.
 
