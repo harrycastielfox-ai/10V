@@ -34,6 +34,7 @@ type RawVehicleInspection = Omit<VehicleInspection, "vehicle" | "bo"> & {
 };
 
 const INSPECTION_PDF_BUCKET = "vehicle-inspection-pdfs";
+const MAX_INSPECTION_PDF_BYTES = 15 * 1024 * 1024;
 
 const INSPECTION_SELECT =
   "id,vehicle_id,bo_id,status,inspection_date,location,inspector_notes,police_report_number,presentation_reason,presenting_institution,yard_type,yard_location,delivery_restricted,checklist,linked_people,original_vehicle_data,findings,current_version,pdf_storage_path,pdf_sha256,created_at,updated_at,created_by,updated_by,bo:boletins_ocorrencia!vehicle_inspections_bo_id_fkey(id,numero_bo,infracao_penal,responsavel_nome,status,deleted_at),vehicle:vehicles(id,internal_id,vehicle_type,brand,model,brand_model,color,plate,renavam,engine_number,chassis,manufacture_year,model_year,conservation_state)";
@@ -272,15 +273,40 @@ export async function uploadVehicleInspectionPdf(
   version: number,
   file: File,
 ) {
-  const path = `${inspectionId}/v${version}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const { error } = await supabase.storage
-    .from(INSPECTION_PDF_BUCKET)
-    .upload(path, file, { upsert: false, contentType: "application/pdf" });
-  if (error) throw error;
+  if (file.type.toLowerCase() !== "application/pdf") {
+    throw Object.assign(new Error("Selecione um arquivo PDF."), {
+      code: "INSPECTION_PDF_INVALID_TYPE",
+    });
+  }
+  if (file.size < 5 || file.size > MAX_INSPECTION_PDF_BYTES) {
+    throw Object.assign(new Error("O PDF deve ter no máximo 15 MB."), {
+      code: "INSPECTION_PDF_INVALID_SIZE",
+    });
+  }
+
+  const header = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  if (String.fromCharCode(...header) !== "%PDF-") {
+    throw Object.assign(new Error("O arquivo selecionado não tem assinatura PDF válida."), {
+      code: "INSPECTION_PDF_INVALID_CONTENT",
+    });
+  }
+
+  const nameWithoutLastExtension = file.name.replace(/\.[^.]*$/, "");
+  const safeStem =
+    nameWithoutLastExtension
+      .replace(/\.pdf$/i, "")
+      .replace(/[^a-zA-Z0-9_-]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 80) || "vistoria";
+  const path = `${inspectionId}/v${version}/${crypto.randomUUID()}-${safeStem}.pdf`;
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
   const pdfSha256 = Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+  const { error } = await supabase.storage
+    .from(INSPECTION_PDF_BUCKET)
+    .upload(path, file, { upsert: false, contentType: "application/pdf" });
+  if (error) throw error;
   return { path, pdfSha256 };
 }
 

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getTrustedClientIp } from "../_shared/clientIp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,11 +11,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-function getClientIp(req: Request) {
-  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || null;
 }
 
 Deno.serve(async (req) => {
@@ -44,7 +40,7 @@ Deno.serve(async (req) => {
   if (!context?.access_context_consent)
     return json({ captured: false, reason: "consent_required" });
 
-  const ip = getClientIp(req);
+  const ip = getTrustedClientIp(req.headers);
   if (!ip) return json({ captured: false, reason: "ip_unavailable" });
 
   let provider: string | null = null;

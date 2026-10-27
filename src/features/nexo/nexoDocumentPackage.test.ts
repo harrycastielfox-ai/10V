@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createNexoReportConfig } from "./nexoReportConfig";
-import { buildNexoDocumentPackage } from "./nexoDocumentPackage";
+import {
+  buildNexoDocumentPackage,
+  serializeNexoDocumentPackageManifest,
+} from "./nexoDocumentPackage";
 import { NEXO_DEMO_ORGANIZACOES, NEXO_DEMO_PESSOAS } from "./nexoDemoData";
 
 describe("pacote documental NEXO", () => {
@@ -47,5 +50,28 @@ describe("pacote documental NEXO", () => {
       config,
     );
     expect(manifest.entries.every((entry) => entry.kind !== "foto")).toBe(true);
+  });
+
+  it("não grava URLs assinadas nem caminhos privados no manifesto portátil", () => {
+    const config = createNexoReportConfig();
+    const manifest = buildNexoDocumentPackage(
+      { kind: "geral" },
+      { organizacoes: NEXO_DEMO_ORGANIZACOES, pessoas: NEXO_DEMO_PESSOAS },
+      config,
+    );
+    manifest.entries[0] = {
+      ...manifest.entries[0],
+      storagePath: "pessoas/privado/origem.pdf",
+      url: "http://127.0.0.1/storage/v1/object/sign/nexo-private/origem.pdf?token=secret",
+      status: "disponivel",
+    };
+
+    const portable = serializeNexoDocumentPackageManifest(manifest);
+
+    expect(portable).not.toContain("token=secret");
+    expect(portable).not.toContain("pessoas/privado/origem.pdf");
+    expect(JSON.parse(portable).entries[0]).toEqual(
+      expect.objectContaining({ status: "disponivel" }),
+    );
   });
 });

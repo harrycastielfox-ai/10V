@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Clock3,
   ExternalLink,
+  FileCheck2,
   FileText,
   Gauge,
   History,
@@ -27,10 +28,12 @@ import type {
   VehicleInspectionPhoto,
 } from "@/features/vistorias/vistoriaTypes";
 import {
+  attachVehicleInspectionPdf,
   getVehicleInspection,
   getVehicleInspectionPdfUrl,
   listVehicleInspectionPhotos,
   listVehicleInspectionVersions,
+  uploadVehicleInspectionPdf,
   type VehicleInspectionVersion,
 } from "@/lib/repositories/vistoriasRepository";
 
@@ -166,6 +169,7 @@ export default function VehicleInspectionDetailsPage({ inspectionId }: { inspect
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [openingPdf, setOpeningPdf] = useState(false);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -241,6 +245,41 @@ export default function VehicleInspectionDetailsPage({ inspectionId }: { inspect
       setError("Não foi possível abrir o PDF desta vistoria.");
     } finally {
       setOpeningPdf(false);
+    }
+  }
+
+  async function uploadSignedPdf(file: File | undefined) {
+    if (!inspection || !file || uploadingPdf) return;
+    setUploadingPdf(true);
+    setError("");
+    try {
+      const uploaded = await uploadVehicleInspectionPdf(
+        inspection.id,
+        inspection.current_version,
+        file,
+      );
+      const updated = await attachVehicleInspectionPdf(
+        inspection.id,
+        inspection.current_version,
+        uploaded.path,
+        uploaded.pdfSha256,
+      );
+      const updatedVersions = await listVehicleInspectionVersions(inspection.id);
+      setInspection((current) =>
+        current
+          ? {
+              ...current,
+              ...updated,
+              vehicle: current.vehicle,
+              bo: current.bo,
+            }
+          : current,
+      );
+      setVersions(updatedVersions);
+    } catch {
+      setError("Não foi possível anexar o PDF da vistoria.");
+    } finally {
+      setUploadingPdf(false);
     }
   }
 
@@ -326,6 +365,24 @@ export default function VehicleInspectionDetailsPage({ inspectionId }: { inspect
                     >
                       <Pencil className="h-4 w-4" /> Editar vistoria
                     </Link>
+                    <label className="col-span-full inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-success/35 bg-success/10 px-5 text-sm font-black text-success transition hover:-translate-y-0.5 hover:bg-success/15">
+                      {uploadingPdf ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileCheck2 className="h-4 w-4" />
+                      )}
+                      {uploadingPdf ? "Anexando PDF..." : "Anexar PDF assinado"}
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        className="sr-only"
+                        disabled={uploadingPdf}
+                        onChange={(event) => {
+                          void uploadSignedPdf(event.currentTarget.files?.[0]);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
               </div>

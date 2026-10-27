@@ -26,14 +26,44 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high
+
       - name: Lint
         run: pnpm run lint
 
       - name: Type check
         run: pnpm exec tsc --noEmit
 
-      - name: Test
-        run: pnpm run test
+      - name: Test with coverage
+        run: pnpm run test:coverage
+
+      - name: Isolated PostgreSQL migration integration
+        run: pnpm run test:integration
+
+      - name: Migration comparison tooling
+        run: pnpm run test:migrations
+
+      - name: Recovered database baseline and runtime checks
+        run: pnpm run test:schema
+
+      - name: Schema catalog parity tooling
+        run: pnpm run test:schema-parity
+
+      - name: Isolated full-stack E2E safety tooling
+        run: pnpm run test:e2e:local-tools
 
       - name: Production build
         run: pnpm run build
+
+      - name: Bundle budgets
+        run: pnpm run test:bundle
+
+      - name: Install Chromium for E2E smoke tests
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Isolated Supabase full-stack E2E
+        run: pnpm run test:e2e:fullstack
+
+      - name: E2E smoke tests
+        run: pnpm run test:e2e

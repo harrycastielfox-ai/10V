@@ -4,16 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   invoke: vi.fn(),
   setSession: vi.fn(),
+  storageFrom: vi.fn(),
+  upload: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
     functions: { invoke: mocks.invoke },
     auth: { setSession: mocks.setSession },
+    storage: { from: mocks.storageFrom },
+    rpc: mocks.rpc,
   },
 }));
 
-import { authenticateWithLoginOrEmail } from "@/lib/auth";
+import { authenticateWithLoginOrEmail, updateOwnAvatar } from "@/lib/auth";
 
 function functionError(code: string, status: number) {
   return new FunctionsHttpError(
@@ -27,6 +32,9 @@ function functionError(code: string, status: number) {
 describe("authenticateWithLoginOrEmail", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.upload.mockResolvedValue({ error: null });
+    mocks.storageFrom.mockReturnValue({ upload: mocks.upload });
+    mocks.rpc.mockResolvedValue({ error: null });
   });
 
   it("envia as credenciais somente para a função segura e instala a sessão retornada", async () => {
@@ -89,5 +97,28 @@ describe("authenticateWithLoginOrEmail", () => {
     await expect(authenticateWithLoginOrEmail("agente", "senha")).rejects.toMatchObject({
       code: "AUTH_SERVICE_UNAVAILABLE",
     });
+  });
+
+  it("rejeita SVG e outros formatos de avatar não rasterizados", async () => {
+    const avatar = new File(["<svg></svg>"], "avatar.svg", { type: "image/svg+xml" });
+
+    await expect(updateOwnAvatar("user-id", avatar)).rejects.toThrow("AVATAR_INVALID_TYPE");
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+
+  it("deriva a extensão segura do MIME em vez do nome fornecido", async () => {
+    const avatar = new File([new Uint8Array([0xff, 0xd8, 0xff])], "avatar.svg", {
+      type: "image/jpeg",
+    });
+
+    await expect(updateOwnAvatar("user-id", avatar)).resolves.toBe("user-id/avatar.jpg");
+    expect(mocks.upload).toHaveBeenCalledWith("user-id/avatar.jpg", avatar, { upsert: true });
+  });
+
+  it("rejeita conteúdo que não corresponde ao MIME declarado", async () => {
+    const avatar = new File(["<svg></svg>"], "avatar.jpg", { type: "image/jpeg" });
+
+    await expect(updateOwnAvatar("user-id", avatar)).rejects.toThrow("AVATAR_INVALID_CONTENT");
+    expect(mocks.upload).not.toHaveBeenCalled();
   });
 });

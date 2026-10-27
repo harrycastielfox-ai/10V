@@ -8,6 +8,7 @@ import {
 import type { BoPayload, BoRecord, BoResponsavelOption } from "@/features/bo/boTypes";
 
 const LIST_CACHE_TTL_MS = 10_000;
+const LIST_PAGE_SIZE = 1000;
 let boCache: { data: BoRecord[]; fetchedAt: number } | null = null;
 let boPending: Promise<BoRecord[]> | null = null;
 
@@ -28,25 +29,36 @@ export async function listBos(options: { forceRefresh?: boolean } = {}) {
   }
 
   const generation = currentSessionGeneration();
-  boPending = runSupabaseQuery<BoRecord[]>("boletins de ocorrência", (signal) =>
-    supabase
-      .from("boletins_ocorrencia")
-      .select("*")
-      .is("deleted_at", null)
-      .order("updated_at", { ascending: false })
-      .limit(1000)
-      .abortSignal(signal),
-  )
-    .then((data) => {
-      const rows = (data ?? []) as BoRecord[];
-      if (isSessionGenerationCurrent(generation)) {
-        boCache = { data: rows, fetchedAt: Date.now() };
-      }
-      return rows;
-    })
-    .finally(() => {
-      if (isSessionGenerationCurrent(generation)) boPending = null;
-    });
+  boPending = (async () => {
+    const rows: BoRecord[] = [];
+    let cursor: Pick<BoRecord, "updated_at" | "id"> | null = null;
+    for (;;) {
+      const page = await runSupabaseQuery<BoRecord[]>("boletins de ocorrência", (signal) => {
+        let query = supabase
+          .from("boletins_ocorrencia")
+          .select("*")
+          .is("deleted_at", null)
+          .order("updated_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(LIST_PAGE_SIZE);
+        if (cursor) {
+          query = query.or(
+            `updated_at.lt.${cursor.updated_at},and(updated_at.eq.${cursor.updated_at},id.lt.${cursor.id})`,
+          );
+        }
+        return query.abortSignal(signal);
+      });
+      rows.push(...(page ?? []));
+      if (!page || page.length < LIST_PAGE_SIZE) break;
+      cursor = page[page.length - 1];
+    }
+    if (isSessionGenerationCurrent(generation)) {
+      boCache = { data: rows, fetchedAt: Date.now() };
+    }
+    return rows;
+  })().finally(() => {
+    if (isSessionGenerationCurrent(generation)) boPending = null;
+  });
 
   return boPending;
 }

@@ -604,9 +604,10 @@ export function normalizeRepresentationType(value: unknown): RepresentationTypeC
     return "quebra_sigilo";
   }
   if (normalized.includes("interceptacao")) return "interceptacao";
-  if (normalized.includes("relatorio") && normalized.includes("final")) {
-    return "relatorio_final";
-  }
+  // `tipo` preserves the human-readable value. The production constraint for
+  // `tipo_normalizado` does not include `relatorio_final`, so this category
+  // must use the supported fallback until a database migration is approved.
+  if (normalized.includes("relatorio") && normalized.includes("final")) return "outros";
   if (normalized.includes("representacao")) return "representacao";
   return "outros";
 }

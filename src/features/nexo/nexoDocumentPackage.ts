@@ -12,6 +12,7 @@ export interface NexoDocumentPackageEntry {
   path: string;
   kind: "pdf" | "foto";
   sourceKey: string;
+  storagePath: string | null;
   url: string | null;
   status: "disponivel" | "somente-referencia";
 }
@@ -71,6 +72,7 @@ export function buildNexoDocumentPackage(
         ),
         kind: "pdf",
         sourceKey: source.key,
+        storagePath: source.storagePath,
         url: source.url,
         status: source.url ? "disponivel" : "somente-referencia",
       });
@@ -82,6 +84,7 @@ export function buildNexoDocumentPackage(
         ),
         kind: "foto",
         sourceKey: photo.key,
+        storagePath: null,
         url: photo.url,
         status: photo.url ? "disponivel" : "somente-referencia",
       });
@@ -118,10 +121,43 @@ function writeUint32(view: DataView, offset: number, value: number) {
   view.setUint32(offset, value >>> 0, true);
 }
 
-export async function downloadNexoDocumentPackage(manifest: NexoDocumentPackageManifest) {
+export function serializeNexoDocumentPackageManifest(
+  manifest: NexoDocumentPackageManifest,
+  failedPaths: readonly string[] = [],
+  downloadedPaths: readonly string[] = [],
+) {
+  const failed = new Set(failedPaths);
+  const downloaded = new Set(downloadedPaths);
+  return JSON.stringify(
+    {
+      ...manifest,
+      entries: manifest.entries.map(({ url: _url, storagePath: _storagePath, ...entry }) => ({
+        ...entry,
+        status: failed.has(entry.path)
+          ? ("somente-referencia" as const)
+          : downloaded.has(entry.path)
+            ? ("disponivel" as const)
+            : entry.status,
+      })),
+      notes: failed.size
+        ? [
+            ...manifest.notes,
+            `Não foi possível baixar ${failed.size} item(ns): ${[...failed].join(", ")}`,
+          ]
+        : manifest.notes,
+    },
+    null,
+    2,
+  );
+}
+
+export async function downloadNexoDocumentPackage(
+  manifest: NexoDocumentPackageManifest,
+  resolvePrivateUrl?: (storagePath: string) => Promise<string | null>,
+) {
   const encoder = new TextEncoder();
   const files: Array<{ path: string; bytes: Uint8Array }> = [
-    { path: "manifest.json", bytes: encoder.encode(JSON.stringify(manifest, null, 2)) },
+    { path: "manifest.json", bytes: new Uint8Array() },
     {
       path: "LEIA-ME.txt",
       bytes: encoder.encode(
@@ -130,28 +166,27 @@ export async function downloadNexoDocumentPackage(manifest: NexoDocumentPackageM
     },
   ];
   const failed: string[] = [];
-  for (const entry of manifest.entries.filter((item) => item.url)) {
+  const downloaded: string[] = [];
+  for (const entry of manifest.entries) {
     try {
-      const response = await fetch(entry.url!, { credentials: "include" });
+      const url =
+        entry.url ??
+        (entry.storagePath && resolvePrivateUrl
+          ? await resolvePrivateUrl(entry.storagePath)
+          : null);
+      if (!url) continue;
+      const response = await fetch(url, { credentials: "include" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       files.push({ path: entry.path, bytes: new Uint8Array(await response.arrayBuffer()) });
+      downloaded.push(entry.path);
     } catch {
       failed.push(entry.path);
     }
   }
-  if (failed.length) {
-    const updated = {
-      ...manifest,
-      entries: manifest.entries.map((entry) =>
-        failed.includes(entry.path) ? { ...entry, status: "somente-referencia" as const } : entry,
-      ),
-      notes: [
-        ...manifest.notes,
-        `Não foi possível baixar ${failed.length} item(ns): ${failed.join(", ")}`,
-      ],
-    };
-    files[0] = { path: "manifest.json", bytes: encoder.encode(JSON.stringify(updated, null, 2)) };
-  }
+  files[0] = {
+    path: "manifest.json",
+    bytes: encoder.encode(serializeNexoDocumentPackageManifest(manifest, failed, downloaded)),
+  };
   const blob = new Blob([await createStoredZip(files)], { type: "application/zip" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);

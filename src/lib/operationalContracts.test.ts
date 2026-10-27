@@ -117,6 +117,10 @@ describe("normalizeRepresentationType", () => {
     expect(normalizeRepresentationType("Busca e Apreensão Domiciliar")).toBe("busca_apreensao");
   });
 
+  it("keeps relatório final compatible with the database constraint", () => {
+    expect(normalizeRepresentationType("Relatório Final")).toBe("outros");
+  });
+
   it("defaults to outros", () => {
     expect(normalizeRepresentationType("algo nao mapeado")).toBe("outros");
   });

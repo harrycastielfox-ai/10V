@@ -12,6 +12,7 @@ import {
 import {
   createObject,
   getObjectById,
+  ObjectUpdateConflictError,
   updateObject,
   uploadObjectPhotos,
 } from "@/lib/repositories/objectsRepository";
@@ -290,6 +291,7 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
   // Guarda o id do cadastro já gravado para que uma nova tentativa (fotos que
   // falharam) atualize o mesmo objeto em vez de criar outro.
   const [savedObjectId, setSavedObjectId] = useState<string | null>(null);
+  const [expectedUpdatedAt, setExpectedUpdatedAt] = useState("");
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const [inquiryQuery, setInquiryQuery] = useState("");
   const debouncedInquiryQuery = useDebouncedValue(inquiryQuery, 350);
@@ -302,7 +304,10 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
     void getObjectById(objectId)
       .then((object) => {
         if (!object) throw new Error("Objeto não encontrado.");
-        if (!cancelled) setForm(stateFromObject(object));
+        if (!cancelled) {
+          setForm(stateFromObject(object));
+          setExpectedUpdatedAt(object.updated_at);
+        }
       })
       .catch(() => {
         if (!cancelled) setError("Não foi possível carregar o objeto para edição.");
@@ -371,9 +376,10 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
       const payload = toPayload(form);
       const existingId = mode === "edit" ? objectId : savedObjectId;
       const saved = existingId
-        ? await updateObject(existingId, payload)
+        ? await updateObject(existingId, payload, expectedUpdatedAt)
         : await createObject(payload);
       setSavedObjectId(saved.id);
+      setExpectedUpdatedAt(saved.updated_at);
 
       // Daqui em diante o objeto já está gravado. As fotografias são uma etapa
       // à parte: se falharem, o usuário reenvia só elas.
@@ -384,7 +390,11 @@ export function ObjectFormPage({ mode, objectId }: { mode: FormMode; objectId?: 
       navigate({ to: "/objetos/$objectId", params: { objectId: saved.id }, replace: true });
     } catch (submissionError) {
       console.error("[ObjectForm] Falha ao salvar", submissionError);
-      setError("Não foi possível salvar o objeto. Revise os dados e tente novamente.");
+      setError(
+        submissionError instanceof ObjectUpdateConflictError
+          ? submissionError.message
+          : "Não foi possível salvar o objeto. Revise os dados e tente novamente.",
+      );
     } finally {
       setSaving(false);
     }

@@ -37,6 +37,15 @@ export default function NexoModuleFrame() {
           return;
         }
         if (!cancelled) setProfile(currentProfile);
+      } catch (error) {
+        console.error("[NexoModuleFrame] Falha ao validar acesso", error);
+        if (!cancelled) {
+          navigate({
+            to: "/login",
+            search: { erro: "profile_load_failed" } as never,
+            replace: true,
+          });
+        }
       } finally {
         if (!cancelled) setReady(true);
       }

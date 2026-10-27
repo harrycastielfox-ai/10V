@@ -63,9 +63,9 @@ import { Route as VistoriasNovaRouteImport } from './routes/vistorias.nova'
 import { Route as AdminUsuariosUserIdRouteImport } from './routes/admin.usuarios.$userId'
 import { Route as BoBoIdEditarRouteImport } from './routes/bo.$boId_.editar'
 import { Route as InqueritosCaseIdEditarRouteImport } from './routes/inqueritos.$caseId.editar'
-import { Route as ObjetosObjectIdEditarRouteImport } from './routes/objetos.$objectId.editar'
+import { Route as ObjetosObjectIdEditarRouteImport } from './routes/objetos.$objectId_.editar'
 import { Route as RepresentacoesRepresentacaoIdEditarRouteImport } from './routes/representacoes.$representacaoId.editar'
-import { Route as VeiculosVehicleIdEditarRouteImport } from './routes/veiculos.$vehicleId.editar'
+import { Route as VeiculosVehicleIdEditarRouteImport } from './routes/veiculos.$vehicleId_.editar'
 import { Route as VistoriasInspectionIdIndexRouteImport } from './routes/vistorias.$inspectionId.index'
 import { Route as VistoriasInspectionIdEditarRouteImport } from './routes/vistorias.$inspectionId.editar'
 
@@ -341,9 +341,9 @@ const InqueritosCaseIdEditarRoute = InqueritosCaseIdEditarRouteImport.update({
   getParentRoute: () => InqueritosCaseIdRoute,
 } as any)
 const ObjetosObjectIdEditarRoute = ObjetosObjectIdEditarRouteImport.update({
-  id: '/editar',
-  path: '/editar',
-  getParentRoute: () => ObjetosObjectIdRoute,
+  id: '/$objectId_/editar',
+  path: '/$objectId/editar',
+  getParentRoute: () => ObjetosRoute,
 } as any)
 const RepresentacoesRepresentacaoIdEditarRoute =
   RepresentacoesRepresentacaoIdEditarRouteImport.update({
@@ -352,9 +352,9 @@ const RepresentacoesRepresentacaoIdEditarRoute =
     getParentRoute: () => RepresentacoesRepresentacaoIdRoute,
   } as any)
 const VeiculosVehicleIdEditarRoute = VeiculosVehicleIdEditarRouteImport.update({
-  id: '/editar',
-  path: '/editar',
-  getParentRoute: () => VeiculosVehicleIdRoute,
+  id: '/$vehicleId_/editar',
+  path: '/$vehicleId/editar',
+  getParentRoute: () => VeiculosRoute,
 } as any)
 const VistoriasInspectionIdIndexRoute =
   VistoriasInspectionIdIndexRouteImport.update({
@@ -397,12 +397,12 @@ export interface FileRoutesByFullPath {
   '/bo/boletins': typeof BoBoletinsRoute
   '/bo/novo': typeof BoNovoRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
-  '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
+  '/objetos/$objectId': typeof ObjetosObjectIdRoute
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
   '/preview/nexo': typeof PreviewNexoRoute
   '/representacoes/$representacaoId': typeof RepresentacoesRepresentacaoIdRouteWithChildren
-  '/veiculos/$vehicleId': typeof VeiculosVehicleIdRouteWithChildren
+  '/veiculos/$vehicleId': typeof VeiculosVehicleIdRoute
   '/veiculos/adulterados': typeof VeiculosAdulteradosRoute
   '/veiculos/apreendidos': typeof VeiculosApreendidosRoute
   '/veiculos/automoveis': typeof VeiculosAutomoveisRoute
@@ -454,12 +454,12 @@ export interface FileRoutesByTo {
   '/bo/boletins': typeof BoBoletinsRoute
   '/bo/novo': typeof BoNovoRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
-  '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
+  '/objetos/$objectId': typeof ObjetosObjectIdRoute
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
   '/preview/nexo': typeof PreviewNexoRoute
   '/representacoes/$representacaoId': typeof RepresentacoesRepresentacaoIdRouteWithChildren
-  '/veiculos/$vehicleId': typeof VeiculosVehicleIdRouteWithChildren
+  '/veiculos/$vehicleId': typeof VeiculosVehicleIdRoute
   '/veiculos/adulterados': typeof VeiculosAdulteradosRoute
   '/veiculos/apreendidos': typeof VeiculosApreendidosRoute
   '/veiculos/automoveis': typeof VeiculosAutomoveisRoute
@@ -516,12 +516,12 @@ export interface FileRoutesById {
   '/bo/boletins': typeof BoBoletinsRoute
   '/bo/novo': typeof BoNovoRoute
   '/inqueritos/$caseId': typeof InqueritosCaseIdRouteWithChildren
-  '/objetos/$objectId': typeof ObjetosObjectIdRouteWithChildren
+  '/objetos/$objectId': typeof ObjetosObjectIdRoute
   '/objetos/novo': typeof ObjetosNovoRoute
   '/objetos/todos': typeof ObjetosTodosRoute
   '/preview/nexo': typeof PreviewNexoRoute
   '/representacoes/$representacaoId': typeof RepresentacoesRepresentacaoIdRouteWithChildren
-  '/veiculos/$vehicleId': typeof VeiculosVehicleIdRouteWithChildren
+  '/veiculos/$vehicleId': typeof VeiculosVehicleIdRoute
   '/veiculos/adulterados': typeof VeiculosAdulteradosRoute
   '/veiculos/apreendidos': typeof VeiculosApreendidosRoute
   '/veiculos/automoveis': typeof VeiculosAutomoveisRoute
@@ -543,9 +543,9 @@ export interface FileRoutesById {
   '/admin/usuarios/$userId': typeof AdminUsuariosUserIdRoute
   '/bo/$boId_/editar': typeof BoBoIdEditarRoute
   '/inqueritos/$caseId/editar': typeof InqueritosCaseIdEditarRoute
-  '/objetos/$objectId/editar': typeof ObjetosObjectIdEditarRoute
+  '/objetos/$objectId_/editar': typeof ObjetosObjectIdEditarRoute
   '/representacoes/$representacaoId/editar': typeof RepresentacoesRepresentacaoIdEditarRoute
-  '/veiculos/$vehicleId/editar': typeof VeiculosVehicleIdEditarRoute
+  '/veiculos/$vehicleId_/editar': typeof VeiculosVehicleIdEditarRoute
   '/vistorias/$inspectionId/editar': typeof VistoriasInspectionIdEditarRoute
   '/vistorias/$inspectionId/': typeof VistoriasInspectionIdIndexRoute
 }
@@ -724,9 +724,9 @@ export interface FileRouteTypes {
     | '/admin/usuarios/$userId'
     | '/bo/$boId_/editar'
     | '/inqueritos/$caseId/editar'
-    | '/objetos/$objectId/editar'
+    | '/objetos/$objectId_/editar'
     | '/representacoes/$representacaoId/editar'
-    | '/veiculos/$vehicleId/editar'
+    | '/veiculos/$vehicleId_/editar'
     | '/vistorias/$inspectionId/editar'
     | '/vistorias/$inspectionId/'
   fileRoutesById: FileRoutesById
@@ -1137,12 +1137,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InqueritosCaseIdEditarRouteImport
       parentRoute: typeof InqueritosCaseIdRoute
     }
-    '/objetos/$objectId/editar': {
-      id: '/objetos/$objectId/editar'
-      path: '/editar'
+    '/objetos/$objectId_/editar': {
+      id: '/objetos/$objectId_/editar'
+      path: '/$objectId/editar'
       fullPath: '/objetos/$objectId/editar'
       preLoaderRoute: typeof ObjetosObjectIdEditarRouteImport
-      parentRoute: typeof ObjetosObjectIdRoute
+      parentRoute: typeof ObjetosRoute
     }
     '/representacoes/$representacaoId/editar': {
       id: '/representacoes/$representacaoId/editar'
@@ -1151,12 +1151,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepresentacoesRepresentacaoIdEditarRouteImport
       parentRoute: typeof RepresentacoesRepresentacaoIdRoute
     }
-    '/veiculos/$vehicleId/editar': {
-      id: '/veiculos/$vehicleId/editar'
-      path: '/editar'
+    '/veiculos/$vehicleId_/editar': {
+      id: '/veiculos/$vehicleId_/editar'
+      path: '/$vehicleId/editar'
       fullPath: '/veiculos/$vehicleId/editar'
       preLoaderRoute: typeof VeiculosVehicleIdEditarRouteImport
-      parentRoute: typeof VeiculosVehicleIdRoute
+      parentRoute: typeof VeiculosRoute
     }
     '/vistorias/$inspectionId/': {
       id: '/vistorias/$inspectionId/'
@@ -1237,30 +1237,20 @@ const NexoRouteChildren: NexoRouteChildren = {
 
 const NexoRouteWithChildren = NexoRoute._addFileChildren(NexoRouteChildren)
 
-interface ObjetosObjectIdRouteChildren {
-  ObjetosObjectIdEditarRoute: typeof ObjetosObjectIdEditarRoute
-}
-
-const ObjetosObjectIdRouteChildren: ObjetosObjectIdRouteChildren = {
-  ObjetosObjectIdEditarRoute: ObjetosObjectIdEditarRoute,
-}
-
-const ObjetosObjectIdRouteWithChildren = ObjetosObjectIdRoute._addFileChildren(
-  ObjetosObjectIdRouteChildren,
-)
-
 interface ObjetosRouteChildren {
-  ObjetosObjectIdRoute: typeof ObjetosObjectIdRouteWithChildren
+  ObjetosObjectIdRoute: typeof ObjetosObjectIdRoute
   ObjetosNovoRoute: typeof ObjetosNovoRoute
   ObjetosTodosRoute: typeof ObjetosTodosRoute
   ObjetosIndexRoute: typeof ObjetosIndexRoute
+  ObjetosObjectIdEditarRoute: typeof ObjetosObjectIdEditarRoute
 }
 
 const ObjetosRouteChildren: ObjetosRouteChildren = {
-  ObjetosObjectIdRoute: ObjetosObjectIdRouteWithChildren,
+  ObjetosObjectIdRoute: ObjetosObjectIdRoute,
   ObjetosNovoRoute: ObjetosNovoRoute,
   ObjetosTodosRoute: ObjetosTodosRoute,
   ObjetosIndexRoute: ObjetosIndexRoute,
+  ObjetosObjectIdEditarRoute: ObjetosObjectIdEditarRoute,
 }
 
 const ObjetosRouteWithChildren =
@@ -1294,19 +1284,8 @@ const RepresentacoesRouteWithChildren = RepresentacoesRoute._addFileChildren(
   RepresentacoesRouteChildren,
 )
 
-interface VeiculosVehicleIdRouteChildren {
-  VeiculosVehicleIdEditarRoute: typeof VeiculosVehicleIdEditarRoute
-}
-
-const VeiculosVehicleIdRouteChildren: VeiculosVehicleIdRouteChildren = {
-  VeiculosVehicleIdEditarRoute: VeiculosVehicleIdEditarRoute,
-}
-
-const VeiculosVehicleIdRouteWithChildren =
-  VeiculosVehicleIdRoute._addFileChildren(VeiculosVehicleIdRouteChildren)
-
 interface VeiculosRouteChildren {
-  VeiculosVehicleIdRoute: typeof VeiculosVehicleIdRouteWithChildren
+  VeiculosVehicleIdRoute: typeof VeiculosVehicleIdRoute
   VeiculosAdulteradosRoute: typeof VeiculosAdulteradosRoute
   VeiculosApreendidosRoute: typeof VeiculosApreendidosRoute
   VeiculosAutomoveisRoute: typeof VeiculosAutomoveisRoute
@@ -1321,10 +1300,11 @@ interface VeiculosRouteChildren {
   VeiculosRelatoriosRoute: typeof VeiculosRelatoriosRoute
   VeiculosTodosRoute: typeof VeiculosTodosRoute
   VeiculosIndexRoute: typeof VeiculosIndexRoute
+  VeiculosVehicleIdEditarRoute: typeof VeiculosVehicleIdEditarRoute
 }
 
 const VeiculosRouteChildren: VeiculosRouteChildren = {
-  VeiculosVehicleIdRoute: VeiculosVehicleIdRouteWithChildren,
+  VeiculosVehicleIdRoute: VeiculosVehicleIdRoute,
   VeiculosAdulteradosRoute: VeiculosAdulteradosRoute,
   VeiculosApreendidosRoute: VeiculosApreendidosRoute,
   VeiculosAutomoveisRoute: VeiculosAutomoveisRoute,
@@ -1339,6 +1319,7 @@ const VeiculosRouteChildren: VeiculosRouteChildren = {
   VeiculosRelatoriosRoute: VeiculosRelatoriosRoute,
   VeiculosTodosRoute: VeiculosTodosRoute,
   VeiculosIndexRoute: VeiculosIndexRoute,
+  VeiculosVehicleIdEditarRoute: VeiculosVehicleIdEditarRoute,
 }
 
 const VeiculosRouteWithChildren = VeiculosRoute._addFileChildren(

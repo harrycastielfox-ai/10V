@@ -6,6 +6,18 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/**/*.test.ts", "src/routeTree.gen.ts", "src/vite-env.d.ts"],
+      reporter: ["text", "json-summary"],
+      thresholds: {
+        statements: 15,
+        branches: 15,
+        functions: 15,
+        lines: 15,
+      },
+    },
     // O CI não tem (nem deve ter) as credenciais reais do Supabase — só o
     // .env.local de cada máquina tem. Sem isso, qualquer teste que importe,
     // ainda que indiretamente, um repositório que cria o client do Supabase

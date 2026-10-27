@@ -62,17 +62,31 @@ export async function createObject(payload: ObjectPayload) {
   );
 }
 
-export async function updateObject(id: string, payload: ObjectPayload) {
-  return runSupabaseMutation<ObjectRecord>("atualização do objeto", (signal) =>
+export class ObjectUpdateConflictError extends Error {
+  constructor() {
+    super(
+      "A versão aberta deste objeto não está mais disponível ou foi alterada. Recarregue antes de salvar.",
+    );
+    this.name = "ObjectUpdateConflictError";
+  }
+}
+
+export async function updateObject(id: string, payload: ObjectPayload, expectedUpdatedAt: string) {
+  if (!expectedUpdatedAt?.trim()) throw new ObjectUpdateConflictError();
+
+  const data = await runSupabaseMutation<ObjectRecord | null>("atualização do objeto", (signal) =>
     supabase
       .from("objects")
       .update(payload)
       .eq("id", id)
+      .eq("updated_at", expectedUpdatedAt)
       .is("deleted_at", null)
       .select("*")
       .abortSignal(signal)
-      .single(),
+      .maybeSingle(),
   );
+  if (data === null) throw new ObjectUpdateConflictError();
+  return data;
 }
 
 export async function softDeleteObject(id: string) {

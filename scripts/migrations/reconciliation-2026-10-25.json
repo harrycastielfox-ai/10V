@@ -1,0 +1,1938 @@
+{
+  "algorithm": "postgresql-lexical-v1-sha256",
+  "assumptions": [
+    "standard_conforming_strings=on",
+    "metadata array elements are independent SQL commands",
+    "quoted content and letter case remain significant",
+    "lexical equality does not prove semantic equivalence or catalog effects"
+  ],
+  "summary": {
+    "local": 121,
+    "remote": 92,
+    "paired": 92,
+    "lexicallyEqual": 80,
+    "different": 11,
+    "inconclusive": 1,
+    "remoteOnly": 0,
+    "localOnly": 29
+  },
+  "pairs": [
+    {
+      "name": "fix_inqueritos_soft_delete_rls",
+      "localVersion": "20260504120000",
+      "remoteVersion": "20260504120000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "59ac44b8adaedb50c66ca4a468bf16007c334d6eaf931e9e6e6e25624f6a1beb",
+      "remoteFingerprint": "59ac44b8adaedb50c66ca4a468bf16007c334d6eaf931e9e6e6e25624f6a1beb",
+      "localStatementCount": 5,
+      "remoteStatementCount": 5,
+      "localTokenCount": 69,
+      "remoteTokenCount": 69
+    },
+    {
+      "name": "create_auditoria_base",
+      "localVersion": "20260518103000",
+      "remoteVersion": "20260518103000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "8ef72805a6a64e3a910d4c3e73669e412251db5ccc27ec0d6ff8b3d1e1c71bd2",
+      "remoteFingerprint": "5a36221c1e5fc891af63a80b1fd938f6d6d58ad24a1e7bb4149f7b7698911a3b",
+      "localStatementCount": 15,
+      "remoteStatementCount": 15,
+      "localTokenCount": 385,
+      "remoteTokenCount": 385
+    },
+    {
+      "name": "fix_list_auditoria_by_user_entidade_id_type",
+      "localVersion": "20260518123000",
+      "remoteVersion": "20260518123000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "012f9aca9f58e66a403f028c3b4aeb93187bdaa5abe0231d3bdfc20c0c7a26aa",
+      "remoteFingerprint": "cac382d9aaab824a90b487e3502b23fc2822660dc84f25fc8ce5175aabbe59d6",
+      "localStatementCount": 3,
+      "remoteStatementCount": 3,
+      "localTokenCount": 93,
+      "remoteTokenCount": 93
+    },
+    {
+      "name": "create_list_auditoria_for_admin_user",
+      "localVersion": "20260518133000",
+      "remoteVersion": "20260518133000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "1964ff12c480b82578ff64c17a9126dd06ce15e483708b1fc36096b15d611bb3",
+      "remoteFingerprint": "7e1c50680990f9f823a8a900db87518c5f9a39500525d2aad2e74d0dc88a2569",
+      "localStatementCount": 3,
+      "remoteStatementCount": 3,
+      "localTokenCount": 93,
+      "remoteTokenCount": 93
+    },
+    {
+      "name": "fix_auditoria_entidade_id_text_and_rpcs",
+      "localVersion": "20260518150000",
+      "remoteVersion": "20260518150000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "00dca5251ec9b95682331f6f0901b6836b4ad86b85013f813ce06d2772c74a81",
+      "remoteFingerprint": "8d7687686feabb166e5424caac5e15c18a6504f40116b935b470d6e30f4e06c1",
+      "localStatementCount": 12,
+      "remoteStatementCount": 12,
+      "localTokenCount": 296,
+      "remoteTokenCount": 296
+    },
+    {
+      "name": "auditoria_real_full_alignment",
+      "localVersion": "20260518170000",
+      "remoteVersion": "20260518170000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "0d0dbc2cb747618e4f53a7933b21cd65ebb3ed27577fe6c6c6dfd1fc0b1aa5b5",
+      "remoteFingerprint": "0b339b37ca193e937fba55ae8b2a13fa271961110f3fead058fa993f65703d8a",
+      "localStatementCount": 33,
+      "remoteStatementCount": 33,
+      "localTokenCount": 738,
+      "remoteTokenCount": 738
+    },
+    {
+      "name": "fix_auditoria_rpc_ambiguous_id",
+      "localVersion": "20260518183000",
+      "remoteVersion": "20260518183000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "960859c30796c31c9ff68ec49fe6b4108305cfccdb72ff241f52ec2d8f94857f",
+      "remoteFingerprint": "b9dea9aff371352e7e335467912d02d435881518f6244021bbece136de41463b",
+      "localStatementCount": 9,
+      "remoteStatementCount": 9,
+      "localTokenCount": 272,
+      "remoteTokenCount": 272
+    },
+    {
+      "name": "representacoes_judicial_core_fields",
+      "localVersion": "20260520120000",
+      "remoteVersion": "20260520120000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "60cdd21302d204a26305463cc9c09511aa44819011f46bc248b0ca0acf563d8a",
+      "remoteFingerprint": "60cdd21302d204a26305463cc9c09511aa44819011f46bc248b0ca0acf563d8a",
+      "localStatementCount": 1,
+      "remoteStatementCount": 1,
+      "localTokenCount": 46,
+      "remoteTokenCount": 46
+    },
+    {
+      "name": "lock_down_inqueritos_rls",
+      "localVersion": "20260701100000",
+      "remoteVersion": "20260701100000",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": "crlf-vs-lf-only",
+      "rawTextEqual": false,
+      "localFingerprint": "c46614a3040bff7f6341a70b1067fa03bcc596cfe885710954b47e83d7d29a84",
+      "remoteFingerprint": "e336a061e5e4fc4670f5b00768c8ead4769b8a28217c4007e007e192f6b21ac0",
+      "localStatementCount": 19,
+      "remoteStatementCount": 19,
+      "localTokenCount": 242,
+      "remoteTokenCount": 242
+    },
+    {
+      "name": "user_access_contexts",
+      "localVersion": "20260713125420",
+      "remoteVersion": "20260713125420",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "cd68a0fa85acfe8fe208c12f875328a56d429ce6eba5fb308eff3e88251c3183",
+      "remoteFingerprint": "cd68a0fa85acfe8fe208c12f875328a56d429ce6eba5fb308eff3e88251c3183",
+      "localStatementCount": 14,
+      "remoteStatementCount": 14,
+      "localTokenCount": 463,
+      "remoteTokenCount": 463
+    },
+    {
+      "name": "access_context_consent",
+      "localVersion": "20260713143000",
+      "remoteVersion": "20260713143000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "791632d1a5a6baa989d9edbc5aa6468c4b3d54d2fe1979fb8ce3c1a0c25db39a",
+      "remoteFingerprint": "791632d1a5a6baa989d9edbc5aa6468c4b3d54d2fe1979fb8ce3c1a0c25db39a",
+      "localStatementCount": 9,
+      "remoteStatementCount": 9,
+      "localTokenCount": 348,
+      "remoteTokenCount": 348
+    },
+    {
+      "name": "access_context_network_metadata",
+      "localVersion": "20260713150000",
+      "remoteVersion": "20260713150000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "e62ae2e833abd820e5b1d0d50e04ecac7636232f820bb268d4c7bf37fbc1eb11",
+      "remoteFingerprint": "e62ae2e833abd820e5b1d0d50e04ecac7636232f820bb268d4c7bf37fbc1eb11",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 151,
+      "remoteTokenCount": 151
+    },
+    {
+      "name": "security_hardening",
+      "localVersion": "20260713170000",
+      "remoteVersion": "20260713170000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "45210ed7fd22a700db4a2a6fccec5124208570490ded59d73814bc823bcedb9e",
+      "remoteFingerprint": "45210ed7fd22a700db4a2a6fccec5124208570490ded59d73814bc823bcedb9e",
+      "localStatementCount": 10,
+      "remoteStatementCount": 10,
+      "localTokenCount": 169,
+      "remoteTokenCount": 169
+    },
+    {
+      "name": "secure_soft_delete_inquerito",
+      "localVersion": "20260714191002",
+      "remoteVersion": "20260714191002",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "3963af694222f2fbe028391b933653655caf96be4916015954d27fb844613c2a",
+      "remoteFingerprint": "3963af694222f2fbe028391b933653655caf96be4916015954d27fb844613c2a",
+      "localStatementCount": 5,
+      "remoteStatementCount": 5,
+      "localTokenCount": 70,
+      "remoteTokenCount": 70
+    },
+    {
+      "name": "operational_registration_contract",
+      "localVersion": "20260714192500",
+      "remoteVersion": "20260714192500",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "28f538c958673b25680e2c82e1e06a496b3b767d3f8d3e029527a3410c683155",
+      "remoteFingerprint": "28f538c958673b25680e2c82e1e06a496b3b767d3f8d3e029527a3410c683155",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 116,
+      "remoteTokenCount": 116
+    },
+    {
+      "name": "inquerito_pessoas_and_aafai",
+      "localVersion": "20260715110000",
+      "remoteVersion": "20260715110000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "ad1fca197561532b89f7c3903830a4d7e893895ba74e6a43e22b02dbc5ef1de8",
+      "remoteFingerprint": "ad1fca197561532b89f7c3903830a4d7e893895ba74e6a43e22b02dbc5ef1de8",
+      "localStatementCount": 19,
+      "remoteStatementCount": 19,
+      "localTokenCount": 579,
+      "remoteTokenCount": 579
+    },
+    {
+      "name": "harden_inquerito_pessoas_privileges",
+      "localVersion": "20260715124500",
+      "remoteVersion": "20260715124500",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "9b66a20557301ab2a2a32818dd1f7c0dad6e732ec15bf37f2600d0eb1d8740a7",
+      "remoteFingerprint": "9b66a20557301ab2a2a32818dd1f7c0dad6e732ec15bf37f2600d0eb1d8740a7",
+      "localStatementCount": 3,
+      "remoteStatementCount": 3,
+      "localTokenCount": 31,
+      "remoteTokenCount": 31
+    },
+    {
+      "name": "representacao_pessoas",
+      "localVersion": "20260716143000",
+      "remoteVersion": "20260716143000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "c4c692a13728466255d278d91204b9d9f5c8fd9109c21ddca43f83d50e9b5e7f",
+      "remoteFingerprint": "c4c692a13728466255d278d91204b9d9f5c8fd9109c21ddca43f83d50e9b5e7f",
+      "localStatementCount": 11,
+      "remoteStatementCount": 11,
+      "localTokenCount": 265,
+      "remoteTokenCount": 265
+    },
+    {
+      "name": "consolidate_security_grants",
+      "localVersion": "20260730120000",
+      "remoteVersion": "20260730120000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "3f2c94f9e22ee64a2afb7716af01548d30742d08b6f2819170fd7a4d0a453fd6",
+      "remoteFingerprint": "3f2c94f9e22ee64a2afb7716af01548d30742d08b6f2819170fd7a4d0a453fd6",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 66,
+      "remoteTokenCount": 66
+    },
+    {
+      "name": "harden_login_resolve_and_avatar_storage",
+      "localVersion": "20260730150000",
+      "remoteVersion": "20260730150000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "ef9054ad13780147c783b894f51a1bbf30f57fda08f98d33cb7f7aed8d4c16b2",
+      "remoteFingerprint": "ef9054ad13780147c783b894f51a1bbf30f57fda08f98d33cb7f7aed8d4c16b2",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 115,
+      "remoteTokenCount": 115
+    },
+    {
+      "name": "harden_inqueritos_visibilidade_rls",
+      "localVersion": "20260731100000",
+      "remoteVersion": "20260731100000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "bfe028138fdfad3b04c2e17fbc69b3bcf7a8bb90dc3ed811101997aa40bcb2eb",
+      "remoteFingerprint": "bfe028138fdfad3b04c2e17fbc69b3bcf7a8bb90dc3ed811101997aa40bcb2eb",
+      "localStatementCount": 22,
+      "remoteStatementCount": 22,
+      "localTokenCount": 506,
+      "remoteTokenCount": 506
+    },
+    {
+      "name": "revoke_anon_from_sigilo_helper_functions",
+      "localVersion": "20260731110000",
+      "remoteVersion": "20260731110000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "3e642504b441226cde6aff3d6c020c95deb00e938b260f9669574acc87c14aa5",
+      "remoteFingerprint": "3e642504b441226cde6aff3d6c020c95deb00e938b260f9669574acc87c14aa5",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 70,
+      "remoteTokenCount": 70
+    },
+    {
+      "name": "audit_critical_mutations",
+      "localVersion": "20260731133934",
+      "remoteVersion": "20260731133934",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "ee5547e80226cc1bf46c1914fbe5be1bcdee99c452c835121466a9fae3b9390c",
+      "remoteFingerprint": "ee5547e80226cc1bf46c1914fbe5be1bcdee99c452c835121466a9fae3b9390c",
+      "localStatementCount": 10,
+      "remoteStatementCount": 10,
+      "localTokenCount": 202,
+      "remoteTokenCount": 202
+    },
+    {
+      "name": "secure_login_edge_contract",
+      "localVersion": "20260731140711",
+      "remoteVersion": "20260731140711",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "02444b58ed37ed741fd39eaea4f324cc8b22a60d8bc55345c87c2e05e7bd346f",
+      "remoteFingerprint": "02444b58ed37ed741fd39eaea4f324cc8b22a60d8bc55345c87c2e05e7bd346f",
+      "localStatementCount": 24,
+      "remoteStatementCount": 24,
+      "localTokenCount": 428,
+      "remoteTokenCount": 428
+    },
+    {
+      "name": "veiculos_apreendidos",
+      "localVersion": "20260731150000",
+      "remoteVersion": "20260731163606",
+      "status": "different",
+      "differenceKinds": ["token-stream", "quoted-content", "statement-count"],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "61705461b9e903cd4974f92d48169ca945f0bb81c5201659a1c2e594165fe9b8",
+      "remoteFingerprint": "8e45dba78fa03e95579c9552f30fe8c72339c19b5bdf0fd1c7f503fb708bc251",
+      "localStatementCount": 74,
+      "remoteStatementCount": 73,
+      "localTokenCount": 2574,
+      "remoteTokenCount": 2552
+    },
+    {
+      "name": "veiculos_apreendidos_index_alignment",
+      "localVersion": "20260731164500",
+      "remoteVersion": "20260731163720",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "6762e4bda59cc8e4c0423641ad21a1b440eebe5230d9bf49e12e845c6b9433d4",
+      "remoteFingerprint": "6762e4bda59cc8e4c0423641ad21a1b440eebe5230d9bf49e12e845c6b9433d4",
+      "localStatementCount": 1,
+      "remoteStatementCount": 1,
+      "localTokenCount": 22,
+      "remoteTokenCount": 22
+    },
+    {
+      "name": "vehicle_identifier_integrity",
+      "localVersion": "20260731173000",
+      "remoteVersion": "20260731171805",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "f52cd8647de329b393f7f5dd490b7ec3d7d44efbbe5752844534bfcd3186f24f",
+      "remoteFingerprint": "f52cd8647de329b393f7f5dd490b7ec3d7d44efbbe5752844534bfcd3186f24f",
+      "localStatementCount": 19,
+      "remoteStatementCount": 19,
+      "localTokenCount": 485,
+      "remoteTokenCount": 485
+    },
+    {
+      "name": "allow_recurring_vehicle_identifiers",
+      "localVersion": "20260731173500",
+      "remoteVersion": "20260731172852",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "5891933df4fd68b7d81d18d2391becdc82a7cacab252475f93ff246f44ed7d4b",
+      "remoteFingerprint": "5891933df4fd68b7d81d18d2391becdc82a7cacab252475f93ff246f44ed7d4b",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 116,
+      "remoteTokenCount": 116
+    },
+    {
+      "name": "vehicle_role_permissions",
+      "localVersion": "20260731210000",
+      "remoteVersion": "20260731202855",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "e3a450c271ec711adca27804035b7a6eee4b8b841f6e6d7decc42515a0bdb86c",
+      "remoteFingerprint": "e3a450c271ec711adca27804035b7a6eee4b8b841f6e6d7decc42515a0bdb86c",
+      "localStatementCount": 33,
+      "remoteStatementCount": 33,
+      "localTokenCount": 796,
+      "remoteTokenCount": 796
+    },
+    {
+      "name": "vehicle_timeline",
+      "localVersion": "20260731220000",
+      "remoteVersion": "20260731210315",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "72ad898ffb2fc45d16bf829589b46cfae85213a5136295ff050fc6e89a0fb91c",
+      "remoteFingerprint": "72ad898ffb2fc45d16bf829589b46cfae85213a5136295ff050fc6e89a0fb91c",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 220,
+      "remoteTokenCount": 220
+    },
+    {
+      "name": "soft_delete_vehicle",
+      "localVersion": "20260803123721",
+      "remoteVersion": "20260803124200",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "149061756b3ece7981d7e8ea8acd51b2a252ef379aa8d125bd735db39037e1a6",
+      "remoteFingerprint": "149061756b3ece7981d7e8ea8acd51b2a252ef379aa8d125bd735db39037e1a6",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 60,
+      "remoteTokenCount": 60
+    },
+    {
+      "name": "secure_soft_delete_vehicle",
+      "localVersion": "20260803124317",
+      "remoteVersion": "20260803124347",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "75fc4650eabf2062b0803c1ea700cb85c2090217e502fc2a6a3bc0cc9a5dbfe8",
+      "remoteFingerprint": "75fc4650eabf2062b0803c1ea700cb85c2090217e502fc2a6a3bc0cc9a5dbfe8",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 60,
+      "remoteTokenCount": 60
+    },
+    {
+      "name": "allow_privileged_vehicle_soft_delete",
+      "localVersion": "20260803124449",
+      "remoteVersion": "20260803124523",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "c8cd2615310a9d128dc1a6ce7529204e887b900c444df4c1f93973cf35cac241",
+      "remoteFingerprint": "c8cd2615310a9d128dc1a6ce7529204e887b900c444df4c1f93973cf35cac241",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 109,
+      "remoteTokenCount": 109
+    },
+    {
+      "name": "restore_secured_soft_delete_rpc",
+      "localVersion": "20260803124610",
+      "remoteVersion": "20260803124637",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "56494161aec66c468d979fd9f62723b2a1ff784b8db220d60f5edce2879dd93d",
+      "remoteFingerprint": "56494161aec66c468d979fd9f62723b2a1ff784b8db220d60f5edce2879dd93d",
+      "localStatementCount": 5,
+      "remoteStatementCount": 5,
+      "localTokenCount": 69,
+      "remoteTokenCount": 69
+    },
+    {
+      "name": "intercept_vehicle_delete",
+      "localVersion": "20260803124817",
+      "remoteVersion": "20260803124856",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "422fc8f7dced57c744c01d9558fdb8aff98c0325d5f68bb8fdf6387770af294b",
+      "remoteFingerprint": "422fc8f7dced57c744c01d9558fdb8aff98c0325d5f68bb8fdf6387770af294b",
+      "localStatementCount": 10,
+      "remoteStatementCount": 10,
+      "localTokenCount": 161,
+      "remoteTokenCount": 161
+    },
+    {
+      "name": "localizacao_operacional_core",
+      "localVersion": "20260803140000",
+      "remoteVersion": "20260803164624",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "c1a20a8993cd27d2a1471620347beac60b36ca8752118f964edb69f4bda98bc5",
+      "remoteFingerprint": "c1a20a8993cd27d2a1471620347beac60b36ca8752118f964edb69f4bda98bc5",
+      "localStatementCount": 74,
+      "remoteStatementCount": 74,
+      "localTokenCount": 2611,
+      "remoteTokenCount": 2611
+    },
+    {
+      "name": "localizacao_foreign_key_indexes",
+      "localVersion": "20260803140500",
+      "remoteVersion": "20260803165230",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "f8eda2627b70bf64b0c6be9621f488ee14bd00cc2804f2bd4e7e4c5f80460028",
+      "remoteFingerprint": "f8eda2627b70bf64b0c6be9621f488ee14bd00cc2804f2bd4e7e4c5f80460028",
+      "localStatementCount": 19,
+      "remoteStatementCount": 19,
+      "localTokenCount": 247,
+      "remoteTokenCount": 247
+    },
+    {
+      "name": "localizacao_search_indexes",
+      "localVersion": "20260803141000",
+      "remoteVersion": "20260803165837",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "4a8c8cbf65048cd28fc4bf734ad1540c9e00f10c02e4bcf875fa8590398ad7d7",
+      "remoteFingerprint": "4a8c8cbf65048cd28fc4bf734ad1540c9e00f10c02e4bcf875fa8590398ad7d7",
+      "localStatementCount": 11,
+      "remoteStatementCount": 11,
+      "localTokenCount": 277,
+      "remoteTokenCount": 277
+    },
+    {
+      "name": "localizacao_catalogo_territorial",
+      "localVersion": "20260803210317",
+      "remoteVersion": "20260803210317",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "b55d5364ddf45052ac3144b2aea8f4c7aeff8b6127f17b437d7193983b0cf8cc",
+      "remoteFingerprint": "b55d5364ddf45052ac3144b2aea8f4c7aeff8b6127f17b437d7193983b0cf8cc",
+      "localStatementCount": 23,
+      "remoteStatementCount": 23,
+      "localTokenCount": 1066,
+      "remoteTokenCount": 1066
+    },
+    {
+      "name": "localizacao_bairro_painel",
+      "localVersion": "20260803211956",
+      "remoteVersion": "20260803211956",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "914fd2d503c331952120dcccb2c8c74bc674f0820428d0db28850c86f101267d",
+      "remoteFingerprint": "914fd2d503c331952120dcccb2c8c74bc674f0820428d0db28850c86f101267d",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 65,
+      "remoteTokenCount": 65
+    },
+    {
+      "name": "localizacao_bairro_nao_identificado",
+      "localVersion": "20260803213612",
+      "remoteVersion": "20260803213612",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "d077e54148100cf13bf5bc22f96152ac95b82645c0d7b0b7b83dc31a649ddade",
+      "remoteFingerprint": "d077e54148100cf13bf5bc22f96152ac95b82645c0d7b0b7b83dc31a649ddade",
+      "localStatementCount": 12,
+      "remoteStatementCount": 12,
+      "localTokenCount": 166,
+      "remoteTokenCount": 166
+    },
+    {
+      "name": "add_sheet_sync_contract",
+      "localVersion": "20260810141652",
+      "remoteVersion": "20260810141652",
+      "status": "inconclusive",
+      "localMetadataKind": "sql-statements",
+      "remoteMetadataKind": "repository-application-marker",
+      "localFingerprint": "2f57c9d06b6776943e4e794e7a114ad30414d4cd470db8f181957c4c892b9c4a",
+      "remoteFingerprint": "596c64c750e10cc215a3ffafcb6f048ff03558911798e3687ba096a787659c4b",
+      "localStatementCount": 25,
+      "remoteStatementCount": 1
+    },
+    {
+      "name": "procedural_workflow_tags",
+      "localVersion": "20260810171923",
+      "remoteVersion": "20260810171923",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "a4101de1edd0347923eb46f8e4ac9f6db199c88b3615d01d26e28186c29807a0",
+      "remoteFingerprint": "a4101de1edd0347923eb46f8e4ac9f6db199c88b3615d01d26e28186c29807a0",
+      "localStatementCount": 83,
+      "remoteStatementCount": 83,
+      "localTokenCount": 2730,
+      "remoteTokenCount": 2730
+    },
+    {
+      "name": "individual_sigilo_permissions",
+      "localVersion": "20260810173000",
+      "remoteVersion": "20260810173000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "74deac2731aa7f8c03a1092475e8d3cd27fabf2efef597a6f70d611881c93e3a",
+      "remoteFingerprint": "74deac2731aa7f8c03a1092475e8d3cd27fabf2efef597a6f70d611881c93e3a",
+      "localStatementCount": 24,
+      "remoteStatementCount": 24,
+      "localTokenCount": 386,
+      "remoteTokenCount": 386
+    },
+    {
+      "name": "split_numbered_procedural_tags",
+      "localVersion": "20260810190000",
+      "remoteVersion": "20260810190000",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "551deb162865347a2a32f00c2e7b3e275ba89f93d8013c0831709498c5932f59",
+      "remoteFingerprint": "551deb162865347a2a32f00c2e7b3e275ba89f93d8013c0831709498c5932f59",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 442,
+      "remoteTokenCount": 442
+    },
+    {
+      "name": "user_table_preferences",
+      "localVersion": "20260810195249",
+      "remoteVersion": "20260810195249",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "92245de8efebfcd98e49c59b4b83f5d51865e1ba39559d8ddb9b1c71811f51e4",
+      "remoteFingerprint": "92245de8efebfcd98e49c59b4b83f5d51865e1ba39559d8ddb9b1c71811f51e4",
+      "localStatementCount": 17,
+      "remoteStatementCount": 17,
+      "localTokenCount": 321,
+      "remoteTokenCount": 321
+    },
+    {
+      "name": "user_saved_filters",
+      "localVersion": "20260810195250",
+      "remoteVersion": "20260810195250",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "ab2f44a4e4aa0bb0066a72156170ac15c5992059d57ffa79078d03f7a50f710f",
+      "remoteFingerprint": "ab2f44a4e4aa0bb0066a72156170ac15c5992059d57ffa79078d03f7a50f710f",
+      "localStatementCount": 16,
+      "remoteStatementCount": 16,
+      "localTokenCount": 358,
+      "remoteTokenCount": 358
+    },
+    {
+      "name": "tighten_user_configuration_privileges",
+      "localVersion": "20260810202437",
+      "remoteVersion": "20260810202437",
+      "status": "different",
+      "differenceKinds": ["token-stream", "quoted-content", "statement-count"],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "a051aa37708b4d81419c5c34d59463b9201eaf378c42fc50ea22410abe65aa90",
+      "remoteFingerprint": "39f80a67dca7c9b95a6092d013acef245cc8f295a2f63a46799529acf43c1904",
+      "localStatementCount": 20,
+      "remoteStatementCount": 4,
+      "localTokenCount": 342,
+      "remoteTokenCount": 48
+    },
+    {
+      "name": "multi_status_gravidade_tags",
+      "localVersion": "20260814121316",
+      "remoteVersion": "20260814122159",
+      "status": "different",
+      "differenceKinds": ["quoted-content"],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "12c7749d5941b6ce1f1ca1d4a63829c6215e5ea81b85fc43e1b1c0527c30bb19",
+      "remoteFingerprint": "f8b5262a0ff8fbc6094ebedac514b95e783d784dc4524ece45fbcc3706bd5733",
+      "localStatementCount": 13,
+      "remoteStatementCount": 13,
+      "localTokenCount": 764,
+      "remoteTokenCount": 764
+    },
+    {
+      "name": "fix_procedural_tag_utf8_labels",
+      "localVersion": "20260814123859",
+      "remoteVersion": "20260814123945",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "b101ae3860306c1e08e4083cd7edf4252b8f4c5604bc7962d2fa198d3718d29d",
+      "remoteFingerprint": "b101ae3860306c1e08e4083cd7edf4252b8f4c5604bc7962d2fa198d3718d29d",
+      "localStatementCount": 1,
+      "remoteStatementCount": 1,
+      "localTokenCount": 50,
+      "remoteTokenCount": 50
+    },
+    {
+      "name": "add_inquerito_remessa_final",
+      "localVersion": "20260821160917",
+      "remoteVersion": "20260821160917",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": true,
+      "localFingerprint": "b345e381bd1d213ad9472e155648f1c58356c3bd26aac883879f405deea2c3ed",
+      "remoteFingerprint": "b345e381bd1d213ad9472e155648f1c58356c3bd26aac883879f405deea2c3ed",
+      "localStatementCount": 13,
+      "remoteStatementCount": 13,
+      "localTokenCount": 311,
+      "remoteTokenCount": 311
+    },
+    {
+      "name": "vehicle_inspections",
+      "localVersion": "20261013145847",
+      "remoteVersion": "20261013145847",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "661b0167e9417e32419f5e0ee69a7da1d730ce5f267ecafc06cbfe5075cd1a10",
+      "remoteFingerprint": "661b0167e9417e32419f5e0ee69a7da1d730ce5f267ecafc06cbfe5075cd1a10",
+      "localStatementCount": 33,
+      "remoteStatementCount": 33,
+      "localTokenCount": 1087,
+      "remoteTokenCount": 1087
+    },
+    {
+      "name": "audit_vehicle_inspections",
+      "localVersion": "20261013145906",
+      "remoteVersion": "20261013145906",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "f5ca3c3446b26e820f25ffc925983f41610054574a51bf4c51fce58b51d3380f",
+      "remoteFingerprint": "f5ca3c3446b26e820f25ffc925983f41610054574a51bf4c51fce58b51d3380f",
+      "localStatementCount": 10,
+      "remoteStatementCount": 10,
+      "localTokenCount": 152,
+      "remoteTokenCount": 152
+    },
+    {
+      "name": "vehicle_inspection_form_fields",
+      "localVersion": "20261013145923",
+      "remoteVersion": "20261013145923",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "f423780c9f51a7f041ef310464f9330002b91d139b4f9337562413cbafbeded9",
+      "remoteFingerprint": "f423780c9f51a7f041ef310464f9330002b91d139b4f9337562413cbafbeded9",
+      "localStatementCount": 11,
+      "remoteStatementCount": 11,
+      "localTokenCount": 423,
+      "remoteTokenCount": 423
+    },
+    {
+      "name": "vehicle_inspection_photos",
+      "localVersion": "20261013145934",
+      "remoteVersion": "20261013145934",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "a7f8759b4de92e1af99b4f969c6b60abd6777875db0be265e8aefed8536b9204",
+      "remoteFingerprint": "a7f8759b4de92e1af99b4f969c6b60abd6777875db0be265e8aefed8536b9204",
+      "localStatementCount": 12,
+      "remoteStatementCount": 12,
+      "localTokenCount": 373,
+      "remoteTokenCount": 373
+    },
+    {
+      "name": "vehicle_inspection_transactional_writes",
+      "localVersion": "20261013173322",
+      "remoteVersion": "20261013173322",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "845940f49f527e7603717004196c89bb4f20b4cb9f774924f0237ff0f8167dd4",
+      "remoteFingerprint": "845940f49f527e7603717004196c89bb4f20b4cb9f774924f0237ff0f8167dd4",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 246,
+      "remoteTokenCount": 246
+    },
+    {
+      "name": "create_nexo_intelligence_core",
+      "localVersion": "20261016120000",
+      "remoteVersion": "20261016144313",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "97d49676eb8248ddffef97bb2da2e1270511b00b39c10d33d66e0a4599b41604",
+      "remoteFingerprint": "97d49676eb8248ddffef97bb2da2e1270511b00b39c10d33d66e0a4599b41604",
+      "localStatementCount": 59,
+      "remoteStatementCount": 59,
+      "localTokenCount": 1807,
+      "remoteTokenCount": 1807
+    },
+    {
+      "name": "nexo_foreign_key_indexes",
+      "localVersion": "20261016124500",
+      "remoteVersion": "20261016144339",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "2334d32a24112298cb181a55cdc8a3c6df456c5b032b827c2abfe1e0c7ba5358",
+      "remoteFingerprint": "2334d32a24112298cb181a55cdc8a3c6df456c5b032b827c2abfe1e0c7ba5358",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 148,
+      "remoteTokenCount": 148
+    },
+    {
+      "name": "nexo_procedural_links",
+      "localVersion": "20261016133000",
+      "remoteVersion": "20261016150652",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "0a125081f47602a15c092313f06a24061cd6dcbff622c88664efe01f3f12594d",
+      "remoteFingerprint": "0a125081f47602a15c092313f06a24061cd6dcbff622c88664efe01f3f12594d",
+      "localStatementCount": 13,
+      "remoteStatementCount": 13,
+      "localTokenCount": 295,
+      "remoteTokenCount": 295
+    },
+    {
+      "name": "nexo_territorios",
+      "localVersion": "20261016151206",
+      "remoteVersion": "20261016151241",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "f82d7b736f47c2902e92c34008655a7e2ea32d8f3417e6bf6ed820ea009bb36c",
+      "remoteFingerprint": "f82d7b736f47c2902e92c34008655a7e2ea32d8f3417e6bf6ed820ea009bb36c",
+      "localStatementCount": 16,
+      "remoteStatementCount": 16,
+      "localTokenCount": 421,
+      "remoteTokenCount": 421
+    },
+    {
+      "name": "expand_nexo_person_registration",
+      "localVersion": "20261017032636",
+      "remoteVersion": "20261017033139",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "c4e4b5c26433893882b131c7060711fd8c071f69d1438fa6ac7b15038362e636",
+      "remoteFingerprint": "c4e4b5c26433893882b131c7060711fd8c071f69d1438fa6ac7b15038362e636",
+      "localStatementCount": 7,
+      "remoteStatementCount": 7,
+      "localTokenCount": 113,
+      "remoteTokenCount": 113
+    },
+    {
+      "name": "expand_nexo_territories_and_vehicles",
+      "localVersion": "20261017130545",
+      "remoteVersion": "20261017130851",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "6abceaa8ac6aa83d9be68105ca754bcbe0d90f6f904be2eedf3637b21fbb9660",
+      "remoteFingerprint": "6abceaa8ac6aa83d9be68105ca754bcbe0d90f6f904be2eedf3637b21fbb9660",
+      "localStatementCount": 21,
+      "remoteStatementCount": 21,
+      "localTokenCount": 624,
+      "remoteTokenCount": 624
+    },
+    {
+      "name": "add_operational_location_to_bo",
+      "localVersion": "20261017131212",
+      "remoteVersion": "20261017131328",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "8cae6108bc98147cd8a6292bb4f97f8d381229189b8c1db42e2af88f0552b7f2",
+      "remoteFingerprint": "8cae6108bc98147cd8a6292bb4f97f8d381229189b8c1db42e2af88f0552b7f2",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 104,
+      "remoteTokenCount": 104
+    },
+    {
+      "name": "expand_nexo_person_profile",
+      "localVersion": "20261017132400",
+      "remoteVersion": "20261017132830",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "75754664429c4de1ff8a57d0ad364809e021c6c8527c9641b53dcb0f658daaaf",
+      "remoteFingerprint": "75754664429c4de1ff8a57d0ad364809e021c6c8527c9641b53dcb0f658daaaf",
+      "localStatementCount": 5,
+      "remoteStatementCount": 5,
+      "localTokenCount": 212,
+      "remoteTokenCount": 212
+    },
+    {
+      "name": "add_nexo_approximate_age",
+      "localVersion": "20261017133133",
+      "remoteVersion": "20261017133239",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "bccc39a293d0b62141e58cdcb2b6696c10f2b4eeeb0f9e33ec3bec054940704d",
+      "remoteFingerprint": "bccc39a293d0b62141e58cdcb2b6696c10f2b4eeeb0f9e33ec3bec054940704d",
+      "localStatementCount": 2,
+      "remoteStatementCount": 2,
+      "localTokenCount": 34,
+      "remoteTokenCount": 34
+    },
+    {
+      "name": "add_nexo_notes_and_link_management",
+      "localVersion": "20261017202136",
+      "remoteVersion": "20261017202451",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "0fddff96ebd79e9dca6726bd5542ca83b59ac857fd0dbe1d727e37438e0b34a1",
+      "remoteFingerprint": "0fddff96ebd79e9dca6726bd5542ca83b59ac857fd0dbe1d727e37438e0b34a1",
+      "localStatementCount": 14,
+      "remoteStatementCount": 14,
+      "localTokenCount": 384,
+      "remoteTokenCount": 384
+    },
+    {
+      "name": "index_nexo_notes_author",
+      "localVersion": "20261017202518",
+      "remoteVersion": "20261017202530",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "7b87eb478373c483318e65621a57c67b26158d107a11f81ab417f55a73913681",
+      "remoteFingerprint": "7b87eb478373c483318e65621a57c67b26158d107a11f81ab417f55a73913681",
+      "localStatementCount": 1,
+      "remoteStatementCount": 1,
+      "localTokenCount": 13,
+      "remoteTokenCount": 13
+    },
+    {
+      "name": "nexo_member_hierarchy",
+      "localVersion": "20261017215019",
+      "remoteVersion": "20261017215252",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "81ebd3b571a46160c1e01e07a7660f9e03ef76324073ae859424bd435918e2ea",
+      "remoteFingerprint": "81ebd3b571a46160c1e01e07a7660f9e03ef76324073ae859424bd435918e2ea",
+      "localStatementCount": 19,
+      "remoteStatementCount": 19,
+      "localTokenCount": 502,
+      "remoteTokenCount": 502
+    },
+    {
+      "name": "index_nexo_hierarchy_events",
+      "localVersion": "20261017215421",
+      "remoteVersion": "20261017215428",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "a586a075afff0f4df643126ea91490041ad4cc23eb167ac021bba80041ea2941",
+      "remoteFingerprint": "a586a075afff0f4df643126ea91490041ad4cc23eb167ac021bba80041ea2941",
+      "localStatementCount": 2,
+      "remoteStatementCount": 2,
+      "localTokenCount": 25,
+      "remoteTokenCount": 25
+    },
+    {
+      "name": "nexo_procedure_context",
+      "localVersion": "20261017215947",
+      "remoteVersion": "20261017220011",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "3d39df24a5441132b1e0c31079a300bcb80ff4f3d650b2e266185e8ff7dca883",
+      "remoteFingerprint": "3d39df24a5441132b1e0c31079a300bcb80ff4f3d650b2e266185e8ff7dca883",
+      "localStatementCount": 12,
+      "remoteStatementCount": 12,
+      "localTokenCount": 602,
+      "remoteTokenCount": 602
+    },
+    {
+      "name": "nexo_procedure_coordinates",
+      "localVersion": "20261017221028",
+      "remoteVersion": "20261017221230",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "a8c702d805e94d4667997380f7a52134a439b1092b3cc96c0ddb697ce0089c63",
+      "remoteFingerprint": "a8c702d805e94d4667997380f7a52134a439b1092b3cc96c0ddb697ce0089c63",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 127,
+      "remoteTokenCount": 127
+    },
+    {
+      "name": "link_vehicle_inspections_to_bo",
+      "localVersion": "20261019180222",
+      "remoteVersion": "20261019180540",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "980019c234d8a12938b19e07b44d14c66030afc337305b54979e3adfdab3a883",
+      "remoteFingerprint": "980019c234d8a12938b19e07b44d14c66030afc337305b54979e3adfdab3a883",
+      "localStatementCount": 16,
+      "remoteStatementCount": 16,
+      "localTokenCount": 577,
+      "remoteTokenCount": 577
+    },
+    {
+      "name": "fix_nexo_vehicle_link_soft_delete",
+      "localVersion": "20261019183101",
+      "remoteVersion": "20261019183122",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "8282eaf7853a8604880209175cd5de29ee5c03e1b2f3337730b90adfd6d3b219",
+      "remoteFingerprint": "8282eaf7853a8604880209175cd5de29ee5c03e1b2f3337730b90adfd6d3b219",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 60,
+      "remoteTokenCount": 60
+    },
+    {
+      "name": "correct_nexo_removal_and_inspection_pdf",
+      "localVersion": "20261020013222",
+      "remoteVersion": "20261020013306",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "cce7d81d31a1df3af5bcf48a54a6ca40a53975438e82b2788067dd9cf656ce4c",
+      "remoteFingerprint": "cce7d81d31a1df3af5bcf48a54a6ca40a53975438e82b2788067dd9cf656ce4c",
+      "localStatementCount": 9,
+      "remoteStatementCount": 9,
+      "localTokenCount": 155,
+      "remoteTokenCount": 155
+    },
+    {
+      "name": "make_nexo_person_creation_atomic",
+      "localVersion": "20261020171755",
+      "remoteVersion": "20261020172025",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "437074aee3dd8ebc25203d129ca0a27685e480ceb273da5cea565a802e1292bf",
+      "remoteFingerprint": "437074aee3dd8ebc25203d129ca0a27685e480ceb273da5cea565a802e1292bf",
+      "localStatementCount": 6,
+      "remoteStatementCount": 6,
+      "localTokenCount": 90,
+      "remoteTokenCount": 90
+    },
+    {
+      "name": "make_nexo_person_edit_atomic",
+      "localVersion": "20261020172923",
+      "remoteVersion": "20261020173336",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "7de440222d4f93d1e0af77a5cb1efbee6f6aa3a075b32cb37faad8b8c4e3e42e",
+      "remoteFingerprint": "7de440222d4f93d1e0af77a5cb1efbee6f6aa3a075b32cb37faad8b8c4e3e42e",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 78,
+      "remoteTokenCount": 78
+    },
+    {
+      "name": "grant_nexo_address_access",
+      "localVersion": "20261020173427",
+      "remoteVersion": "20261020173457",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "aa8bfc605aebf8333dad230383661d80efd87a924b28f5d2de1c0d9f2fcbade3",
+      "remoteFingerprint": "aa8bfc605aebf8333dad230383661d80efd87a924b28f5d2de1c0d9f2fcbade3",
+      "localStatementCount": 3,
+      "remoteStatementCount": 3,
+      "localTokenCount": 185,
+      "remoteTokenCount": 185
+    },
+    {
+      "name": "consolidate_nexo_address_policies",
+      "localVersion": "20261020173545",
+      "remoteVersion": "20261020173603",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "cac2dc0a7d6603ca2c92c0d371bd415c6e48937026fac08743d17851c8e6ae8f",
+      "remoteFingerprint": "cac2dc0a7d6603ca2c92c0d371bd415c6e48937026fac08743d17851c8e6ae8f",
+      "localStatementCount": 9,
+      "remoteStatementCount": 9,
+      "localTokenCount": 287,
+      "remoteTokenCount": 287
+    },
+    {
+      "name": "nexo_organization_gallery",
+      "localVersion": "20261021143000",
+      "remoteVersion": "20261021115332",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "466f3963b0c440144a177f7f56923acd05050afde8ab0a5b0f836923ed39c5b7",
+      "remoteFingerprint": "466f3963b0c440144a177f7f56923acd05050afde8ab0a5b0f836923ed39c5b7",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 145,
+      "remoteTokenCount": 145
+    },
+    {
+      "name": "nexo_pdf_source_documents",
+      "localVersion": "20261021141231",
+      "remoteVersion": "20261021141231",
+      "status": "different",
+      "differenceKinds": ["token-stream", "quoted-content", "statement-count"],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "2a0dafd491f0172e28b62e1cf266e8d7669382202a7f96d025a1bf6747e40f6f",
+      "remoteFingerprint": "cdb686a04dc631f7a9fad6cbbf5e0fc7e6819b5c3473614ab217836bc4ee660b",
+      "localStatementCount": 27,
+      "remoteStatementCount": 23,
+      "localTokenCount": 882,
+      "remoteTokenCount": 798
+    },
+    {
+      "name": "nexo_pdf_source_cleanup_policies",
+      "localVersion": "20261021141419",
+      "remoteVersion": "20261021141419",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "93efd35ed87e1dcdd63bb9cad7461d213257eb326daf13a38e853b8aeb4855c7",
+      "remoteFingerprint": "93efd35ed87e1dcdd63bb9cad7461d213257eb326daf13a38e853b8aeb4855c7",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 84,
+      "remoteTokenCount": 84
+    },
+    {
+      "name": "nexo_pdf_bucket_policy",
+      "localVersion": "20261021142411",
+      "remoteVersion": "20261021142411",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "93e205980446e67b7d520d1eb62ec4f8303616c11e8297d07d1bc4f6d07071fb",
+      "remoteFingerprint": "93e205980446e67b7d520d1eb62ec4f8303616c11e8297d07d1bc4f6d07071fb",
+      "localStatementCount": 1,
+      "remoteStatementCount": 1,
+      "localTokenCount": 29,
+      "remoteTokenCount": 29
+    },
+    {
+      "name": "nexo_removal_controls",
+      "localVersion": "20261021120000",
+      "remoteVersion": "20261021153133",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "3d0604c110933b87105ffcea9eb3c6397eac3786d099614a29105e949bdd9225",
+      "remoteFingerprint": "3d0604c110933b87105ffcea9eb3c6397eac3786d099614a29105e949bdd9225",
+      "localStatementCount": 3,
+      "remoteStatementCount": 3,
+      "localTokenCount": 49,
+      "remoteTokenCount": 49
+    },
+    {
+      "name": "nexo_pessoa_recursos",
+      "localVersion": "20261021153000",
+      "remoteVersion": "20261021182227",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "7bc77d08b2ecc846096021d7f3113756260498883f19c0ec915331e83b980aab",
+      "remoteFingerprint": "7bc77d08b2ecc846096021d7f3113756260498883f19c0ec915331e83b980aab",
+      "localStatementCount": 14,
+      "remoteStatementCount": 14,
+      "localTokenCount": 398,
+      "remoteTokenCount": 398
+    },
+    {
+      "name": "nexo_pessoa_recursos_edicao",
+      "localVersion": "20261021170000",
+      "remoteVersion": "20261021194128",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "f0ba13856b231c2b5c30687b2b6d047a0b8a0a9ec4af7d95400e4aa50d0d735b",
+      "remoteFingerprint": "f0ba13856b231c2b5c30687b2b6d047a0b8a0a9ec4af7d95400e4aa50d0d735b",
+      "localStatementCount": 3,
+      "remoteStatementCount": 3,
+      "localTokenCount": 108,
+      "remoteTokenCount": 108
+    },
+    {
+      "name": "nexo_pessoa_recursos_created_by_idx",
+      "localVersion": "20261021171000",
+      "remoteVersion": "20261021194142",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "1ecc0688d291e75a88b3a54568c9805dd95413586fcd16ebe03da09c8bf30d90",
+      "remoteFingerprint": "1ecc0688d291e75a88b3a54568c9805dd95413586fcd16ebe03da09c8bf30d90",
+      "localStatementCount": 1,
+      "remoteStatementCount": 1,
+      "localTokenCount": 17,
+      "remoteTokenCount": 17
+    },
+    {
+      "name": "create_nexo_local_vehicles",
+      "localVersion": "20261022173454",
+      "remoteVersion": "20261022173454",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "d0e44f77fc1ef76c45a78a1b9bb4bdcc0a6313a61582ef26374bb6a0b81afc30",
+      "remoteFingerprint": "d0e44f77fc1ef76c45a78a1b9bb4bdcc0a6313a61582ef26374bb6a0b81afc30",
+      "localStatementCount": 30,
+      "remoteStatementCount": 30,
+      "localTokenCount": 1196,
+      "remoteTokenCount": 1196
+    },
+    {
+      "name": "remove_agenda_and_contato_operacional",
+      "localVersion": "20261022175746",
+      "remoteVersion": "20261022175746",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "19da9a9b7d9bc0de957cbf00a502293721de3764f0a2e3dbd6bb6bdbf3715131",
+      "remoteFingerprint": "19da9a9b7d9bc0de957cbf00a502293721de3764f0a2e3dbd6bb6bdbf3715131",
+      "localStatementCount": 59,
+      "remoteStatementCount": 59,
+      "localTokenCount": 1087,
+      "remoteTokenCount": 1087
+    },
+    {
+      "name": "nexo_inquerito_pessoa_links",
+      "localVersion": "20261023140602",
+      "remoteVersion": "20261023140602",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "8019d60cc7aa89e944a413f7ff4f5ee07885175d43089d2aa61c0e5181055af3",
+      "remoteFingerprint": "8019d60cc7aa89e944a413f7ff4f5ee07885175d43089d2aa61c0e5181055af3",
+      "localStatementCount": 23,
+      "remoteStatementCount": 23,
+      "localTokenCount": 464,
+      "remoteTokenCount": 464
+    },
+    {
+      "name": "requisicao_movimentacao_fields",
+      "localVersion": "20261023150600",
+      "remoteVersion": "20261023150600",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "952f1a74ba5610c90710fcbd34c4aba83f5c3f246348e0ac22000994ac6b55f4",
+      "remoteFingerprint": "952f1a74ba5610c90710fcbd34c4aba83f5c3f246348e0ac22000994ac6b55f4",
+      "localStatementCount": 8,
+      "remoteStatementCount": 8,
+      "localTokenCount": 214,
+      "remoteTokenCount": 214
+    },
+    {
+      "name": "restrict_nexo_to_admin_delegado",
+      "localVersion": "20261023160044",
+      "remoteVersion": "20261023160044",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "acc203798ceb4df3bf713da262411172a5c039b6e5a0f13cc61867be5520d017",
+      "remoteFingerprint": "acc203798ceb4df3bf713da262411172a5c039b6e5a0f13cc61867be5520d017",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 56,
+      "remoteTokenCount": 56
+    },
+    {
+      "name": "allow_requisicao_movement_type",
+      "localVersion": "20261023161756",
+      "remoteVersion": "20261023161756",
+      "status": "lexically-equal",
+      "differenceKinds": [],
+      "quotedDifferenceDiagnostic": null,
+      "rawTextEqual": false,
+      "localFingerprint": "e11dcdb906a2819a3b412b704760db131d90f44396132ffc1b340d8f33a18704",
+      "remoteFingerprint": "e11dcdb906a2819a3b412b704760db131d90f44396132ffc1b340d8f33a18704",
+      "localStatementCount": 4,
+      "remoteStatementCount": 4,
+      "localTokenCount": 74,
+      "remoteTokenCount": 74
+    }
+  ],
+  "localOnly": [
+    {
+      "name": "allow_unspecified_vehicle_situation",
+      "version": "20260731175836"
+    },
+    {
+      "name": "localizacao_bairros_centros_ibge",
+      "version": "20260804093000"
+    },
+    {
+      "name": "localizacao_ajuste_centros",
+      "version": "20260804120000"
+    },
+    {
+      "name": "localizacao_remove_referencias",
+      "version": "20260804123000"
+    },
+    {
+      "name": "objetos_apreendidos",
+      "version": "20260805090000"
+    },
+    {
+      "name": "objetos_ajustes_situacao",
+      "version": "20260805110000"
+    },
+    {
+      "name": "objetos_cor_e_dados_documento",
+      "version": "20260805120000"
+    },
+    {
+      "name": "contato_operacional_restringe_admin",
+      "version": "20260806090000"
+    },
+    {
+      "name": "localizacao_pessoas_multiplos_telefones",
+      "version": "20260806100000"
+    },
+    {
+      "name": "agenda_oitivas",
+      "version": "20260806120000"
+    },
+    {
+      "name": "agenda_responsaveis",
+      "version": "20260806121000"
+    },
+    {
+      "name": "remove_meus_agendamentos_lembrete",
+      "version": "20260806130000"
+    },
+    {
+      "name": "localizacao_rotas_delete",
+      "version": "20260807143000"
+    },
+    {
+      "name": "localizacao_soft_delete_policies",
+      "version": "20260807150000"
+    },
+    {
+      "name": "auditoria_performance_cleanup",
+      "version": "20260807170000"
+    },
+    {
+      "name": "fix_admin_update_user_function_grant",
+      "version": "20260807180000"
+    },
+    {
+      "name": "boletins_ocorrencia_core",
+      "version": "20260814130000"
+    },
+    {
+      "name": "allow_bo_inquerito_and_representacao_links",
+      "version": "20260814133539"
+    },
+    {
+      "name": "fix_soft_delete_bo_rls",
+      "version": "20260814135400"
+    },
+    {
+      "name": "inquerito_pessoas_situacao",
+      "version": "20260817140000"
+    },
+    {
+      "name": "inquerito_pessoas_situacao_todos_papeis",
+      "version": "20260817160000"
+    },
+    {
+      "name": "fix_soft_delete_localizacao_rls",
+      "version": "20260820150000"
+    },
+    {
+      "name": "sync_remessa_final_na_troca_de_categoria",
+      "version": "20260821171500"
+    },
+    {
+      "name": "amplia_nome_da_tag_processual",
+      "version": "20260824120000"
+    },
+    {
+      "name": "restore_required_storage_buckets",
+      "version": "20261024111500"
+    },
+    {
+      "name": "harden_privileged_rpcs",
+      "version": "20261024123000"
+    },
+    {
+      "name": "harden_data_api_table_grants",
+      "version": "20261025022835"
+    },
+    {
+      "name": "fix_objects_without_procedure",
+      "version": "20261025070926"
+    },
+    {
+      "name": "restore_vehicle_search_normalization",
+      "version": "20261025123642"
+    }
+  ],
+  "snapshotDate": "2026-10-25",
+  "projectRef": "hgujtkwetvagngdgjstj",
+  "source": "Read-only migration history metadata. No application rows, remote writes, repairs or renames.",
+  "limits": [
+    "Recorded migration statements do not establish current catalog state or prove whether missing recorded statements ran through SQL Editor.",
+    "Seven quoted-content differences are CRLF/LF only and remain different.",
+    "One remote migration records a descriptive repository application marker rather than executable SQL; content is inconclusive.",
+    "Token counts are lexical diagnostics, not execution or dependency validation."
+  ],
+  "diagnostics": {
+    "timestampIdentical": 49,
+    "timestampDifferent": 43,
+    "quotedCrlfLfOnly": [
+      "create_auditoria_base",
+      "fix_list_auditoria_by_user_entidade_id_type",
+      "create_list_auditoria_for_admin_user",
+      "fix_auditoria_entidade_id_text_and_rpcs",
+      "auditoria_real_full_alignment",
+      "fix_auditoria_rpc_ambiguous_id",
+      "lock_down_inqueritos_rls"
+    ],
+    "encoding": [
+      {
+        "name": "veiculos_apreendidos",
+        "statement": 3,
+        "token": 22,
+        "kind": "dollar",
+        "remoteMatchesLocalUtf8BytesAsLatin1": true
+      },
+      {
+        "name": "multi_status_gravidade_tags",
+        "statement": 3,
+        "token": 33,
+        "kind": "string",
+        "remoteMatchesLocalUtf8BytesAsLatin1": true
+      },
+      {
+        "name": "multi_status_gravidade_tags",
+        "statement": 3,
+        "token": 57,
+        "kind": "string",
+        "remoteMatchesLocalUtf8BytesAsLatin1": true
+      },
+      {
+        "name": "multi_status_gravidade_tags",
+        "statement": 3,
+        "token": 105,
+        "kind": "string",
+        "remoteMatchesLocalUtf8BytesAsLatin1": true
+      },
+      {
+        "name": "multi_status_gravidade_tags",
+        "statement": 3,
+        "token": 117,
+        "kind": "string",
+        "remoteMatchesLocalUtf8BytesAsLatin1": true
+      }
+    ],
+    "statementAlignment": [
+      {
+        "name": "veiculos_apreendidos",
+        "identicalCommands": 72,
+        "localUnmatched": [
+          {
+            "statement": 3,
+            "operation": "CREATE",
+            "fingerprint": "095712df38cc18c49d53b838653e343ed4d3cff0ba0f0b05bdd382666cd1f388"
+          },
+          {
+            "statement": 22,
+            "operation": "CREATE",
+            "fingerprint": "76323f168ad98831554f34b08f267e25ec3a47f8befbceabeb8c716c3ca2474e"
+          }
+        ],
+        "remoteUnmatched": [
+          {
+            "statement": 3,
+            "operation": "CREATE",
+            "fingerprint": "4a86e8b840f9ee17c958e4bc41069f47813c9a79d8ef8bdf269a8728b5b89eb7"
+          }
+        ],
+        "quotedDiffs": []
+      },
+      {
+        "name": "add_sheet_sync_contract",
+        "identicalCommands": 0,
+        "localUnmatched": [
+          {
+            "statement": 1,
+            "operation": "CREATE",
+            "fingerprint": "135c767c1e081b2b46cb732e388d2cc97ff61d1db93241bc932b0186af67a1af"
+          },
+          {
+            "statement": 2,
+            "operation": "ALTER",
+            "fingerprint": "bbb05df743acc69a90b0c88016f1c0f26775b85cde68809d162294957db7595e"
+          },
+          {
+            "statement": 3,
+            "operation": "ALTER",
+            "fingerprint": "00ee69aa0f63e3111fa369ca53bfe771cd769513b2dd35bb5c77de47d64c51c6"
+          },
+          {
+            "statement": 4,
+            "operation": "ALTER",
+            "fingerprint": "776529eb799aedacb288351ebbd4e039b352ade5ad2c38c3f485259c3dba671a"
+          },
+          {
+            "statement": 5,
+            "operation": "ALTER",
+            "fingerprint": "c507cde553955a410f1697d9c9f587493bc0f0b95201a8de60ddff7e5aad195e"
+          },
+          {
+            "statement": 6,
+            "operation": "ALTER",
+            "fingerprint": "505caa1992594c15679a44efb64946ac640881ef286335b1c91b4bd744865201"
+          },
+          {
+            "statement": 7,
+            "operation": "ALTER",
+            "fingerprint": "aa33aeb712bdafbb49d6245e95ffaed242b03e0bf03029487a2d88e0e29364f4"
+          },
+          {
+            "statement": 8,
+            "operation": "CREATE",
+            "fingerprint": "f6b73df863b720c009eb29ec31360c941aad8f3d7d2bcf8d1a50b370298de4bd"
+          },
+          {
+            "statement": 9,
+            "operation": "CREATE",
+            "fingerprint": "1503980b01183553ea0b8b01f991cb5d22c3f65fc1bfb966fde127c149fe6419"
+          },
+          {
+            "statement": 10,
+            "operation": "CREATE",
+            "fingerprint": "d2e08121fcaec6a4efd109e39c3fc688e2ccf34ba106f56da58d5beea048d3b4"
+          },
+          {
+            "statement": 11,
+            "operation": "CREATE",
+            "fingerprint": "a1dcedfcba0c94608bd26ac618131f25b7494304e7cbc4be6b2d22a4d6c038f2"
+          },
+          {
+            "statement": 12,
+            "operation": "COMMENT",
+            "fingerprint": "2f5563cfd82f6981eee6a9860c5ef65fb7ac883be8cf2f616546adada1cd6549"
+          },
+          {
+            "statement": 13,
+            "operation": "COMMENT",
+            "fingerprint": "149719d7456088342b6dfc62982a9b436492f48bdb61e9b64b0b6ffccc2e8f06"
+          },
+          {
+            "statement": 14,
+            "operation": "CREATE",
+            "fingerprint": "a530792e5a36573e81c19e1df99939ee0197b7a23272419b0cf7cc0808d5f1a5"
+          },
+          {
+            "statement": 15,
+            "operation": "CREATE",
+            "fingerprint": "0c82af84a86f1660841c5b8fc4913c4b0751cbe988be8f3ed772dbcf09352c8e"
+          },
+          {
+            "statement": 16,
+            "operation": "CREATE",
+            "fingerprint": "48981c4b41c4b68349b313e0cb7b69ac3ef92fcc543bdb2d1d65fddc7dc58613"
+          },
+          {
+            "statement": 17,
+            "operation": "ALTER",
+            "fingerprint": "7e8b5be577c88b39ebd88d43ca928e45fae3b66fbba255e1e62aacc92508056c"
+          },
+          {
+            "statement": 18,
+            "operation": "DROP",
+            "fingerprint": "1c536663a9f53ea8f7f858f63dd5c2d62c6466c6d047f5abdb47896a166b3059"
+          },
+          {
+            "statement": 19,
+            "operation": "CREATE",
+            "fingerprint": "b38dcb4893ccadc7f66a831f4cba25d74f051c52d8c71a77507930c72d3a8b75"
+          },
+          {
+            "statement": 20,
+            "operation": "REVOKE",
+            "fingerprint": "840c4604999afba8c6b5ccfd230a940a5fad8f5e8d1ee516457d47e88d6b5c2e"
+          },
+          {
+            "statement": 21,
+            "operation": "GRANT",
+            "fingerprint": "4fb4ad5427df2f031fe1dffac35448a9fab767477b1458d885d6127277315449"
+          },
+          {
+            "statement": 22,
+            "operation": "CREATE",
+            "fingerprint": "0ab7669d9a6704a001180dd41761402a66df713264b9a9433f53f9b31df23694"
+          },
+          {
+            "statement": 23,
+            "operation": "REVOKE",
+            "fingerprint": "c8af567969e1e0918b83f3638106df5df335f03f34bcf40c79d56a6200f71b08"
+          },
+          {
+            "statement": 24,
+            "operation": "GRANT",
+            "fingerprint": "9cbedc784dfef40e2f66bf720d4b2b03398e61376e17073b8df2cf4a0aed0928"
+          },
+          {
+            "statement": 25,
+            "operation": "COMMENT",
+            "fingerprint": "a02f4f336b36af686f506dfdfe42e569945f3318a8252f8ccf81991ab4bb49c5"
+          }
+        ],
+        "remoteUnmatched": [
+          {
+            "statement": 1,
+            "operation": "unrecognized",
+            "fingerprint": "ef8edafb46d1e43545d054114a97923cb875b5a454046f159b1858b5984bf22e"
+          }
+        ],
+        "quotedDiffs": []
+      },
+      {
+        "name": "tighten_user_configuration_privileges",
+        "identicalCommands": 4,
+        "localUnmatched": [
+          {
+            "statement": 5,
+            "operation": "DROP",
+            "fingerprint": "77cc2131c11ce065d46c46b709f13d5b3dc64a7ec3776eea44388ebc5750a3f8"
+          },
+          {
+            "statement": 6,
+            "operation": "CREATE",
+            "fingerprint": "62a4dd11f57fde831c750d83dd73f7796b7999f623f0bf195ddd382962de5ece"
+          },
+          {
+            "statement": 7,
+            "operation": "DROP",
+            "fingerprint": "031e42ef2445251cf3dea003666528a70c993f6b7780846c9fcdd0e8a23bd359"
+          },
+          {
+            "statement": 8,
+            "operation": "CREATE",
+            "fingerprint": "7e1463566f72bdd267fbbbdba6e2a5ee207492a56dfadb29b03a05885e032a34"
+          },
+          {
+            "statement": 9,
+            "operation": "DROP",
+            "fingerprint": "79a1f9ffdb78af15d94ef69555b46bd9d358dbe6c8e69f01a09782aefecd4db1"
+          },
+          {
+            "statement": 10,
+            "operation": "CREATE",
+            "fingerprint": "cdba5d9d7919339090332c67b11b79cd8ca097519c27255bec9c57915f30eac0"
+          },
+          {
+            "statement": 11,
+            "operation": "DROP",
+            "fingerprint": "8eb656d6f98c85d2252c8a099162d4611343398e4b009b95b90fee4e7740b476"
+          },
+          {
+            "statement": 12,
+            "operation": "CREATE",
+            "fingerprint": "f7376451e54f275ed32b3af63b04658dcc2afcc497739ece342d4a7736ed8fa4"
+          },
+          {
+            "statement": 13,
+            "operation": "DROP",
+            "fingerprint": "44fa7c3f32ac59c9a8c619d94dc7c7774f6a3b25b0b402d6f9589cd6b30e717d"
+          },
+          {
+            "statement": 14,
+            "operation": "CREATE",
+            "fingerprint": "dea8f800aaf25e68e62ecf588fe68d492f1fbf8bb7dcf09fb858e12c84ae2034"
+          },
+          {
+            "statement": 15,
+            "operation": "DROP",
+            "fingerprint": "b7ab116f7b325563597de50d226f96e4687f1c893a52e84a1fcd19249cca63f4"
+          },
+          {
+            "statement": 16,
+            "operation": "CREATE",
+            "fingerprint": "77a3399d4b4272dac2929890a9933c38038062fef279f6c7e63b5d4c054e719b"
+          },
+          {
+            "statement": 17,
+            "operation": "DROP",
+            "fingerprint": "22d9d282cf44ca08b09caeb622bfd683cf8d297a09b3beeed553e13a1088b3fb"
+          },
+          {
+            "statement": 18,
+            "operation": "CREATE",
+            "fingerprint": "b65cfa3222f64d03e126b92d1a067fa8a2e422d198cae5a0e3034a2f23a03505"
+          },
+          {
+            "statement": 19,
+            "operation": "DROP",
+            "fingerprint": "82860bf37a561517979cd47bb9bfb1df1c3a106cc74ee8e35ff2ba353fa8b343"
+          },
+          {
+            "statement": 20,
+            "operation": "CREATE",
+            "fingerprint": "955aa2e6b1558618604de7f944a04b91a0eeb8353b3e88cf7bccef4602f6fb9f"
+          }
+        ],
+        "remoteUnmatched": [],
+        "quotedDiffs": []
+      },
+      {
+        "name": "multi_status_gravidade_tags",
+        "identicalCommands": 12,
+        "localUnmatched": [
+          {
+            "statement": 3,
+            "operation": "INSERT",
+            "fingerprint": "ca62192feb1bcc5c4bff6743775c4d22417aa1e51bf2ab03aff0ec8709d9bbd1"
+          }
+        ],
+        "remoteUnmatched": [
+          {
+            "statement": 3,
+            "operation": "INSERT",
+            "fingerprint": "fa246a67e5120364b9209dd69b986645079f057f89c42c35e77b020288432c92"
+          }
+        ],
+        "quotedDiffs": [
+          {
+            "statement": 3,
+            "token": 33,
+            "kind": "string",
+            "localLength": 19,
+            "remoteLength": 20
+          },
+          {
+            "statement": 3,
+            "token": 57,
+            "kind": "string",
+            "localLength": 32,
+            "remoteLength": 34
+          },
+          {
+            "statement": 3,
+            "token": 105,
+            "kind": "string",
+            "localLength": 10,
+            "remoteLength": 11
+          },
+          {
+            "statement": 3,
+            "token": 117,
+            "kind": "string",
+            "localLength": 23,
+            "remoteLength": 24
+          }
+        ]
+      },
+      {
+        "name": "nexo_pdf_source_documents",
+        "identicalCommands": 23,
+        "localUnmatched": [
+          {
+            "statement": 12,
+            "operation": "DROP",
+            "fingerprint": "a57eb11734e9f8d1dbb0413efd461350203318ec4f2c45ad14cf95615bca2121"
+          },
+          {
+            "statement": 13,
+            "operation": "CREATE",
+            "fingerprint": "d77f1271dee12b05f90bfb0b2c4da3670a3c7629f9ddb25810c47fc22f2e9dd0"
+          },
+          {
+            "statement": 18,
+            "operation": "DROP",
+            "fingerprint": "34d89bc6c662e4e0a4bf929be668f52c87a5e43fca1024df1192c7e4f3e4917b"
+          },
+          {
+            "statement": 19,
+            "operation": "CREATE",
+            "fingerprint": "0bca333c0d61ab500a4a9ebf8c71436f82aad873af3d481021e0d43431611b50"
+          }
+        ],
+        "remoteUnmatched": [],
+        "quotedDiffs": []
+      }
+    ],
+    "concreteDifferences": [
+      {
+        "name": "veiculos_apreendidos",
+        "recordedIdenticalCommands": 72,
+        "localExtraCommand": 22,
+        "localExtraIndex": "vehicles_updated_by_idx",
+        "changedFunction": "public.normalize_vehicle_search",
+        "changedLocalCommand": 3
+      },
+      {
+        "name": "tighten_user_configuration_privileges",
+        "recordedIdenticalCommands": 4,
+        "localExtraCommands": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+        "effectClass": "Eight DROP/CREATE policy pairs exist in local file but are absent from recorded statements."
+      },
+      {
+        "name": "nexo_pdf_source_documents",
+        "recordedIdenticalCommands": 23,
+        "localExtraCommands": [12, 13, 18, 19],
+        "policyNames": ["nexo_documentos_fontes_delete", "nexo_documento_alegacoes_delete"],
+        "effectClass": "Two DROP/CREATE DELETE policy pairs exist in local file but are absent from recorded statements."
+      },
+      {
+        "name": "multi_status_gravidade_tags",
+        "recordedIdenticalCommands": 12,
+        "changedLocalCommand": 3,
+        "changedQuotedTokens": [33, 57, 105, 117],
+        "effectClass": "Four seed string literals differ; remote bytes match a diagnostic UTF-8-as-Latin1 transformation."
+      },
+      {
+        "name": "add_sheet_sync_contract",
+        "effectClass": "Recorded metadata is a descriptive repository application marker, not executable SQL."
+      }
+    ]
+  }
+}

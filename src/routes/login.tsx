@@ -497,7 +497,7 @@ function LoginPage() {
     const erroCode = new URLSearchParams(window.location.search).get("erro");
     if (erroCode === "profile_load_failed" || erroCode === "profile_missing") {
       setErro(
-        "Login autenticado, mas o perfil não carregou nesta tentativa. Tente entrar novamente; se persistir, verifique o vínculo do usuário em profiles.",
+        "Não foi possível validar sua sessão ou carregar seu perfil. Tente entrar novamente; se o problema persistir, procure um administrador.",
       );
       clearLoginErrorQueryParam();
     } else if (erroCode === "access_blocked") {

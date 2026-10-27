@@ -9,11 +9,13 @@ type SupabaseErrorLike = {
 type SupabaseResult<T> = {
   data: T | null;
   error: SupabaseErrorLike | null;
+  status?: number;
 };
 
 type RunSupabaseQueryOptions = {
   retries?: number;
   timeoutMs?: number;
+  recoverAuthentication?: () => Promise<boolean>;
 };
 
 const DEFAULT_QUERY_TIMEOUT_MS = 20000;
@@ -56,6 +58,16 @@ function buildTimeoutError(label: string, timeoutMs: number) {
   };
 }
 
+async function recoverSupabaseAuthentication() {
+  try {
+    const { supabase } = await import("@/lib/supabaseClient");
+    const { data, error } = await supabase.auth.refreshSession();
+    return !error && Boolean(data.session);
+  } catch {
+    return false;
+  }
+}
+
 // Use apenas em leituras. Repetir a chamada é seguro porque nada é alterado no banco.
 export async function runSupabaseQuery<T>(
   label: string,
@@ -64,7 +76,9 @@ export async function runSupabaseQuery<T>(
 ): Promise<T> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_QUERY_TIMEOUT_MS;
   const retries = options.retries ?? DEFAULT_QUERY_RETRIES;
+  const recoverAuthentication = options.recoverAuthentication ?? recoverSupabaseAuthentication;
   let lastError: unknown = null;
+  let authenticationRecoveryAttempted = false;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
@@ -74,8 +88,14 @@ export async function runSupabaseQuery<T>(
     );
 
     try {
-      const { data, error } = await execute(controller.signal);
-      if (error) throw error;
+      const { data, error, status } = await execute(controller.signal);
+      if (error) {
+        if (status === 401 && attempt < retries && !authenticationRecoveryAttempted) {
+          authenticationRecoveryAttempted = true;
+          if (await recoverAuthentication()) continue;
+        }
+        throw error;
+      }
       return data as T;
     } catch (error) {
       lastError = isAbortError(error) ? buildTimeoutError(label, timeoutMs) : error;

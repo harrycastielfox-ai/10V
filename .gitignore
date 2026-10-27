@@ -41,6 +41,10 @@ output/
 .codex-doc-review/
 .codex-prototypes/
 scratch_*.sql
+test-results/
+playwright-report/
+coverage/
+*.tsbuildinfo
 
 # Configuração local do Claude Code (a launch.json fica versionada)
 .claude/settings.local.json

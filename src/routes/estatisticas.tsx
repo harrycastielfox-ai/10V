@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Alertas } from "./alertas";
+import { Alertas } from "@/features/alerts/AlertasPage";
 
 function EstatisticasPage() {
   return <Alertas mode="estatisticas" />;

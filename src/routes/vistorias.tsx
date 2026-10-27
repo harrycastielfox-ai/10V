@@ -251,7 +251,9 @@ function VistoriasRoute() {
     inspections.find((inspection) => inspection.id === selectedInspectionId) ?? null;
 
   useEffect(() => {
+    if (!isVistoriasIndex) return;
     let cancelled = false;
+    setLoading(true);
     void Promise.all([listVehicleInspections(), listVehiclesForInspection()])
       .then(([inspectionRows, vehicleRows]) => {
         if (cancelled) return;
@@ -267,7 +269,7 @@ function VistoriasRoute() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isVistoriasIndex]);
 
   function resetInspectionForm() {
     setEditingInspection(null);

@@ -53,8 +53,8 @@ describe("synthetic NEXO presentation dataset", () => {
     expect(new Set(urls).size).toBe(50);
     data.people.forEach((person, index) => {
       const number = String(index + 1).padStart(2, "0");
-      expect(person.foto_perfil_url).toBe(`/nexo-demo/portraits/person-${number}.png`);
-      expect(person.foto_perfil_path).toBe(`demo-public/person-${number}.png`);
+      expect(person.foto_perfil_url).toBe(`/nexo-demo/portraits/person-${number}.webp`);
+      expect(person.foto_perfil_path).toBe(`demo-public/person-${number}.webp`);
       expect(person.foto_relatorio_url).toBe(person.foto_perfil_url);
       expect(person.fotos[0].url).toBe(person.foto_perfil_url);
       expect(person.fotos[0].legenda).toMatch(/sintético/);

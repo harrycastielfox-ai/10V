@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.110.9";
+import { getTrustedClientIp } from "../_shared/clientIp.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,16 +22,6 @@ function json(body: unknown, status = 200, extraHeaders: Record<string, string> 
       ...extraHeaders,
     },
   });
-}
-
-function getClientIp(req: Request): string | null {
-  const candidate =
-    req.headers.get("cf-connecting-ip")?.trim() ||
-    req.headers.get("x-real-ip")?.trim() ||
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-
-  if (!candidate || candidate.length > 128) return null;
-  return candidate;
 }
 
 async function hmacSha256Hex(secret: string, value: string): Promise<string> {
@@ -74,7 +65,7 @@ Deno.serve(async (req) => {
     return json({ code: "service_unavailable" }, 503);
   }
 
-  const clientIp = getClientIp(req);
+  const clientIp = getTrustedClientIp(req.headers);
   if (!clientIp) return json({ code: "service_unavailable" }, 503);
 
   let payload: { identifier?: unknown; password?: unknown };

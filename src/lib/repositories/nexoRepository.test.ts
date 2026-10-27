@@ -22,6 +22,8 @@ const {
   createNexoVeiculoLocal,
   createNexoPessoa,
   listNexoVeiculosLocais,
+  uploadNexoAlbumPhoto,
+  uploadNexoOrganizacaoPhoto,
   softDeleteNexoVeiculoLocal,
   updateNexoPessoa,
   softDeleteNexoTerritorio,
@@ -88,6 +90,10 @@ const input: NexoPessoaInput = {
   pdf_fonte: null,
 };
 
+function jpegFile(name = "profile.jpg") {
+  return new File([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], name, { type: "image/jpeg" });
+}
+
 describe("NEXO persistence regressions", () => {
   beforeEach(() => {
     state.from.mockReset();
@@ -111,6 +117,24 @@ describe("NEXO persistence regressions", () => {
         Promise.resolve({ data: null, error: null }).then(resolve),
     };
     state.from.mockReturnValue(builder);
+  });
+
+  it("rejects SVG before uploading an organization photo", async () => {
+    const file = new File(["<svg></svg>"], "evidence.svg", { type: "image/svg+xml" });
+
+    await expect(uploadNexoOrganizacaoPhoto("org-id", file, "")).rejects.toMatchObject({
+      code: "NEXO_IMAGE_INVALID_TYPE",
+    });
+    expect(state.storageFrom).not.toHaveBeenCalled();
+  });
+
+  it("rejects forged image content before uploading a person album photo", async () => {
+    const file = new File(["not-a-jpeg"], "evidence.jpg", { type: "image/jpeg" });
+
+    await expect(uploadNexoAlbumPhoto("person-id", file, "")).rejects.toMatchObject({
+      code: "NEXO_IMAGE_INVALID_CONTENT",
+    });
+    expect(state.storageFrom).not.toHaveBeenCalled();
   });
 
   it("sends a stable request id and the whole civil profile in the atomic creation", async () => {
@@ -156,10 +180,7 @@ describe("NEXO persistence regressions", () => {
     state.upload.mockResolvedValueOnce({ data: null, error: { message: "storage unavailable" } });
 
     await expect(
-      createNexoPessoa(
-        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
-        "creation-request",
-      ),
+      createNexoPessoa({ ...input, foto_perfil: jpegFile() }, "creation-request"),
     ).resolves.toEqual({ personId: "created-person", photoPending: true, documentPending: false });
 
     expect(state.rpc).toHaveBeenCalledWith("nexo_criar_pessoa_completa", expect.any(Object));
@@ -340,10 +361,7 @@ describe("NEXO persistence regressions", () => {
     state.upload.mockResolvedValueOnce({ data: null, error: { message: "storage unavailable" } });
 
     await expect(
-      updateNexoPessoa(
-        { ...person, vinculos: [active] },
-        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
-      ),
+      updateNexoPessoa({ ...person, vinculos: [active] }, { ...input, foto_perfil: jpegFile() }),
     ).resolves.toEqual({ personId: person.id, photoPending: true, documentPending: false });
 
     expect(state.rpc).toHaveBeenCalledWith("nexo_atualizar_pessoa_completa", expect.any(Object));
@@ -359,11 +377,12 @@ describe("NEXO persistence regressions", () => {
           foto_relatorio_path: "pessoas/person/old-report.jpg",
           vinculos: [active],
         },
-        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
+        { ...input, foto_perfil: jpegFile("profile.svg") },
       ),
     ).resolves.toEqual({ personId: person.id, photoPending: false, documentPending: false });
 
     const uploadedPath = String(state.upload.mock.calls[0]?.[0]);
+    expect(uploadedPath).toMatch(/\.jpg$/);
     expect(state.update).toHaveBeenCalledWith({
       foto_perfil_path: uploadedPath,
       foto_relatorio_path: uploadedPath,
@@ -385,7 +404,7 @@ describe("NEXO persistence regressions", () => {
         },
         {
           ...input,
-          foto_relatorio: new File(["report"], "report.jpg", { type: "image/jpeg" }),
+          foto_relatorio: jpegFile("report.jpg"),
         },
       ),
     ).resolves.toEqual({ personId: person.id, photoPending: false, documentPending: false });
@@ -405,10 +424,7 @@ describe("NEXO persistence regressions", () => {
     });
 
     await expect(
-      updateNexoPessoa(
-        { ...person, vinculos: [active] },
-        { ...input, foto_perfil: new File(["photo"], "profile.jpg", { type: "image/jpeg" }) },
-      ),
+      updateNexoPessoa({ ...person, vinculos: [active] }, { ...input, foto_perfil: jpegFile() }),
     ).resolves.toEqual({ personId: person.id, photoPending: true, documentPending: false });
 
     const uploadedPath = String(state.upload.mock.calls[0]?.[0]);

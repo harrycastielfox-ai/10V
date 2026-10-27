@@ -1,0 +1,531 @@
+{
+  "formatVersion": 1,
+  "runnerSha256": "9f01bba042742877b56bf0d1dbbcdf97788932912a5bf55ab8bad088c06a12e5",
+  "mode": "bare",
+  "classification": "historical replay with initial prerequisites only",
+  "complete": false,
+  "ddlComplete": false,
+  "runtimeComplete": null,
+  "engine": {
+    "package": "@electric-sql/pglite",
+    "version": "0.5.11",
+    "registeredExtensions": [
+      "pgcrypto",
+      "pg_trgm",
+      "unaccent"
+    ]
+  },
+  "database": "fresh in-memory PostgreSQL; discarded after this process",
+  "scope": "DDL replay only; no Supabase API, Storage service, Auth service or production equivalence claim",
+  "security": "Migrations and selected documented prelude sections execute unchanged. No original security statements are rewritten or skipped by the runner.",
+  "prelude": [],
+  "documentaryGaps": [],
+  "migrations": [
+    {
+      "path": "supabase/migrations/20260504120000_fix_inqueritos_soft_delete_rls.sql",
+      "sha256": "3a399cabc02bb0589b38c89e91c0255cf6c7ead535b6f657de40ae57e6ac4f24"
+    },
+    {
+      "path": "supabase/migrations/20260518103000_create_auditoria_base.sql",
+      "sha256": "93cc88adeb1c8de44e4d370e4e7d911acc5c8c4caed8659b599ea15721037f73"
+    },
+    {
+      "path": "supabase/migrations/20260518123000_fix_list_auditoria_by_user_entidade_id_type.sql",
+      "sha256": "a7c442ab017c804ff7cf25975bca26f5b775593b949b3ae4d9eb2172f9cd301c"
+    },
+    {
+      "path": "supabase/migrations/20260518133000_create_list_auditoria_for_admin_user.sql",
+      "sha256": "33858cc275fe21b72e8705cec127d0d6bcd380fc3c786551f7d996bc35d11741"
+    },
+    {
+      "path": "supabase/migrations/20260518150000_fix_auditoria_entidade_id_text_and_rpcs.sql",
+      "sha256": "77d61a636dbc557dc76cfd6214b20fb59df4d704255b1f67fe94699d402c3926"
+    },
+    {
+      "path": "supabase/migrations/20260518170000_auditoria_real_full_alignment.sql",
+      "sha256": "8b7dc4a816ca442777b5beda7236922a9cfe3b140a99dee2226f02b391af95d2"
+    },
+    {
+      "path": "supabase/migrations/20260518183000_fix_auditoria_rpc_ambiguous_id.sql",
+      "sha256": "c7b4af924156ec732993a8b5ccf24522a29c3ea29937608fa1376d64bfa49bec"
+    },
+    {
+      "path": "supabase/migrations/20260520120000_representacoes_judicial_core_fields.sql",
+      "sha256": "d1bc51743c4da436b9d1833c2624a6a21c03215f38113a618344031aac2f46ce"
+    },
+    {
+      "path": "supabase/migrations/20260701100000_lock_down_inqueritos_rls.sql",
+      "sha256": "52d4ad254b6c6f98b9b8a1e59fe6712a13ce709aa3d605317833ff8eda89da64"
+    },
+    {
+      "path": "supabase/migrations/20260713125420_user_access_contexts.sql",
+      "sha256": "44a51640ba9b61d1b99b30416df50ef747e994acbd57dc2c0490100d7f6f494a"
+    },
+    {
+      "path": "supabase/migrations/20260713143000_access_context_consent.sql",
+      "sha256": "4a61b94d232914e4345c6c01a85993bdac7083cfa99544962bcab69455ce75f8"
+    },
+    {
+      "path": "supabase/migrations/20260713150000_access_context_network_metadata.sql",
+      "sha256": "ff7d48325bc86af008fc3151e3f49dae8e663d1163c5d223baef707c74ff97ec"
+    },
+    {
+      "path": "supabase/migrations/20260713170000_security_hardening.sql",
+      "sha256": "438a192525c665715296d7128bdb721e8bbb7e93ada07b75c17ecd999a775f44"
+    },
+    {
+      "path": "supabase/migrations/20260714191002_secure_soft_delete_inquerito.sql",
+      "sha256": "95e09ad9936a8b6ca656b61689a4bd5b33e3299f9fb5823a696cd1b57d302f8f"
+    },
+    {
+      "path": "supabase/migrations/20260714192500_operational_registration_contract.sql",
+      "sha256": "de3e389efe2e1be02864db20c25f46e06af58e9ee66283753a598c61f7fdd7c4"
+    },
+    {
+      "path": "supabase/migrations/20260715110000_inquerito_pessoas_and_aafai.sql",
+      "sha256": "87d6c4cea9f505436cd38908bceb1bdc1f8627f856f9f8abdf4ac3ed83683846"
+    },
+    {
+      "path": "supabase/migrations/20260715124500_harden_inquerito_pessoas_privileges.sql",
+      "sha256": "e101c3760f416be9c6b30f48faf4945ef819ee7095a4ba0257cd12b9cb0a43a8"
+    },
+    {
+      "path": "supabase/migrations/20260716143000_representacao_pessoas.sql",
+      "sha256": "c8d695caaaf5e3ac2bb65e26f77d1352c3b1dcf18ae82d2d1e453b95015d88a4"
+    },
+    {
+      "path": "supabase/migrations/20260730120000_consolidate_security_grants.sql",
+      "sha256": "a223d9ed5be0e3ade0fffac1cecb8e0eda109b3055212e6658196b9ae77c5296"
+    },
+    {
+      "path": "supabase/migrations/20260730150000_harden_login_resolve_and_avatar_storage.sql",
+      "sha256": "4b0e080632d1eb6b08e269ec93b948fdd5ca2ba180b5a5e7d0abbc0d50461aeb"
+    },
+    {
+      "path": "supabase/migrations/20260731100000_harden_inqueritos_visibilidade_rls.sql",
+      "sha256": "251e95e23a2b71cf8bc9d93eaecd0f09c221e813b32bb2dbb4a941ddf4022cad"
+    },
+    {
+      "path": "supabase/migrations/20260731110000_revoke_anon_from_sigilo_helper_functions.sql",
+      "sha256": "e6aa971cdf5ca91f8b2a4621136991ec5a8cf202447de736bb4abcdef45bf177"
+    },
+    {
+      "path": "supabase/migrations/20260731133934_audit_critical_mutations.sql",
+      "sha256": "64826d469090dc3c415ce686e2c7f1298adfe736399ed524d74622408f313efd"
+    },
+    {
+      "path": "supabase/migrations/20260731140711_secure_login_edge_contract.sql",
+      "sha256": "364fae117d112a0aab8052af624fd057ce9b0ce812c6a371483fce020c1db32b"
+    },
+    {
+      "path": "supabase/migrations/20260731150000_veiculos_apreendidos.sql",
+      "sha256": "4e6dbd3bf4eda1fd2d7e3bead3bb6b350c55a50f22266b07f11e33308108128f"
+    },
+    {
+      "path": "supabase/migrations/20260731164500_veiculos_apreendidos_index_alignment.sql",
+      "sha256": "fca208b2f6ac739f14ce07bc22a5510c5ec2fd6e57a1ef32b65af68aa51410d8"
+    },
+    {
+      "path": "supabase/migrations/20260731173000_vehicle_identifier_integrity.sql",
+      "sha256": "945b8aa66e30cf19dd912a527a6947d2dca3e4596b42b5c7cd018a3e38193092"
+    },
+    {
+      "path": "supabase/migrations/20260731173500_allow_recurring_vehicle_identifiers.sql",
+      "sha256": "d529c503545ef67c6161eadbb7e413ee3b70077be56ee45508ee5965cd039fe4"
+    },
+    {
+      "path": "supabase/migrations/20260731175836_allow_unspecified_vehicle_situation.sql",
+      "sha256": "39faf7e919d22d1f38d4294cbe5a89642cae81a8c6ed04709d164e6c03df43f9"
+    },
+    {
+      "path": "supabase/migrations/20260731210000_vehicle_role_permissions.sql",
+      "sha256": "d9f633170b59ddf966e9a18e2890daaaf73b3a13840c51d74760b3924382e82e"
+    },
+    {
+      "path": "supabase/migrations/20260731220000_vehicle_timeline.sql",
+      "sha256": "86f1120e2ab26e86163a49fca2fa6c70d3413d400d32e0e764ff6aba431b653d"
+    },
+    {
+      "path": "supabase/migrations/20260803123721_soft_delete_vehicle.sql",
+      "sha256": "e9d2e7a82403fc23434ea0df49026cc4ebece6b88cdf4acbe1b01dfc888ef1b9"
+    },
+    {
+      "path": "supabase/migrations/20260803124317_secure_soft_delete_vehicle.sql",
+      "sha256": "5d7cdbead01c8b531a1addf75538cd85d65fe705c48114dd8d9299807ae7fe1e"
+    },
+    {
+      "path": "supabase/migrations/20260803124449_allow_privileged_vehicle_soft_delete.sql",
+      "sha256": "62f46506df885052ccb25c448a4dd00f542634f351de241d4680d381555dd07e"
+    },
+    {
+      "path": "supabase/migrations/20260803124610_restore_secured_soft_delete_rpc.sql",
+      "sha256": "1f893ab785638ed6ff053a3f79eb1d1fcf9fc3fc941e1bf7a8c1988eea63ea3a"
+    },
+    {
+      "path": "supabase/migrations/20260803124817_intercept_vehicle_delete.sql",
+      "sha256": "604b5d7688c7e5b3f9697dde97a932d67c1b92a0764d40f1ec6f10bb32547017"
+    },
+    {
+      "path": "supabase/migrations/20260803140000_localizacao_operacional_core.sql",
+      "sha256": "fc58d61c7ee6bdeaa8615febbd2f07b52e664061b08be60ac583e3b758fd886d"
+    },
+    {
+      "path": "supabase/migrations/20260803140500_localizacao_foreign_key_indexes.sql",
+      "sha256": "851b3fc8d18eea0c2216a47d833c3f7f745b22edf6be690d486ac8733fbad50d"
+    },
+    {
+      "path": "supabase/migrations/20260803141000_localizacao_search_indexes.sql",
+      "sha256": "40518a131486b95de0214ebd722b945cfe2f3d714767f115ffb4dae5bd394dba"
+    },
+    {
+      "path": "supabase/migrations/20260803210317_localizacao_catalogo_territorial.sql",
+      "sha256": "2585d94e7f9326b63e0b82e5f1393ab6259fab7045c4573ad39e5f9193638b85"
+    },
+    {
+      "path": "supabase/migrations/20260803211956_localizacao_bairro_painel.sql",
+      "sha256": "0ab425f3c730436becdd118e57f435935ea4abc7a46981b8a90c62de70b1199d"
+    },
+    {
+      "path": "supabase/migrations/20260803213612_localizacao_bairro_nao_identificado.sql",
+      "sha256": "af533713a8eb5fe9752c3bee81c65bce1ac97441816eb265c52d28a903f71934"
+    },
+    {
+      "path": "supabase/migrations/20260804093000_localizacao_bairros_centros_ibge.sql",
+      "sha256": "237c8aed1aacb3ca88658189fd41f905875d58b6b0a2a36cc113b69c7b63bfd3"
+    },
+    {
+      "path": "supabase/migrations/20260804120000_localizacao_ajuste_centros.sql",
+      "sha256": "25c2d946e991718dd5c6141afc09acd039fb247cc2ed6b35292a47700952db65"
+    },
+    {
+      "path": "supabase/migrations/20260804123000_localizacao_remove_referencias.sql",
+      "sha256": "e1a51e52d79de5bbe964114965b8333b9ff0385b2a010e9a2e36bd49cbe10b71"
+    },
+    {
+      "path": "supabase/migrations/20260805090000_objetos_apreendidos.sql",
+      "sha256": "33f80ddc6a48ea19efac87aaa140f24316a1f90ab7bc6907a15a4cfcaa4a7671"
+    },
+    {
+      "path": "supabase/migrations/20260805110000_objetos_ajustes_situacao.sql",
+      "sha256": "88e0c365e9c2b472ef51a32b11e08b97b74748cc351edf9696c0130a0807f401"
+    },
+    {
+      "path": "supabase/migrations/20260805120000_objetos_cor_e_dados_documento.sql",
+      "sha256": "79eecf2ada8e2d261d2db5fe569728616f62b2c9aa40739b45b3e8fe9684fd76"
+    },
+    {
+      "path": "supabase/migrations/20260806090000_contato_operacional_restringe_admin.sql",
+      "sha256": "0b0ef61b4190507f42560c80b1277b43d42c3cbad6a05ea4586e50951facd493"
+    },
+    {
+      "path": "supabase/migrations/20260806100000_localizacao_pessoas_multiplos_telefones.sql",
+      "sha256": "eb5527d12d8c7c60150b611c51766f259f9ce384ad3945a45d94700faa0ef3d8"
+    },
+    {
+      "path": "supabase/migrations/20260806120000_agenda_oitivas.sql",
+      "sha256": "fac95d6dfcee36641f97717b221f1034d137b55178c95bc9b5e4e68f698366cb"
+    },
+    {
+      "path": "supabase/migrations/20260806121000_agenda_responsaveis.sql",
+      "sha256": "ef210419d2f579e7bcc55571f58579af6f55f8c14fa7b798bfe4c7705ecc2312"
+    },
+    {
+      "path": "supabase/migrations/20260806130000_remove_meus_agendamentos_lembrete.sql",
+      "sha256": "a737202c893c4745c1fa6f2c4c5e687a6f40ca8c9cdc6a38343a5430f1d85954"
+    },
+    {
+      "path": "supabase/migrations/20260807143000_localizacao_rotas_delete.sql",
+      "sha256": "0c8e5cd6390c2b2112437c58844f8d6913ddcd46bacc7e5d6ac1a8fe40e855d1"
+    },
+    {
+      "path": "supabase/migrations/20260807150000_localizacao_soft_delete_policies.sql",
+      "sha256": "25c2b3afae51a8c140c889a44fe333480908ac942f03d619c96082368f19de88"
+    },
+    {
+      "path": "supabase/migrations/20260807170000_auditoria_performance_cleanup.sql",
+      "sha256": "d2eb7fa1023704df81e7684beb2ce01879105f88481d0623dd5cbf6831567ada"
+    },
+    {
+      "path": "supabase/migrations/20260807180000_fix_admin_update_user_function_grant.sql",
+      "sha256": "308680139179966120494a8c636c5660318f59a45215e5a941c91b562a86c0f2"
+    },
+    {
+      "path": "supabase/migrations/20260810141652_add_sheet_sync_contract.sql",
+      "sha256": "06c100cb7386bab73f4a66fa55bb097140f79cb6ba77b196cba196bf7df56961"
+    },
+    {
+      "path": "supabase/migrations/20260810171923_procedural_workflow_tags.sql",
+      "sha256": "064477665af750d16f70020b695531a0c91061aec18f0538f4f3b052e3b763f9"
+    },
+    {
+      "path": "supabase/migrations/20260810173000_individual_sigilo_permissions.sql",
+      "sha256": "da04cf4d9e3d33956ef6cf04a6cfee81fdde9228e80d6b29a9b3c3d95db2ad3b"
+    },
+    {
+      "path": "supabase/migrations/20260810190000_split_numbered_procedural_tags.sql",
+      "sha256": "6190bc66bbfeb2e505a246f3a679f9a5061e75b27d042eeaabfc1bd4343476e4"
+    },
+    {
+      "path": "supabase/migrations/20260810195249_user_table_preferences.sql",
+      "sha256": "eaf672d372f83d6ec8abf394234e00ec8d4f9ec8508a40585213fafc2f777a56"
+    },
+    {
+      "path": "supabase/migrations/20260810195250_user_saved_filters.sql",
+      "sha256": "4e27f49ebae0b542f5a12bdeca5183f828bb287ba8ccceee90a89542c132cdfd"
+    },
+    {
+      "path": "supabase/migrations/20260810202437_tighten_user_configuration_privileges.sql",
+      "sha256": "2de94c360ad8e7555bcd7c0c624258b095ee4dd74c61d84d71b21f9cbb8a5747"
+    },
+    {
+      "path": "supabase/migrations/20260814121316_multi_status_gravidade_tags.sql",
+      "sha256": "8119d5a61baa4ecf47f405e8b123ded23d410f77c58332b8d31f17838c6fa4f3"
+    },
+    {
+      "path": "supabase/migrations/20260814123859_fix_procedural_tag_utf8_labels.sql",
+      "sha256": "cd35c5ea28e340b33ac142483e26077314c0ed244f2f5984442446e5b53a5803"
+    },
+    {
+      "path": "supabase/migrations/20260814130000_boletins_ocorrencia_core.sql",
+      "sha256": "d1289f03b3594bae7bfdf67b5730f52d24a2ae46837e7970752edfaa65284746"
+    },
+    {
+      "path": "supabase/migrations/20260814133539_allow_bo_inquerito_and_representacao_links.sql",
+      "sha256": "0cbbb99e9f9160ab64189b100504a97bf36438e215eb7e474fc0cab79d8463fc"
+    },
+    {
+      "path": "supabase/migrations/20260814135400_fix_soft_delete_bo_rls.sql",
+      "sha256": "acfafee974996035a7584f9f102267e192f0b4c40f4fef6c8614bc9b356f5e89"
+    },
+    {
+      "path": "supabase/migrations/20260817140000_inquerito_pessoas_situacao.sql",
+      "sha256": "c1b79a6cc114282cc391702f28d8b29520e405f7677320ca739c9482acdd5b06"
+    },
+    {
+      "path": "supabase/migrations/20260817160000_inquerito_pessoas_situacao_todos_papeis.sql",
+      "sha256": "388cfa5747d78782ac28b9ac9487c56c8d35121f4d05e2cfcf73a311083edee3"
+    },
+    {
+      "path": "supabase/migrations/20260820150000_fix_soft_delete_localizacao_rls.sql",
+      "sha256": "f24eb0108ac3c0ce158a7627ff25fb61043ceda5bdbb54e7743d95684e2d0ad6"
+    },
+    {
+      "path": "supabase/migrations/20260821160917_add_inquerito_remessa_final.sql",
+      "sha256": "5e778c1e53c13636dfbcde2fba9a3b07eecec629e1876a3662225bad97cc5db1"
+    },
+    {
+      "path": "supabase/migrations/20260821171500_sync_remessa_final_na_troca_de_categoria.sql",
+      "sha256": "1c288ccd5cb095ba4c09eb1ffc650f999b17b8cdd6161c2b233952471f77e726"
+    },
+    {
+      "path": "supabase/migrations/20260824120000_amplia_nome_da_tag_processual.sql",
+      "sha256": "bde658791469012c460207377b1a15362607bd967aeeb82953aeea57e5ce26b8"
+    },
+    {
+      "path": "supabase/migrations/20261013145847_vehicle_inspections.sql",
+      "sha256": "5d16389f4a28ba31027fd3d82633b894d4487c09d4db82fc45693f36851903c6"
+    },
+    {
+      "path": "supabase/migrations/20261013145906_audit_vehicle_inspections.sql",
+      "sha256": "cd860a17ca989a6ec4387b7f1e89fde6a0c4cfd66e2466cf1d8a0ee38f34aae1"
+    },
+    {
+      "path": "supabase/migrations/20261013145923_vehicle_inspection_form_fields.sql",
+      "sha256": "19908ffbe1fadc0bb83922493200979b20e460e9e4216fa2e42225629e707fff"
+    },
+    {
+      "path": "supabase/migrations/20261013145934_vehicle_inspection_photos.sql",
+      "sha256": "59593d88598eb5718fba1993b57dccb1295600ce2c25f7637e7d926359cd0418"
+    },
+    {
+      "path": "supabase/migrations/20261013173322_vehicle_inspection_transactional_writes.sql",
+      "sha256": "f45d00ae0898309eaafa7458d947168eebe586d88fdb65df5c128d756619d433"
+    },
+    {
+      "path": "supabase/migrations/20261016120000_create_nexo_intelligence_core.sql",
+      "sha256": "75bc030be4ef9a1a7b73c6a29bb54e0cf2f6a93fdac626110547ab3ef80703c8"
+    },
+    {
+      "path": "supabase/migrations/20261016124500_nexo_foreign_key_indexes.sql",
+      "sha256": "6798fd1efbe3a7af39b0426db99308556c5e736895a46722cf94d524003b3008"
+    },
+    {
+      "path": "supabase/migrations/20261016133000_nexo_procedural_links.sql",
+      "sha256": "63a216538482b070ff8d1e85bea0ed48a6448245cf7cd257571f4af0ec168a4d"
+    },
+    {
+      "path": "supabase/migrations/20261016151206_nexo_territorios.sql",
+      "sha256": "e2b3f01d0f23db1feadf3864f813baad541922158c496f530224e1b4d184de69"
+    },
+    {
+      "path": "supabase/migrations/20261017032636_expand_nexo_person_registration.sql",
+      "sha256": "5a6bcf3a8eb4cd480585e4927c2ac47e91e12c062801bad0f1cfd9b38543d45f"
+    },
+    {
+      "path": "supabase/migrations/20261017130545_expand_nexo_territories_and_vehicles.sql",
+      "sha256": "1ffcf37be049e5cd4a5c598cd74532df162b871890a921b3fd51b881672acff4"
+    },
+    {
+      "path": "supabase/migrations/20261017131212_add_operational_location_to_bo.sql",
+      "sha256": "c8f37877496e62251ee1ec18b29257306348445474d287c8697597e1169bc6ad"
+    },
+    {
+      "path": "supabase/migrations/20261017132400_expand_nexo_person_profile.sql",
+      "sha256": "a36659927fd22071987395c9ecc4d1b331e0c4ec72b6e48a5db1a632f47589a7"
+    },
+    {
+      "path": "supabase/migrations/20261017133133_add_nexo_approximate_age.sql",
+      "sha256": "6e7bedb9adc04098504f9180e9e909b8a2c886e49319cb343a277c8b4509e7f9"
+    },
+    {
+      "path": "supabase/migrations/20261017202136_add_nexo_notes_and_link_management.sql",
+      "sha256": "531049f5533d1638201a2419310cc700988dc89703be6ae2d24029c46576d484"
+    },
+    {
+      "path": "supabase/migrations/20261017202518_index_nexo_notes_author.sql",
+      "sha256": "988039b14839ec4e267dd1d676a4e0789c99f64b64fbfc780ae51eae17d46f52"
+    },
+    {
+      "path": "supabase/migrations/20261017215019_nexo_member_hierarchy.sql",
+      "sha256": "e900e8b64e0db7f1aea87405ab9c0b7203956dea52531dac39a59a2e9e1a5848"
+    },
+    {
+      "path": "supabase/migrations/20261017215421_index_nexo_hierarchy_events.sql",
+      "sha256": "6ab7e5aa757736c61a73f02cadb8c32521b385119459e208b0bf7bcd50984581"
+    },
+    {
+      "path": "supabase/migrations/20261017215947_nexo_procedure_context.sql",
+      "sha256": "1878884369bd1040ff91ce4b4e4bee7e5d4c17887d236a41de535d384ef8dbc2"
+    },
+    {
+      "path": "supabase/migrations/20261017221028_nexo_procedure_coordinates.sql",
+      "sha256": "4676c364ad6a4c0c2f558c247759c02fbe62324f8f8ac0529a8f4c4a5451a763"
+    },
+    {
+      "path": "supabase/migrations/20261019180222_link_vehicle_inspections_to_bo.sql",
+      "sha256": "82d52c95a4e73371c505f7e70806320d64a575186b836c6083ccc4e1ae031a90"
+    },
+    {
+      "path": "supabase/migrations/20261019183101_fix_nexo_vehicle_link_soft_delete.sql",
+      "sha256": "4544e6bde60ab34fba0af2fe218f30101b639a3ec99ba62455544a607ff4f1fc"
+    },
+    {
+      "path": "supabase/migrations/20261020013222_correct_nexo_removal_and_inspection_pdf.sql",
+      "sha256": "58c73c133bdad0244fc038de32b75f695d7395fbe4328483505f10a63b2fb4d1"
+    },
+    {
+      "path": "supabase/migrations/20261020171755_make_nexo_person_creation_atomic.sql",
+      "sha256": "4b4718ed2c887dd281260e2a25be891f5ba46fe194ab30ebdbad0658ee09692c"
+    },
+    {
+      "path": "supabase/migrations/20261020172923_make_nexo_person_edit_atomic.sql",
+      "sha256": "10c3b038abbe3d3bcfd582e76f8ffbb5556067bccc848e94c02883da09beb362"
+    },
+    {
+      "path": "supabase/migrations/20261020173427_grant_nexo_address_access.sql",
+      "sha256": "2ffa1962f21983271a673501230e171dbd4febc0cc3e14b2435adb39da1a449a"
+    },
+    {
+      "path": "supabase/migrations/20261020173545_consolidate_nexo_address_policies.sql",
+      "sha256": "e9ce63cd98168b36ecf475383f78357c66504b168fec969207f6020ca731a69e"
+    },
+    {
+      "path": "supabase/migrations/20261021120000_nexo_removal_controls.sql",
+      "sha256": "b850dd325cd61886437142ade5736a2d66a436310079e27cf6eb33964664e558"
+    },
+    {
+      "path": "supabase/migrations/20261021141231_nexo_pdf_source_documents.sql",
+      "sha256": "dda788662d984dce538357e4b4abd0d09b60a10fb5a2f01744454fef945fd4c1"
+    },
+    {
+      "path": "supabase/migrations/20261021141419_nexo_pdf_source_cleanup_policies.sql",
+      "sha256": "cace59e8ca8e89d85828e2321f5195d8538fc10e6ca0d6632b8fd642679eef2e"
+    },
+    {
+      "path": "supabase/migrations/20261021142411_nexo_pdf_bucket_policy.sql",
+      "sha256": "033634d78a5f06658128365bbe3cbf5250d384e52f13669a89669c4800232fde"
+    },
+    {
+      "path": "supabase/migrations/20261021143000_nexo_organization_gallery.sql",
+      "sha256": "213313a189049999115324c2c2814bd664a993b2cff594f7f4a34ed54ec176f4"
+    },
+    {
+      "path": "supabase/migrations/20261021153000_nexo_pessoa_recursos.sql",
+      "sha256": "f1cde118d3bb2bbe46793f6349e40e5c4e27aae9ac0d499251d96ada93a65018"
+    },
+    {
+      "path": "supabase/migrations/20261021170000_nexo_pessoa_recursos_edicao.sql",
+      "sha256": "a4514cf5cea1889f2a3344fbc1af6dad29189a56cea7aaee2771de219917592a"
+    },
+    {
+      "path": "supabase/migrations/20261021171000_nexo_pessoa_recursos_created_by_idx.sql",
+      "sha256": "0adf178b1a12ca455f539cc9993122bef103ed136365b9663a54e1af40795a55"
+    },
+    {
+      "path": "supabase/migrations/20261022173454_create_nexo_local_vehicles.sql",
+      "sha256": "6d47d1384c66daaa4517dbe38a0d5d05576363ad6d786ec4fe7af60a7e73c128"
+    },
+    {
+      "path": "supabase/migrations/20261022175746_remove_agenda_and_contato_operacional.sql",
+      "sha256": "0da0bd72c80cab8bd8496486ce810ffb435ad8cd2d6befeac15fbcc89b5e3a48"
+    },
+    {
+      "path": "supabase/migrations/20261023140602_nexo_inquerito_pessoa_links.sql",
+      "sha256": "dd9ccce0125834e499e7b87472f3af982d3617a3c81e39c37d80627a26f9fd13"
+    },
+    {
+      "path": "supabase/migrations/20261023150600_requisicao_movimentacao_fields.sql",
+      "sha256": "f2275693f03ec24a51bc22e0e8fdb5b9b5a92521a1cc064a31eb992ef5c3d237"
+    },
+    {
+      "path": "supabase/migrations/20261023160044_restrict_nexo_to_admin_delegado.sql",
+      "sha256": "c5841aa891e6be394782ff9df92cdadafb36c410c5b05ef69712d57ecb232d08"
+    },
+    {
+      "path": "supabase/migrations/20261023161756_allow_requisicao_movement_type.sql",
+      "sha256": "136d3ebcae349c1ab70446ae707194c65c76db73773fa190feadb659c839828c"
+    },
+    {
+      "path": "supabase/migrations/20261024111500_restore_required_storage_buckets.sql",
+      "sha256": "2c2b4cd1dc981ee3a29d1137bfe5d1af3f3ff0a7e240b3c1d44d920fff0c6175"
+    },
+    {
+      "path": "supabase/migrations/20261024123000_harden_privileged_rpcs.sql",
+      "sha256": "cf795d6c12f44dda96a423e1a6a0e781b071bc277d30643beb37da4b9a48b988"
+    },
+    {
+      "path": "supabase/migrations/20261025022835_harden_data_api_table_grants.sql",
+      "sha256": "a84697c9b9e4fbc554890b5be213ef4e5925ce18961fe26fe935cfee266fbbae"
+    },
+    {
+      "path": "supabase/migrations/20261025070926_fix_objects_without_procedure.sql",
+      "sha256": "68b9c15a4da92588497affad607312b211019526691da14a029872689be26b85"
+    },
+    {
+      "path": "supabase/migrations/20261025123642_restore_vehicle_search_normalization.sql",
+      "sha256": "31636fada9b3642a818486088117de725fe8b3ae17fdf4647d9ae887c63e421f"
+    }
+  ],
+  "applied": [],
+  "runtimeProbes": [],
+  "runtimeProbeSource": {
+    "path": "tests/schema-replay/runtime-probes.mjs",
+    "sha256": "8f81a7a968893578b992add774b9067819e1bdb099ed6d7449f9f9b27fe44022"
+  },
+  "failure": {
+    "phase": "migration",
+    "file": "supabase/migrations/20260504120000_fix_inqueritos_soft_delete_rls.sql",
+    "section": null,
+    "sqlstate": "42P01",
+    "errorCode": "42P01",
+    "message": "relation \"public.inqueritos\" does not exist",
+    "position": null,
+    "sourceLine": null,
+    "detail": null,
+    "hint": null,
+    "runtimeProbe": null,
+    "appliedMigrationCount": 0,
+    "totalMigrationCount": 121,
+    "remainingMigrationCount": 121
+  }
+}

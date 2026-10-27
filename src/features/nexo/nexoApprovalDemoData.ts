@@ -1,6 +1,6 @@
 import { NEXO_PRESENTATION_DATA, nexoPresentationId } from "./nexoPresentationData";
 import type { NexoFoto, NexoObservacao } from "./nexoTypes";
-import toyImageUrl from "./brinquedos-ilustracao.png";
+import toyImageUrl from "./brinquedos-ilustracao.webp";
 
 // Local-only approval scenario: names of organizations are real, all records are invented.
 const disclaimer =
@@ -20,7 +20,7 @@ const toyPhoto = (
   id,
   pessoa_id: personId,
   organizacao_id: organizationId,
-  storage_path: "demo-public/brinquedos-ilustracao.png",
+  storage_path: "demo-public/brinquedos-ilustracao.webp",
   url: toyImageUrl,
   legenda: "Imagem gerada para demonstração: armas de brinquedo coloridas; não é evidência real.",
   categoria: "album",
@@ -39,8 +39,8 @@ const people = organizations.flatMap((organization, index) =>
   NEXO_PRESENTATION_DATA.people.slice(index * 10, index * 10 + 3).map((person, personIndex) => {
     // The source fixture has no files for portraits 21–23; use existing synthetic portraits.
     const portraitNumber = String([1, 11, 26][index] + personIndex).padStart(2, "0");
-    const portraitPath = `demo-public/person-${portraitNumber}.png`;
-    const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.png`;
+    const portraitPath = `demo-public/person-${portraitNumber}.webp`;
+    const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.webp`;
     return {
       ...person,
       nome: `Pessoa fictícia ${organization.sigla.split(" ")[0]} ${String(personIndex + 1).padStart(2, "0")}`,

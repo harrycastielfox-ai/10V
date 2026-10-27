@@ -58,8 +58,8 @@ function CreateAccountPage() {
 
   function selectAvatar(file: File | null) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Selecione apenas arquivos de imagem para a foto de perfil.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type.toLowerCase())) {
+      setError("Selecione uma imagem JPG, PNG ou WebP para a foto de perfil.");
       return;
     }
     if (file.size > MAX_AVATAR_BYTES) {
@@ -285,7 +285,7 @@ function CreateAccountPage() {
                   ref={fileInputRef}
                   className="hidden"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   onChange={(event) => selectAvatar(event.target.files?.[0] ?? null)}
                 />
               </div>

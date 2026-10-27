@@ -1,0 +1,277 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-25T17:50:56.443Z",
+  "remoteVerifiedAt": "2026-10-25T17:50:56.3463564Z",
+  "sources": {
+    "candidate": "recovered-local",
+    "remote": "production-catalog"
+  },
+  "safety": {
+    "catalogMetadataOnly": true,
+    "containsApplicationRows": false,
+    "containsRawDefinitions": false,
+    "containsCredentials": false
+  },
+  "categories": {
+    "tables": {
+      "candidateCount": 39,
+      "remoteCount": 39,
+      "missingInCandidate": [],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    },
+    "columns": {
+      "candidateCount": 686,
+      "remoteCount": 691,
+      "missingInCandidate": [
+        "public.auditoria.dados_anteriores",
+        "public.auditoria.dados_novos",
+        "public.auditoria.usuario",
+        "public.inqueritos.autoria_determinada",
+        "public.profiles.avatar_url"
+      ],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    },
+    "policies": {
+      "candidateCount": 118,
+      "remoteCount": 122,
+      "missingInCandidate": [
+        "storage.objects.avatars_owner_delete",
+        "storage.objects.avatars_owner_insert",
+        "storage.objects.avatars_owner_select",
+        "storage.objects.avatars_owner_update"
+      ],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    },
+    "functions": {
+      "candidateCount": 110,
+      "remoteCount": 79,
+      "missingInCandidate": [
+        "public.handle_new_user_profile()",
+        "public.list_escrivao_productivity(p_days integer)",
+        "public.rls_auto_enable()",
+        "public.update_own_avatar(input_avatar_path text)",
+        "public.update_own_name(p_nome text)",
+        "public.update_own_phone(p_telefone text)"
+      ],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": [
+        {
+          "key": "public.admin_update_user_access(target_user_id uuid, new_role user_role, new_status authorization_status)",
+          "fields": [
+            "bodyHash",
+            "configHash"
+          ]
+        },
+        {
+          "key": "public.current_user_can_access_representacoes()",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.list_auditoria_by_user(p_user_id uuid, p_limit integer)",
+          "fields": [
+            "bodyHash",
+            "configHash"
+          ]
+        },
+        {
+          "key": "public.list_auditoria_for_admin_user(p_user_id uuid, p_limit integer)",
+          "fields": [
+            "bodyHash",
+            "configHash"
+          ]
+        },
+        {
+          "key": "public.list_auditoria(p_limit integer)",
+          "fields": [
+            "bodyHash",
+            "configHash"
+          ]
+        },
+        {
+          "key": "public.list_objects_page(p_limit integer, p_cursor_updated_at timestamp with time zone, p_cursor_id uuid, p_search text, p_object_type text, p_situation text, p_occurrence_type text, p_status text, p_custody_location text, p_start_date date, p_end_date date, p_pending_identification boolean, p_without_procedure boolean)",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.list_profiles_for_admin()",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.list_vehicles_page(p_limit integer, p_cursor_updated_at timestamp with time zone, p_cursor_id uuid, p_search text, p_vehicle_type text, p_situation text, p_occurrence_type text, p_status text, p_custody_location text, p_start_date date, p_end_date date, p_pending_identification boolean)",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.log_auditoria(p_acao text, p_modulo text, p_entidade text, p_entidade_id text, p_descricao text, p_metadata jsonb)",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.normalize_vehicle_search(p_value text)",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.object_overview_stats()",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.representacao_is_sigilosa(p_pedido_sigiloso text)",
+          "fields": [
+            "anonExecute",
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.set_updated_at()",
+          "fields": [
+            "bodyHash"
+          ]
+        },
+        {
+          "key": "public.sync_inquerito_remessa_final()",
+          "fields": [
+            "bodyHash"
+          ]
+        }
+      ]
+    },
+    "tableGrants": {
+      "candidateCount": 117,
+      "remoteCount": 117,
+      "missingInCandidate": [],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    },
+    "constraints": {
+      "candidateCount": 556,
+      "remoteCount": 299,
+      "missingInCandidate": [],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    },
+    "indexes": {
+      "candidateCount": 180,
+      "remoteCount": 186,
+      "missingInCandidate": [
+        "public.inqueritos.inqueritos_categoria_criminal_idx",
+        "public.inqueritos.inqueritos_escrivao_responsavel_idx",
+        "public.inqueritos.inqueritos_relatorio_status_idx",
+        "public.inqueritos.inqueritos_tipo_norm_idx",
+        "public.representacoes.representacoes_sigilo_norm_idx",
+        "public.representacoes.representacoes_tipo_norm_idx"
+      ],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": [
+        {
+          "key": "public.boletins_ocorrencia.boletins_ocorrencia_search_trgm_idx",
+          "fields": [
+            "definitionHash"
+          ]
+        },
+        {
+          "key": "public.objects.objects_search_trgm_idx",
+          "fields": [
+            "definitionHash"
+          ]
+        },
+        {
+          "key": "public.vehicles.vehicles_search_trgm_idx",
+          "fields": [
+            "definitionHash"
+          ]
+        }
+      ]
+    },
+    "enums": {
+      "candidateCount": 2,
+      "remoteCount": 2,
+      "missingInCandidate": [],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    },
+    "triggers": {
+      "candidateCount": 48,
+      "remoteCount": 51,
+      "missingInCandidate": [
+        "auth.users.on_auth_user_created_profile",
+        "public.inqueritos.track_inquerito_productivity",
+        "public.profiles.set_profiles_updated_at"
+      ],
+      "missingInRemoteApplication": [],
+      "changedFingerprints": []
+    }
+  },
+  "interpretation": {
+    "exactKinds": [
+      "enums",
+      "tables"
+    ],
+    "remoteOnlyApplication": {
+      "columns": [
+        "public.auditoria.dados_anteriores",
+        "public.auditoria.dados_novos",
+        "public.auditoria.usuario",
+        "public.inqueritos.autoria_determinada",
+        "public.profiles.avatar_url"
+      ],
+      "policies": [
+        "storage.objects.avatars_owner_delete",
+        "storage.objects.avatars_owner_insert",
+        "storage.objects.avatars_owner_select",
+        "storage.objects.avatars_owner_update"
+      ],
+      "functions": [
+        "public.handle_new_user_profile()",
+        "public.list_escrivao_productivity(p_days integer)",
+        "public.rls_auto_enable()",
+        "public.update_own_avatar(input_avatar_path text)",
+        "public.update_own_name(p_nome text)",
+        "public.update_own_phone(p_telefone text)"
+      ],
+      "indexes": [
+        "public.inqueritos.inqueritos_categoria_criminal_idx",
+        "public.inqueritos.inqueritos_escrivao_responsavel_idx",
+        "public.inqueritos.inqueritos_relatorio_status_idx",
+        "public.inqueritos.inqueritos_tipo_norm_idx",
+        "public.representacoes.representacoes_sigilo_norm_idx",
+        "public.representacoes.representacoes_tipo_norm_idx"
+      ],
+      "triggers": [
+        "auth.users.on_auth_user_created_profile",
+        "public.inqueritos.track_inquerito_productivity",
+        "public.profiles.set_profiles_updated_at"
+      ]
+    },
+    "candidateOnlyApplication": {
+      "functions": []
+    },
+    "engineNoise": {
+      "pgcryptoFunctions": 37,
+      "notNullConstraints": 257
+    },
+    "environmentDependent": {
+      "functionServiceRoleExecuteFingerprints": 65,
+      "tableGrantFingerprints": 67
+    },
+    "limitations": [
+      "Fingerprint differences identify catalog drift but do not prove a behavioral difference.",
+      "PGlite exposes pgcrypto in public while hosted Supabase exposes it through a platform schema.",
+      "PGlite models NOT NULL as named constraints; hosted PostgreSQL does not return those rows in the same way.",
+      "Role inheritance and platform default grants are not reproduced by the PGlite adapter; grant parity requires the Docker-backed Supabase run."
+    ]
+  }
+}

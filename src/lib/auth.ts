@@ -17,7 +17,32 @@ const LEGACY_PROFILE_SELECT =
   "id,nome,email,login,avatar_path,telefone,cargo,status_autorizacao,created_at,updated_at";
 const AVATAR_BUCKET = "profile-avatars";
 const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+const AVATAR_MIME_EXTENSION = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+} as const;
 const DEFAULT_AUTH_TIMEOUT_MS = 10000;
+
+async function hasExpectedAvatarSignature(file: File, mimeType: string): Promise<boolean> {
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+
+  if (mimeType === "image/jpeg") {
+    return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+    return signature.every((byte, index) => bytes[index] === byte);
+  }
+  if (mimeType === "image/webp") {
+    return (
+      bytes.length >= 12 &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
+    );
+  }
+  return false;
+}
 
 export class AuthFlowError extends Error {
   code: string;
@@ -240,10 +265,14 @@ export async function signInWithLoginOrEmail(loginOrEmail: string, password: str
 }
 
 export async function updateOwnAvatar(userId: string, avatarFile: File): Promise<string> {
-  if (!avatarFile.type.startsWith("image/")) throw new Error("AVATAR_INVALID_TYPE");
+  const mimeType = avatarFile.type.toLowerCase();
+  const ext = AVATAR_MIME_EXTENSION[mimeType as keyof typeof AVATAR_MIME_EXTENSION];
+  if (!ext) throw new Error("AVATAR_INVALID_TYPE");
   if (avatarFile.size > MAX_AVATAR_BYTES) throw new Error("AVATAR_TOO_LARGE");
+  if (!(await hasExpectedAvatarSignature(avatarFile, mimeType))) {
+    throw new Error("AVATAR_INVALID_CONTENT");
+  }
 
-  const ext = avatarFile.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${userId}/avatar.${ext}`;
   const { error } = await supabase.storage
     .from(AVATAR_BUCKET)

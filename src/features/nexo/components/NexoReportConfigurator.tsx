@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { createNexoPrivateSignedUrl } from "@/lib/repositories/nexoRepository";
 import {
   createNexoReportConfig,
   listNexoReportPhotos,
@@ -178,7 +179,7 @@ export function NexoReportConfigurator({
     setPresetNotice("");
     try {
       const manifest = buildNexoDocumentPackage(scope, data, normalizeNexoReportConfig(config));
-      const result = await downloadNexoDocumentPackage(manifest);
+      const result = await downloadNexoDocumentPackage(manifest, createNexoPrivateSignedUrl);
       setPresetNotice(
         result.failed
           ? `Pacote gerado com ${result.downloaded} arquivo(s); ${result.failed} ficou(aram) somente como referência.`

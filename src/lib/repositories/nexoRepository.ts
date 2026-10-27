@@ -25,6 +25,16 @@ import type {
 
 const PRIVATE_BUCKET = "nexo-private";
 const PROFESSION_STATUS_CONTACT_ID = "nexo-profissao-status";
+const MAX_NEXO_IMAGE_BYTES = 8 * 1024 * 1024;
+const NEXO_IMAGE_EXTENSIONS = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+} as const;
+
+function nexoImageError(code: string, message: string) {
+  return Object.assign(new Error(message), { code });
+}
 
 function contactsWithProfessionStatus(input: NexoPessoaInput) {
   const contacts = (input.contatos ?? []).filter(
@@ -48,12 +58,39 @@ function clean(value: string) {
   return normalized || null;
 }
 
-function extensionFor(file: File) {
-  const extension = file.name.split(".").pop()?.toLowerCase();
-  if (extension && /^[a-z0-9]{2,5}$/.test(extension)) return extension;
-  if (file.type === "image/png") return "png";
-  if (file.type === "image/webp") return "webp";
-  return "jpg";
+async function validateNexoImage(file: File): Promise<"jpg" | "png" | "webp"> {
+  const mimeType = file.type.toLowerCase();
+  const extension = NEXO_IMAGE_EXTENSIONS[mimeType as keyof typeof NEXO_IMAGE_EXTENSIONS];
+  if (!extension) {
+    throw nexoImageError("NEXO_IMAGE_INVALID_TYPE", "Selecione uma imagem JPG, PNG ou WebP.");
+  }
+  if (file.size > MAX_NEXO_IMAGE_BYTES) {
+    throw nexoImageError("NEXO_IMAGE_TOO_LARGE", "A imagem deve ter no máximo 8 MB.");
+  }
+
+  const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const validSignature =
+    (mimeType === "image/jpeg" &&
+      bytes.length >= 3 &&
+      bytes[0] === 0xff &&
+      bytes[1] === 0xd8 &&
+      bytes[2] === 0xff) ||
+    (mimeType === "image/png" &&
+      [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every(
+        (byte, index) => bytes[index] === byte,
+      )) ||
+    (mimeType === "image/webp" &&
+      bytes.length >= 12 &&
+      String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" &&
+      String.fromCharCode(...bytes.slice(8, 12)) === "WEBP");
+
+  if (!validSignature) {
+    throw nexoImageError(
+      "NEXO_IMAGE_INVALID_CONTENT",
+      "O conteúdo do arquivo não corresponde a uma imagem válida.",
+    );
+  }
+  return extension;
 }
 
 async function signedUrl(path: string | null | undefined) {
@@ -61,6 +98,10 @@ async function signedUrl(path: string | null | undefined) {
   const { data, error } = await supabase.storage.from(PRIVATE_BUCKET).createSignedUrl(path, 3600);
   if (error) throw error;
   return data.signedUrl;
+}
+
+export async function createNexoPrivateSignedUrl(path: string) {
+  return signedUrl(path);
 }
 
 async function optionalSignedUrl(path: string | null | undefined) {
@@ -113,18 +154,12 @@ async function hydratePessoa(pessoa: NexoPessoa): Promise<NexoPessoa> {
   };
 }
 
-function validateDocumentImage(file: File) {
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
-    throw new Error("Selecione uma imagem JPG, PNG ou WebP.");
-  if (file.size > 8 * 1024 * 1024) throw new Error("A imagem deve ter no máximo 8 MB.");
-}
-
 export async function uploadNexoDocumentoExtraImagem(
   personId: string,
   documentId: string,
   file: File,
 ): Promise<void> {
-  validateDocumentImage(file);
+  const extension = await validateNexoImage(file);
   const { data: current, error: readError } = await supabase
     .from("nexo_pessoas")
     .select("id, documentos_extras, updated_at")
@@ -137,7 +172,7 @@ export async function uploadNexoDocumentoExtraImagem(
   const selected = documents.find((documento) => documento.id === documentId);
   if (!selected) throw new Error("O documento selecionado não está mais disponível.");
 
-  const path = `pessoas/${personId}/documentos/${documentId}/${crypto.randomUUID()}.${extensionFor(file)}`;
+  const path = `pessoas/${personId}/documentos/${documentId}/${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type,
@@ -613,7 +648,8 @@ export async function uploadNexoOrganizacaoPhoto(
   file: File,
   legenda: string,
 ): Promise<NexoFoto & { organizacao_id: string; url: string | null }> {
-  const path = `organizacoes/${organizationId}/album/${crypto.randomUUID()}.${extensionFor(file)}`;
+  const extension = await validateNexoImage(file);
+  const path = `organizacoes/${organizationId}/album/${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type || "image/jpeg",
@@ -777,8 +813,9 @@ async function attachPessoaPhoto(
   targets: PessoaPhotoTarget[],
   previousPaths: Array<string | null | undefined> = [],
 ) {
+  const extension = await validateNexoImage(file);
   const primaryTarget = targets[0] || "perfil";
-  const path = `pessoas/${personId}/${primaryTarget}-${crypto.randomUUID()}.${extensionFor(file)}`;
+  const path = `pessoas/${personId}/${primaryTarget}-${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type || "image/jpeg",
@@ -1148,7 +1185,8 @@ export async function uploadNexoAlbumPhoto(
   file: File,
   legenda: string,
 ): Promise<NexoFoto> {
-  const path = `pessoas/${personId}/album/${crypto.randomUUID()}.${extensionFor(file)}`;
+  const extension = await validateNexoImage(file);
+  const path = `pessoas/${personId}/album/${crypto.randomUUID()}.${extension}`;
   const { error: uploadError } = await supabase.storage.from(PRIVATE_BUCKET).upload(path, file, {
     cacheControl: "3600",
     contentType: file.type || "image/jpeg",

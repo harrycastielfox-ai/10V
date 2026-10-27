@@ -272,8 +272,8 @@ export const NEXO_PRESENTATION_PEOPLE: NexoPessoa[] = personNames.map((name, ind
   const superior = superiorIndex(localIndex);
   const personId = nexoPresentationId(3, number);
   const portraitNumber = String(number).padStart(2, "0");
-  const portraitPath = `demo-public/person-${portraitNumber}.png`;
-  const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.png`;
+  const portraitPath = `demo-public/person-${portraitNumber}.webp`;
+  const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.webp`;
   const address = makeAddress(index, factionIndex);
   const status: NexoVinculo["status"] =
     localIndex < 3

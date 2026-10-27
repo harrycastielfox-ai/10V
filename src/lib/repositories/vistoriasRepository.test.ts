@@ -270,7 +270,9 @@ describe("vistoriasRepository", () => {
 
   it("envia PDF para um caminho imutável sem permitir sobrescrita", async () => {
     state.upload.mockResolvedValue({ error: null });
-    const file = new File(["conteúdo"], "laudo final.pdf", { type: "application/pdf" });
+    const file = new File(["%PDF-1.7\nconteúdo"], "laudo final.pdf.exe", {
+      type: "application/pdf",
+    });
 
     const uploaded = await uploadVehicleInspectionPdf("vistoria-1", 2, file);
 
@@ -281,6 +283,15 @@ describe("vistoriasRepository", () => {
       file,
       expect.objectContaining({ upsert: false, contentType: "application/pdf" }),
     );
+  });
+
+  it("rejeita conteúdo forjado antes de enviar um PDF de vistoria", async () => {
+    const file = new File(["não é pdf"], "laudo.pdf", { type: "application/pdf" });
+
+    await expect(uploadVehicleInspectionPdf("vistoria-1", 2, file)).rejects.toMatchObject({
+      code: "INSPECTION_PDF_INVALID_CONTENT",
+    });
+    expect(state.upload).not.toHaveBeenCalled();
   });
 
   it("gera uma URL temporária para visualizar o PDF assinado", async () => {

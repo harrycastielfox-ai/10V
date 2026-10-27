@@ -18,15 +18,19 @@ function PendingAuthorizationPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let verificationPending = false;
 
     async function verificar() {
-      const session = await getSession();
-      if (!session) {
-        if (!cancelled) navigate({ to: "/login", replace: true });
-        return;
-      }
+      if (cancelled || verificationPending) return;
+      verificationPending = true;
 
       try {
+        const session = await getSession();
+        if (!session) {
+          if (!cancelled) navigate({ to: "/login", replace: true });
+          return;
+        }
+
         const profile = await getCurrentProfile();
         if (!profile) {
           if (!cancelled)
@@ -49,6 +53,8 @@ function PendingAuthorizationPage() {
             search: { erro: "profile_load_failed" } as never,
             replace: true,
           });
+      } finally {
+        verificationPending = false;
       }
     }
 

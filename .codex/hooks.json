@@ -1,0 +1,99 @@
+{
+  "description": "Project hooks for Git awareness, Supabase safety, checkpoints, incremental quality, and continuity.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact|fork)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/project-hook.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\project-hook.ps1",
+            "timeout": 5,
+            "additionalContextLimit": 900,
+            "statusMessage": "Carregando contexto do projeto"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Bash|apply_patch)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/project-hook.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\project-hook.ps1",
+            "timeout": 8,
+            "additionalContextLimit": 500,
+            "statusMessage": "Verificando Git, Supabase e checkpoint"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^apply_patch$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/project-hook.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\project-hook.ps1",
+            "timeout": 8,
+            "additionalContextLimit": 500,
+            "statusMessage": "Revisando migracoes"
+          },
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/quality.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\quality.ps1",
+            "timeout": 300,
+            "async": true,
+            "additionalContextLimit": 700,
+            "statusMessage": "Executando verificacoes incrementais"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/project-hook.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\project-hook.ps1",
+            "timeout": 5,
+            "statusMessage": "Salvando continuidade tecnica"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "^(manual|auto)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/project-hook.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\project-hook.ps1",
+            "timeout": 5,
+            "statusMessage": "Preservando contexto antes da compactacao"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "^other$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File \"$(git rev-parse --show-toplevel)/.codex/hooks/project-hook.ps1\"",
+            "commandWindows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\Henrique\\Documents\\Codex\\10V\\.codex\\hooks\\project-hook.ps1",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

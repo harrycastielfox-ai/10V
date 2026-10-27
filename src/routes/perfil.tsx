@@ -117,8 +117,8 @@ function PerfilPage() {
 
     setFeedback(null);
 
-    if (!file.type.startsWith("image/")) {
-      setFeedback({ type: "error", message: "Selecione apenas arquivos de imagem." });
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type.toLowerCase())) {
+      setFeedback({ type: "error", message: "Selecione uma imagem JPG, PNG ou WebP." });
       return;
     }
 
@@ -334,7 +334,7 @@ function PerfilPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="hidden"
               onChange={onFileSelected}
               aria-label="Selecionar nova foto de perfil"

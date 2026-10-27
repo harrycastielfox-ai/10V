@@ -1,6 +1,4 @@
 import type { NexoPessoaInput, NexoPdfSourceInput } from "./nexoTypes";
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-import { getDocument, GlobalWorkerOptions, OPS } from "pdfjs-dist";
 
 export type NexoPdfField =
   | "nome"
@@ -220,8 +218,15 @@ function validatePdfFile(file: File) {
 
 async function openPdf(file: File) {
   validatePdfFile(file);
+  const [{ getDocument, GlobalWorkerOptions, OPS }, { default: workerSrc }] = await Promise.all([
+    import("pdfjs-dist"),
+    import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+  ]);
   GlobalWorkerOptions.workerSrc = workerSrc;
-  return getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  return {
+    pdf: await getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise,
+    operations: OPS,
+  };
 }
 
 async function destroyPdf(pdf: unknown) {
@@ -344,7 +349,7 @@ export function defaultNexoPdfSelections(candidates: NexoPdfCandidate[]) {
 }
 
 export async function readNexoPdf(file: File): Promise<NexoPdfCandidate[]> {
-  const pdf = await openPdf(file);
+  const { pdf } = await openPdf(file);
   try {
     if (pdf.numPages > 30)
       throw new Error("O PDF tem mais de 30 páginas; divida-o antes de importar.");
@@ -375,7 +380,7 @@ export async function readNexoPdf(file: File): Promise<NexoPdfCandidate[]> {
 }
 
 export async function readNexoPdfPageCount(file: File) {
-  const pdf = await openPdf(file);
+  const { pdf } = await openPdf(file);
   try {
     if (pdf.numPages > 30)
       throw new Error("O PDF tem mais de 30 páginas; divida-o antes de importar.");
@@ -387,7 +392,7 @@ export async function readNexoPdfPageCount(file: File) {
 
 /** Runs OCR locally for image-only PDFs. No page image is sent to a remote service. */
 export async function readNexoPdfWithOcr(file: File): Promise<NexoPdfCandidate[]> {
-  const pdf = await openPdf(file);
+  const { pdf } = await openPdf(file);
   let worker: Awaited<ReturnType<(typeof import("tesseract.js"))["createWorker"]>> | null = null;
   try {
     const { createWorker } = await import("tesseract.js");
@@ -434,7 +439,7 @@ export async function readNexoPdfWithOcr(file: File): Promise<NexoPdfCandidate[]
 
 /** Extract embedded images without uploading or persisting the source PDF. */
 export async function readNexoPdfPhotos(file: File): Promise<NexoPdfPhotoCandidate[]> {
-  const pdf = await openPdf(file);
+  const { pdf, operations } = await openPdf(file);
   try {
     if (pdf.numPages > 30)
       throw new Error("O PDF tem mais de 30 páginas; divida-o antes de importar.");
@@ -446,14 +451,14 @@ export async function readNexoPdfPhotos(file: File): Promise<NexoPdfPhotoCandida
       let lastTransform: number[] | null = null;
       for (let index = 0; index < operatorList.fnArray.length; index++) {
         const args = operatorList.argsArray[index];
-        if (operatorList.fnArray[index] === OPS.transform && args && args.length >= 6) {
+        if (operatorList.fnArray[index] === operations.transform && args && args.length >= 6) {
           lastTransform = Array.from(args.slice(0, 6), Number);
         }
         const operation = operatorList.fnArray[index];
         const isImageOperation =
-          operation === OPS.paintImageXObject ||
-          operation === OPS.paintImageXObjectRepeat ||
-          operation === OPS.paintInlineImageXObject;
+          operation === operations.paintImageXObject ||
+          operation === operations.paintImageXObjectRepeat ||
+          operation === operations.paintInlineImageXObject;
         if (!isImageOperation || !lastTransform) continue;
         const imageId = args?.[0];
         imageOps.push({
