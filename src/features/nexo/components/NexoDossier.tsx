@@ -1512,9 +1512,15 @@ export function NexoDossier({
   const currentOrganizationMembers = organizationMembers.filter(
     ({ link }) => link?.status !== "desvinculado",
   );
-  const organogramMembers = currentOrganizationMembers.flatMap(({ person, link }) =>
-    link ? [{ person, link }] : [],
-  );
+  const organogramMembers = organization
+    ? linkedPeople.flatMap((person) =>
+        person.vinculos
+          .filter(
+            (link) => link.organizacao_id === organization.id && link.status !== "desvinculado",
+          )
+          .map((link) => ({ person, link })),
+      )
+    : [];
   const filteredOrganizationMembers = filterNexoOrganizationMembers(
     organizationMembers,
     scopedRecords,

@@ -62,7 +62,7 @@ O checkout não possui projeto Supabase vinculado e a máquina não possui Docke
 | Verificação                             | Resultado                                                 |
 | --------------------------------------- | --------------------------------------------------------- |
 | `pnpm lint`                             | Aprovado                                                  |
-| `pnpm test`                             | 75 arquivos e 530 testes aprovados                        |
+| `pnpm test`                             | 75 arquivos e 531 testes aprovados                        |
 | `pnpm exec tsc --noEmit`                | Aprovado                                                  |
 | `pnpm build` com URL/chave local inerte | Aprovado                                                  |
 | `pnpm test:bundle`                      | NEXO 675.821 bytes, abaixo do limite de 850.000           |

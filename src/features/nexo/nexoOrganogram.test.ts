@@ -149,6 +149,19 @@ describe("projeção do organograma NEXO", () => {
     expect(model.rootIds).toEqual(["v-1", "v-2"]);
   });
 
+  it("preserva o vínculo atual quando um registro anterior da mesma organização foi encerrado", () => {
+    const people = [
+      person("p-retorno", "Pessoa Retornada", null, [
+        link("v-antigo", "p-retorno", null, { status: "desvinculado" }),
+        link("v-atual", "p-retorno"),
+      ]),
+    ];
+
+    const model = buildNexoOrganogram(ORGANIZATION_ID, people);
+
+    expect(model.members.map((member) => member.id)).toEqual(["v-atual"]);
+  });
+
   it("busca nome ou alcunha sem depender de caixa ou acentos e informa ancestrais", () => {
     const people = [
       person("p-raiz", "Álvaro Sintético", "Comando Um", [link("v-raiz", "p-raiz")]),
