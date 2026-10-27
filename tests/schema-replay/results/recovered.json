@@ -690,7 +690,7 @@
     {
       "phase": "migration",
       "path": "supabase/migrations/20261024111500_restore_required_storage_buckets.sql",
-      "sha256": "2c2b4cd1dc981ee3a29d1137bfe5d1af3f3ff0a7e240b3c1d44d920fff0c6175"
+      "sha256": "c7ddab1e5bca4d20f7346b12fd67cddac2ea139522afcb6049e25a2eddc1d961"
     },
     {
       "phase": "migration",
@@ -1376,7 +1376,7 @@
     {
       "phase": "migration",
       "path": "supabase/migrations/20261024111500_restore_required_storage_buckets.sql",
-      "sha256": "2c2b4cd1dc981ee3a29d1137bfe5d1af3f3ff0a7e240b3c1d44d920fff0c6175"
+      "sha256": "c7ddab1e5bca4d20f7346b12fd67cddac2ea139522afcb6049e25a2eddc1d961"
     },
     {
       "phase": "documentary-gap",
