@@ -13,6 +13,7 @@ import {
   LockKeyhole,
   MapPin,
   MapPinned,
+  Network,
   Pencil,
   Plus,
   Printer,
@@ -50,12 +51,14 @@ import {
 } from "../nexoMemberFilters";
 import { getNexoPersonPhotoUrl, selectNexoRecords } from "../nexoSelectors";
 import { NexoLinkForm, type NexoLinkInput } from "./NexoLinkForm";
+import { NexoOrganogram } from "./NexoOrganogram";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { NexoVehiclePanel } from "./NexoVehiclePanel";
 
 type DossierTarget = { kind: "person"; id: string } | { kind: "organization"; id: string };
 type Tab =
   | "resumo"
+  | "organograma"
   | "vinculos"
   | "procedimentos"
   | "galeria"
@@ -67,6 +70,7 @@ type Tab =
 
 const TAB_ICONS: Record<Tab, typeof UserRound> = {
   resumo: ShieldCheck,
+  organograma: Network,
   vinculos: UserCog,
   procedimentos: FileText,
   galeria: Camera,
@@ -1508,6 +1512,9 @@ export function NexoDossier({
   const currentOrganizationMembers = organizationMembers.filter(
     ({ link }) => link?.status !== "desvinculado",
   );
+  const organogramMembers = currentOrganizationMembers.flatMap(({ person, link }) =>
+    link ? [{ person, link }] : [],
+  );
   const filteredOrganizationMembers = filterNexoOrganizationMembers(
     organizationMembers,
     scopedRecords,
@@ -1614,6 +1621,7 @@ export function NexoDossier({
         ]
       : [
           { id: "resumo", label: "Visão geral" },
+          { id: "organograma", label: "Organograma" },
           { id: "vinculos", label: "Integrantes" },
           { id: "procedimentos", label: "B.O. e inquéritos" },
           { id: "galeria", label: "Imagens" },
@@ -2238,6 +2246,15 @@ export function NexoDossier({
               </section>
             </>
           ) : null}
+          {tab === "organograma" && organization ? (
+            <NexoOrganogram
+              organization={organization}
+              members={organogramMembers}
+              onOpen={(member) => onOpen({ kind: "person", id: member.id })}
+              onManage={(member, link) => setManagedLink({ person: member, link })}
+            />
+          ) : null}
+
           {tab === "vinculos" && person ? (
             <div className="space-y-3">
               <NexoLinkForm
