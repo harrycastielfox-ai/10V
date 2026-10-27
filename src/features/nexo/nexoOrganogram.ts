@@ -65,9 +65,7 @@ export function buildNexoOrganogram(
   const candidates: CandidateMember[] = people
     .flatMap((person) =>
       person.vinculos
-        .filter(
-          (link) => link.organizacao_id === organizationId && link.status !== "desvinculado",
-        )
+        .filter((link) => link.organizacao_id === organizationId && link.status !== "desvinculado")
         .map((link) => ({ id: link.id, person, link })),
     )
     .sort((first, second) => first.id.localeCompare(second.id, "pt-BR"));

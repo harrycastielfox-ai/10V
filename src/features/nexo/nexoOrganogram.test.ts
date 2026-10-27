@@ -171,11 +171,7 @@ describe("projeção do organograma NEXO", () => {
     ];
     const model = buildNexoOrganogram(ORGANIZATION_ID, people);
 
-    expect(getVisibleNexoOrganogram(model, new Set(["v-a"]))).toEqual([
-      "v-raiz",
-      "v-a",
-      "v-b",
-    ]);
+    expect(getVisibleNexoOrganogram(model, new Set(["v-a"]))).toEqual(["v-raiz", "v-a", "v-b"]);
     expect(getVisibleNexoOrganogram(model, new Set(["v-raiz"]))).toEqual(["v-raiz"]);
   });
 });
