@@ -38,7 +38,7 @@ const organizations = NEXO_PRESENTATION_DATA.organizations.slice(0, 3).map((org,
 const people = organizations.flatMap((organization, index) =>
   NEXO_PRESENTATION_DATA.people.slice(index * 10, index * 10 + 8).map((person, personIndex) => {
     // Use only the synthetic portrait ranges that are versioned in public/nexo-demo/portraits.
-    const portraitNumber = String([1, 8, 26][index] + personIndex).padStart(2, "0");
+    const portraitNumber = String([1, 35, 26][index] + personIndex).padStart(2, "0");
     const portraitPath = `demo-public/person-${portraitNumber}.webp`;
     const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.webp`;
     return {

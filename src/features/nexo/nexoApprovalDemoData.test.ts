@@ -53,5 +53,8 @@ describe("NEXO approval demo", () => {
         NEXO_APPROVAL_DEMO_DATA.observations.some((note) => note.pessoa_id === person.id),
       ).toBe(true);
     }
+    expect(
+      new Set(NEXO_APPROVAL_DEMO_DATA.people.map((person) => person.foto_perfil_url)).size,
+    ).toBe(24);
   });
 });
