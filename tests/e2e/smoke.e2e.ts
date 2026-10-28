@@ -101,27 +101,10 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
   await expect(page.getByText("8 integrantes", { exact: true })).toBeVisible();
   await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
   await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
-  await expect(page.locator(".react-flow__minimap-node")).toHaveCount(8);
+  await expect(page.locator(".react-flow__minimap")).toHaveCount(0);
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
   const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
   expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
-  const minimapBox = await page.locator(".react-flow__minimap").boundingBox();
-  const cardBoxes = await page.locator(".nexo-organogram-card").evaluateAll((cards) =>
-    cards.map((card) => {
-      const box = card.getBoundingClientRect();
-      return { left: box.left, top: box.top, right: box.right, bottom: box.bottom };
-    }),
-  );
-  expect(
-    cardBoxes.every(
-      (card) =>
-        !minimapBox ||
-        card.right <= minimapBox.x ||
-        card.left >= minimapBox.x + minimapBox.width ||
-        card.bottom <= minimapBox.y ||
-        card.top >= minimapBox.y + minimapBox.height,
-    ),
-  ).toBe(true);
 
   const search = page.getByLabel("Buscar integrante no organograma");
   await search.fill("Personagem");

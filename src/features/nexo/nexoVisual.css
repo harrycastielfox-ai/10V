@@ -566,14 +566,6 @@
     background: #fff;
   }
 
-  .nexo-organogram-stage .react-flow__minimap {
-    overflow: hidden;
-    border: 1px solid #cddde5;
-    border-radius: 12px;
-    background: #f8fbfc;
-    box-shadow: 0 12px 26px -18px #173a5477;
-  }
-
   .nexo-organogram-card {
     width: 320px;
     overflow: hidden;
@@ -853,9 +845,6 @@
     }
     .nexo-organogram-tool-button {
       flex: 1;
-    }
-    .nexo-organogram-stage .react-flow__minimap {
-      display: none;
     }
   }
 

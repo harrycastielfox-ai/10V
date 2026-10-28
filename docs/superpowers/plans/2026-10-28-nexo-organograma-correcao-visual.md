@@ -16,6 +16,7 @@
 - Não usar dados investigativos reais; o preview deve permanecer explicitamente fictício.
 - Não criar migrations nem publicar no Cloudflare.
 - Preservar busca, zoom, pan, colapso, tela cheia, dossiê e gestão existentes.
+- Não renderizar minimapa; a árvore deve ocupar o canvas sem sobreposições.
 
 ## Review Focus
 

@@ -9,6 +9,7 @@ Corrigir a primeira apresentação do organograma, que ficou horizontal, pequena
 - Exibir a hierarquia de cima para baixo, com subordinados distribuídos horizontalmente por ramificação.
 - Remover o nó virtual conectado “Posição não determinada”. Raízes permanecem sem aresta de entrada e recebem identificação textual de que não há superior cadastrado.
 - Aumentar cartões e legibilidade sem prejudicar zoom, pan, busca, colapso e tela cheia.
+- Remover o minimapa; zoom, pan, ajuste à tela e busca centralizada já cobrem a navegação sem competir visualmente com a árvore.
 - Usar no preview oito personagens fictícios por organização, derivados do fixture estruturado existente, para demonstrar níveis e ramificações.
 - Manter todas as identidades, fontes e retratos estritamente sintéticos.
 
