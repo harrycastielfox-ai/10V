@@ -1,6 +1,6 @@
 # NEXO Organograma 2.0 — Relatório das fases 1 e 2
 
-Data da entrega: 27/10/2026
+Data da entrega: 28/10/2026
 Branch: `feature/nexo-organograma-2-fase-1-2`
 
 ## 1. Resumo do que foi implementado
@@ -89,7 +89,7 @@ A imagem usa somente o cenário local de demonstração e retratos sintéticos j
 
 ## 8. Pull Request
 
-Link: será inserido após a publicação desta branch.
+Link: https://github.com/harrycastielfox-ai/10V/pull/1
 
 ## 9. Como validar em localhost
 
