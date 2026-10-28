@@ -45,6 +45,9 @@ const LINK_LABELS: Record<NexoVinculo["status"], string> = {
   desvinculado: "Desvinculado",
 };
 
+const ORGANOGRAM_NODE_WIDTH = 320;
+const ORGANOGRAM_NODE_HEIGHT = 132;
+
 interface MemberNodeData extends Record<string, unknown> {
   member: NexoOrganogramMember;
   superiorName: string | null;
@@ -242,6 +245,8 @@ function OrganogramCanvas({
           id,
           type: "member",
           position: member.position,
+          initialWidth: ORGANOGRAM_NODE_WIDTH,
+          initialHeight: ORGANOGRAM_NODE_HEIGHT,
           draggable: false,
           selectable: false,
           data: {

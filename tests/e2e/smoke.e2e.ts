@@ -101,6 +101,7 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
   await expect(page.getByText("8 integrantes", { exact: true })).toBeVisible();
   await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
   await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
+  await expect(page.locator(".react-flow__minimap-node")).toHaveCount(8);
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
 
   const search = page.getByLabel("Buscar integrante no organograma");
