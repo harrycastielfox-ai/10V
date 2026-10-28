@@ -1,7 +1,5 @@
 import type { NexoPessoa, NexoVinculo } from "./nexoTypes";
 
-export const NEXO_ORGANOGRAM_UNDETERMINED_ID = "nexo-organogram-undetermined";
-
 export interface NexoOrganogramPosition {
   x: number;
   y: number;
