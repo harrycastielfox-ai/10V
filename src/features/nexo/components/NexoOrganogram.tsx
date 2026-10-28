@@ -334,7 +334,7 @@ function OrganogramCanvas({
           className="nexo-organogram-tool-button"
           onClick={() =>
             void flowRef.current?.fitView({
-              padding: 0.16,
+              padding: 0.1,
               duration: prefersReducedMotion() ? 0 : 320,
             })
           }
@@ -391,7 +391,7 @@ function OrganogramCanvas({
             flowRef.current = instance;
           }}
           fitView
-          fitViewOptions={{ padding: 0.18, minZoom: 0.4, maxZoom: 1.1 }}
+          fitViewOptions={{ padding: 0.1, minZoom: 0.4, maxZoom: 1.1 }}
           minZoom={0.25}
           maxZoom={1.6}
           nodesDraggable={false}
@@ -406,7 +406,7 @@ function OrganogramCanvas({
           <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#b8ccd5" />
           <Controls
             showInteractive={false}
-            fitViewOptions={{ padding: 0.18 }}
+            fitViewOptions={{ padding: 0.1 }}
             position="bottom-left"
           />
           <MiniMap

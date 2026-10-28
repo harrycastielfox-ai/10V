@@ -103,6 +103,8 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
   await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
   await expect(page.locator(".react-flow__minimap-node")).toHaveCount(8);
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
+  const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
+  expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
 
   const search = page.getByLabel("Buscar integrante no organograma");
   await search.fill("Personagem");
