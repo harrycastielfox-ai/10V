@@ -98,7 +98,10 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
   await page.getByRole("button", { name: "Organograma", exact: true }).click();
 
   await expect(page.getByLabel(/^Canvas do organograma de /)).toBeVisible();
-  await expect(page.getByText("Posição não determinada", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("8 integrantes", { exact: true })).toBeVisible();
+  await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
+  await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
+  await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
 
   const search = page.getByLabel("Buscar integrante no organograma");
   await search.fill("Personagem");

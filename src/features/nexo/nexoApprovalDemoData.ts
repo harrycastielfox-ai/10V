@@ -36,9 +36,9 @@ const organizations = NEXO_PRESENTATION_DATA.organizations.slice(0, 3).map((org,
 }));
 
 const people = organizations.flatMap((organization, index) =>
-  NEXO_PRESENTATION_DATA.people.slice(index * 10, index * 10 + 3).map((person, personIndex) => {
-    // The source fixture has no files for portraits 21–23; use existing synthetic portraits.
-    const portraitNumber = String([1, 11, 26][index] + personIndex).padStart(2, "0");
+  NEXO_PRESENTATION_DATA.people.slice(index * 10, index * 10 + 8).map((person, personIndex) => {
+    // Use only the synthetic portrait ranges that are versioned in public/nexo-demo/portraits.
+    const portraitNumber = String([1, 8, 26][index] + personIndex).padStart(2, "0");
     const portraitPath = `demo-public/person-${portraitNumber}.webp`;
     const portraitUrl = `/nexo-demo/portraits/person-${portraitNumber}.webp`;
     return {
@@ -49,12 +49,12 @@ const people = organizations.flatMap((organization, index) =>
         "Ensino médio (fictício)",
         "Ensino fundamental (fictício)",
         "Ensino superior (fictício)",
-      ][personIndex],
+      ][personIndex % 3],
       profissao: ["Comerciante (fictício)", "Motorista (fictício)", "Estudante (fictício)"][
-        personIndex
+        personIndex % 3
       ],
       estado_civil: ["Solteiro(a) (fictício)", "Casado(a) (fictício)", "Solteiro(a) (fictício)"][
-        personIndex
+        personIndex % 3
       ],
       foto_perfil_path: portraitPath,
       foto_relatorio_path: portraitPath,
@@ -84,7 +84,7 @@ const observations: NexoObservacao[] = [
     id: nexoPresentationId(13, index + 1),
     pessoa_id: null,
     organizacao_id: org.id,
-    conteudo: `CENÁRIO FICTÍCIO — ficha de ${org.sigla}. Três personagens foram vinculados para demonstrar a consulta de perfis e hierarquia. A imagem no álbum mostra brinquedos ilustrativos, não uma apreensão. ${disclaimer}`,
+    conteudo: `CENÁRIO FICTÍCIO — ficha de ${org.sigla}. Oito personagens foram vinculados para demonstrar a consulta de perfis e uma hierarquia ramificada. A imagem no álbum mostra brinquedos ilustrativos, não uma apreensão. ${disclaimer}`,
     created_at: "2026-10-18T14:00:00.000Z",
     created_by: "demo",
     autor: { nome: "Equipe de demonstração" },
