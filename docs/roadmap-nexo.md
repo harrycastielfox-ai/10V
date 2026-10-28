@@ -44,6 +44,7 @@ Os estados abaixo refletem a inspeção do código, dos testes e dos documentos 
 | Persistência do documento-fonte, hash, páginas, OCR e candidatos | Existente | `nexoPdfImport.ts` e `nexoRepository.ts` persistem metadados e seleção revisada conforme a arquitetura atual. |
 | Cadastros de pessoas e organizações, edição e exclusão lógica | Existente | Dossiês, diretórios, repositórios e RPCs transacionais existentes. |
 | Vínculos, hierarquia, territórios, veículos, observações e procedimentos | Existente | Componentes do workspace e repositórios do NEXO. |
+| Organograma hierárquico interativo | Entrega inicial implementada | Aba no dossiê de facção, projeção por `superior_vinculo_id`, busca, navegação, tela cheia, painel contextual e testes com dados sintéticos. |
 | Busca, dashboard, rede relacional e possíveis duplicidades | Existente | `NexoCommandDashboard`, filtros, diretório e testes de duplicidade. |
 | Configuração de seções, fotos e observações para relatórios | Existente | `NexoReportConfigurator` e `NexoReportsHub`. |
 | Emissão profissional, arquivada e reproduzível de relatórios | Em validação | O modo de impressão/PDF existe, mas a emissão ainda não é arquivada com recorte, versão e metadados reproduzíveis. |
@@ -51,6 +52,14 @@ Os estados abaixo refletem a inspeção do código, dos testes e dos documentos 
 | Síntese, cronologia, comparação e minuta assistidas por IA | A avaliar | `NexoIntelligenceBoard` existe como base de inteligência, porém a camada assistida precisa de requisitos de fonte, segurança, avaliação e governança. |
 
 A correção recente para preservar e exibir a fotografia extraída do PDF é uma **estabilização pontual do fluxo atual**. Ela não representa a conclusão do planejamento completo de importação documental descrito na Prioridade 1.
+
+### 3.1 NEXO Organograma 2.0
+
+As fases 1 e 2 foram entregues em 27/10/2026 como evolução do dossiê existente. A primeira entrega é somente de leitura estrutural e reutiliza pessoas, organizações, fotografias, vínculos, chefia, status, confiança e os fluxos atuais de perfil e gestão.
+
+Foram concluídos: aba Organograma, canvas navegável, todos os integrantes atuais elegíveis, posição não determinada para raízes sem chefia válida, busca e foco, ramificações recolhíveis, painel lateral, tela cheia e regressões automatizadas. Nenhuma migration foi necessária.
+
+Permanecem para branches e PRs próprios: núcleos/setores persistidos e edição segura (fase 3), rede de relações não hierárquicas (fase 4) e exportação PDF/refinamentos de escala (fase 5).
 
 ## 4. Iniciativas prioritárias
 
@@ -214,4 +223,4 @@ Esta sequência não aprova a execução das fases nem estabelece prazos. Cada i
 
 ## 8. Escopo desta documentação
 
-Esta alteração registra planejamento. Não implementa componentes, funções, telas, APIs, migrations, tabelas, dependências, configurações ou regras de segurança. Não altera o roadmap de outros módulos e não substitui decisões anteriores que continuem válidas.
+Este roadmap registra o estado verificado, incluindo a entrega inicial do Organograma 2.0. Ele não autoriza automaticamente fases futuras, migrations, publicação ou alterações de segurança e não substitui decisões anteriores que continuem válidas.

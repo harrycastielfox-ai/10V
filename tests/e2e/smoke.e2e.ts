@@ -79,3 +79,48 @@ test("loads the NEXO PDF engine on demand in the browser", async ({ page }, test
   await expect(page.getByText(/1 página\(s\)/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Revisar no cadastro (1 PDF)" })).toBeEnabled();
 });
+
+test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name === "mobile-chromium",
+    "A política atual restringe o workspace NEXO a viewport desktop.",
+  );
+
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/preview/nexo");
+  await page.getByRole("button", { name: "Facções", exact: true }).click();
+  await page
+    .getByRole("button", { name: /^Abrir dossiê de / })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Organograma", exact: true }).click();
+
+  await expect(page.getByLabel(/^Canvas do organograma de /)).toBeVisible();
+  await expect(page.getByText("8 integrantes", { exact: true })).toBeVisible();
+  await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
+  await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
+  await expect(page.locator(".react-flow__minimap")).toHaveCount(0);
+  await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
+  const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
+  expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
+
+  const search = page.getByLabel("Buscar integrante no organograma");
+  await search.fill("Personagem");
+  await search.press("Enter");
+
+  const detail = page.getByLabel(/^Detalhes de Pessoa fictícia /);
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText("Fonte da relação", { exact: true })).toBeVisible();
+  await expect(detail.getByRole("button", { name: "Abrir dossiê" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Tela cheia" }).click();
+  await expect(page.getByRole("button", { name: "Sair da tela cheia" })).toBeVisible();
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    content: document.documentElement.scrollWidth,
+  }));
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
+});

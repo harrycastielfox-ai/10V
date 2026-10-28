@@ -44,6 +44,10 @@ describe("apresentação do dossiê NEXO", () => {
     expect(html).toContain("Editar cadastro");
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
     expect(html).toContain('aria-label="Seções do dossiê"');
+    expect(html).toContain(">Visão geral<");
+    expect(html).toContain(">Organograma<");
+    expect(html).toContain(">Integrantes<");
+    expect(html).toContain(">B.O. e inquéritos<");
   });
 
   it("mantém fotografia e ação de abertura na prévia da pessoa", () => {
@@ -71,5 +75,6 @@ describe("apresentação do dossiê NEXO", () => {
     expect(html).toContain('src="/foto-visual.jpg"');
     expect(html).toContain("Mostrar Informações Sigilosas");
     expect(html).toContain(`Resumo de ${person.nome}`);
+    expect(html).not.toContain(">Organograma<");
   });
 });
