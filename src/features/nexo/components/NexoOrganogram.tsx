@@ -409,13 +409,15 @@ function OrganogramCanvas({
             fitViewOptions={{ padding: 0.1 }}
             position="bottom-left"
           />
-          <MiniMap
-            pannable
-            zoomable
-            position="bottom-right"
-            nodeColor={organization.cor}
-            maskColor="rgba(229, 239, 244, .72)"
-          />
+          {!selected ? (
+            <MiniMap
+              pannable
+              zoomable
+              position="top-right"
+              nodeColor={organization.cor}
+              maskColor="rgba(229, 239, 244, .72)"
+            />
+          ) : null}
         </ReactFlow>
 
         {selected ? (
