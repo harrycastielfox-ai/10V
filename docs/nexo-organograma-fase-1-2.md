@@ -6,16 +6,18 @@ Branch: `feature/nexo-organograma-2-fase-1-2`
 ## 1. Resumo do que foi implementado
 
 - Nova aba **Organograma** no dossiê de facção, preservando as demais abas.
-- Canvas interativo com zoom, pan, ajuste à tela, minimapa e modo tela cheia.
+- Canvas interativo com zoom, pan, ajuste à tela e modo tela cheia.
+- Árvore vertical com ramificações claras, cartões ampliados e sem nó artificial para pessoas sem superior.
 - Projeção automática dos vínculos atuais a partir de `superior_vinculo_id`.
 - Todos os integrantes elegíveis aparecem, inclusive integrantes comuns.
-- Pessoas sem superior válido ficam no agrupamento **Posição não determinada**; cargo ou ausência de superior não gera classificação automática de liderança.
+- Pessoas sem superior válido permanecem como raízes visuais marcadas **Sem superior cadastrado**; cargo ou ausência de superior não gera classificação automática de liderança.
 - Busca por nome ou alcunha com normalização de acentos, destaque, revelação de ancestrais e centralização.
 - Expansão e recolhimento de ramificações.
 - Cartões com fotografia existente, avatar neutro, identificação, função, status, confiança e atalhos.
 - Painel lateral com organização, chefia, subordinados, fonte e acesso aos fluxos atuais de dossiê e gestão.
 - Estados acessíveis de carregamento, erro e estrutura vazia.
 - Proteção contra dados legados anômalos na projeção: ciclos e superiores inválidos não travam a tela nem ocultam integrantes.
+- Preview local ampliado para oito personagens fictícios por organização, com três níveis e múltiplas ramificações.
 
 O canvas é somente de visualização nesta entrega. Nenhuma movimentação visual altera chefia ou persiste dados.
 
@@ -65,7 +67,7 @@ O checkout não possui projeto Supabase vinculado e a máquina não possui Docke
 | `pnpm test`                             | 75 arquivos e 531 testes aprovados                        |
 | `pnpm exec tsc --noEmit`                | Aprovado                                                  |
 | `pnpm build` com URL/chave local inerte | Aprovado                                                  |
-| `pnpm test:bundle`                      | NEXO 675.821 bytes, abaixo do limite de 850.000           |
+| `pnpm test:bundle`                      | NEXO 675.888 bytes, abaixo do limite de 850.000           |
 | `pnpm test:migrations`                  | 15 testes aprovados                                       |
 | `pnpm test:schema`                      | 122/122 migrations, DDL e probes concluídos               |
 | `pnpm test:schema-parity`               | 3 testes aprovados                                        |
@@ -103,7 +105,7 @@ pnpm dev --host 127.0.0.1 --port 4173
 1. Abra `http://127.0.0.1:4173/preview/nexo`.
 2. Entre em **Facções** e abra um dossiê demonstrativo.
 3. Selecione a aba **Organograma**.
-4. Teste zoom, pan, ajuste à tela, minimapa, busca, seleção, recolhimento de ramo e tela cheia.
+4. Teste zoom, pan, ajuste à tela, busca, seleção, recolhimento de ramo e tela cheia.
 5. Confirme que **Abrir dossiê** e **Gerenciar** usam os fluxos existentes.
 
 ## 10. Próxima etapa recomendada
