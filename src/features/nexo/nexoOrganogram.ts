@@ -33,8 +33,8 @@ interface CandidateMember {
   link: NexoVinculo;
 }
 
-const HORIZONTAL_GAP = 340;
-const VERTICAL_GAP = 180;
+const HORIZONTAL_GAP = 360;
+const VERTICAL_GAP = 210;
 
 function normalizedSearchValue(value: string | null | undefined) {
   return (value || "")
@@ -100,23 +100,23 @@ export function buildNexoOrganogram(
     .filter((candidate) => !parents.get(candidate.id))
     .map((candidate) => candidate.id);
   const depthById = new Map<string, number>();
-  const yById = new Map<string, number>();
+  const xById = new Map<string, number>();
   let nextLeaf = 0;
 
   const place = (id: string, depth: number): number => {
     depthById.set(id, depth);
     const childIds = children.get(id) ?? [];
     if (!childIds.length) {
-      const y = nextLeaf * VERTICAL_GAP;
+      const x = nextLeaf * HORIZONTAL_GAP;
       nextLeaf += 1;
-      yById.set(id, y);
-      return y;
+      xById.set(id, x);
+      return x;
     }
 
     const childPositions = childIds.map((childId) => place(childId, depth + 1));
-    const y = (childPositions[0] + childPositions[childPositions.length - 1]) / 2;
-    yById.set(id, y);
-    return y;
+    const x = (childPositions[0] + childPositions[childPositions.length - 1]) / 2;
+    xById.set(id, x);
+    return x;
   };
 
   for (const rootId of rootIds) place(rootId, 1);
@@ -127,8 +127,8 @@ export function buildNexoOrganogram(
     childIds: children.get(candidate.id) ?? [],
     depth: depthById.get(candidate.id) ?? 1,
     position: {
-      x: (depthById.get(candidate.id) ?? 1) * HORIZONTAL_GAP,
-      y: yById.get(candidate.id) ?? 0,
+      x: xById.get(candidate.id) ?? 0,
+      y: ((depthById.get(candidate.id) ?? 1) - 1) * VERTICAL_GAP,
     },
     positionKind: parents.get(candidate.id) ? "hierarchical" : "undetermined",
     isLeadership: false,

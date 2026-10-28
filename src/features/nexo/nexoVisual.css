@@ -575,7 +575,7 @@
   }
 
   .nexo-organogram-card {
-    width: 280px;
+    width: 320px;
     overflow: hidden;
     border: 1px solid #cddde5;
     border-radius: 16px;
@@ -608,14 +608,14 @@
     display: flex;
     width: 100%;
     align-items: center;
-    gap: 11px;
-    padding: 12px;
+    gap: 13px;
+    padding: 15px;
     background: #fff;
   }
 
   .nexo-organogram-avatar {
-    width: 46px;
-    height: 46px;
+    width: 54px;
+    height: 54px;
     flex: 0 0 auto;
     border: 2px solid #fff;
     border-radius: 13px;
@@ -632,14 +632,14 @@
 
   .nexo-organogram-card-footer {
     display: flex;
-    min-height: 34px;
+    min-height: 38px;
     align-items: center;
     gap: 5px;
     padding: 5px 7px 5px 12px;
     border-top: 1px solid #e2ebef;
     color: #647d8d;
     background: #f7fafb;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
   }
 
@@ -656,39 +656,36 @@
     background: #fff;
   }
 
-  .nexo-organogram-card .react-flow__handle,
-  .nexo-organogram-undetermined .react-flow__handle {
+  .nexo-organogram-card .react-flow__handle {
     width: 8px;
     height: 8px;
     border: 2px solid #fff;
     background: var(--nexo-org-accent, #168aa1);
   }
 
-  .nexo-organogram-undetermined {
+  .nexo-organogram-roots-note {
+    position: absolute;
+    z-index: 7;
+    top: 14px;
+    left: 14px;
     display: flex;
-    width: 235px;
+    max-width: min(390px, calc(100% - 28px));
     align-items: center;
     gap: 10px;
-    padding: 11px 12px;
-    border: 1px dashed #9eb9c4;
-    border-radius: 15px;
-    color: #23475f;
-    background: #f4f9fa;
+    padding: 10px 13px;
+    border: 1px solid #c9dce4;
+    border-radius: 12px;
+    color: #5d7787;
+    background: #ffffffeb;
+    box-shadow: 0 12px 28px -22px #173a54aa;
+    font-size: 10px;
+    backdrop-filter: blur(10px);
   }
 
-  .nexo-organogram-undetermined strong,
-  .nexo-organogram-undetermined small {
+  .nexo-organogram-roots-note strong {
     display: block;
-  }
-
-  .nexo-organogram-undetermined strong {
+    color: #214a63;
     font-size: 11px;
-  }
-
-  .nexo-organogram-undetermined small {
-    margin-top: 2px;
-    color: #67808f;
-    font-size: 9px;
   }
 
   .nexo-organogram-detail {

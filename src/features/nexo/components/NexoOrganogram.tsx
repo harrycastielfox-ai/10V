@@ -31,7 +31,6 @@ import {
   buildNexoOrganogram,
   getNexoOrganogramAncestors,
   getVisibleNexoOrganogram,
-  NEXO_ORGANOGRAM_UNDETERMINED_ID,
   searchNexoOrganogram,
   type NexoOrganogramMember,
 } from "../nexoOrganogram";
@@ -58,13 +57,8 @@ interface MemberNodeData extends Record<string, unknown> {
   onManage?: (person: NexoPessoa, link: NexoVinculo) => void;
 }
 
-interface UndeterminedNodeData extends Record<string, unknown> {
-  count: number;
-}
-
 type MemberFlowNode = Node<MemberNodeData, "member">;
-type UndeterminedFlowNode = Node<UndeterminedNodeData, "undetermined">;
-type OrganogramFlowNode = MemberFlowNode | UndeterminedFlowNode;
+type OrganogramFlowNode = MemberFlowNode;
 
 export interface NexoOrganogramProps {
   organization: NexoOrganizacao;
@@ -91,7 +85,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
       className={`nexo-organogram-card ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
       aria-label={`${member.person.nome}, ${member.link.funcao || "função não informada"}`}
     >
-      <Handle type="target" position={Position.Left} isConnectable={false} />
+      <Handle type="target" position={Position.Top} isConnectable={false} />
       <button
         type="button"
         className="nexo-organogram-card-main"
@@ -126,7 +120,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
       </button>
       <div className="nexo-organogram-card-footer">
         <span className="min-w-0 flex-1 truncate">
-          {data.superiorName ? `Responde a ${data.superiorName}` : "Posição não determinada"}
+          {data.superiorName ? `Responde a ${data.superiorName}` : "Sem superior cadastrado"}
         </span>
         {member.childIds.length ? (
           <button
@@ -163,29 +157,13 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
           <ExternalLink className="h-3.5 w-3.5" />
         </button>
       </div>
-      <Handle type="source" position={Position.Right} isConnectable={false} />
+      <Handle type="source" position={Position.Bottom} isConnectable={false} />
     </article>
-  );
-});
-
-const UndeterminedNode = memo(function UndeterminedNode({ data }: NodeProps<UndeterminedFlowNode>) {
-  return (
-    <div className="nexo-organogram-undetermined">
-      <Handle type="source" position={Position.Right} isConnectable={false} />
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d9edf1] text-[#237f92]">
-        <Network className="h-4 w-4" />
-      </span>
-      <span>
-        <strong>Posição não determinada</strong>
-        <small>{data.count} integrante(s) sem superior válido</small>
-      </span>
-    </div>
   );
 });
 
 const NODE_TYPES = {
   member: OrganogramMemberNode,
-  undetermined: UndeterminedNode,
 };
 
 function prefersReducedMotion() {
@@ -256,20 +234,6 @@ function OrganogramCanvas({
   }, [model, pendingFocusId, visibleIdSet]);
 
   const nodes = useMemo<OrganogramFlowNode[]>(() => {
-    const rootPositions = model.rootIds
-      .map((id) => model.membersById.get(id)?.position.y)
-      .filter((position): position is number => position !== undefined);
-    const groupY = rootPositions.length
-      ? (Math.min(...rootPositions) + Math.max(...rootPositions)) / 2
-      : 0;
-    const groupNode: UndeterminedFlowNode = {
-      id: NEXO_ORGANOGRAM_UNDETERMINED_ID,
-      type: "undetermined",
-      position: { x: 0, y: groupY + 42 },
-      draggable: false,
-      selectable: false,
-      data: { count: model.rootIds.length },
-    };
     const memberNodes: MemberFlowNode[] = visibleIds.flatMap((id) => {
       const member = model.membersById.get(id);
       if (!member) return [];
@@ -302,26 +266,23 @@ function OrganogramCanvas({
         },
       ];
     });
-    return [groupNode, ...memberNodes];
+    return memberNodes;
   }, [collapsedIds, focusMember, model, onManage, onOpen, searchResultSet, selectedId, visibleIds]);
 
   const edges = useMemo<Edge[]>(() => {
     const visible = new Set(visibleIds);
     return visibleIds.flatMap((id) => {
       const member = model.membersById.get(id);
-      if (!member) return [];
-      const source = member.parentId || NEXO_ORGANOGRAM_UNDETERMINED_ID;
-      if (member.parentId && !visible.has(member.parentId)) return [];
+      if (!member?.parentId || !visible.has(member.parentId)) return [];
       return [
         {
-          id: `${source}:${id}`,
-          source,
+          id: `${member.parentId}:${id}`,
+          source: member.parentId,
           target: id,
           type: "smoothstep",
           style: {
-            stroke: member.parentId ? "#72aebd" : "#9fb8c4",
-            strokeWidth: member.parentId ? 2 : 1.5,
-            strokeDasharray: member.parentId ? undefined : "6 5",
+            stroke: "#72aebd",
+            strokeWidth: 2,
           },
         },
       ];
@@ -410,6 +371,13 @@ function OrganogramCanvas({
       ) : null}
 
       <div className="nexo-organogram-stage">
+        <div className="nexo-organogram-roots-note" role="note">
+          <Network className="h-4 w-4" aria-hidden />
+          <span>
+            <strong>{model.rootIds.length} raiz(es) visual(is)</strong>
+            Sem superior cadastrado; isso não classifica liderança.
+          </span>
+        </div>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -440,9 +408,7 @@ function OrganogramCanvas({
             pannable
             zoomable
             position="bottom-right"
-            nodeColor={(node) =>
-              node.id === NEXO_ORGANOGRAM_UNDETERMINED_ID ? "#9fb8c4" : organization.cor
-            }
+            nodeColor={organization.cor}
             maskColor="rgba(229, 239, 244, .72)"
           />
         </ReactFlow>

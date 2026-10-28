@@ -94,8 +94,11 @@ describe("projeção do organograma NEXO", () => {
     expect(model.rootIds).toEqual(["v-raiz"]);
     expect(model.membersById.get("v-raiz")?.childIds).toEqual(["v-a", "v-b"]);
     expect(model.membersById.get("v-c")?.depth).toBe(3);
-    expect(model.membersById.get("v-c")?.position.x).toBeGreaterThan(
-      model.membersById.get("v-a")?.position.x ?? 0,
+    expect(model.membersById.get("v-c")?.position.y).toBeGreaterThan(
+      model.membersById.get("v-a")?.position.y ?? 0,
+    );
+    expect(model.membersById.get("v-a")?.position.x).not.toBe(
+      model.membersById.get("v-b")?.position.x,
     );
     expect(model.membersById.has("v-fim")).toBe(false);
   });
