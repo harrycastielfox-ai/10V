@@ -32,7 +32,7 @@ interface CandidateMember {
 }
 
 const HORIZONTAL_GAP = 360;
-const VERTICAL_GAP = 180;
+const VERTICAL_GAP = 160;
 
 function normalizedSearchValue(value: string | null | undefined) {
   return (value || "")

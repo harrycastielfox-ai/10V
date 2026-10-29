@@ -108,6 +108,19 @@ test("renders the synthetic NEXO organogram as a fixed tree", async ({ page }, t
   const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
   expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
 
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const tree = page.getByLabel(/^Árvore do organograma de /);
+  await expect(async () => {
+    const area = await tree.boundingBox();
+    const root = await page.locator(".nexo-organogram-card").first().boundingBox();
+    expect(area).not.toBeNull();
+    expect(root).not.toBeNull();
+    expect(Math.abs(root!.x + root!.width / 2 - (area!.x + area!.width / 2))).toBeLessThan(3);
+    expect(root!.width).toBeGreaterThanOrEqual(319);
+    const lastCard = await page.locator(".nexo-organogram-card").last().boundingBox();
+    expect(lastCard!.y + lastCard!.height).toBeLessThan(1080);
+  }).toPass();
+
   const viewport = page.locator(".react-flow__viewport");
   const initialTransform = await viewport.getAttribute("style");
   await page.locator(".react-flow__pane").dispatchEvent("wheel", { deltaY: 480 });
