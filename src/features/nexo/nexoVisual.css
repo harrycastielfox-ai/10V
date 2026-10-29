@@ -510,6 +510,54 @@
   .nexo-organogram-stage {
     position: relative;
     width: 100%;
+    overflow: hidden;
+    border: 1px solid #cbdde5;
+    border-radius: 14px;
+    background: #f3f7f9;
+  }
+
+  .nexo-organogram-navigation {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px;
+    border: 1px solid #cbdde5;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 12px #173a5410;
+    color: #25556c;
+  }
+
+  .nexo-organogram-navigation button {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+  }
+
+  .nexo-organogram-navigation button:hover {
+    background: #eaf2f6;
+  }
+
+  .nexo-organogram-navigation button:focus-visible {
+    outline: 2px solid #247e93;
+    outline-offset: 1px;
+  }
+
+  .nexo-organogram-navigation button:disabled {
+    opacity: 0.4;
+  }
+
+  .nexo-organogram-navigation span {
+    min-width: 42px;
+    text-align: center;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
 
   .nexo-organogram-context {

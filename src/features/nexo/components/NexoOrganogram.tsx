@@ -3,6 +3,8 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
+  useViewport,
   type Edge,
   type Node,
   type NodeProps,
@@ -12,6 +14,9 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  Maximize,
+  Minus,
+  Plus,
   Network,
   Search,
   UserCog,
@@ -181,6 +186,8 @@ function OrganogramCanvas({
     [organization.id, people],
   );
   const stageRef = useRef<HTMLDivElement>(null);
+  const { setViewport, zoomIn, zoomOut } = useReactFlow();
+  const { zoom } = useViewport();
   const [stageWidth, setStageWidth] = useState(0);
   useEffect(() => {
     const stage = stageRef.current;
@@ -199,11 +206,18 @@ function OrganogramCanvas({
     };
   }, [model]);
   const treeZoom = Math.min(1, Math.max(0.1, (stageWidth - 48) / (bounds.right - bounds.left)));
-  const treeViewport = {
-    x: (stageWidth - (bounds.right - bounds.left) * treeZoom) / 2 - bounds.left * treeZoom,
-    y: 16,
-    zoom: treeZoom,
-  };
+  const resetView = useCallback(
+    () =>
+      setViewport({
+        x: (stageWidth - (bounds.right - bounds.left) * treeZoom) / 2 - bounds.left * treeZoom,
+        y: 16,
+        zoom: treeZoom,
+      }),
+    [bounds.left, bounds.right, setViewport, stageWidth, treeZoom],
+  );
+  useEffect(() => {
+    if (stageWidth > 0) void resetView();
+  }, [resetView, stageWidth]);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
@@ -358,22 +372,56 @@ function OrganogramCanvas({
           nodes={nodes}
           edges={edges}
           nodeTypes={NODE_TYPES}
-          viewport={treeViewport}
           minZoom={0.1}
+          maxZoom={2}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
-          panOnDrag={false}
+          panOnDrag
           panOnScroll={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
+          zoomOnScroll
+          zoomOnPinch
           zoomOnDoubleClick={false}
-          preventScrolling={false}
+          preventScrolling
           selectionOnDrag={false}
           onlyRenderVisibleElements
           proOptions={{ hideAttribution: true }}
           aria-label={`Árvore do organograma de ${organization.nome}`}
         />
+
+        <div
+          className="nexo-organogram-navigation"
+          role="group"
+          aria-label="Navegação do organograma"
+        >
+          <button
+            type="button"
+            onClick={() => zoomOut()}
+            disabled={zoom <= 0.1}
+            aria-label="Reduzir zoom"
+            title="Reduzir zoom"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <span aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button
+            type="button"
+            onClick={() => zoomIn()}
+            disabled={zoom >= 2}
+            aria-label="Ampliar zoom"
+            title="Ampliar zoom"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => resetView()}
+            aria-label="Ajustar à tela"
+            title="Ajustar à tela"
+          >
+            <Maximize className="h-4 w-4" />
+          </button>
+        </div>
 
         {selected ? (
           <aside
