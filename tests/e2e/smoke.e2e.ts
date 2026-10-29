@@ -80,9 +80,7 @@ test("loads the NEXO PDF engine on demand in the browser", async ({ page }, test
   await expect(page.getByRole("button", { name: "Revisar no cadastro (1 PDF)" })).toBeEnabled();
 });
 
-test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
-  page,
-}, testInfo) => {
+test("renders the synthetic NEXO organogram as a fixed tree", async ({ page }, testInfo) => {
   test.skip(
     testInfo.project.name === "mobile-chromium",
     "A política atual restringe o workspace NEXO a viewport desktop.",
@@ -97,15 +95,23 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
     .click();
   await page.getByRole("button", { name: "Organograma", exact: true }).click();
 
-  await expect(page.getByLabel(/^Canvas do organograma de /)).toBeVisible();
+  await expect(page.getByLabel(/^Árvore do organograma de /)).toBeVisible();
   await expect(page.getByText("8 integrantes", { exact: true })).toBeVisible();
   await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
   await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
   await expect(page.locator(".react-flow__minimap")).toHaveCount(0);
   await expect(page.locator(".react-flow__background")).toHaveCount(0);
+  await expect(page.locator(".react-flow__controls")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Ajustar à tela" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Tela cheia" })).toHaveCount(0);
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
   const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
   expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
+
+  const viewport = page.locator(".react-flow__viewport");
+  const initialTransform = await viewport.getAttribute("style");
+  await page.locator(".react-flow__pane").dispatchEvent("wheel", { deltaY: 480 });
+  await expect(viewport).toHaveAttribute("style", initialTransform || "");
 
   const search = page.getByLabel("Buscar integrante no organograma");
   await search.fill("Personagem");
@@ -115,9 +121,7 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
   await expect(detail).toBeVisible();
   await expect(detail.getByText("Fonte da relação", { exact: true })).toBeVisible();
   await expect(detail.getByRole("button", { name: "Abrir dossiê" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Tela cheia" }).click();
-  await expect(page.getByRole("button", { name: "Sair da tela cheia" })).toBeVisible();
+  await expect(viewport).toHaveAttribute("style", initialTransform || "");
 
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,

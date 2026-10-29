@@ -1,5 +1,4 @@
 import {
-  Controls,
   Handle,
   Position,
   ReactFlow,
@@ -7,23 +6,19 @@ import {
   type Edge,
   type Node,
   type NodeProps,
-  type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Focus,
-  Maximize2,
-  Minimize2,
   Network,
   Search,
   UserCog,
   UserRound,
   X,
 } from "lucide-react";
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useMemo, useState, type CSSProperties } from "react";
 import {
   buildNexoOrganogram,
   getNexoOrganogramAncestors,
@@ -166,12 +161,6 @@ const NODE_TYPES = {
   member: OrganogramMemberNode,
 };
 
-function prefersReducedMotion() {
-  return (
-    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 function OrganogramCanvas({
   organization,
   members,
@@ -189,15 +178,11 @@ function OrganogramCanvas({
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
-  const [fullscreen, setFullscreen] = useState(false);
-  const [pendingFocusId, setPendingFocusId] = useState<string | null>(null);
-  const flowRef = useRef<ReactFlowInstance<OrganogramFlowNode, Edge> | null>(null);
   const searchResults = useMemo(() => searchNexoOrganogram(model, query), [model, query]);
   const visibleIds = useMemo(
     () => getVisibleNexoOrganogram(model, collapsedIds),
     [collapsedIds, model],
   );
-  const visibleIdSet = useMemo(() => new Set(visibleIds), [visibleIds]);
   const searchResultSet = useMemo(() => new Set(searchResults), [searchResults]);
 
   const focusMember = useCallback(
@@ -209,29 +194,9 @@ function OrganogramCanvas({
         return next;
       });
       setSelectedId(id);
-      setPendingFocusId(id);
     },
     [model],
   );
-
-  useEffect(() => {
-    if (!pendingFocusId || !visibleIdSet.has(pendingFocusId)) return;
-    const member = model.membersById.get(pendingFocusId);
-    const flow = flowRef.current;
-    if (!member || !flow) return;
-    const run = () => {
-      void flow.setCenter(member.position.x + 140, member.position.y + 82, {
-        zoom: 1.05,
-        duration: prefersReducedMotion() ? 0 : 420,
-      });
-      setPendingFocusId(null);
-    };
-    const frame = typeof requestAnimationFrame === "function" ? requestAnimationFrame(run) : null;
-    if (frame === null) run();
-    return () => {
-      if (frame !== null && typeof cancelAnimationFrame === "function") cancelAnimationFrame(frame);
-    };
-  }, [model, pendingFocusId, visibleIdSet]);
 
   const nodes = useMemo<OrganogramFlowNode[]>(() => {
     const memberNodes: MemberFlowNode[] = visibleIds.flatMap((id) => {
@@ -301,7 +266,7 @@ function OrganogramCanvas({
 
   return (
     <section
-      className={`nexo-organogram-shell ${fullscreen ? "is-fullscreen" : ""}`}
+      className="nexo-organogram-shell"
       style={{ "--nexo-org-accent": organization.cor } as CSSProperties}
       aria-label={`Organograma de ${organization.nome}`}
     >
@@ -326,27 +291,6 @@ function OrganogramCanvas({
         <span className="nexo-organogram-count">
           {model.members.length} integrante{model.members.length === 1 ? "" : "s"}
         </span>
-        <button
-          type="button"
-          className="nexo-organogram-tool-button"
-          onClick={() =>
-            void flowRef.current?.fitView({
-              padding: 0.1,
-              duration: prefersReducedMotion() ? 0 : 320,
-            })
-          }
-        >
-          <Focus className="h-4 w-4" /> Ajustar à tela
-        </button>
-        <button
-          type="button"
-          className="nexo-organogram-tool-button"
-          onClick={() => setFullscreen((current) => !current)}
-          aria-pressed={fullscreen}
-        >
-          {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          {fullscreen ? "Sair da tela cheia" : "Tela cheia"}
-        </button>
       </div>
 
       {query ? (
@@ -384,28 +328,22 @@ function OrganogramCanvas({
           nodes={nodes}
           edges={edges}
           nodeTypes={NODE_TYPES}
-          onInit={(instance) => {
-            flowRef.current = instance;
-          }}
           fitView
           fitViewOptions={{ padding: 0.1, minZoom: 0.4, maxZoom: 1.1 }}
-          minZoom={0.25}
-          maxZoom={1.6}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
-          panOnScroll
+          panOnDrag={false}
+          panOnScroll={false}
+          zoomOnScroll={false}
+          zoomOnPinch={false}
+          zoomOnDoubleClick={false}
+          preventScrolling={false}
           selectionOnDrag={false}
           onlyRenderVisibleElements
           proOptions={{ hideAttribution: true }}
-          aria-label={`Canvas do organograma de ${organization.nome}`}
-        >
-          <Controls
-            showInteractive={false}
-            fitViewOptions={{ padding: 0.1 }}
-            position="bottom-left"
-          />
-        </ReactFlow>
+          aria-label={`Árvore do organograma de ${organization.nome}`}
+        />
 
         {selected ? (
           <aside
