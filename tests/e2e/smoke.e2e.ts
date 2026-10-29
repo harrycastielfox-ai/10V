@@ -102,6 +102,7 @@ test("navigates the synthetic NEXO organogram on a notebook viewport", async ({
   await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
   await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
   await expect(page.locator(".react-flow__minimap")).toHaveCount(0);
+  await expect(page.locator(".react-flow__background")).toHaveCount(0);
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
   const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
   expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
