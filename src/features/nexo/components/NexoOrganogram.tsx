@@ -1,6 +1,4 @@
 import {
-  Background,
-  BackgroundVariant,
   Controls,
   Handle,
   Position,
@@ -402,7 +400,6 @@ function OrganogramCanvas({
           proOptions={{ hideAttribution: true }}
           aria-label={`Canvas do organograma de ${organization.nome}`}
         >
-          <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} color="#b8ccd5" />
           <Controls
             showInteractive={false}
             fitViewOptions={{ padding: 0.1 }}
