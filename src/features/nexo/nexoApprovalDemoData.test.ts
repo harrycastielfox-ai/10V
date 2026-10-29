@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { NEXO_APPROVAL_DEMO_DATA } from "./nexoApprovalDemoData";
 
 describe("NEXO approval demo", () => {
-  it("contains three organizations with eight fictional people and branched hierarchy each", () => {
+  it("contains fictional organizations with a regional reporting scenario", () => {
     expect(NEXO_APPROVAL_DEMO_DATA.organizations).toHaveLength(3);
-    expect(NEXO_APPROVAL_DEMO_DATA.people).toHaveLength(24);
+    expect(NEXO_APPROVAL_DEMO_DATA.people).toHaveLength(29);
     expect(NEXO_APPROVAL_DEMO_DATA.organizations[0].cor).toBe("#dc2626");
     expect(new Set(NEXO_APPROVAL_DEMO_DATA.organizations.map((org) => org.cor)).size).toBe(3);
     for (const organization of NEXO_APPROVAL_DEMO_DATA.organizations) {
@@ -14,7 +14,7 @@ describe("NEXO approval demo", () => {
       const members = NEXO_APPROVAL_DEMO_DATA.people.filter((person) =>
         person.vinculos.some((link) => link.organizacao_id === organization.id),
       );
-      expect(members).toHaveLength(8);
+      expect(members).toHaveLength(organization.sigla?.startsWith("BDM") ? 13 : 8);
       expect(members.every((person) => person.nome.includes("fictícia"))).toBe(true);
 
       const links = members.flatMap((person) =>
@@ -55,6 +55,18 @@ describe("NEXO approval demo", () => {
     }
     expect(
       new Set(NEXO_APPROVAL_DEMO_DATA.people.map((person) => person.foto_perfil_url)).size,
-    ).toBe(24);
+    ).toBe(29);
+  });
+
+  it("keeps city leaders subordinate to leaders using explicit link IDs", () => {
+    const links = NEXO_APPROVAL_DEMO_DATA.people.flatMap((person) => person.vinculos);
+    const regional = links.filter((link) => link.funcao?.includes("Cidade"));
+    expect(regional.filter((link) => link.funcao?.startsWith("Líder"))).toHaveLength(3);
+    expect(regional.filter((link) => link.funcao?.startsWith("Vice-líder"))).toHaveLength(2);
+    for (const link of regional) {
+      const parent = links.find((candidate) => candidate.id === link.superior_vinculo_id);
+      expect(parent?.organizacao_id).toBe(link.organizacao_id);
+      expect(parent?.funcao).toMatch(/^Líder/);
+    }
   });
 });

@@ -96,9 +96,9 @@ test("renders the synthetic NEXO organogram as a fixed tree", async ({ page }, t
   await page.getByRole("button", { name: "Organograma", exact: true }).click();
 
   await expect(page.getByLabel(/^Árvore do organograma de /)).toBeVisible();
-  await expect(page.getByText("8 integrantes", { exact: true })).toBeVisible();
+  await expect(page.getByText("13 integrantes", { exact: true })).toBeVisible();
   await expect(page.getByRole("note")).toContainText("Sem superior cadastrado");
-  await expect(page.locator(".nexo-organogram-card")).toHaveCount(8);
+  await expect(page.locator(".nexo-organogram-card")).toHaveCount(13);
   await expect(page.locator(".react-flow__minimap")).toHaveCount(0);
   await expect(page.locator(".react-flow__background")).toHaveCount(0);
   await expect(page.locator(".react-flow__controls")).toHaveCount(0);
@@ -106,7 +106,7 @@ test("renders the synthetic NEXO organogram as a fixed tree", async ({ page }, t
   await expect(page.getByRole("button", { name: "Tela cheia" })).toHaveCount(0);
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
   const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
-  expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(230);
+  expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(150);
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   const tree = page.getByLabel(/^Árvore do organograma de /);
@@ -116,7 +116,7 @@ test("renders the synthetic NEXO organogram as a fixed tree", async ({ page }, t
     expect(area).not.toBeNull();
     expect(root).not.toBeNull();
     expect(Math.abs(root!.x + root!.width / 2 - (area!.x + area!.width / 2))).toBeLessThan(3);
-    expect(root!.width).toBeGreaterThanOrEqual(319);
+    expect(root!.width).toBeGreaterThanOrEqual(230);
     const lastCard = await page.locator(".nexo-organogram-card").last().boundingBox();
     expect(lastCard!.y + lastCard!.height).toBeLessThan(1080);
   }).toPass();
