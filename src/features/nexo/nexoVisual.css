@@ -394,11 +394,7 @@
   .nexo-organogram-shell {
     position: relative;
     min-height: 620px;
-    overflow: hidden;
-    border: 1px solid #cfdee6;
-    border-radius: 20px;
-    background: #f8fbfc;
-    box-shadow: var(--nexo-shadow);
+    background: transparent;
   }
 
   .nexo-organogram-toolbar {
@@ -410,8 +406,7 @@
     align-items: center;
     gap: 9px;
     padding: 10px 12px;
-    border-bottom: 1px solid #d6e3e9;
-    background: #fff;
+    background: transparent;
   }
 
   .nexo-organogram-search {
@@ -513,11 +508,11 @@
 
   .nexo-organogram-stage {
     position: relative;
-    height: 620px;
+    height: clamp(680px, 78vh, 880px);
   }
 
   .nexo-organogram-stage .react-flow__renderer {
-    background: linear-gradient(135deg, #f8fbfc, #edf4f7);
+    background: transparent;
   }
 
   .nexo-organogram-card {

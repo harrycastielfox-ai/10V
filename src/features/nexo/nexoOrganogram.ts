@@ -111,8 +111,10 @@ export function buildNexoOrganogram(
       return x;
     }
 
-    const childPositions = childIds.map((childId) => place(childId, depth + 1));
-    const x = (childPositions[0] + childPositions[childPositions.length - 1]) / 2;
+    const firstLeaf = nextLeaf;
+    childIds.forEach((childId) => place(childId, depth + 1));
+    // Center each branch over its full span, including uneven descendant counts.
+    const x = ((firstLeaf + nextLeaf - 1) * HORIZONTAL_GAP) / 2;
     xById.set(id, x);
     return x;
   };
