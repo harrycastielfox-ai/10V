@@ -3,6 +3,8 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
+  useViewport,
   type Edge,
   type Node,
   type NodeProps,
@@ -12,13 +14,16 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  Maximize,
+  Minus,
+  Plus,
   Network,
   Search,
   UserCog,
   UserRound,
   X,
 } from "lucide-react";
-import { memo, useCallback, useMemo, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   buildNexoOrganogram,
   getNexoOrganogramAncestors,
@@ -95,14 +100,19 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
           </span>
         )}
         <span className="min-w-0 flex-1 text-left">
-          <strong className="block truncate text-[13px] font-black text-[#173a54]">
+          <strong
+            className="block truncate text-[13px] font-black text-[#173a54]"
+            title={member.person.nome}
+          >
             {member.person.nome}
           </strong>
-          <span className="mt-0.5 block truncate text-[11px] font-semibold text-[#567184]">
-            {member.person.apelido ? `“${member.person.apelido}” · ` : ""}
+          <span className="nexo-organogram-alias" title={member.person.apelido || undefined}>
+            {member.person.apelido ? `“${member.person.apelido}”` : "Sem alcunha registrada"}
+          </span>
+          <span className="nexo-organogram-role" title={member.link.funcao || undefined}>
             {member.link.funcao || "Função não informada"}
           </span>
-          <span className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#60798b]">
+          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#60798b]">
             <span
               className={`h-2 w-2 rounded-full ${confidenceTone(member.link.confianca)}`}
               aria-hidden
@@ -175,6 +185,39 @@ function OrganogramCanvas({
     () => buildNexoOrganogram(organization.id, people),
     [organization.id, people],
   );
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { setViewport, zoomIn, zoomOut } = useReactFlow();
+  const { zoom } = useViewport();
+  const [stageWidth, setStageWidth] = useState(0);
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const observer = new ResizeObserver(([entry]) => setStageWidth(entry.contentRect.width));
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+  const bounds = useMemo(() => {
+    const xs = model.members.map((member) => member.position.x);
+    const ys = model.members.map((member) => member.position.y);
+    return {
+      left: Math.min(0, ...xs),
+      right: Math.max(0, ...xs) + ORGANOGRAM_NODE_WIDTH,
+      bottom: Math.max(0, ...ys) + ORGANOGRAM_NODE_HEIGHT,
+    };
+  }, [model]);
+  const treeZoom = Math.min(1, Math.max(0.1, (stageWidth - 48) / (bounds.right - bounds.left)));
+  const resetView = useCallback(
+    () =>
+      setViewport({
+        x: (stageWidth - (bounds.right - bounds.left) * treeZoom) / 2 - bounds.left * treeZoom,
+        y: 16,
+        zoom: treeZoom,
+      }),
+    [bounds.left, bounds.right, setViewport, stageWidth, treeZoom],
+  );
+  useEffect(() => {
+    if (stageWidth > 0) void resetView();
+  }, [resetView, stageWidth]);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
@@ -247,6 +290,7 @@ function OrganogramCanvas({
           source: member.parentId,
           target: id,
           type: "smoothstep",
+          pathOptions: { offset: 8, borderRadius: 3 },
           style: {
             stroke: "#72aebd",
             strokeWidth: 2,
@@ -291,6 +335,9 @@ function OrganogramCanvas({
         <span className="nexo-organogram-count">
           {model.members.length} integrante{model.members.length === 1 ? "" : "s"}
         </span>
+        <span className="nexo-organogram-context" role="note">
+          Sem superior cadastrado não significa liderança.
+        </span>
       </div>
 
       {query ? (
@@ -316,34 +363,65 @@ function OrganogramCanvas({
         </div>
       ) : null}
 
-      <div className="nexo-organogram-stage">
-        <div className="nexo-organogram-roots-note" role="note">
-          <Network className="h-4 w-4" aria-hidden />
-          <span>
-            <strong>{model.rootIds.length} raiz(es) visual(is)</strong>
-            Sem superior cadastrado; isso não classifica liderança.
-          </span>
-        </div>
+      <div
+        ref={stageRef}
+        className="nexo-organogram-stage"
+        style={{ height: Math.max(420, bounds.bottom * treeZoom + 80) }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={NODE_TYPES}
-          fitView
-          fitViewOptions={{ padding: 0.1, minZoom: 0.4, maxZoom: 1.1 }}
+          minZoom={0.1}
+          maxZoom={2}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
-          panOnDrag={false}
+          panOnDrag
           panOnScroll={false}
-          zoomOnScroll={false}
-          zoomOnPinch={false}
+          zoomOnScroll
+          zoomOnPinch
           zoomOnDoubleClick={false}
-          preventScrolling={false}
+          preventScrolling
           selectionOnDrag={false}
           onlyRenderVisibleElements
           proOptions={{ hideAttribution: true }}
           aria-label={`Árvore do organograma de ${organization.nome}`}
         />
+
+        <div
+          className="nexo-organogram-navigation"
+          role="group"
+          aria-label="Navegação do organograma"
+        >
+          <button
+            type="button"
+            onClick={() => zoomOut()}
+            disabled={zoom <= 0.1}
+            aria-label="Reduzir zoom"
+            title="Reduzir zoom"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <span aria-live="polite">{Math.round(zoom * 100)}%</span>
+          <button
+            type="button"
+            onClick={() => zoomIn()}
+            disabled={zoom >= 2}
+            aria-label="Ampliar zoom"
+            title="Ampliar zoom"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => resetView()}
+            aria-label="Ajustar à tela"
+            title="Ajustar à tela"
+          >
+            <Maximize className="h-4 w-4" />
+          </button>
+        </div>
 
         {selected ? (
           <aside

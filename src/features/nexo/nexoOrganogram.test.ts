@@ -77,6 +77,19 @@ function person(
 }
 
 describe("projeção do organograma NEXO", () => {
+  it("centraliza a raiz sobre ramificações de tamanhos diferentes", () => {
+    const people = [
+      person("r", "Raiz", null, [link("r", "r")]),
+      person("a", "A", null, [link("a", "a", "r")]),
+      person("b", "B", null, [link("b", "b", "r")]),
+      ...["c", "d", "e"].map((id) => person(id, id, null, [link(id, id, "a")])),
+    ];
+    const model = buildNexoOrganogram(ORGANIZATION_ID, people);
+    expect(model.membersById.get("r")?.position.x).toBe(540);
+    expect(model.membersById.get("a")?.position.x).toBe(360);
+    expect(model.membersById.get("b")?.position.x).toBe(1080);
+  });
+
   it("inclui integrantes comuns, múltiplas ramificações e exclui vínculos encerrados", () => {
     const people = [
       person("p-raiz", "Pessoa Raiz", "Raiz", [link("v-raiz", "p-raiz")]),

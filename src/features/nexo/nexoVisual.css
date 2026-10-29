@@ -393,12 +393,9 @@
 
   .nexo-organogram-shell {
     position: relative;
+    font-family: "Inter", "Segoe UI", sans-serif;
     min-height: 620px;
-    overflow: hidden;
-    border: 1px solid #cfdee6;
-    border-radius: 20px;
-    background: #f8fbfc;
-    box-shadow: var(--nexo-shadow);
+    background: transparent;
   }
 
   .nexo-organogram-toolbar {
@@ -410,8 +407,7 @@
     align-items: center;
     gap: 9px;
     padding: 10px 12px;
-    border-bottom: 1px solid #d6e3e9;
-    background: #fff;
+    background: transparent;
   }
 
   .nexo-organogram-search {
@@ -513,20 +509,73 @@
 
   .nexo-organogram-stage {
     position: relative;
-    height: 620px;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid #cbdde5;
+    border-radius: 14px;
+    background: #f3f7f9;
+  }
+
+  .nexo-organogram-navigation {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px;
+    border: 1px solid #cbdde5;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 3px 12px #173a5410;
+    color: #25556c;
+  }
+
+  .nexo-organogram-navigation button {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+  }
+
+  .nexo-organogram-navigation button:hover {
+    background: #eaf2f6;
+  }
+
+  .nexo-organogram-navigation button:focus-visible {
+    outline: 2px solid #247e93;
+    outline-offset: 1px;
+  }
+
+  .nexo-organogram-navigation button:disabled {
+    opacity: 0.4;
+  }
+
+  .nexo-organogram-navigation span {
+    min-width: 42px;
+    text-align: center;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .nexo-organogram-context {
+    color: #60798b;
+    font-size: 12px;
   }
 
   .nexo-organogram-stage .react-flow__renderer {
-    background: linear-gradient(135deg, #f8fbfc, #edf4f7);
+    background: transparent;
   }
 
   .nexo-organogram-card {
     width: 320px;
     overflow: hidden;
     border: 1px solid #cddde5;
-    border-radius: 16px;
+    border-radius: 12px;
     background: #fff;
-    box-shadow: 0 13px 28px -22px #173a54aa;
+    box-shadow: 0 4px 12px -6px #173a5433;
     transition:
       border-color 150ms ease,
       box-shadow 150ms ease,
@@ -554,9 +603,36 @@
     display: flex;
     width: 100%;
     align-items: center;
-    gap: 13px;
-    padding: 15px;
+    gap: 12px;
+    height: 96px;
+    padding: 10px 14px;
     background: #fff;
+  }
+
+  .nexo-organogram-card strong,
+  .nexo-organogram-card button {
+    font-family: "Inter", "Segoe UI", sans-serif;
+  }
+
+  .nexo-organogram-alias {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #6a8190;
+    font-size: 10px;
+    line-height: 17px;
+  }
+
+  .nexo-organogram-role {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #25556c;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 17px;
   }
 
   .nexo-organogram-avatar {
@@ -578,10 +654,10 @@
 
   .nexo-organogram-card-footer {
     display: flex;
-    min-height: 38px;
+    min-height: 34px;
     align-items: center;
     gap: 5px;
-    padding: 5px 7px 5px 12px;
+    padding: 3px 7px 3px 12px;
     border-top: 1px solid #e2ebef;
     color: #647d8d;
     background: #f7fafb;

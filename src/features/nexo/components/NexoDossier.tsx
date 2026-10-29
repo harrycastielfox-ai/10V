@@ -1931,7 +1931,13 @@ export function NexoDossier({
             })}
           </nav>
         </header>
-        <div className="mx-auto max-w-[1500px] space-y-5 p-5 sm:p-7">
+        <div
+          className={
+            tab === "organograma"
+              ? "mx-auto w-full space-y-5 px-4 py-5 sm:px-6"
+              : "mx-auto max-w-[1500px] space-y-5 p-5 sm:p-7"
+          }
+        >
           {tab === "resumo" && person ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
