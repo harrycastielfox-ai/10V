@@ -177,6 +177,86 @@ export async function verifyRecoveredRuntime(db, probes) {
       }
     },
   );
+  await probe("NEXO link jurisdiction persists, transfers and audits real changes", async () => {
+    const firstOrganization = "40000000-0000-4000-8000-000000000101";
+    const secondOrganization = "40000000-0000-4000-8000-000000000102";
+    const link = "50000000-0000-4000-8000-000000000101";
+    await asUser(admin, async (tx) => {
+      await tx.query(
+        "insert into public.nexo_organizacoes(id,nome,cor) values($1,'Synthetic organization A','#123456'),($2,'Synthetic organization B','#654321')",
+        [firstOrganization, secondOrganization],
+      );
+      await tx.query(
+        "insert into public.nexo_vinculos(id,organizacao_id,pessoa_id,status) values($1,$2,$3,'confirmado')",
+        [link, firstOrganization, person],
+      );
+      const initialEvents = await tx.query(
+        "select count(*)::integer as count from public.nexo_hierarquia_eventos where vinculo_id=$1",
+        [link],
+      );
+      await tx.query(
+        "select public.nexo_gerenciar_vinculo($1,'atualizar',$2,'confirmado','Líder',95::smallint,'Fonte sintética',null,'Eunápolis','BA')",
+        [link, firstOrganization],
+      );
+      const updated = await tx.query(
+        "select municipio_atuacao,uf_atuacao from public.nexo_vinculos where id=$1",
+        [link],
+      );
+      assert.deepEqual(updated.rows, [{ municipio_atuacao: "Eunápolis", uf_atuacao: "BA" }]);
+      const changedEvents = await tx.query(
+        "select count(*)::integer as count from public.nexo_hierarquia_eventos where vinculo_id=$1",
+        [link],
+      );
+      assert.equal(changedEvents.rows[0].count, initialEvents.rows[0].count + 1);
+      const audit = await tx.query(
+        "select municipio_atuacao_anterior,municipio_atuacao_novo,uf_atuacao_anterior,uf_atuacao_novo from public.nexo_hierarquia_eventos where vinculo_id=$1 and municipio_atuacao_novo is not null order by ocorrido_em desc limit 1",
+        [link],
+      );
+      assert.deepEqual(audit.rows, [
+        {
+          municipio_atuacao_anterior: null,
+          municipio_atuacao_novo: "Eunápolis",
+          uf_atuacao_anterior: null,
+          uf_atuacao_novo: "BA",
+        },
+      ]);
+
+      await tx.query(
+        "select public.nexo_gerenciar_vinculo($1,'atualizar',$2,'confirmado','Líder',95::smallint,'Fonte sintética',null,'Eunápolis','BA')",
+        [link, firstOrganization],
+      );
+      const unchangedEvents = await tx.query(
+        "select count(*)::integer as count from public.nexo_hierarquia_eventos where vinculo_id=$1",
+        [link],
+      );
+      assert.equal(unchangedEvents.rows[0].count, changedEvents.rows[0].count);
+
+      const transfer = await tx.query(
+        "select public.nexo_gerenciar_vinculo($1,'transferir',$2,'confirmado','Líder regional',90::smallint,'Transferência sintética',null,'Porto Seguro','BA') as id",
+        [link, secondOrganization],
+      );
+      const destination = await tx.query(
+        "select organizacao_id,municipio_atuacao,uf_atuacao from public.nexo_vinculos where id=$1",
+        [transfer.rows[0].id],
+      );
+      assert.deepEqual(destination.rows, [
+        {
+          organizacao_id: secondOrganization,
+          municipio_atuacao: "Porto Seguro",
+          uf_atuacao: "BA",
+        },
+      ]);
+    });
+    await assert.rejects(
+      asUser(admin, (tx) =>
+        tx.query(
+          "select public.nexo_gerenciar_vinculo($1,'atualizar',$2,'confirmado','Líder',95::smallint,'Fonte sintética',null,'Eunápolis','BAH')",
+          [link, firstOrganization],
+        ),
+      ),
+      { code: "23514" },
+    );
+  });
   await probe(
     "vehicle normalization executes with accented uppercase and blank input",
     async () => {
