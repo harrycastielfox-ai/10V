@@ -11,6 +11,7 @@ const personA = "20000000-0000-4000-8000-000000000001";
 const personB = "20000000-0000-4000-8000-000000000002";
 const nucleusA = "30000000-0000-4000-8000-000000000001";
 const nucleusB = "30000000-0000-4000-8000-000000000002";
+const nucleusC = "30000000-0000-4000-8000-000000000003";
 const migrationPath = resolve(
   "supabase/migrations/20261104170000_nexo_organogram_nuclei.sql",
 );
@@ -159,6 +160,31 @@ describe("NEXO organogram nuclei migration", () => {
       end;
       $$;
 
+      create function public.nexo_gerenciar_vinculo(
+        p_vinculo_id uuid, p_acao text, p_organizacao_id uuid,
+        p_status text, p_funcao text, p_confianca smallint,
+        p_fonte_resumo text, p_superior_vinculo_id uuid,
+        p_municipio_atuacao text, p_uf_atuacao text
+      ) returns uuid language plpgsql security invoker set search_path = '' as $$
+      begin
+        update public.nexo_vinculos set
+          organizacao_id = p_organizacao_id,
+          status = p_status,
+          funcao = p_funcao,
+          confianca = p_confianca,
+          fonte_resumo = p_fonte_resumo,
+          superior_vinculo_id = p_superior_vinculo_id,
+          municipio_atuacao = p_municipio_atuacao,
+          uf_atuacao = p_uf_atuacao,
+          updated_by = auth.uid()
+        where id = p_vinculo_id;
+        return p_vinculo_id;
+      end;
+      $$;
+      grant execute on function public.nexo_gerenciar_vinculo(
+        uuid, text, uuid, text, text, smallint, text, uuid, text, text
+      ) to authenticated;
+
       grant select, insert, update on public.nexo_organizacoes,
         public.nexo_pessoas, public.nexo_vinculos to authenticated;
       grant select on public.profiles to authenticated;
@@ -254,5 +280,48 @@ describe("NEXO organogram nuclei migration", () => {
         ),
       ),
     ).rejects.toMatchObject({ code: "42501" });
+  });
+
+  it("aplica núcleo junto das demais mudanças em um único evento auditável", async () => {
+    await asUser(admin, async (tx) => {
+      await tx.query(
+        `insert into public.nexo_nucleos
+          (id, organizacao_id, nome, cor, created_by, updated_by)
+         values ($1, $2, 'Coordenação Sul', '#7c3aed', $3, $3)`,
+        [nucleusC, organizationA, admin],
+      );
+      const link = await tx.query<{ id: string }>(
+        "select id from public.nexo_vinculos where pessoa_id = $1",
+        [personA],
+      );
+      const before = await tx.query<{ count: number }>(
+        "select count(*)::int as count from public.nexo_hierarquia_eventos where pessoa_id = $1",
+        [personA],
+      );
+
+      await tx.query(
+        `select public.nexo_gerenciar_vinculo(
+          $1, 'atualizar', $2, 'confirmado', 'Coordenação', 91::smallint,
+          'Fonte sintética', null, 'Itabela', 'BA', $3
+        )`,
+        [link.rows[0].id, organizationA, nucleusC],
+      );
+
+      const updated = await tx.query<{ nucleo_id: string; funcao: string }>(
+        "select nucleo_id, funcao from public.nexo_vinculos where id = $1",
+        [link.rows[0].id],
+      );
+      expect(updated.rows).toEqual([{ nucleo_id: nucleusC, funcao: "Coordenação" }]);
+      const after = await tx.query<{ count: number; nucleo_novo_nome: string }>(
+        `select count(*)::int as count,
+           (array_agg(nucleo_novo_nome order by ocorrido_em desc))[1] as nucleo_novo_nome
+         from public.nexo_hierarquia_eventos where pessoa_id = $1`,
+        [personA],
+      );
+      expect(after.rows[0]).toEqual({
+        count: before.rows[0].count + 1,
+        nucleo_novo_nome: "Coordenação Sul",
+      });
+    });
   });
 });

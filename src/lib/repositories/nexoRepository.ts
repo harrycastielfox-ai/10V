@@ -6,6 +6,7 @@ import type {
   NexoFoto,
   NexoOrganizacao,
   NexoNucleo,
+  NexoNucleoInput,
   NexoOrganizacaoInput,
   NexoObservacao,
   NexoDocumentoFonte,
@@ -351,6 +352,44 @@ export async function listNexoNucleos(): Promise<NexoNucleo[]> {
     .order("nome");
   if (error) throw error;
   return (data ?? []) as NexoNucleo[];
+}
+
+export async function createNexoNucleo(input: NexoNucleoInput): Promise<NexoNucleo> {
+  const { data, error } = await supabase
+    .from("nexo_nucleos")
+    .insert({
+      organizacao_id: input.organizacao_id,
+      nome: input.nome.replace(/\s+/g, " ").trim(),
+      descricao: clean(input.descricao || ""),
+      cor: input.cor,
+      ordem: input.ordem,
+    })
+    .select("id, organizacao_id, nome, descricao, cor, ordem, created_at, updated_at")
+    .single();
+  if (error) throw error;
+  return data as NexoNucleo;
+}
+
+export async function updateNexoNucleo(id: string, input: NexoNucleoInput): Promise<NexoNucleo> {
+  const { data, error } = await supabase
+    .from("nexo_nucleos")
+    .update({
+      nome: input.nome.replace(/\s+/g, " ").trim(),
+      descricao: clean(input.descricao || ""),
+      cor: input.cor,
+      ordem: input.ordem,
+    })
+    .eq("id", id)
+    .eq("organizacao_id", input.organizacao_id)
+    .select("id, organizacao_id, nome, descricao, cor, ordem, created_at, updated_at")
+    .single();
+  if (error) throw error;
+  return data as NexoNucleo;
+}
+
+export async function archiveNexoNucleo(id: string): Promise<void> {
+  const { error } = await supabase.rpc("nexo_arquivar_nucleo", { p_nucleo_id: id });
+  if (error) throw error;
 }
 
 const INQUIRY_PERSON_SELECT = `
@@ -775,7 +814,8 @@ export async function listNexoHierarquiaEventos(scope: {
       `id, organizacao_id, pessoa_id, vinculo_id, tipo, funcao_anterior,
       funcao_nova, superior_anterior_nome, superior_novo_nome, status_anterior,
       status_novo, municipio_atuacao_anterior, municipio_atuacao_novo,
-      uf_atuacao_anterior, uf_atuacao_novo, pessoa_nome, justificativa, ocorrido_em,
+      uf_atuacao_anterior, uf_atuacao_novo, nucleo_anterior_nome, nucleo_novo_nome,
+      pessoa_nome, justificativa, ocorrido_em,
       autor:profiles!nexo_hierarquia_eventos_autor_id_fkey (nome)`,
     )
     .order("ocorrido_em", { ascending: false })

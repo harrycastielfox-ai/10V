@@ -36,7 +36,7 @@ import {
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
 import { formatNexoLinkRoleLocation } from "../nexoLinkLocation";
 import { scheduleRigidOrganogramRecentering } from "../organogramRecentering";
-import type { NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
+import type { NexoNucleo, NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
 
 const LINK_LABELS: Record<NexoVinculo["status"], string> = {
   confirmado: "Confirmado",
@@ -69,6 +69,8 @@ export interface NexoOrganogramProps {
   members: { person: NexoPessoa; link: NexoVinculo }[];
   onOpen: (person: NexoPessoa) => void;
   onManage?: (person: NexoPessoa, link: NexoVinculo) => void;
+  nuclei?: NexoNucleo[];
+  onManageNuclei?: () => void;
   loading?: boolean;
   error?: string | null;
 }
@@ -84,10 +86,14 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
 }: NodeProps<MemberFlowNode>) {
   const { member } = data;
   const photoUrl = getNexoPersonPhotoUrl(member.person);
+  const roleLocation = formatNexoLinkRoleLocation(member.link);
+  const memberContext = member.link.nucleo?.nome
+    ? `${roleLocation} · ${member.link.nucleo.nome}`
+    : roleLocation;
   return (
     <article
       className={`nexo-organogram-card ${isNexoOrganogramLeadershipRole(member.link.funcao) ? "is-leadership" : ""} ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
-      aria-label={`${member.person.nome}, ${formatNexoLinkRoleLocation(member.link)}`}
+      aria-label={`${member.person.nome}, ${memberContext}`}
     >
       <Handle type="target" position={Position.Top} isConnectable={false} />
       <button
@@ -113,8 +119,8 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
           <span className="nexo-organogram-alias" title={member.person.apelido || undefined}>
             {member.person.apelido ? `“${member.person.apelido}”` : "Sem alcunha registrada"}
           </span>
-          <span className="nexo-organogram-role" title={formatNexoLinkRoleLocation(member.link)}>
-            {formatNexoLinkRoleLocation(member.link)}
+          <span className="nexo-organogram-role" title={memberContext}>
+            {memberContext}
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#60798b]">
             <span
@@ -540,6 +546,10 @@ function OrganogramCanvas({
                 </dd>
               </div>
               <div>
+                <dt>Núcleo ou setor</dt>
+                <dd>{selected.link.nucleo?.nome || "Não definido"}</dd>
+              </div>
+              <div>
                 <dt>Superior registrado</dt>
                 <dd>{selectedSuperior || "Posição não determinada"}</dd>
               </div>
@@ -588,6 +598,7 @@ export function NexoOrganogram({
   members,
   onOpen,
   onManage,
+  onManageNuclei,
   loading = false,
   error = null,
 }: NexoOrganogramProps) {
@@ -612,22 +623,50 @@ export function NexoOrganogram({
 
   if (!members.length) {
     return (
-      <div className="nexo-organogram-state">
-        <Network className="h-8 w-8 text-[#3a8fa1]" aria-hidden />
-        <strong>Nenhum integrante elegível para o organograma</strong>
-        <p>Cadastre ou reative um vínculo para exibir a estrutura.</p>
+      <div className="space-y-3">
+        {onManageNuclei ? (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onManageNuclei}
+              aria-label="Gerenciar núcleos e setores"
+              className="nexo-action-secondary"
+            >
+              <Network className="h-4 w-4" /> Núcleos e setores
+            </button>
+          </div>
+        ) : null}
+        <div className="nexo-organogram-state">
+          <Network className="h-8 w-8 text-[#3a8fa1]" aria-hidden />
+          <strong>Nenhum integrante elegível para o organograma</strong>
+          <p>Cadastre ou reative um vínculo para exibir a estrutura.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <ReactFlowProvider>
-      <OrganogramCanvas
-        organization={organization}
-        members={members}
-        onOpen={onOpen}
-        onManage={onManage}
-      />
-    </ReactFlowProvider>
+    <div className="space-y-3">
+      {onManageNuclei ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onManageNuclei}
+            aria-label="Gerenciar núcleos e setores"
+            className="nexo-action-secondary"
+          >
+            <Network className="h-4 w-4" /> Núcleos e setores
+          </button>
+        </div>
+      ) : null}
+      <ReactFlowProvider>
+        <OrganogramCanvas
+          organization={organization}
+          members={members}
+          onOpen={onOpen}
+          onManage={onManage}
+        />
+      </ReactFlowProvider>
+    </div>
   );
 }

@@ -21,6 +21,8 @@ vi.mock("@/lib/supabaseClient", () => ({
 const {
   createNexoVeiculoLocal,
   createNexoPessoa,
+  createNexoNucleo,
+  archiveNexoNucleo,
   listNexoNucleos,
   listNexoVeiculosLocais,
   manageNexoVinculo,
@@ -169,6 +171,41 @@ describe("NEXO persistence regressions", () => {
       "nexo_gerenciar_vinculo",
       expect.objectContaining({ p_nucleo_id: "nucleo-1" }),
     );
+  });
+
+  it("cria núcleo com nome normalizado e arquiva pela RPC atômica", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        id: "nucleo-1",
+        organizacao_id: "org-1",
+        nome: "Núcleo Leste",
+        descricao: null,
+        cor: "#0f766e",
+        ordem: 2,
+      },
+      error: null,
+    });
+    const select = vi.fn().mockReturnValue({ single });
+    const insert = vi.fn().mockReturnValue({ select });
+    state.from.mockReturnValueOnce({ insert });
+
+    await expect(
+      createNexoNucleo({
+        organizacao_id: "org-1",
+        nome: "  Núcleo   Leste  ",
+        descricao: "",
+        cor: "#0f766e",
+        ordem: 2,
+      }),
+    ).resolves.toMatchObject({ id: "nucleo-1" });
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ nome: "Núcleo Leste", descricao: null, ordem: 2 }),
+    );
+
+    await archiveNexoNucleo("nucleo-1");
+    expect(state.rpc).toHaveBeenLastCalledWith("nexo_arquivar_nucleo", {
+      p_nucleo_id: "nucleo-1",
+    });
   });
 
   it("rejects SVG before uploading an organization photo", async () => {

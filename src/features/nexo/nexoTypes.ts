@@ -14,6 +14,11 @@ export interface NexoNucleo {
   updated_at?: string;
 }
 
+export type NexoNucleoInput = Pick<
+  NexoNucleo,
+  "organizacao_id" | "nome" | "descricao" | "cor" | "ordem"
+>;
+
 export interface NexoEndereco {
   id: string;
   logradouro: string;
