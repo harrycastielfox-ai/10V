@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNexoLinkRoleLocation } from "./nexoLinkLocation";
+import { formatNexoLinkRoleLocation, initialNexoLinkLocation } from "./nexoLinkLocation";
 import type { NexoVinculo } from "./nexoTypes";
 
 const baseLink: NexoVinculo = {
@@ -45,5 +45,15 @@ describe("formatNexoLinkRoleLocation", () => {
         uf_atuacao: "BA",
       }),
     ).toBe("Líder · BA");
+  });
+});
+
+describe("initialNexoLinkLocation", () => {
+  it("não infere BA para um vínculo legado sem local informado", () => {
+    expect(initialNexoLinkLocation(null)).toEqual({ municipality: "", state: "" });
+    expect(initialNexoLinkLocation({ municipio_atuacao: null, uf_atuacao: null })).toEqual({
+      municipality: "",
+      state: "",
+    });
   });
 });

@@ -181,6 +181,8 @@ export async function verifyRecoveredRuntime(db, probes) {
     const firstOrganization = "40000000-0000-4000-8000-000000000101";
     const secondOrganization = "40000000-0000-4000-8000-000000000102";
     const link = "50000000-0000-4000-8000-000000000101";
+    const subordinatePerson = "30000000-0000-4000-8000-000000000102";
+    const subordinateLink = "50000000-0000-4000-8000-000000000102";
     await asUser(admin, async (tx) => {
       await tx.query(
         "insert into public.nexo_organizacoes(id,nome,cor) values($1,'Synthetic organization A','#123456'),($2,'Synthetic organization B','#654321')",
@@ -189,6 +191,14 @@ export async function verifyRecoveredRuntime(db, probes) {
       await tx.query(
         "insert into public.nexo_vinculos(id,organizacao_id,pessoa_id,status) values($1,$2,$3,'confirmado')",
         [link, firstOrganization, person],
+      );
+      await tx.query(
+        "insert into public.nexo_pessoas(id,nome) values($1,'Synthetic subordinate')",
+        [subordinatePerson],
+      );
+      await tx.query(
+        "insert into public.nexo_vinculos(id,organizacao_id,pessoa_id,status,superior_vinculo_id,municipio_atuacao,uf_atuacao) values($1,$2,$3,'confirmado',$4,'Itabela','BA')",
+        [subordinateLink, firstOrganization, subordinatePerson, link],
       );
       const initialEvents = await tx.query(
         "select count(*)::integer as count from public.nexo_hierarquia_eventos where vinculo_id=$1",
@@ -245,6 +255,13 @@ export async function verifyRecoveredRuntime(db, probes) {
           municipio_atuacao: "Porto Seguro",
           uf_atuacao: "BA",
         },
+      ]);
+      const subordinateAfterTransfer = await tx.query(
+        "select superior_vinculo_id,municipio_atuacao,uf_atuacao from public.nexo_vinculos where id=$1",
+        [subordinateLink],
+      );
+      assert.deepEqual(subordinateAfterTransfer.rows, [
+        { superior_vinculo_id: null, municipio_atuacao: "Itabela", uf_atuacao: "BA" },
       ]);
     });
     await assert.rejects(

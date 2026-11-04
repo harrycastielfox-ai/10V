@@ -27,6 +27,7 @@ import { NexoPersonWizard, PersonWizardProgress } from "./NexoPersonWizard";
 import { NexoPdfImportPanel } from "./NexoPdfImportPanel";
 import { applyNexoPdfPhotoSelection, applyNexoPdfSources } from "../nexoPdfImport";
 import { finishTerritoryPolygon } from "../nexoTerritoryGeometry";
+import { initialNexoLinkLocation } from "../nexoLinkLocation";
 
 export type CreateKind = "territorio" | "organizacao" | "pessoa";
 const PERSON_STEP_COUNT = 6;
@@ -142,7 +143,7 @@ const emptyPerson: NexoPessoaInput = {
   vinculo_status: "nao_confirmado",
   vinculo_funcao: "",
   vinculo_municipio_atuacao: "",
-  vinculo_uf_atuacao: "BA",
+  vinculo_uf_atuacao: "",
   vinculo_confianca: 0,
   fonte_resumo: "",
   foto_perfil: null,
@@ -196,6 +197,7 @@ export function NexoCreateDialog({
   onResolvePersonConflict: () => Promise<void>;
 }) {
   const initialLink = initialPerson?.vinculos.find((link) => link.status !== "desvinculado");
+  const initialLinkLocation = initialNexoLinkLocation(initialLink || null);
   const [organization, setOrganization] = useState<NexoOrganizacaoInput>(() =>
     initialOrganization
       ? {
@@ -257,8 +259,8 @@ export function NexoCreateDialog({
           usar_local_faccao: initialPerson.usar_local_faccao,
           vinculo_status: initialLink?.status || "nao_confirmado",
           vinculo_funcao: initialLink?.funcao || "",
-          vinculo_municipio_atuacao: initialLink?.municipio_atuacao || "",
-          vinculo_uf_atuacao: initialLink?.uf_atuacao || "BA",
+          vinculo_municipio_atuacao: initialLinkLocation.municipality,
+          vinculo_uf_atuacao: initialLinkLocation.state,
           vinculo_confianca: initialLink?.confianca || 0,
           fonte_resumo: initialLink?.fonte_resumo || "",
         }

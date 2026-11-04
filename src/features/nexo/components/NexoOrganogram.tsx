@@ -375,7 +375,14 @@ function OrganogramCanvas({
               return (
                 <button key={id} type="button" role="option" onClick={() => focusMember(id)}>
                   <strong>{member.person.nome}</strong>
-                  <span>{member.person.apelido || formatNexoLinkRoleLocation(member.link)}</span>
+                  <span>
+                    {[
+                      member.person.apelido ? `“${member.person.apelido}”` : null,
+                      formatNexoLinkRoleLocation(member.link),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
                 </button>
               );
             })

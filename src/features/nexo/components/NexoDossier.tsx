@@ -54,6 +54,7 @@ import { NexoLinkForm, type NexoLinkInput } from "./NexoLinkForm";
 import { NexoOrganogram } from "./NexoOrganogram";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { territoryPolygons } from "../nexoTerritoryGeometry";
+import { initialNexoLinkLocation } from "../nexoLinkLocation";
 import { NexoVehiclePanel } from "./NexoVehiclePanel";
 
 type DossierTarget = { kind: "person"; id: string } | { kind: "organization"; id: string };
@@ -491,8 +492,9 @@ function LinkManagementDialog({
     link.status === "desvinculado" ? "nao_confirmado" : link.status,
   );
   const [role, setRole] = useState(link.funcao || "");
-  const [municipality, setMunicipality] = useState(link.municipio_atuacao || "");
-  const [state, setState] = useState(link.uf_atuacao || "BA");
+  const initialLocation = initialNexoLinkLocation(link);
+  const [municipality, setMunicipality] = useState(initialLocation.municipality);
+  const [state, setState] = useState(initialLocation.state);
   const [confidence, setConfidence] = useState(link.confianca);
   const [source, setSource] = useState(link.fonte_resumo || "");
   const [superiorId, setSuperiorId] = useState(link.superior_vinculo_id || "");

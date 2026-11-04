@@ -34,7 +34,7 @@ export function NexoLinkForm({
   const [confidence, setConfidence] = useState(0);
   const [role, setRole] = useState("");
   const [municipality, setMunicipality] = useState("");
-  const [state, setState] = useState("BA");
+  const [state, setState] = useState("");
   const [source, setSource] = useState("");
   const [superiorId, setSuperiorId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -74,7 +74,7 @@ export function NexoLinkForm({
       setConfidence(0);
       setRole("");
       setMunicipality("");
-      setState("BA");
+      setState("");
       setSource("");
       setSuperiorId("");
     } catch (cause) {

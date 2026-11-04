@@ -178,16 +178,24 @@ describe("projeção do organograma NEXO", () => {
     expect(model.members.map((member) => member.id)).toEqual(["v-atual"]);
   });
 
-  it("busca nome ou alcunha sem depender de caixa ou acentos e informa ancestrais", () => {
+  it("busca nome, alcunha, cargo ou cidade sem depender de caixa ou acentos e informa ancestrais", () => {
     const people = [
       person("p-raiz", "Álvaro Sintético", "Comando Um", [link("v-raiz", "p-raiz")]),
-      person("p-filha", "Bia Sintética", "Falcão", [link("v-filha", "p-filha", "v-raiz")]),
+      person("p-filha", "Bia Sintética", "Falcão", [
+        link("v-filha", "p-filha", "v-raiz", {
+          funcao: "Líder regional",
+          municipio_atuacao: "Eunápolis",
+          uf_atuacao: "BA",
+        }),
+      ]),
       person("p-neta", "Célia Sintética", "Eco", [link("v-neta", "p-neta", "v-filha")]),
     ];
     const model = buildNexoOrganogram(ORGANIZATION_ID, people);
 
     expect(searchNexoOrganogram(model, "falcao")).toEqual(["v-filha"]);
     expect(searchNexoOrganogram(model, "ALVARO")).toEqual(["v-raiz"]);
+    expect(searchNexoOrganogram(model, "lider regional")).toEqual(["v-filha"]);
+    expect(searchNexoOrganogram(model, "eunapolis")).toEqual(["v-filha"]);
     expect(getNexoOrganogramAncestors(model, "v-neta")).toEqual(["v-raiz", "v-filha"]);
   });
 

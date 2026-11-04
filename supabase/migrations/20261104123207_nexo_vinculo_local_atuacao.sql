@@ -22,19 +22,33 @@ as $function$
 declare
   v_payload_text text := current_setting('app.nexo_link_location_payload', true);
   v_payload jsonb;
+  v_target_pessoa_id uuid;
+  v_apply_payload boolean := false;
 begin
   if nullif(v_payload_text, '') is not null then
     v_payload := v_payload_text::jsonb;
   end if;
-  if v_payload is not null and v_payload ? 'municipio_atuacao' then
+  if v_payload is not null and v_payload ? 'pessoa_id' then
+    v_target_pessoa_id := nullif(v_payload ->> 'pessoa_id', '')::uuid;
+  end if;
+  v_apply_payload := v_payload is not null
+    and new.status <> 'desvinculado'
+    and (v_target_pessoa_id is null or new.pessoa_id = v_target_pessoa_id);
+
+  if v_apply_payload and v_payload ? 'municipio_atuacao' then
     new.municipio_atuacao := nullif(btrim(v_payload ->> 'municipio_atuacao'), '');
   else
     new.municipio_atuacao := nullif(btrim(new.municipio_atuacao), '');
   end if;
-  if v_payload is not null and v_payload ? 'uf_atuacao' then
+  if v_apply_payload and v_payload ? 'uf_atuacao' then
     new.uf_atuacao := upper(nullif(btrim(v_payload ->> 'uf_atuacao'), ''));
   else
     new.uf_atuacao := upper(nullif(btrim(new.uf_atuacao), ''));
+  end if;
+  -- Na criação o UUID da pessoa ainda não existe antes da função interna.
+  -- O payload sem alvo é, por isso, consumido exatamente uma vez pelo INSERT ativo.
+  if v_apply_payload and v_target_pessoa_id is null then
+    perform set_config('app.nexo_link_location_payload', '', true);
   end if;
   return new;
 end;
@@ -141,19 +155,28 @@ create function public.nexo_gerenciar_vinculo(
   p_municipio_atuacao text, p_uf_atuacao text
 )
 returns uuid language plpgsql security invoker set search_path = '' as $function$
+declare
+  v_pessoa_id uuid;
+  v_result uuid;
 begin
+  select pessoa_id into v_pessoa_id
+  from public.nexo_vinculos
+  where id = p_vinculo_id;
   perform set_config(
     'app.nexo_link_location_payload',
     jsonb_build_object(
       'municipio_atuacao', p_municipio_atuacao,
-      'uf_atuacao', p_uf_atuacao
+      'uf_atuacao', p_uf_atuacao,
+      'pessoa_id', v_pessoa_id
     )::text,
     true
   );
-  return private.nexo_gerenciar_vinculo_sem_local_atuacao(
+  v_result := private.nexo_gerenciar_vinculo_sem_local_atuacao(
     p_vinculo_id, p_acao, p_organizacao_id, p_status, p_funcao,
     p_confianca, p_fonte_resumo, p_superior_vinculo_id
   );
+  perform set_config('app.nexo_link_location_payload', '', true);
+  return v_result;
 end;
 $function$;
 
@@ -165,6 +188,7 @@ create function public.nexo_criar_pessoa_completa(p_payload jsonb)
 returns uuid language plpgsql security invoker set search_path = '' as $function$
 declare
   v_vinculo jsonb := p_payload -> 'vinculo';
+  v_result uuid;
 begin
   if v_vinculo is not null and jsonb_typeof(v_vinculo) = 'object'
       and (v_vinculo ? 'municipio_atuacao' or v_vinculo ? 'uf_atuacao') then
@@ -179,7 +203,9 @@ begin
   else
     perform set_config('app.nexo_link_location_payload', '', true);
   end if;
-  return private.nexo_criar_pessoa_completa_sem_local_atuacao(p_payload);
+  v_result := private.nexo_criar_pessoa_completa_sem_local_atuacao(p_payload);
+  perform set_config('app.nexo_link_location_payload', '', true);
+  return v_result;
 end;
 $function$;
 
@@ -196,6 +222,7 @@ create function public.nexo_atualizar_pessoa_completa(
 returns timestamptz language plpgsql security invoker set search_path = '' as $function$
 declare
   v_vinculo jsonb := p_payload -> 'vinculo';
+  v_result timestamptz;
 begin
   if v_vinculo is not null and jsonb_typeof(v_vinculo) = 'object'
       and (v_vinculo ? 'municipio_atuacao' or v_vinculo ? 'uf_atuacao') then
@@ -203,16 +230,19 @@ begin
       'app.nexo_link_location_payload',
       jsonb_build_object(
         'municipio_atuacao', v_vinculo ->> 'municipio_atuacao',
-        'uf_atuacao', v_vinculo ->> 'uf_atuacao'
+        'uf_atuacao', v_vinculo ->> 'uf_atuacao',
+        'pessoa_id', p_pessoa_id
       )::text,
       true
     );
   else
     perform set_config('app.nexo_link_location_payload', '', true);
   end if;
-  return private.nexo_atualizar_pessoa_completa_sem_local_atuacao(
+  v_result := private.nexo_atualizar_pessoa_completa_sem_local_atuacao(
     p_pessoa_id, p_expected_updated_at, p_payload
   );
+  perform set_config('app.nexo_link_location_payload', '', true);
+  return v_result;
 end;
 $function$;
 

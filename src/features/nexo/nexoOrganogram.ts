@@ -144,9 +144,13 @@ export function searchNexoOrganogram(model: NexoOrganogramModel, query: string) 
 
   return model.members
     .filter((member) =>
-      [member.person.nome, member.person.apelido].some((value) =>
-        normalizedSearchValue(value).includes(normalizedQuery),
-      ),
+      [
+        member.person.nome,
+        member.person.apelido,
+        member.link.funcao,
+        member.link.municipio_atuacao,
+        member.link.uf_atuacao,
+      ].some((value) => normalizedSearchValue(value).includes(normalizedQuery)),
     )
     .map((member) => member.id);
 }
