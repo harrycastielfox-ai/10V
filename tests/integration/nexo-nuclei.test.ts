@@ -12,9 +12,7 @@ const personB = "20000000-0000-4000-8000-000000000002";
 const nucleusA = "30000000-0000-4000-8000-000000000001";
 const nucleusB = "30000000-0000-4000-8000-000000000002";
 const nucleusC = "30000000-0000-4000-8000-000000000003";
-const migrationPath = resolve(
-  "supabase/migrations/20261104170000_nexo_organogram_nuclei.sql",
-);
+const migrationPath = resolve("supabase/migrations/20261104170000_nexo_organogram_nuclei.sql");
 
 describe("NEXO organogram nuclei migration", () => {
   const db = new PGlite();
@@ -266,9 +264,7 @@ describe("NEXO organogram nuclei migration", () => {
   });
 
   it("não expõe núcleos a usuário sem acesso ao NEXO", async () => {
-    const invisible = await asUser(member, (tx) =>
-      tx.query("select id from public.nexo_nucleos"),
-    );
+    const invisible = await asUser(member, (tx) => tx.query("select id from public.nexo_nucleos"));
     expect(invisible.rows).toEqual([]);
     await expect(
       asUser(member, (tx) =>
