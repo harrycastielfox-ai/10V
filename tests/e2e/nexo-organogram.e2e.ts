@@ -1,7 +1,10 @@
 import { expect, test } from "./fixtures";
 
-test.beforeEach(async ({ page }) => {
-  await page.clock.install();
+test.beforeEach(async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name === "mobile-chromium",
+    "O roteador do SIED restringe o módulo NEXO em viewports móveis menores que 768 px.",
+  );
   await page.route("http://127.0.0.1:54321/**", (route) =>
     route.fulfill({
       status: 503,
@@ -15,6 +18,7 @@ test.beforeEach(async ({ page }) => {
     .getByRole("button", { name: /^Abrir dossiê de / })
     .first()
     .click();
+  await page.clock.install();
   await page.getByRole("button", { name: "Organograma", exact: true }).click();
   await page.clock.runFor(300);
 });
@@ -48,16 +52,27 @@ test("mantém os três controles dos cartões operacionais", async ({ page }) =>
 
 test("recentraliza a árvore a cada 15 segundos sem alterar ramificações", async ({ page }) => {
   const memberName = "Pessoa fictícia BDM 01";
-  const stage = page.locator(".nexo-organogram-stage");
-  const initialZoom = await stage.getAttribute("data-viewport-zoom");
+  const zoomOut = page.getByRole("button", { name: "Reduzir zoom" });
+  await page.clock.fastForward(15_300);
+  await expect(zoomOut).toBeDisabled();
 
   await page.getByRole("button", { name: "Ampliar zoom" }).click();
-  await expect(stage).not.toHaveAttribute("data-viewport-zoom", initialZoom || "");
+  await expect(zoomOut).toBeEnabled();
 
   await page.getByRole("button", { name: `Recolher ramificação de ${memberName}` }).click();
   await expect(page.getByRole("article")).toHaveCount(1);
 
   await page.clock.fastForward(15_300);
-  await expect(stage).toHaveAttribute("data-viewport-zoom", initialZoom || "");
+  await expect(zoomOut).toBeDisabled();
   await expect(page.getByRole("article")).toHaveCount(1);
+});
+
+test("permanece utilizável em notebook compacto", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 720 });
+  await page.clock.runFor(300);
+
+  await expect(page.getByLabel(/Organograma de /)).toBeVisible();
+  await expect(page.getByLabel("Navegação do organograma")).toBeVisible();
+  await expect(page.getByRole("article").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ampliar zoom" })).toBeVisible();
 });
