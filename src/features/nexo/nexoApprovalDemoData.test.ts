@@ -60,10 +60,12 @@ describe("NEXO approval demo", () => {
 
   it("keeps city leaders subordinate to leaders using explicit link IDs", () => {
     const links = NEXO_APPROVAL_DEMO_DATA.people.flatMap((person) => person.vinculos);
-    const regional = links.filter((link) => link.funcao?.includes("Cidade"));
-    expect(regional.filter((link) => link.funcao?.startsWith("Líder"))).toHaveLength(3);
-    expect(regional.filter((link) => link.funcao?.startsWith("Vice-líder"))).toHaveLength(2);
+    const regional = links.filter((link) => link.fonte_resumo?.includes("cidade de atuação"));
+    expect(regional.filter((link) => link.funcao === "Líder")).toHaveLength(3);
+    expect(regional.filter((link) => link.funcao === "Vice-líder")).toHaveLength(2);
     for (const link of regional) {
+      expect(link.municipio_atuacao).toBeTruthy();
+      expect(link.uf_atuacao).toBe("BA");
       const parent = links.find((candidate) => candidate.id === link.superior_vinculo_id);
       expect(parent?.organizacao_id).toBe(link.organizacao_id);
       expect(parent?.funcao).toMatch(/^Líder/);

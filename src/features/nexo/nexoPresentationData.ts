@@ -348,6 +348,8 @@ export const NEXO_PRESENTATION_PEOPLE: NexoPessoa[] = personNames.map((name, ind
         organizacao_id: organization.id,
         status,
         funcao: roles[localIndex],
+        municipio_atuacao: "Itabela",
+        uf_atuacao: "BA",
         confianca: [98, 92, 87, 78, 71, 65, 52, 43, 24, 18][localIndex],
         fonte_resumo:
           "Roteiro fictício da apresentação; status e confiança apenas ilustram os controles do sistema.",

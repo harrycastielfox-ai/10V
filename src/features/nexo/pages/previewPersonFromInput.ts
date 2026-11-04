@@ -32,6 +32,8 @@ export function previewPersonFromInput(
       ...link,
       status: input.vinculo_status,
       funcao: input.vinculo_funcao || null,
+      municipio_atuacao: input.vinculo_municipio_atuacao || null,
+      uf_atuacao: input.vinculo_uf_atuacao.toUpperCase() || null,
       confianca: input.vinculo_confianca,
       fonte_resumo: input.fonte_resumo || null,
       superior_vinculo_id:
@@ -51,6 +53,8 @@ export function previewPersonFromInput(
       organizacao_id: organization.id,
       status: input.vinculo_status,
       funcao: input.vinculo_funcao || null,
+      municipio_atuacao: input.vinculo_municipio_atuacao || null,
+      uf_atuacao: input.vinculo_uf_atuacao.toUpperCase() || null,
       confianca: input.vinculo_confianca,
       fonte_resumo: input.fonte_resumo || null,
       desde: today,

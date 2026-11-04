@@ -490,6 +490,8 @@ function LinkManagementDialog({
     link.status === "desvinculado" ? "nao_confirmado" : link.status,
   );
   const [role, setRole] = useState(link.funcao || "");
+  const [municipality, setMunicipality] = useState(link.municipio_atuacao || "");
+  const [state, setState] = useState(link.uf_atuacao || "BA");
   const [confidence, setConfidence] = useState(link.confianca);
   const [source, setSource] = useState(link.fonte_resumo || "");
   const [superiorId, setSuperiorId] = useState(link.superior_vinculo_id || "");
@@ -534,6 +536,8 @@ function LinkManagementDialog({
         confianca: confidence,
         fonte_resumo: source,
         superior_vinculo_id: superiorId || null,
+        municipio_atuacao: municipality,
+        uf_atuacao: state,
       });
       onClose();
     } catch (cause) {
@@ -635,6 +639,25 @@ function LinkManagementDialog({
               <option value="provavel">Provável</option>
               <option value="confirmado">Confirmado</option>
             </select>
+          </label>
+          <label className="text-xs font-bold text-[#60798b]">
+            Cidade de atuação
+            <input
+              value={municipality}
+              onChange={(event) => setMunicipality(event.target.value)}
+              placeholder="Ex.: Eunápolis"
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] px-3 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
+          </label>
+          <label className="text-xs font-bold text-[#60798b]">
+            UF de atuação
+            <input
+              value={state}
+              maxLength={2}
+              onChange={(event) => setState(event.target.value.toUpperCase())}
+              placeholder="BA"
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] px-3 text-sm uppercase text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
           </label>
           <label className="text-xs font-bold text-[#60798b]">
             Confiança: {confidence}%
@@ -1609,7 +1632,7 @@ export function NexoDossier({
           : event.tipo === "saida"
             ? "Saída da facção"
             : "Hierarquia alterada",
-      detail: `${event.pessoa_nome} · ${event.funcao_anterior || "Sem cargo"} → ${event.funcao_nova || "Sem cargo"}${event.superior_anterior_nome !== event.superior_novo_nome ? ` · Chefia: ${event.superior_anterior_nome || "Não definida"} → ${event.superior_novo_nome || "Não definida"}` : ""}`,
+      detail: `${event.pessoa_nome} · ${event.funcao_anterior || "Sem cargo"} → ${event.funcao_nova || "Sem cargo"}${event.superior_anterior_nome !== event.superior_novo_nome ? ` · Chefia: ${event.superior_anterior_nome || "Não definida"} → ${event.superior_novo_nome || "Não definida"}` : ""}${event.municipio_atuacao_anterior !== event.municipio_atuacao_novo || event.uf_atuacao_anterior !== event.uf_atuacao_novo ? ` · Atuação: ${[event.municipio_atuacao_anterior, event.uf_atuacao_anterior].filter(Boolean).join("/") || "Não informada"} → ${[event.municipio_atuacao_novo, event.uf_atuacao_novo].filter(Boolean).join("/") || "Não informada"}` : ""}`,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const tabs: { id: Tab; label: string }[] =
@@ -2477,6 +2500,19 @@ export function NexoDossier({
                         <p className="mt-1 text-[#60798b]">
                           Responde a: {event.superior_anterior_nome || "Ninguém"} →{" "}
                           {event.superior_novo_nome || "Ninguém"}
+                        </p>
+                      ) : null}
+                      {event.municipio_atuacao_anterior !== event.municipio_atuacao_novo ||
+                      event.uf_atuacao_anterior !== event.uf_atuacao_novo ? (
+                        <p className="mt-1 text-[#60798b]">
+                          Cidade de atuação:{" "}
+                          {[event.municipio_atuacao_anterior, event.uf_atuacao_anterior]
+                            .filter(Boolean)
+                            .join("/") || "Não informada"}{" "}
+                          →{" "}
+                          {[event.municipio_atuacao_novo, event.uf_atuacao_novo]
+                            .filter(Boolean)
+                            .join("/") || "Não informada"}
                         </p>
                       ) : null}
                       <p className="mt-1 text-[#567184]">

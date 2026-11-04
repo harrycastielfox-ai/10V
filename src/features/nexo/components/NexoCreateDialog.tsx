@@ -138,6 +138,8 @@ const emptyPerson: NexoPessoaInput = {
   usar_local_faccao: false,
   vinculo_status: "nao_confirmado",
   vinculo_funcao: "",
+  vinculo_municipio_atuacao: "",
+  vinculo_uf_atuacao: "BA",
   vinculo_confianca: 0,
   fonte_resumo: "",
   foto_perfil: null,
@@ -251,6 +253,8 @@ export function NexoCreateDialog({
           usar_local_faccao: initialPerson.usar_local_faccao,
           vinculo_status: initialLink?.status || "nao_confirmado",
           vinculo_funcao: initialLink?.funcao || "",
+          vinculo_municipio_atuacao: initialLink?.municipio_atuacao || "",
+          vinculo_uf_atuacao: initialLink?.uf_atuacao || "BA",
           vinculo_confianca: initialLink?.confianca || 0,
           fonte_resumo: initialLink?.fonte_resumo || "",
         }

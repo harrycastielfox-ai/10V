@@ -32,6 +32,7 @@ import {
   type NexoOrganogramMember,
 } from "../nexoOrganogram";
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
+import { formatNexoLinkRoleLocation } from "../nexoLinkLocation";
 import type { NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
 
 const LINK_LABELS: Record<NexoVinculo["status"], string> = {
@@ -83,12 +84,12 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
   return (
     <article
       className={`nexo-organogram-card ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
-      aria-label={`${member.person.nome}, ${member.link.funcao || "função não informada"}`}
+      aria-label={`${member.person.nome}, ${formatNexoLinkRoleLocation(member.link)}`}
     >
       <Handle type="target" position={Position.Top} isConnectable={false} />
       <button
         type="button"
-        className="nexo-organogram-card-main"
+        className="nodrag nopan nexo-organogram-card-main"
         onClick={() => data.onSelect(member.id)}
         aria-pressed={data.selected}
       >
@@ -109,8 +110,8 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
           <span className="nexo-organogram-alias" title={member.person.apelido || undefined}>
             {member.person.apelido ? `“${member.person.apelido}”` : "Sem alcunha registrada"}
           </span>
-          <span className="nexo-organogram-role" title={member.link.funcao || undefined}>
-            {member.link.funcao || "Função não informada"}
+          <span className="nexo-organogram-role" title={formatNexoLinkRoleLocation(member.link)}>
+            {formatNexoLinkRoleLocation(member.link)}
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#60798b]">
             <span
@@ -130,6 +131,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
         {member.childIds.length ? (
           <button
             type="button"
+            className="nodrag nopan"
             onClick={() => data.onToggle(member.id)}
             aria-expanded={!data.collapsed}
             aria-label={`${data.collapsed ? "Expandir" : "Recolher"} ramificação de ${member.person.nome}`}
@@ -146,6 +148,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
         {data.onManage ? (
           <button
             type="button"
+            className="nodrag nopan"
             onClick={() => data.onManage?.(member.person, member.link)}
             aria-label={`Gerenciar posição de ${member.person.nome}`}
             title="Gerenciar posição"
@@ -155,6 +158,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
         ) : null}
         <button
           type="button"
+          className="nodrag nopan"
           onClick={() => data.onOpen(member.person)}
           aria-label={`Abrir dossiê de ${member.person.nome}`}
           title="Abrir dossiê"
@@ -362,7 +366,7 @@ function OrganogramCanvas({
               return (
                 <button key={id} type="button" role="option" onClick={() => focusMember(id)}>
                   <strong>{member.person.nome}</strong>
-                  <span>{member.person.apelido || member.link.funcao || "Sem alcunha"}</span>
+                  <span>{member.person.apelido || formatNexoLinkRoleLocation(member.link)}</span>
                 </button>
               );
             })
@@ -383,6 +387,7 @@ function OrganogramCanvas({
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
+          onNodeClick={(_, node) => focusMember(node.id)}
           panOnDrag
           panOnScroll={false}
           zoomOnScroll
@@ -474,6 +479,14 @@ function OrganogramCanvas({
               <div>
                 <dt>Função registrada</dt>
                 <dd>{selected.link.funcao || "Não informada"}</dd>
+              </div>
+              <div>
+                <dt>Cidade de atuação</dt>
+                <dd>
+                  {[selected.link.municipio_atuacao, selected.link.uf_atuacao]
+                    .filter(Boolean)
+                    .join("/") || "Não informada"}
+                </dd>
               </div>
               <div>
                 <dt>Superior registrado</dt>

@@ -10,6 +10,8 @@ export interface NexoLinkInput {
   confianca: number;
   fonte_resumo: string;
   superior_vinculo_id: string | null;
+  municipio_atuacao: string;
+  uf_atuacao: string;
 }
 
 const field =
@@ -31,6 +33,8 @@ export function NexoLinkForm({
   const [status, setStatus] = useState<NexoVinculoStatus>("nao_confirmado");
   const [confidence, setConfidence] = useState(0);
   const [role, setRole] = useState("");
+  const [municipality, setMunicipality] = useState("");
+  const [state, setState] = useState("BA");
   const [source, setSource] = useState("");
   const [superiorId, setSuperiorId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -61,12 +65,16 @@ export function NexoLinkForm({
         confianca: confidence,
         fonte_resumo: source,
         superior_vinculo_id: superiorId || null,
+        municipio_atuacao: municipality,
+        uf_atuacao: state,
       });
       setOpen(false);
       setOrganizationId("");
       setStatus("nao_confirmado");
       setConfidence(0);
       setRole("");
+      setMunicipality("");
+      setState("BA");
       setSource("");
       setSuperiorId("");
     } catch (cause) {
@@ -178,6 +186,25 @@ export function NexoLinkForm({
             className={`mt-1 ${field}`}
             value={confidence}
             onChange={(event) => setConfidence(Number(event.target.value))}
+          />
+        </label>
+        <label className="text-xs font-bold text-[#637b8e]">
+          Cidade de atuação
+          <input
+            className={`mt-1 ${field}`}
+            value={municipality}
+            onChange={(event) => setMunicipality(event.target.value)}
+            placeholder="Ex.: Eunápolis"
+          />
+        </label>
+        <label className="text-xs font-bold text-[#637b8e]">
+          UF de atuação
+          <input
+            className={`mt-1 ${field}`}
+            value={state}
+            maxLength={2}
+            onChange={(event) => setState(event.target.value.toUpperCase())}
+            placeholder="BA"
           />
         </label>
         <label className="text-xs font-bold text-[#637b8e] sm:col-span-2">
