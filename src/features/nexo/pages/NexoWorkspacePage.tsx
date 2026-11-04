@@ -800,7 +800,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
               ? currentLink.uf_atuacao || null
               : input.uf_atuacao.toUpperCase() || null,
           nucleo_anterior_nome: currentLink.nucleo?.nome || null,
-          nucleo_novo_nome: input.acao === "remover" ? null : destinationNucleus?.nome || null,
+          nucleo_novo_nome: input.acao === "atualizar" ? destinationNucleus?.nome || null : null,
           pessoa_nome: currentPerson.nome,
           justificativa: input.fonte_resumo || null,
           ocorrido_em: new Date().toISOString(),
@@ -816,6 +816,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                   tipo: "entrada" as const,
                   status_anterior: null,
                   status_novo: input.status,
+                  nucleo_anterior_nome: null,
+                  nucleo_novo_nome: destinationNucleus?.nome || null,
                 },
               ]
             : []),

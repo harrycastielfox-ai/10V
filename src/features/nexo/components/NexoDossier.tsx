@@ -490,11 +490,12 @@ function NucleiManagementDialog({
   const ordered = [...nuclei].sort(
     (first, second) => first.ordem - second.ordem || first.nome.localeCompare(second.nome),
   );
+  const nextOrder = ordered.length ? Math.max(...ordered.map((nucleus) => nucleus.ordem)) + 1 : 0;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#0f766e");
-  const [order, setOrder] = useState(ordered.length);
+  const [order, setOrder] = useState(nextOrder);
   const [saving, setSaving] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -504,7 +505,7 @@ function NucleiManagementDialog({
     setName("");
     setDescription("");
     setColor("#0f766e");
-    setOrder(ordered.length);
+    setOrder(nextOrder);
     setError("");
   }
 
