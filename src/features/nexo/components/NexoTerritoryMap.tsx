@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { NexoLegacyTerritoryMap } from "./NexoLegacyTerritoryMap";
 import { circleArea, geographicPoint, isGeographicArea } from "../nexoTerritoryCoordinates";
+import { scheduleRigidMapRecentering } from "../mapRecentering";
 import type { NexoMapPoint } from "../nexoTypes";
 
 type Props = ComponentProps<typeof NexoLegacyTerritoryMap> & {
   onDrawingChange?: (points: NexoMapPoint[]) => void;
 };
+
+const ITABELA_CENTER: [number, number] = [-16.575, -39.559];
+const ITABELA_ZOOM = 15;
 
 export function NexoTerritoryMap(props: Props) {
   const legacy = props.territories.filter(
@@ -54,7 +58,18 @@ function StreetMap(props: Props) {
   modeRef.current = mode;
   const center = useRef<[number, number] | null>(null);
   const [hasCenter, setHasCenter] = useState(false);
+  const [automaticRecenterCount, setAutomaticRecenterCount] = useState(0);
   const drawing = Boolean(props.onMapClick);
+  const recenterCity = useCallback((automatic = false) => {
+    const instance = map.current;
+    if (!instance) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      instance.setView(ITABELA_CENTER, ITABELA_ZOOM, { animate: false });
+    } else {
+      instance.flyTo(ITABELA_CENTER, ITABELA_ZOOM, { duration: 0.45 });
+    }
+    if (automatic) setAutomaticRecenterCount((count) => count + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,7 +81,7 @@ function StreetMap(props: Props) {
           minZoom: 10,
           maxZoom: 19,
           scrollWheelZoom: false,
-        }).setView([-16.575, -39.559], 15);
+        }).setView(ITABELA_CENTER, ITABELA_ZOOM);
         map.current = instance;
         L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", {
           attribution:
@@ -107,6 +122,15 @@ function StreetMap(props: Props) {
       shapes.current = null;
     };
   }, []);
+
+  useEffect(
+    () =>
+      scheduleRigidMapRecentering({
+        drawing: drawing || !ready,
+        recenter: () => recenterCity(true),
+      }),
+    [drawing, ready, recenterCity],
+  );
 
   useEffect(() => {
     if (!ready) return;
@@ -218,11 +242,16 @@ function StreetMap(props: Props) {
         <button
           type="button"
           className="rounded-lg border px-3 py-2"
-          onClick={() => map.current?.setView([-16.575, -39.559], 15)}
+          onClick={() => recenterCity()}
         >
           Centralizar cidade
         </button>
       </div>
+      {automaticRecenterCount ? (
+        <span role="status" className="sr-only">
+          Mapa recentralizado automaticamente · {automaticRecenterCount}
+        </span>
+      ) : null}
       {failed ? (
         <p role="status" className="bg-amber-50 p-3 text-xs text-amber-900">
           Não foi possível carregar parte do mapa. Verifique a conexão e recarregue antes de marcar
