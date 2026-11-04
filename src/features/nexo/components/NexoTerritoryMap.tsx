@@ -59,6 +59,7 @@ function StreetMap(props: Props) {
   const center = useRef<[number, number] | null>(null);
   const [hasCenter, setHasCenter] = useState(false);
   const [automaticRecenterCount, setAutomaticRecenterCount] = useState(0);
+  const [visibleView, setVisibleView] = useState<{ center: string; zoom: number } | null>(null);
   const drawing = Boolean(props.onMapClick);
   const recenterCity = useCallback((automatic = false) => {
     const instance = map.current;
@@ -83,6 +84,15 @@ function StreetMap(props: Props) {
           scrollWheelZoom: false,
         }).setView(ITABELA_CENTER, ITABELA_ZOOM);
         map.current = instance;
+        const reportVisibleView = () => {
+          const visibleCenter = instance.getCenter();
+          setVisibleView({
+            center: `${visibleCenter.lat.toFixed(6)},${visibleCenter.lng.toFixed(6)}`,
+            zoom: instance.getZoom(),
+          });
+        };
+        instance.on("moveend zoomend", reportVisibleView);
+        reportVisibleView();
         L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png", {
           attribution:
             'Dados &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · &copy; <a href="https://www.openstreetmap.fr/">OSM France</a>',
@@ -261,6 +271,8 @@ function StreetMap(props: Props) {
       <div
         ref={container}
         aria-label="Mapa de ruas para marcação territorial"
+        data-map-center={visibleView?.center}
+        data-map-zoom={visibleView?.zoom}
         className="relative z-0 h-[550px] w-full"
       />
       <p className="border-t px-4 py-3 text-xs text-[#567184]">
