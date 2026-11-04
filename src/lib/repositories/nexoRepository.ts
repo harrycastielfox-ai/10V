@@ -5,6 +5,7 @@ import type {
   NexoHierarquiaEvento,
   NexoFoto,
   NexoOrganizacao,
+  NexoNucleo,
   NexoOrganizacaoInput,
   NexoObservacao,
   NexoDocumentoFonte,
@@ -278,7 +279,8 @@ const PESSOA_SELECT = `
   ),
   vinculos:nexo_vinculos (
     id, organizacao_id, pessoa_id, status, funcao, confianca, fonte_resumo, desde, ate,
-    superior_vinculo_id, municipio_atuacao, uf_atuacao,
+    superior_vinculo_id, municipio_atuacao, uf_atuacao, nucleo_id,
+    nucleo:nexo_nucleos (id, organizacao_id, nome, descricao, cor, ordem),
     organizacao:nexo_organizacoes (*)
   ),
   fotos:nexo_fotos (id, pessoa_id, storage_path, legenda, categoria, capturada_em)
@@ -338,6 +340,17 @@ export async function listNexoPessoas(): Promise<NexoPessoa[]> {
     .order("nome");
   if (error) throw error;
   return Promise.all(((data ?? []) as unknown as NexoPessoa[]).map(hydratePessoa));
+}
+
+export async function listNexoNucleos(): Promise<NexoNucleo[]> {
+  const { data, error } = await supabase
+    .from("nexo_nucleos")
+    .select("id, organizacao_id, nome, descricao, cor, ordem, created_at, updated_at")
+    .is("deleted_at", null)
+    .order("ordem")
+    .order("nome");
+  if (error) throw error;
+  return (data ?? []) as NexoNucleo[];
 }
 
 const INQUIRY_PERSON_SELECT = `
@@ -734,6 +747,7 @@ export async function manageNexoVinculo(input: {
   superior_vinculo_id?: string | null;
   municipio_atuacao?: string;
   uf_atuacao?: string;
+  nucleo_id?: string | null;
 }) {
   const { error } = await supabase.rpc("nexo_gerenciar_vinculo", {
     p_vinculo_id: input.vinculo_id,
@@ -746,6 +760,7 @@ export async function manageNexoVinculo(input: {
     p_superior_vinculo_id: input.superior_vinculo_id ?? null,
     p_municipio_atuacao: clean(input.municipio_atuacao || ""),
     p_uf_atuacao: clean(input.uf_atuacao || "")?.toUpperCase() || null,
+    p_nucleo_id: input.nucleo_id ?? null,
   });
   if (error) throw error;
 }

@@ -21,7 +21,9 @@ vi.mock("@/lib/supabaseClient", () => ({
 const {
   createNexoVeiculoLocal,
   createNexoPessoa,
+  listNexoNucleos,
   listNexoVeiculosLocais,
+  manageNexoVinculo,
   uploadNexoAlbumPhoto,
   uploadNexoOrganizacaoPhoto,
   softDeleteNexoVeiculoLocal,
@@ -119,6 +121,54 @@ describe("NEXO persistence regressions", () => {
         Promise.resolve({ data: null, error: null }).then(resolve),
     };
     state.from.mockReturnValue(builder);
+  });
+
+  it("lista núcleos ativos na ordem definida pela organização", async () => {
+    const orderByName = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: "nucleo-1",
+          organizacao_id: "org-1",
+          nome: "Núcleo Leste",
+          descricao: null,
+          cor: "#0f766e",
+          ordem: 1,
+        },
+      ],
+      error: null,
+    });
+    const orderByPosition = vi.fn().mockReturnValue({ order: orderByName });
+    const isActive = vi.fn().mockReturnValue({ order: orderByPosition });
+    const select = vi.fn().mockReturnValue({ is: isActive });
+    state.from.mockReturnValueOnce({ select });
+
+    await expect(listNexoNucleos()).resolves.toEqual([
+      expect.objectContaining({ id: "nucleo-1", nome: "Núcleo Leste" }),
+    ]);
+    expect(state.from).toHaveBeenCalledWith("nexo_nucleos");
+    expect(orderByPosition).toHaveBeenCalledWith("ordem");
+    expect(orderByName).toHaveBeenCalledWith("nome");
+  });
+
+  it("envia o núcleo selecionado na mesma operação de gestão do vínculo", async () => {
+    await manageNexoVinculo({
+      vinculo_id: "vinculo-1",
+      acao: "atualizar",
+      organizacao_id: "org-1",
+      status: "confirmado",
+      funcao: "Integrante",
+      confianca: 80,
+      fonte_resumo: "Fonte sintética",
+      superior_vinculo_id: null,
+      municipio_atuacao: "Itabela",
+      uf_atuacao: "BA",
+      nucleo_id: "nucleo-1",
+    });
+
+    expect(state.rpc).toHaveBeenCalledWith(
+      "nexo_gerenciar_vinculo",
+      expect.objectContaining({ p_nucleo_id: "nucleo-1" }),
+    );
   });
 
   it("rejects SVG before uploading an organization photo", async () => {

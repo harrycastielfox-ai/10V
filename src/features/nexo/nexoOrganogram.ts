@@ -158,6 +158,7 @@ export function searchNexoOrganogram(model: NexoOrganogramModel, query: string) 
         member.link.funcao,
         member.link.municipio_atuacao,
         member.link.uf_atuacao,
+        member.link.nucleo?.nome,
       ].some((value) => normalizedSearchValue(value).includes(normalizedQuery)),
     )
     .map((member) => member.id);
