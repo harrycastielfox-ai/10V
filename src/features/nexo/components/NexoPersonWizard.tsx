@@ -700,6 +700,30 @@ export function NexoPersonWizard({
               placeholder="Ex.: liderança, apoio logístico"
             />
           </WizardField>
+          <WizardField label="Cidade de atuação">
+            <input
+              className={field}
+              value={person.vinculo_municipio_atuacao}
+              onChange={(event) =>
+                setPerson({ ...person, vinculo_municipio_atuacao: event.target.value })
+              }
+              placeholder="Ex.: Eunápolis"
+            />
+          </WizardField>
+          <WizardField label="UF de atuação">
+            <input
+              className={field}
+              value={person.vinculo_uf_atuacao}
+              maxLength={2}
+              onChange={(event) =>
+                setPerson({
+                  ...person,
+                  vinculo_uf_atuacao: event.target.value.toUpperCase(),
+                })
+              }
+              placeholder="BA"
+            />
+          </WizardField>
           <WizardField label="Confiança (0–100)">
             <input
               type="number"
@@ -922,6 +946,11 @@ export function NexoPersonWizard({
           value={selectedOrganization?.nome || "Sem facção definida"}
         >
           Confiança registrada em {person.vinculo_confianca}%
+          {person.vinculo_municipio_atuacao || person.vinculo_uf_atuacao
+            ? ` · Atuação: ${[person.vinculo_municipio_atuacao, person.vinculo_uf_atuacao]
+                .filter(Boolean)
+                .join("/")}`
+            : ""}
         </ReviewCard>
         <ReviewCard
           icon={MapPin}

@@ -45,6 +45,7 @@ import { NexoReportsHub } from "../components/NexoReportsHub";
 import { createNexoReportConfig, type NexoReportConfig } from "../nexoReportConfig";
 import type { NexoSearchTarget, NexoWorkspaceView } from "../nexoWorkspaceSearch";
 import { previewPersonFromInput } from "./previewPersonFromInput";
+import { collectTerritoryPolygons } from "../nexoTerritoryGeometry";
 
 type View = NexoWorkspaceView;
 type DossierTarget = { kind: "person" | "organization"; id: string };
@@ -397,8 +398,11 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
 
   async function saveTerritory(input: NexoTerritorioInput) {
     if (preview) {
+      const poligonos = collectTerritoryPolygons(input.pontos, input.poligonos);
       const newTerritory: NexoTerritorio = {
         ...input,
+        pontos: poligonos[0] || [],
+        poligonos,
         id: crypto.randomUUID(),
         fonte_resumo: input.fonte_resumo || null,
         observacoes: input.observacoes || null,
@@ -726,6 +730,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                     organizacao_id: input.organizacao_id,
                     status: input.status,
                     funcao: input.funcao || null,
+                    municipio_atuacao: input.municipio_atuacao || null,
+                    uf_atuacao: input.uf_atuacao.toUpperCase() || null,
                     confianca: input.confianca,
                     fonte_resumo: input.fonte_resumo || null,
                     desde: null,
@@ -773,6 +779,16 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           status_anterior: currentLink.status,
           status_novo:
             input.acao === "remover" || input.acao === "transferir" ? "desvinculado" : input.status,
+          municipio_atuacao_anterior: currentLink.municipio_atuacao || null,
+          municipio_atuacao_novo:
+            input.acao === "remover"
+              ? currentLink.municipio_atuacao || null
+              : input.municipio_atuacao || null,
+          uf_atuacao_anterior: currentLink.uf_atuacao || null,
+          uf_atuacao_novo:
+            input.acao === "remover"
+              ? currentLink.uf_atuacao || null
+              : input.uf_atuacao.toUpperCase() || null,
           pessoa_nome: currentPerson.nome,
           justificativa: input.fonte_resumo || null,
           ocorrido_em: new Date().toISOString(),
@@ -827,6 +843,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                       ...link,
                       status: input.status,
                       funcao: input.funcao || null,
+                      municipio_atuacao: input.municipio_atuacao || null,
+                      uf_atuacao: input.uf_atuacao.toUpperCase() || null,
                       confianca: input.confianca,
                       fonte_resumo: input.fonte_resumo || null,
                       superior_vinculo_id: input.superior_vinculo_id,
@@ -853,6 +871,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                 ...link,
                 status: input.status,
                 funcao: input.funcao || null,
+                municipio_atuacao: input.municipio_atuacao || null,
+                uf_atuacao: input.uf_atuacao.toUpperCase() || null,
                 confianca: input.confianca,
                 fonte_resumo: input.fonte_resumo || null,
                 superior_vinculo_id: input.superior_vinculo_id,
@@ -871,6 +891,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
               organizacao_id: input.organizacao_id,
               status: input.status,
               funcao: input.funcao || null,
+              municipio_atuacao: input.municipio_atuacao || null,
+              uf_atuacao: input.uf_atuacao.toUpperCase() || null,
               confianca: input.confianca,
               fonte_resumo: input.fonte_resumo || null,
               desde: today,

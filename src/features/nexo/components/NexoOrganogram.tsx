@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ExternalLink,
   Maximize,
+  Maximize2,
   Minus,
   Plus,
   Network,
@@ -28,10 +29,13 @@ import {
   buildNexoOrganogram,
   getNexoOrganogramAncestors,
   getVisibleNexoOrganogram,
+  isNexoOrganogramLeadershipRole,
   searchNexoOrganogram,
   type NexoOrganogramMember,
 } from "../nexoOrganogram";
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
+import { formatNexoLinkRoleLocation } from "../nexoLinkLocation";
+import { scheduleRigidOrganogramRecentering } from "../organogramRecentering";
 import type { NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
 
 const LINK_LABELS: Record<NexoVinculo["status"], string> = {
@@ -82,13 +86,13 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
   const photoUrl = getNexoPersonPhotoUrl(member.person);
   return (
     <article
-      className={`nexo-organogram-card ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
-      aria-label={`${member.person.nome}, ${member.link.funcao || "função não informada"}`}
+      className={`nexo-organogram-card ${isNexoOrganogramLeadershipRole(member.link.funcao) ? "is-leadership" : ""} ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
+      aria-label={`${member.person.nome}, ${formatNexoLinkRoleLocation(member.link)}`}
     >
       <Handle type="target" position={Position.Top} isConnectable={false} />
       <button
         type="button"
-        className="nexo-organogram-card-main"
+        className="nodrag nopan nexo-organogram-card-main"
         onClick={() => data.onSelect(member.id)}
         aria-pressed={data.selected}
       >
@@ -109,8 +113,8 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
           <span className="nexo-organogram-alias" title={member.person.apelido || undefined}>
             {member.person.apelido ? `“${member.person.apelido}”` : "Sem alcunha registrada"}
           </span>
-          <span className="nexo-organogram-role" title={member.link.funcao || undefined}>
-            {member.link.funcao || "Função não informada"}
+          <span className="nexo-organogram-role" title={formatNexoLinkRoleLocation(member.link)}>
+            {formatNexoLinkRoleLocation(member.link)}
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-bold text-[#60798b]">
             <span
@@ -130,6 +134,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
         {member.childIds.length ? (
           <button
             type="button"
+            className="nodrag nopan"
             onClick={() => data.onToggle(member.id)}
             aria-expanded={!data.collapsed}
             aria-label={`${data.collapsed ? "Expandir" : "Recolher"} ramificação de ${member.person.nome}`}
@@ -146,6 +151,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
         {data.onManage ? (
           <button
             type="button"
+            className="nodrag nopan"
             onClick={() => data.onManage?.(member.person, member.link)}
             aria-label={`Gerenciar posição de ${member.person.nome}`}
             title="Gerenciar posição"
@@ -155,6 +161,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
         ) : null}
         <button
           type="button"
+          className="nodrag nopan"
           onClick={() => data.onOpen(member.person)}
           aria-label={`Abrir dossiê de ${member.person.nome}`}
           title="Abrir dossiê"
@@ -187,7 +194,7 @@ function OrganogramCanvas({
   );
   const stageRef = useRef<HTMLDivElement>(null);
   const { setViewport, zoomIn, zoomOut } = useReactFlow();
-  const { zoom } = useViewport();
+  const { x: viewportX, y: viewportY, zoom } = useViewport();
   const [stageWidth, setStageWidth] = useState(0);
   useEffect(() => {
     const stage = stageRef.current;
@@ -215,19 +222,28 @@ function OrganogramCanvas({
     [-initialX / treeZoom, -16 / treeZoom],
     [(stageWidth - initialX) / treeZoom, (stageHeight - 16) / treeZoom],
   ];
-  const resetView = useCallback(
-    () =>
-      setViewport({
+  const resetView = useCallback(() => {
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return setViewport(
+      {
         x: initialX,
         y: 16,
         zoom: treeZoom,
-      }),
-    [initialX, setViewport, treeZoom],
-  );
+      },
+      { duration: reduceMotion ? 0 : 250 },
+    );
+  }, [initialX, setViewport, treeZoom]);
   useEffect(() => {
     if (stageWidth > 0) void resetView();
   }, [resetView, stageWidth]);
+  useEffect(() => {
+    if (stageWidth <= 0) return;
+    return scheduleRigidOrganogramRecentering(() => void resetView());
+  }, [resetView, stageWidth]);
   const [query, setQuery] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const searchResults = useMemo(() => searchNexoOrganogram(model, query), [model, query]);
@@ -236,6 +252,20 @@ function OrganogramCanvas({
     [collapsedIds, model],
   );
   const searchResultSet = useMemo(() => new Set(searchResults), [searchResults]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isFullscreen]);
 
   const focusMember = useCallback(
     (id: string) => {
@@ -319,7 +349,7 @@ function OrganogramCanvas({
 
   return (
     <section
-      className="nexo-organogram-shell"
+      className={`nexo-organogram-shell ${isFullscreen ? "is-fullscreen" : ""}`}
       style={{ "--nexo-org-accent": organization.cor } as CSSProperties}
       aria-label={`Organograma de ${organization.nome}`}
     >
@@ -347,6 +377,17 @@ function OrganogramCanvas({
         <span className="nexo-organogram-context" role="note">
           Sem superior cadastrado não significa liderança.
         </span>
+        <button
+          type="button"
+          className="nexo-organogram-fullscreen-button"
+          onClick={() => setIsFullscreen((current) => !current)}
+          aria-label={isFullscreen ? "Fechar tela cheia" : "Abrir organograma em tela cheia"}
+          aria-pressed={isFullscreen}
+          title={isFullscreen ? "Fechar tela cheia" : "Tela cheia"}
+        >
+          {isFullscreen ? <X className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          <span>{isFullscreen ? "Fechar" : "Tela cheia"}</span>
+        </button>
       </div>
 
       {query ? (
@@ -362,7 +403,14 @@ function OrganogramCanvas({
               return (
                 <button key={id} type="button" role="option" onClick={() => focusMember(id)}>
                   <strong>{member.person.nome}</strong>
-                  <span>{member.person.apelido || member.link.funcao || "Sem alcunha"}</span>
+                  <span>
+                    {[
+                      member.person.apelido ? `“${member.person.apelido}”` : null,
+                      formatNexoLinkRoleLocation(member.link),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
                 </button>
               );
             })
@@ -372,7 +420,14 @@ function OrganogramCanvas({
         </div>
       ) : null}
 
-      <div ref={stageRef} className="nexo-organogram-stage" style={{ height: stageHeight }}>
+      <div
+        ref={stageRef}
+        className="nexo-organogram-stage"
+        style={{ height: stageHeight }}
+        data-viewport-x={viewportX.toFixed(3)}
+        data-viewport-y={viewportY.toFixed(3)}
+        data-viewport-zoom={zoom.toFixed(3)}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -383,6 +438,7 @@ function OrganogramCanvas({
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
+          onNodeClick={(_, node) => focusMember(node.id)}
           panOnDrag
           panOnScroll={false}
           zoomOnScroll
@@ -474,6 +530,14 @@ function OrganogramCanvas({
               <div>
                 <dt>Função registrada</dt>
                 <dd>{selected.link.funcao || "Não informada"}</dd>
+              </div>
+              <div>
+                <dt>Cidade de atuação</dt>
+                <dd>
+                  {[selected.link.municipio_atuacao, selected.link.uf_atuacao]
+                    .filter(Boolean)
+                    .join("/") || "Não informada"}
+                </dd>
               </div>
               <div>
                 <dt>Superior registrado</dt>

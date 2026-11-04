@@ -80,19 +80,19 @@ const people = organizations.flatMap((organization, index) =>
 );
 
 // Explicit demo reporting lines: a city leader can report to another leader.
-// City labels belong to this scenario's recorded role, never to a person's address.
+// Jurisdiction belongs to the link, never to a person's residential address.
 const regionalOrganization = organizations[2];
 const regionalRoot = people.find((person) =>
   person.vinculos.some((link) => link.organizacao_id === regionalOrganization.id),
 )!;
 const regionalRoles = [
-  { role: "Líder · Cidade A", parent: regionalRoot.vinculos[0].id },
-  { role: "Líder · Cidade B", parent: regionalRoot.vinculos[0].id },
-  { role: "Líder · Cidade C", parent: nexoPresentationId(31, 1) },
-  { role: "Vice-líder · Cidade A", parent: nexoPresentationId(31, 1) },
-  { role: "Vice-líder · Cidade B", parent: nexoPresentationId(31, 2) },
+  { role: "Líder", municipality: "Eunápolis", parent: regionalRoot.vinculos[0].id },
+  { role: "Líder", municipality: "Porto Seguro", parent: regionalRoot.vinculos[0].id },
+  { role: "Líder", municipality: "Itabela", parent: nexoPresentationId(31, 1) },
+  { role: "Vice-líder", municipality: "Eunápolis", parent: nexoPresentationId(31, 1) },
+  { role: "Vice-líder", municipality: "Porto Seguro", parent: nexoPresentationId(31, 2) },
 ];
-regionalRoles.forEach(({ role, parent }, index) => {
+regionalRoles.forEach(({ role, municipality, parent }, index) => {
   const personId = nexoPresentationId(30, index + 1);
   const portrait = String(index + 9).padStart(2, "0");
   const portraitPath = `demo-public/person-${portrait}.webp`;
@@ -126,9 +126,11 @@ regionalRoles.forEach(({ role, parent }, index) => {
         id: nexoPresentationId(31, index + 1),
         pessoa_id: personId,
         funcao: role,
+        municipio_atuacao: municipality,
+        uf_atuacao: "BA",
         superior_vinculo_id: parent,
         fonte_resumo:
-          "Cenário fictício: cargo, cidade e subordinação definidos manualmente para demonstração. Cidades A, B e C são fictícias.",
+          "Cenário fictício: cargo, cidade de atuação e subordinação definidos manualmente para demonstração.",
       },
     ],
   });

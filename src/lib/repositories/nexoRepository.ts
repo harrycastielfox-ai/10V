@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseMutation } from "@/lib/repositories/supabaseQuery";
+import { collectTerritoryPolygons } from "@/features/nexo/nexoTerritoryGeometry";
 import type {
   NexoHierarquiaEvento,
   NexoFoto,
@@ -276,7 +277,8 @@ const PESSOA_SELECT = `
     como_chegar, link_navegacao, latitude, longitude
   ),
   vinculos:nexo_vinculos (
-    id, organizacao_id, pessoa_id, status, funcao, confianca, fonte_resumo, desde, ate, superior_vinculo_id,
+    id, organizacao_id, pessoa_id, status, funcao, confianca, fonte_resumo, desde, ate,
+    superior_vinculo_id, municipio_atuacao, uf_atuacao,
     organizacao:nexo_organizacoes (*)
   ),
   fotos:nexo_fotos (id, pessoa_id, storage_path, legenda, categoria, capturada_em)
@@ -434,7 +436,7 @@ export async function listNexoTerritorios(): Promise<NexoTerritorio[]> {
   const { data, error } = await supabase
     .from("nexo_territorios")
     .select(
-      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, created_at, updated_at",
+      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, poligonos, created_at, updated_at",
     )
     .is("deleted_at", null)
     .order("bairro");
@@ -443,6 +445,7 @@ export async function listNexoTerritorios(): Promise<NexoTerritorio[]> {
 }
 
 export async function createNexoTerritorio(input: NexoTerritorioInput): Promise<NexoTerritorio> {
+  const poligonos = collectTerritoryPolygons(input.pontos, input.poligonos);
   const { data, error } = await supabase
     .from("nexo_territorios")
     .insert({
@@ -460,10 +463,11 @@ export async function createNexoTerritorio(input: NexoTerritorioInput): Promise<
       uf: input.uf.trim().toUpperCase() || "BA",
       ponto_referencia: clean(input.ponto_referencia),
       link_navegacao: clean(input.link_navegacao),
-      pontos: input.pontos,
+      pontos: poligonos[0] || [],
+      poligonos,
     })
     .select(
-      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, created_at, updated_at",
+      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, poligonos, created_at, updated_at",
     )
     .single();
   if (error) throw error;
@@ -701,6 +705,8 @@ export async function createNexoVinculo(input: {
   confianca: number;
   fonte_resumo: string;
   superior_vinculo_id?: string | null;
+  municipio_atuacao: string;
+  uf_atuacao: string;
 }) {
   const { error } = await supabase.from("nexo_vinculos").insert({
     pessoa_id: input.pessoa_id,
@@ -709,6 +715,8 @@ export async function createNexoVinculo(input: {
     funcao: clean(input.funcao),
     confianca: input.confianca,
     fonte_resumo: clean(input.fonte_resumo),
+    municipio_atuacao: clean(input.municipio_atuacao),
+    uf_atuacao: clean(input.uf_atuacao)?.toUpperCase() || null,
     superior_vinculo_id:
       input.status === "desvinculado" ? null : (input.superior_vinculo_id ?? null),
   });
@@ -724,6 +732,8 @@ export async function manageNexoVinculo(input: {
   confianca?: number;
   fonte_resumo?: string;
   superior_vinculo_id?: string | null;
+  municipio_atuacao?: string;
+  uf_atuacao?: string;
 }) {
   const { error } = await supabase.rpc("nexo_gerenciar_vinculo", {
     p_vinculo_id: input.vinculo_id,
@@ -734,6 +744,8 @@ export async function manageNexoVinculo(input: {
     p_confianca: input.confianca ?? 0,
     p_fonte_resumo: clean(input.fonte_resumo || ""),
     p_superior_vinculo_id: input.superior_vinculo_id ?? null,
+    p_municipio_atuacao: clean(input.municipio_atuacao || ""),
+    p_uf_atuacao: clean(input.uf_atuacao || "")?.toUpperCase() || null,
   });
   if (error) throw error;
 }
@@ -747,7 +759,8 @@ export async function listNexoHierarquiaEventos(scope: {
     .select(
       `id, organizacao_id, pessoa_id, vinculo_id, tipo, funcao_anterior,
       funcao_nova, superior_anterior_nome, superior_novo_nome, status_anterior,
-      status_novo, pessoa_nome, justificativa, ocorrido_em,
+      status_novo, municipio_atuacao_anterior, municipio_atuacao_novo,
+      uf_atuacao_anterior, uf_atuacao_novo, pessoa_nome, justificativa, ocorrido_em,
       autor:profiles!nexo_hierarquia_eventos_autor_id_fkey (nome)`,
     )
     .order("ocorrido_em", { ascending: false })
@@ -1029,6 +1042,8 @@ export async function createNexoPessoa(
                 organizacao_id: input.organizacao_id,
                 status: input.vinculo_status,
                 funcao: clean(input.vinculo_funcao),
+                municipio_atuacao: clean(input.vinculo_municipio_atuacao),
+                uf_atuacao: clean(input.vinculo_uf_atuacao)?.toUpperCase() || null,
                 confianca: input.vinculo_confianca,
                 fonte_resumo: clean(input.fonte_resumo),
               }
@@ -1128,6 +1143,8 @@ export async function updateNexoPessoa(
               organizacao_id: input.organizacao_id || null,
               status: input.vinculo_status,
               funcao: clean(input.vinculo_funcao),
+              municipio_atuacao: clean(input.vinculo_municipio_atuacao),
+              uf_atuacao: clean(input.vinculo_uf_atuacao)?.toUpperCase() || null,
               confianca: input.vinculo_confianca,
               fonte_resumo: clean(input.fonte_resumo),
               superior_vinculo_id:

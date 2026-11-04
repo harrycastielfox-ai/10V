@@ -56,6 +56,8 @@ const input: NexoPessoaInput = {
   usar_local_faccao: false,
   vinculo_status: "confirmado",
   vinculo_funcao: "Membro",
+  vinculo_municipio_atuacao: "Eunápolis",
+  vinculo_uf_atuacao: "BA",
   vinculo_confianca: 70,
   fonte_resumo: "Fonte de demonstração",
   foto_perfil: null,
@@ -83,6 +85,8 @@ describe("edição da pessoa no modo de demonstração", () => {
       id: active.id,
       status: "confirmado",
       funcao: "Membro",
+      municipio_atuacao: "Eunápolis",
+      uf_atuacao: "BA",
       superior_vinculo_id: active.superior_vinculo_id,
     });
     expect(person.vinculos[1].status).toBe("suspeito");
@@ -110,6 +114,8 @@ describe("edição da pessoa no modo de demonstração", () => {
     expect(updated.vinculos[2]).toMatchObject({
       organizacao_id: destination.id,
       status: "confirmado",
+      municipio_atuacao: "Eunápolis",
+      uf_atuacao: "BA",
     });
     expect(updated.vinculos[2].id).not.toBe(active.id);
   });

@@ -565,6 +565,57 @@
     font-size: 12px;
   }
 
+  .nexo-organogram-fullscreen-button {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid #c7dbe4;
+    border-radius: 10px;
+    padding: 0 12px;
+    color: #24546b;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    transition:
+      border-color 150ms ease,
+      background-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .nexo-organogram-fullscreen-button:hover {
+    border-color: #72afbd;
+    background: #f2f9fb;
+  }
+
+  .nexo-organogram-fullscreen-button:focus-visible {
+    outline: 2px solid #247e93;
+    outline-offset: 2px;
+  }
+
+  .nexo-organogram-shell.is-fullscreen {
+    position: fixed;
+    z-index: 120;
+    inset: 0;
+    min-height: 100dvh;
+    background: #eef4f7;
+  }
+
+  .nexo-organogram-shell.is-fullscreen .nexo-organogram-toolbar {
+    border-bottom: 1px solid #cfdee6;
+    padding-inline: 16px;
+    background: #fff;
+    box-shadow: 0 8px 24px -20px #173a5480;
+  }
+
+  .nexo-organogram-shell.is-fullscreen .nexo-organogram-stage {
+    height: calc(100dvh - 62px) !important;
+    min-height: calc(100dvh - 62px);
+    border: 0;
+    border-radius: 0;
+  }
+
   .nexo-organogram-stage .react-flow__renderer {
     background: transparent;
   }
@@ -663,6 +714,13 @@
     background: #f7fafb;
     font-size: 10px;
     font-weight: 700;
+  }
+
+  .nexo-organogram-card.is-leadership .nexo-organogram-card-footer {
+    padding: 1px 5px 1px 10px;
+    border: 3px solid #e98200;
+    color: #526f82;
+    background: #fff;
   }
 
   .nexo-organogram-card-footer button {
@@ -875,6 +933,12 @@
     }
     .nexo-organogram-tool-button {
       flex: 1;
+    }
+    .nexo-organogram-context {
+      display: none;
+    }
+    .nexo-organogram-fullscreen-button {
+      margin-left: auto;
     }
   }
 

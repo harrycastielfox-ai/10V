@@ -42,6 +42,8 @@ export interface NexoVinculo {
   desde: string | null;
   ate: string | null;
   superior_vinculo_id: string | null;
+  municipio_atuacao?: string | null;
+  uf_atuacao?: string | null;
   organizacao?: NexoOrganizacao | null;
 }
 
@@ -84,6 +86,8 @@ export interface NexoVinculoManagementInput {
   confianca: number;
   fonte_resumo: string;
   superior_vinculo_id: string | null;
+  municipio_atuacao: string;
+  uf_atuacao: string;
 }
 
 export interface NexoHierarquiaEvento {
@@ -98,6 +102,10 @@ export interface NexoHierarquiaEvento {
   superior_novo_nome: string | null;
   status_anterior: string | null;
   status_novo: string | null;
+  municipio_atuacao_anterior?: string | null;
+  municipio_atuacao_novo?: string | null;
+  uf_atuacao_anterior?: string | null;
+  uf_atuacao_novo?: string | null;
   pessoa_nome: string;
   justificativa: string | null;
   ocorrido_em: string;
@@ -294,6 +302,7 @@ export interface NexoTerritorio {
   ponto_referencia: string | null;
   link_navegacao: string | null;
   pontos: NexoMapPoint[];
+  poligonos?: NexoMapPoint[][] | null;
   created_at: string;
   updated_at: string;
 }
@@ -302,6 +311,7 @@ export type NexoTerritorioInput = Pick<
   NexoTerritorio,
   "organizacao_id" | "bairro" | "categoria" | "classificacao" | "confianca" | "pontos"
 > & {
+  poligonos: NexoMapPoint[][];
   fonte_resumo: string;
   observacoes: string;
   logradouro: string;
@@ -413,6 +423,8 @@ export interface NexoPessoaInput {
   usar_local_faccao: boolean;
   vinculo_status: NexoVinculoStatus;
   vinculo_funcao: string;
+  vinculo_municipio_atuacao: string;
+  vinculo_uf_atuacao: string;
   vinculo_confianca: number;
   fonte_resumo: string;
   foto_perfil: File | null;

@@ -34,6 +34,14 @@ interface CandidateMember {
 const HORIZONTAL_GAP = 360;
 const VERTICAL_GAP = 160;
 
+export function isNexoOrganogramLeadershipRole(role: string | null | undefined) {
+  const normalized = (role || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("pt-BR");
+  return /\b(lider|lideranca)\b/.test(normalized);
+}
+
 function normalizedSearchValue(value: string | null | undefined) {
   return (value || "")
     .normalize("NFD")
@@ -144,9 +152,13 @@ export function searchNexoOrganogram(model: NexoOrganogramModel, query: string) 
 
   return model.members
     .filter((member) =>
-      [member.person.nome, member.person.apelido].some((value) =>
-        normalizedSearchValue(value).includes(normalizedQuery),
-      ),
+      [
+        member.person.nome,
+        member.person.apelido,
+        member.link.funcao,
+        member.link.municipio_atuacao,
+        member.link.uf_atuacao,
+      ].some((value) => normalizedSearchValue(value).includes(normalizedQuery)),
     )
     .map((member) => member.id);
 }
