@@ -33,6 +33,7 @@ import {
 } from "../nexoOrganogram";
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
 import { formatNexoLinkRoleLocation } from "../nexoLinkLocation";
+import { scheduleRigidOrganogramRecentering } from "../organogramRecentering";
 import type { NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
 
 const LINK_LABELS: Record<NexoVinculo["status"], string> = {
@@ -191,7 +192,7 @@ function OrganogramCanvas({
   );
   const stageRef = useRef<HTMLDivElement>(null);
   const { setViewport, zoomIn, zoomOut } = useReactFlow();
-  const { zoom } = useViewport();
+  const { x: viewportX, y: viewportY, zoom } = useViewport();
   const [stageWidth, setStageWidth] = useState(0);
   useEffect(() => {
     const stage = stageRef.current;
@@ -219,17 +220,25 @@ function OrganogramCanvas({
     [-initialX / treeZoom, -16 / treeZoom],
     [(stageWidth - initialX) / treeZoom, (stageHeight - 16) / treeZoom],
   ];
-  const resetView = useCallback(
-    () =>
-      setViewport({
+  const resetView = useCallback(() => {
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return setViewport(
+      {
         x: initialX,
         y: 16,
         zoom: treeZoom,
-      }),
-    [initialX, setViewport, treeZoom],
-  );
+      },
+      { duration: reduceMotion ? 0 : 250 },
+    );
+  }, [initialX, setViewport, treeZoom]);
   useEffect(() => {
     if (stageWidth > 0) void resetView();
+  }, [resetView, stageWidth]);
+  useEffect(() => {
+    if (stageWidth <= 0) return;
+    return scheduleRigidOrganogramRecentering(() => void resetView());
   }, [resetView, stageWidth]);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -376,7 +385,14 @@ function OrganogramCanvas({
         </div>
       ) : null}
 
-      <div ref={stageRef} className="nexo-organogram-stage" style={{ height: stageHeight }}>
+      <div
+        ref={stageRef}
+        className="nexo-organogram-stage"
+        style={{ height: stageHeight }}
+        data-viewport-x={viewportX.toFixed(3)}
+        data-viewport-y={viewportY.toFixed(3)}
+        data-viewport-zoom={zoom.toFixed(3)}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
