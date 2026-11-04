@@ -1654,7 +1654,6 @@ export function NexoDossier({
       : [
           { id: "resumo", label: "Visão geral" },
           { id: "organograma", label: "Organograma" },
-          { id: "vinculos", label: "Integrantes" },
           { id: "procedimentos", label: "B.O. e inquéritos" },
           { id: "galeria", label: "Imagens" },
           { id: "localizacao", label: "Territórios" },
