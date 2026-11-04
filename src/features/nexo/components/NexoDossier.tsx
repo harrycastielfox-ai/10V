@@ -2159,12 +2159,25 @@ export function NexoDossier({
                         </span>
                       </div>
                       {leadershipMembers.length ? (
-                        <LeadershipTree
-                          members={leadershipMembers}
-                          allMembers={currentOrganizationMembers}
-                          onOpen={(item) => onOpen({ kind: "person", id: item.id })}
-                          onManage={(item, link) => setManagedLink({ person: item, link })}
-                        />
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {leadershipMembers.map(({ person: item, link }) => (
+                            <OrganizationMemberCard
+                              key={item.id}
+                              person={item}
+                              link={link}
+                              superiorName={
+                                currentOrganizationMembers.find(
+                                  (member) => member.link?.id === link?.superior_vinculo_id,
+                                )?.person.nome
+                              }
+                              leadership={false}
+                              onOpen={() => onOpen({ kind: "person", id: item.id })}
+                              onManage={
+                                link ? () => setManagedLink({ person: item, link }) : undefined
+                              }
+                            />
+                          ))}
+                        </div>
                       ) : (
                         <div className="rounded-2xl border border-dashed border-[#cbdde6] bg-[#f7fafc] px-4 py-3 text-xs text-[#567184]">
                           Liderança ainda não identificada. Informe a função no vínculo do membro
