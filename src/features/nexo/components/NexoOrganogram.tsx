@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ExternalLink,
   Maximize,
+  Maximize2,
   Minus,
   Plus,
   Network,
@@ -242,6 +243,7 @@ function OrganogramCanvas({
     return scheduleRigidOrganogramRecentering(() => void resetView());
   }, [resetView, stageWidth]);
   const [query, setQuery] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const searchResults = useMemo(() => searchNexoOrganogram(model, query), [model, query]);
@@ -250,6 +252,20 @@ function OrganogramCanvas({
     [collapsedIds, model],
   );
   const searchResultSet = useMemo(() => new Set(searchResults), [searchResults]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isFullscreen]);
 
   const focusMember = useCallback(
     (id: string) => {
@@ -333,7 +349,7 @@ function OrganogramCanvas({
 
   return (
     <section
-      className="nexo-organogram-shell"
+      className={`nexo-organogram-shell ${isFullscreen ? "is-fullscreen" : ""}`}
       style={{ "--nexo-org-accent": organization.cor } as CSSProperties}
       aria-label={`Organograma de ${organization.nome}`}
     >
@@ -361,6 +377,17 @@ function OrganogramCanvas({
         <span className="nexo-organogram-context" role="note">
           Sem superior cadastrado não significa liderança.
         </span>
+        <button
+          type="button"
+          className="nexo-organogram-fullscreen-button"
+          onClick={() => setIsFullscreen((current) => !current)}
+          aria-label={isFullscreen ? "Fechar tela cheia" : "Abrir organograma em tela cheia"}
+          aria-pressed={isFullscreen}
+          title={isFullscreen ? "Fechar tela cheia" : "Tela cheia"}
+        >
+          {isFullscreen ? <X className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          <span>{isFullscreen ? "Fechar" : "Tela cheia"}</span>
+        </button>
       </div>
 
       {query ? (

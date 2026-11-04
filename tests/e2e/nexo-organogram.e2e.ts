@@ -67,6 +67,25 @@ test("recentraliza a árvore a cada 15 segundos sem alterar ramificações", asy
   await expect(page.getByRole("article")).toHaveCount(1);
 });
 
+test("abre o organograma em tela cheia e permite sair pelo X ou Esc", async ({ page }) => {
+  const organogram = page.getByLabel(/Organograma de /);
+  const openFullscreen = page.getByRole("button", {
+    name: "Abrir organograma em tela cheia",
+  });
+
+  await openFullscreen.click();
+  await expect(organogram).toHaveClass(/is-fullscreen/);
+  await expect(page.getByRole("button", { name: "Fechar tela cheia" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Fechar tela cheia" }).click();
+  await expect(organogram).not.toHaveClass(/is-fullscreen/);
+
+  await openFullscreen.click();
+  await expect(organogram).toHaveClass(/is-fullscreen/);
+  await page.keyboard.press("Escape");
+  await expect(organogram).not.toHaveClass(/is-fullscreen/);
+});
+
 test("permanece utilizável em notebook compacto", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 720 });
   await page.clock.runFor(300);
