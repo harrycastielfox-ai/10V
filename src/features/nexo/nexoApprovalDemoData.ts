@@ -79,12 +79,69 @@ const people = organizations.flatMap((organization, index) =>
   }),
 );
 
+// Explicit demo reporting lines: a city leader can report to another leader.
+// Jurisdiction belongs to the link, never to a person's residential address.
+const regionalOrganization = organizations[2];
+const regionalRoot = people.find((person) =>
+  person.vinculos.some((link) => link.organizacao_id === regionalOrganization.id),
+)!;
+const regionalRoles = [
+  { role: "Líder", municipality: "Eunápolis", parent: regionalRoot.vinculos[0].id },
+  { role: "Líder", municipality: "Porto Seguro", parent: regionalRoot.vinculos[0].id },
+  { role: "Líder", municipality: "Itabela", parent: nexoPresentationId(31, 1) },
+  { role: "Vice-líder", municipality: "Eunápolis", parent: nexoPresentationId(31, 1) },
+  { role: "Vice-líder", municipality: "Porto Seguro", parent: nexoPresentationId(31, 2) },
+];
+regionalRoles.forEach(({ role, municipality, parent }, index) => {
+  const personId = nexoPresentationId(30, index + 1);
+  const portrait = String(index + 9).padStart(2, "0");
+  const portraitPath = `demo-public/person-${portrait}.webp`;
+  const portraitUrl = `/nexo-demo/portraits/person-${portrait}.webp`;
+  people.push({
+    ...regionalRoot,
+    id: personId,
+    nome: `Pessoa fictícia BDM ${String(index + 9).padStart(2, "0")}`,
+    apelido: `Personagem regional ${index + 1} (fictício)`,
+    documentos_extras: [],
+    contatos: [],
+    endereco_id: null,
+    endereco: null,
+    foto_perfil_path: portraitPath,
+    foto_relatorio_path: portraitPath,
+    foto_perfil_url: portraitUrl,
+    foto_relatorio_url: portraitUrl,
+    fotos: [
+      {
+        ...regionalRoot.fotos[0],
+        id: nexoPresentationId(32, index + 1),
+        pessoa_id: personId,
+        storage_path: portraitPath,
+        url: portraitUrl,
+        legenda: "Retrato sintético de personagem regional fictício.",
+      },
+    ],
+    vinculos: [
+      {
+        ...regionalRoot.vinculos[0],
+        id: nexoPresentationId(31, index + 1),
+        pessoa_id: personId,
+        funcao: role,
+        municipio_atuacao: municipality,
+        uf_atuacao: "BA",
+        superior_vinculo_id: parent,
+        fonte_resumo:
+          "Cenário fictício: cargo, cidade de atuação e subordinação definidos manualmente para demonstração.",
+      },
+    ],
+  });
+});
+
 const observations: NexoObservacao[] = [
   ...organizations.map((org, index) => ({
     id: nexoPresentationId(13, index + 1),
     pessoa_id: null,
     organizacao_id: org.id,
-    conteudo: `CENÁRIO FICTÍCIO — ficha de ${org.sigla}. Oito personagens foram vinculados para demonstrar a consulta de perfis e uma hierarquia ramificada. A imagem no álbum mostra brinquedos ilustrativos, não uma apreensão. ${disclaimer}`,
+    conteudo: `CENÁRIO FICTÍCIO — ficha de ${org.sigla}. Personagens foram vinculados para demonstrar a consulta de perfis e uma hierarquia ramificada. A imagem no álbum mostra brinquedos ilustrativos, não uma apreensão. ${disclaimer}`,
     created_at: "2026-10-18T14:00:00.000Z",
     created_by: "demo",
     autor: { nome: "Equipe de demonstração" },

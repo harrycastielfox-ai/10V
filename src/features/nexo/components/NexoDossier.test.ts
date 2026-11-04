@@ -46,7 +46,7 @@ describe("apresentação do dossiê NEXO", () => {
     expect(html).toContain('aria-label="Seções do dossiê"');
     expect(html).toContain(">Visão geral<");
     expect(html).toContain(">Organograma<");
-    expect(html).toContain(">Integrantes<");
+    expect(html).not.toContain(">Integrantes<");
     expect(html).toContain(">B.O. e inquéritos<");
   });
 

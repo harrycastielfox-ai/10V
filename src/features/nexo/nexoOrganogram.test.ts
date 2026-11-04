@@ -77,6 +77,19 @@ function person(
 }
 
 describe("projeção do organograma NEXO", () => {
+  it("centraliza a raiz sobre ramificações de tamanhos diferentes", () => {
+    const people = [
+      person("r", "Raiz", null, [link("r", "r")]),
+      person("a", "A", null, [link("a", "a", "r")]),
+      person("b", "B", null, [link("b", "b", "r")]),
+      ...["c", "d", "e"].map((id) => person(id, id, null, [link(id, id, "a")])),
+    ];
+    const model = buildNexoOrganogram(ORGANIZATION_ID, people);
+    expect(model.membersById.get("r")?.position.x).toBe(540);
+    expect(model.membersById.get("a")?.position.x).toBe(360);
+    expect(model.membersById.get("b")?.position.x).toBe(1080);
+  });
+
   it("inclui integrantes comuns, múltiplas ramificações e exclui vínculos encerrados", () => {
     const people = [
       person("p-raiz", "Pessoa Raiz", "Raiz", [link("v-raiz", "p-raiz")]),
@@ -165,16 +178,24 @@ describe("projeção do organograma NEXO", () => {
     expect(model.members.map((member) => member.id)).toEqual(["v-atual"]);
   });
 
-  it("busca nome ou alcunha sem depender de caixa ou acentos e informa ancestrais", () => {
+  it("busca nome, alcunha, cargo ou cidade sem depender de caixa ou acentos e informa ancestrais", () => {
     const people = [
       person("p-raiz", "Álvaro Sintético", "Comando Um", [link("v-raiz", "p-raiz")]),
-      person("p-filha", "Bia Sintética", "Falcão", [link("v-filha", "p-filha", "v-raiz")]),
+      person("p-filha", "Bia Sintética", "Falcão", [
+        link("v-filha", "p-filha", "v-raiz", {
+          funcao: "Líder regional",
+          municipio_atuacao: "Eunápolis",
+          uf_atuacao: "BA",
+        }),
+      ]),
       person("p-neta", "Célia Sintética", "Eco", [link("v-neta", "p-neta", "v-filha")]),
     ];
     const model = buildNexoOrganogram(ORGANIZATION_ID, people);
 
     expect(searchNexoOrganogram(model, "falcao")).toEqual(["v-filha"]);
     expect(searchNexoOrganogram(model, "ALVARO")).toEqual(["v-raiz"]);
+    expect(searchNexoOrganogram(model, "lider regional")).toEqual(["v-filha"]);
+    expect(searchNexoOrganogram(model, "eunapolis")).toEqual(["v-filha"]);
     expect(getNexoOrganogramAncestors(model, "v-neta")).toEqual(["v-raiz", "v-filha"]);
   });
 

@@ -53,6 +53,8 @@ import { getNexoPersonPhotoUrl, selectNexoRecords } from "../nexoSelectors";
 import { NexoLinkForm, type NexoLinkInput } from "./NexoLinkForm";
 import { NexoOrganogram } from "./NexoOrganogram";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
+import { territoryPolygons } from "../nexoTerritoryGeometry";
+import { initialNexoLinkLocation } from "../nexoLinkLocation";
 import { NexoVehiclePanel } from "./NexoVehiclePanel";
 
 type DossierTarget = { kind: "person"; id: string } | { kind: "organization"; id: string };
@@ -490,6 +492,9 @@ function LinkManagementDialog({
     link.status === "desvinculado" ? "nao_confirmado" : link.status,
   );
   const [role, setRole] = useState(link.funcao || "");
+  const initialLocation = initialNexoLinkLocation(link);
+  const [municipality, setMunicipality] = useState(initialLocation.municipality);
+  const [state, setState] = useState(initialLocation.state);
   const [confidence, setConfidence] = useState(link.confianca);
   const [source, setSource] = useState(link.fonte_resumo || "");
   const [superiorId, setSuperiorId] = useState(link.superior_vinculo_id || "");
@@ -534,6 +539,8 @@ function LinkManagementDialog({
         confianca: confidence,
         fonte_resumo: source,
         superior_vinculo_id: superiorId || null,
+        municipio_atuacao: municipality,
+        uf_atuacao: state,
       });
       onClose();
     } catch (cause) {
@@ -635,6 +642,25 @@ function LinkManagementDialog({
               <option value="provavel">Provável</option>
               <option value="confirmado">Confirmado</option>
             </select>
+          </label>
+          <label className="text-xs font-bold text-[#60798b]">
+            Cidade de atuação
+            <input
+              value={municipality}
+              onChange={(event) => setMunicipality(event.target.value)}
+              placeholder="Ex.: Eunápolis"
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] px-3 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
+          </label>
+          <label className="text-xs font-bold text-[#60798b]">
+            UF de atuação
+            <input
+              value={state}
+              maxLength={2}
+              onChange={(event) => setState(event.target.value.toUpperCase())}
+              placeholder="BA"
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] px-3 text-sm uppercase text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
           </label>
           <label className="text-xs font-bold text-[#60798b]">
             Confiança: {confidence}%
@@ -973,10 +999,10 @@ function TerritoryMapDialog({
                 </a>
               ) : null}
             </div>
-            {territory.pontos.length >= 3 ? (
+            {territoryPolygons(territory).length ? (
               <div className="rounded-2xl border border-[#bcdde4] bg-[#eaf6f8] p-4 text-xs leading-relaxed text-[#427183]">
-                A área destacada representa os {territory.pontos.length} pontos marcados no
-                cadastro. Clique em outra área do mapa para consultar seus dados.
+                {territoryPolygons(territory).length} área(s) independente(s) registrada(s) para
+                este local. Clique em outro contorno do mapa para consultar seus dados.
               </div>
             ) : (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-800">
@@ -1609,7 +1635,7 @@ export function NexoDossier({
           : event.tipo === "saida"
             ? "Saída da facção"
             : "Hierarquia alterada",
-      detail: `${event.pessoa_nome} · ${event.funcao_anterior || "Sem cargo"} → ${event.funcao_nova || "Sem cargo"}${event.superior_anterior_nome !== event.superior_novo_nome ? ` · Chefia: ${event.superior_anterior_nome || "Não definida"} → ${event.superior_novo_nome || "Não definida"}` : ""}`,
+      detail: `${event.pessoa_nome} · ${event.funcao_anterior || "Sem cargo"} → ${event.funcao_nova || "Sem cargo"}${event.superior_anterior_nome !== event.superior_novo_nome ? ` · Chefia: ${event.superior_anterior_nome || "Não definida"} → ${event.superior_novo_nome || "Não definida"}` : ""}${event.municipio_atuacao_anterior !== event.municipio_atuacao_novo || event.uf_atuacao_anterior !== event.uf_atuacao_novo ? ` · Atuação: ${[event.municipio_atuacao_anterior, event.uf_atuacao_anterior].filter(Boolean).join("/") || "Não informada"} → ${[event.municipio_atuacao_novo, event.uf_atuacao_novo].filter(Boolean).join("/") || "Não informada"}` : ""}`,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const tabs: { id: Tab; label: string }[] =
@@ -1628,7 +1654,6 @@ export function NexoDossier({
       : [
           { id: "resumo", label: "Visão geral" },
           { id: "organograma", label: "Organograma" },
-          { id: "vinculos", label: "Integrantes" },
           { id: "procedimentos", label: "B.O. e inquéritos" },
           { id: "galeria", label: "Imagens" },
           { id: "localizacao", label: "Territórios" },
@@ -1931,7 +1956,13 @@ export function NexoDossier({
             })}
           </nav>
         </header>
-        <div className="mx-auto max-w-[1500px] space-y-5 p-5 sm:p-7">
+        <div
+          className={
+            tab === "organograma"
+              ? "mx-auto w-full space-y-5 px-4 py-5 sm:px-6"
+              : "mx-auto max-w-[1500px] space-y-5 p-5 sm:p-7"
+          }
+        >
           {tab === "resumo" && person ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -2153,12 +2184,25 @@ export function NexoDossier({
                         </span>
                       </div>
                       {leadershipMembers.length ? (
-                        <LeadershipTree
-                          members={leadershipMembers}
-                          allMembers={currentOrganizationMembers}
-                          onOpen={(item) => onOpen({ kind: "person", id: item.id })}
-                          onManage={(item, link) => setManagedLink({ person: item, link })}
-                        />
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {leadershipMembers.map(({ person: item, link }) => (
+                            <OrganizationMemberCard
+                              key={item.id}
+                              person={item}
+                              link={link}
+                              superiorName={
+                                currentOrganizationMembers.find(
+                                  (member) => member.link?.id === link?.superior_vinculo_id,
+                                )?.person.nome
+                              }
+                              leadership={false}
+                              onOpen={() => onOpen({ kind: "person", id: item.id })}
+                              onManage={
+                                link ? () => setManagedLink({ person: item, link }) : undefined
+                              }
+                            />
+                          ))}
+                        </div>
                       ) : (
                         <div className="rounded-2xl border border-dashed border-[#cbdde6] bg-[#f7fafc] px-4 py-3 text-xs text-[#567184]">
                           Liderança ainda não identificada. Informe a função no vínculo do membro
@@ -2229,7 +2273,7 @@ export function NexoDossier({
                   <button
                     type="button"
                     onClick={() => onCreateTerritoryForOrganization(organization.id)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[#cbdde7] bg-white px-3 py-2 text-xs font-bold text-[#365a71] hover:bg-[#f3f8fa]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-emerald-600 px-3 py-2 text-xs font-black text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                   >
                     <Plus className="h-4 w-4" /> Adicionar local
                   </button>
@@ -2458,6 +2502,19 @@ export function NexoDossier({
                         <p className="mt-1 text-[#60798b]">
                           Responde a: {event.superior_anterior_nome || "Ninguém"} →{" "}
                           {event.superior_novo_nome || "Ninguém"}
+                        </p>
+                      ) : null}
+                      {event.municipio_atuacao_anterior !== event.municipio_atuacao_novo ||
+                      event.uf_atuacao_anterior !== event.uf_atuacao_novo ? (
+                        <p className="mt-1 text-[#60798b]">
+                          Cidade de atuação:{" "}
+                          {[event.municipio_atuacao_anterior, event.uf_atuacao_anterior]
+                            .filter(Boolean)
+                            .join("/") || "Não informada"}{" "}
+                          →{" "}
+                          {[event.municipio_atuacao_novo, event.uf_atuacao_novo]
+                            .filter(Boolean)
+                            .join("/") || "Não informada"}
                         </p>
                       ) : null}
                       <p className="mt-1 text-[#567184]">
@@ -3095,7 +3152,7 @@ export function NexoDossier({
                 <button
                   type="button"
                   onClick={() => onCreateTerritoryForOrganization(organization.id)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                 >
                   <Plus className="h-4 w-4" /> Adicionar local
                 </button>
