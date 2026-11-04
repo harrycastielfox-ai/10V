@@ -793,6 +793,9 @@ export function NexoCreateDialog({
                   selectedId={null}
                   onSelect={() => {}}
                   drawingPoints={territory.pontos}
+                  onDrawingChange={(points) =>
+                    setTerritory((current) => ({ ...current, pontos: points }))
+                  }
                   onMapClick={(point) =>
                     setTerritory((current) => ({
                       ...current,

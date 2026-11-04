@@ -273,6 +273,8 @@ export type NexoTerritorioCategoria =
 export interface NexoMapPoint {
   x: number;
   y: number;
+  /** Absent for legacy image percentages; WGS84 uses x=longitude, y=latitude. */
+  coordinateSystem?: "wgs84";
 }
 
 export interface NexoTerritorio {
