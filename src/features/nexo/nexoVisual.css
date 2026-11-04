@@ -665,6 +665,13 @@
     font-weight: 700;
   }
 
+  .nexo-organogram-card.is-leadership .nexo-organogram-card-footer {
+    padding: 1px 5px 1px 10px;
+    border: 3px solid #e98200;
+    color: #526f82;
+    background: #fff;
+  }
+
   .nexo-organogram-card-footer button {
     display: inline-flex;
     min-width: 26px;

@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { isNexoOrganogramLeadershipRole } from "../nexoOrganogram";
 import type { NexoOrganizacao } from "../nexoTypes";
 import { NexoOrganogram } from "./NexoOrganogram";
 
@@ -51,5 +52,13 @@ describe("estados do organograma NEXO", () => {
     expect(html).toContain("Nenhum integrante elegível para o organograma");
     expect(html).toContain("Cadastre ou reative um vínculo para exibir a estrutura.");
     expect(html).not.toContain('role="alert"');
+  });
+
+  it("destaca com a barra de liderança somente cargos explicitamente registrados", () => {
+    expect(isNexoOrganogramLeadershipRole("Líder · Eunápolis")).toBe(true);
+    expect(isNexoOrganogramLeadershipRole("Vice-líder")).toBe(true);
+    expect(isNexoOrganogramLeadershipRole("Liderança local")).toBe(true);
+    expect(isNexoOrganogramLeadershipRole("Coordenador de núcleo")).toBe(false);
+    expect(isNexoOrganogramLeadershipRole(null)).toBe(false);
   });
 });

@@ -28,6 +28,7 @@ import {
   buildNexoOrganogram,
   getNexoOrganogramAncestors,
   getVisibleNexoOrganogram,
+  isNexoOrganogramLeadershipRole,
   searchNexoOrganogram,
   type NexoOrganogramMember,
 } from "../nexoOrganogram";
@@ -84,7 +85,7 @@ const OrganogramMemberNode = memo(function OrganogramMemberNode({
   const photoUrl = getNexoPersonPhotoUrl(member.person);
   return (
     <article
-      className={`nexo-organogram-card ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
+      className={`nexo-organogram-card ${isNexoOrganogramLeadershipRole(member.link.funcao) ? "is-leadership" : ""} ${data.selected ? "is-selected" : ""} ${data.matched ? "is-matched" : ""}`}
       aria-label={`${member.person.nome}, ${formatNexoLinkRoleLocation(member.link)}`}
     >
       <Handle type="target" position={Position.Top} isConnectable={false} />
