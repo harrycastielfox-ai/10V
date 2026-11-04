@@ -9,6 +9,7 @@ const save = async () => {};
 const props: ComponentProps<typeof NexoDossier> = {
   target: { kind: "organization", id: NEXO_DEMO_ORGANIZACOES[0].id },
   organizations: NEXO_DEMO_ORGANIZACOES,
+  nuclei: [],
   people: NEXO_DEMO_PESSOAS,
   territories: [],
   records: NEXO_DEMO_REGISTROS,
@@ -30,6 +31,8 @@ const props: ComponentProps<typeof NexoDossier> = {
   onDeleteOrganization: save,
   onCreateLink: save,
   onManageLink: save,
+  onSaveNucleus: save,
+  onArchiveNucleus: save,
   onCreatePersonForOrganization: noop,
   onCreateTerritoryForOrganization: noop,
   onDeleteTerritory: save,

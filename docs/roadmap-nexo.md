@@ -35,21 +35,22 @@ O roadmap orienta decisões futuras; não substitui especificações técnicas, 
 
 Os estados abaixo refletem a inspeção do código, dos testes e dos documentos existentes nesta revisão. A presença de uma capacidade nesta seção não significa que toda a iniciativa correspondente esteja concluída.
 
-| Capacidade | Estado | Evidência observada |
-| --- | --- | --- |
-| Cadastro manual e por Anexo PDF | Existente | `NexoCreateDialog`, `NexoPersonWizard` e `NexoPdfImportPanel` oferecem os dois fluxos. |
-| Leitura textual de PDF no navegador | Existente | Limites de 15 MB e 30 páginas, prévia e revisão dos campos. |
-| OCR local opcional | Existente | O fluxo informa a limitação de documentos digitalizados e permite processamento local. |
-| Extração e escolha de imagens incorporadas | Em validação | Há candidatos de imagem e escolha entre perfil, relatório ou não importar; o fluxo ainda precisa de regressão abrangente para PDFs variados. |
-| Persistência do documento-fonte, hash, páginas, OCR e candidatos | Existente | `nexoPdfImport.ts` e `nexoRepository.ts` persistem metadados e seleção revisada conforme a arquitetura atual. |
-| Cadastros de pessoas e organizações, edição e exclusão lógica | Existente | Dossiês, diretórios, repositórios e RPCs transacionais existentes. |
-| Vínculos, hierarquia, territórios, veículos, observações e procedimentos | Existente | Componentes do workspace e repositórios do NEXO. |
-| Organograma hierárquico interativo | Entrega inicial implementada | Aba no dossiê de facção, projeção por `superior_vinculo_id`, busca, navegação, tela cheia, painel contextual e testes com dados sintéticos. |
-| Busca, dashboard, rede relacional e possíveis duplicidades | Existente | `NexoCommandDashboard`, filtros, diretório e testes de duplicidade. |
-| Configuração de seções, fotos e observações para relatórios | Existente | `NexoReportConfigurator` e `NexoReportsHub`. |
-| Emissão profissional, arquivada e reproduzível de relatórios | Em validação | O modo de impressão/PDF existe, mas a emissão ainda não é arquivada com recorte, versão e metadados reproduzíveis. |
-| Painel operacional unificado de pendências | Planejado | Existem regras e contratos de indicadores relacionados, mas não um fluxo único com resolução contextual de todas as categorias. |
-| Síntese, cronologia, comparação e minuta assistidas por IA | A avaliar | `NexoIntelligenceBoard` existe como base de inteligência, porém a camada assistida precisa de requisitos de fonte, segurança, avaliação e governança. |
+| Capacidade                                                               | Estado                       | Evidência observada                                                                                                                                                  |
+| ------------------------------------------------------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cadastro manual e por Anexo PDF                                          | Existente                    | `NexoCreateDialog`, `NexoPersonWizard` e `NexoPdfImportPanel` oferecem os dois fluxos.                                                                               |
+| Leitura textual de PDF no navegador                                      | Existente                    | Limites de 15 MB e 30 páginas, prévia e revisão dos campos.                                                                                                          |
+| OCR local opcional                                                       | Existente                    | O fluxo informa a limitação de documentos digitalizados e permite processamento local.                                                                               |
+| Extração e escolha de imagens incorporadas                               | Em validação                 | Há candidatos de imagem e escolha entre perfil, relatório ou não importar; o fluxo ainda precisa de regressão abrangente para PDFs variados.                         |
+| Persistência do documento-fonte, hash, páginas, OCR e candidatos         | Existente                    | `nexoPdfImport.ts` e `nexoRepository.ts` persistem metadados e seleção revisada conforme a arquitetura atual.                                                        |
+| Cadastros de pessoas e organizações, edição e exclusão lógica            | Existente                    | Dossiês, diretórios, repositórios e RPCs transacionais existentes.                                                                                                   |
+| Vínculos, hierarquia, territórios, veículos, observações e procedimentos | Existente                    | Componentes do workspace e repositórios do NEXO.                                                                                                                     |
+| Organograma hierárquico interativo                                       | Entrega inicial implementada | Aba no dossiê de facção, projeção por `superior_vinculo_id`, busca, navegação, tela cheia, painel contextual e testes com dados sintéticos.                          |
+| Núcleos e setores do organograma                                         | Em desenvolvimento           | A branch da fase 3 adiciona agrupamentos explícitos por organização, associação no vínculo, validação cruzada, RLS, auditoria e gestão pela própria aba Organograma. |
+| Busca, dashboard, rede relacional e possíveis duplicidades               | Existente                    | `NexoCommandDashboard`, filtros, diretório e testes de duplicidade.                                                                                                  |
+| Configuração de seções, fotos e observações para relatórios              | Existente                    | `NexoReportConfigurator` e `NexoReportsHub`.                                                                                                                         |
+| Emissão profissional, arquivada e reproduzível de relatórios             | Em validação                 | O modo de impressão/PDF existe, mas a emissão ainda não é arquivada com recorte, versão e metadados reproduzíveis.                                                   |
+| Painel operacional unificado de pendências                               | Planejado                    | Existem regras e contratos de indicadores relacionados, mas não um fluxo único com resolução contextual de todas as categorias.                                      |
+| Síntese, cronologia, comparação e minuta assistidas por IA               | A avaliar                    | `NexoIntelligenceBoard` existe como base de inteligência, porém a camada assistida precisa de requisitos de fonte, segurança, avaliação e governança.                |
 
 A correção recente para preservar e exibir a fotografia extraída do PDF é uma **estabilização pontual do fluxo atual**. Ela não representa a conclusão do planejamento completo de importação documental descrito na Prioridade 1.
 
@@ -59,7 +60,9 @@ As fases 1 e 2 foram entregues em 27/10/2026 como evolução do dossiê existent
 
 Foram concluídos: aba Organograma, canvas navegável, todos os integrantes atuais elegíveis, posição não determinada para raízes sem chefia válida, busca e foco, ramificações recolhíveis, painel lateral, tela cheia e regressões automatizadas. Nenhuma migration foi necessária.
 
-Permanecem para branches e PRs próprios: núcleos/setores persistidos e edição segura (fase 3), rede de relações não hierárquicas (fase 4) e exportação PDF/refinamentos de escala (fase 5).
+A fase 3 está em desenvolvimento em branch própria. O primeiro incremento já prepara núcleos/setores persistidos, associação explícita no vínculo, edição segura, validação cruzada e auditoria; ele ainda depende de revisão e não autoriza aplicação remota da migration.
+
+Permanecem para entregas próprias: refinamentos visuais de agrupamento e escala da fase 3, rede de relações não hierárquicas (fase 4) e exportação PDF (fase 5).
 
 ## 4. Iniciativas prioritárias
 

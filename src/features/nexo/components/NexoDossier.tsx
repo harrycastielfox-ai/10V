@@ -37,6 +37,8 @@ import type {
   NexoOrganizacao,
   NexoDocumentoExtra,
   NexoHierarquiaEvento,
+  NexoNucleo,
+  NexoNucleoInput,
   NexoObservacao,
   NexoPessoa,
   NexoRegistroVinculado,
@@ -472,10 +474,235 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
+function NucleiManagementDialog({
+  organization,
+  nuclei,
+  onClose,
+  onSave,
+  onArchive,
+}: {
+  organization: NexoOrganizacao;
+  nuclei: NexoNucleo[];
+  onClose: () => void;
+  onSave: (id: string | null, input: NexoNucleoInput) => Promise<void>;
+  onArchive: (id: string) => Promise<void>;
+}) {
+  const ordered = [...nuclei].sort(
+    (first, second) => first.ordem - second.ordem || first.nome.localeCompare(second.nome),
+  );
+  const nextOrder = ordered.length ? Math.max(...ordered.map((nucleus) => nucleus.ordem)) + 1 : 0;
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [color, setColor] = useState("#0f766e");
+  const [order, setOrder] = useState(nextOrder);
+  const [saving, setSaving] = useState(false);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setDescription("");
+    setColor("#0f766e");
+    setOrder(nextOrder);
+    setError("");
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-[#061729]/65 p-4 backdrop-blur-sm"
+      onMouseDown={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nexo-nuclei-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+        className="max-h-[calc(100vh-32px)] w-full max-w-3xl overflow-y-auto rounded-[24px] bg-white shadow-2xl"
+      >
+        <header className="flex items-start gap-3 border-b border-[#e1e9ef] p-5 sm:p-6">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e7f3f6] text-[#197e96]">
+            <Network className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <span className="text-[11px] font-black uppercase tracking-[.16em] text-[#4b96a9]">
+              Estrutura interna
+            </span>
+            <h3 id="nexo-nuclei-dialog-title" className="mt-1 text-lg font-black text-[#173a54]">
+              Núcleos e setores
+            </h3>
+            <p className="mt-1 text-xs text-[#758b9b]">
+              Agrupamentos explícitos de {organization.nome}. Nenhum integrante será classificado
+              automaticamente.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-[#567184] hover:bg-[#f0f5f7]"
+            aria-label="Fechar gestão de núcleos"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+
+        <form
+          className="grid gap-4 border-b border-[#e1e9ef] p-5 sm:grid-cols-[1fr_150px] sm:p-6"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (name.trim().length < 2) {
+              setError("Informe um nome com pelo menos dois caracteres.");
+              return;
+            }
+            setSaving(true);
+            setError("");
+            try {
+              await onSave(editingId, {
+                organizacao_id: organization.id,
+                nome: name,
+                descricao: description,
+                cor: color,
+                ordem: Math.max(0, order),
+              });
+              resetForm();
+            } catch (cause) {
+              setError(getErrorMessage(cause, "Não foi possível salvar o núcleo."));
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
+          <label className="text-xs font-bold text-[#60798b]">
+            Nome do núcleo ou setor
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Ex.: Coordenação regional"
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] px-3 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
+          </label>
+          <label className="text-xs font-bold text-[#60798b]">
+            Ordem
+            <input
+              type="number"
+              min={0}
+              value={order}
+              onChange={(event) => setOrder(Number(event.target.value) || 0)}
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] px-3 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
+          </label>
+          <label className="text-xs font-bold text-[#60798b] sm:col-span-2">
+            Descrição opcional
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={2}
+              className="mt-1 w-full rounded-xl border border-[#d5e3eb] px-3 py-2 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            />
+          </label>
+          <div className="flex flex-wrap items-end justify-between gap-3 sm:col-span-2">
+            <label className="text-xs font-bold text-[#60798b]">
+              Cor de identificação
+              <input
+                type="color"
+                value={color}
+                onChange={(event) => setColor(event.target.value)}
+                className="mt-1 block h-10 w-20 rounded-lg border border-[#d5e3eb] bg-white p-1"
+              />
+            </label>
+            <div className="flex gap-2">
+              {editingId ? (
+                <button type="button" onClick={resetForm} className="nexo-action-secondary">
+                  Cancelar edição
+                </button>
+              ) : null}
+              <button type="submit" disabled={saving} className="nexo-action-primary">
+                <Save className="h-4 w-4" />
+                {saving ? "Salvando…" : editingId ? "Salvar alterações" : "Criar núcleo"}
+              </button>
+            </div>
+          </div>
+          {error ? (
+            <p role="alert" className="sm:col-span-2 text-xs font-bold text-red-700">
+              {error}
+            </p>
+          ) : null}
+        </form>
+
+        <div className="space-y-2 p-5 sm:p-6">
+          {ordered.length ? (
+            ordered.map((nucleus) => (
+              <article
+                key={nucleus.id}
+                className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#dce8ee] bg-[#f8fbfc] p-3"
+              >
+                <span
+                  className="h-10 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: nucleus.cor }}
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <strong className="block text-sm text-[#173a54]">{nucleus.nome}</strong>
+                  <span className="text-xs text-[#6c8291]">
+                    Ordem {nucleus.ordem}
+                    {nucleus.descricao ? ` · ${nucleus.descricao}` : ""}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="nexo-action-secondary"
+                  onClick={() => {
+                    setEditingId(nucleus.id);
+                    setName(nucleus.nome);
+                    setDescription(nucleus.descricao || "");
+                    setColor(nucleus.cor);
+                    setOrder(nucleus.ordem);
+                    setError("");
+                  }}
+                >
+                  <Pencil className="h-4 w-4" /> Editar
+                </button>
+                <button
+                  type="button"
+                  disabled={archivingId === nucleus.id}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-xs font-black text-red-700 hover:bg-red-50"
+                  onClick={async () => {
+                    if (!window.confirm(`Arquivar ${nucleus.nome} e desassociar seus integrantes?`))
+                      return;
+                    setArchivingId(nucleus.id);
+                    setError("");
+                    try {
+                      await onArchive(nucleus.id);
+                      if (editingId === nucleus.id) resetForm();
+                    } catch (cause) {
+                      setError(getErrorMessage(cause, "Não foi possível arquivar o núcleo."));
+                    } finally {
+                      setArchivingId(null);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {archivingId === nucleus.id ? "Arquivando…" : "Arquivar"}
+                </button>
+              </article>
+            ))
+          ) : (
+            <p className="rounded-2xl border border-dashed border-[#d4e0e9] p-5 text-center text-sm text-[#567184]">
+              Nenhum núcleo ou setor cadastrado para esta organização.
+            </p>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function LinkManagementDialog({
   person,
   link,
   organizations,
+  nuclei,
   people,
   onClose,
   onSave,
@@ -484,6 +711,7 @@ function LinkManagementDialog({
   link: NexoVinculo;
   organizations: NexoOrganizacao[];
   people: NexoPessoa[];
+  nuclei: NexoNucleo[];
   onClose: () => void;
   onSave: (input: NexoVinculoManagementInput) => Promise<void>;
 }) {
@@ -498,10 +726,14 @@ function LinkManagementDialog({
   const [confidence, setConfidence] = useState(link.confianca);
   const [source, setSource] = useState(link.fonte_resumo || "");
   const [superiorId, setSuperiorId] = useState(link.superior_vinculo_id || "");
+  const [nucleusId, setNucleusId] = useState(link.nucleo_id || "");
   const [saving, setSaving] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [error, setError] = useState("");
   const isTransfer = organizationId !== link.organizacao_id;
+  const availableNuclei = nuclei
+    .filter((nucleus) => nucleus.organizacao_id === organizationId)
+    .sort((first, second) => first.ordem - second.ordem || first.nome.localeCompare(second.nome));
   const possibleSuperiors = people.flatMap((item) =>
     item.id === person.id
       ? []
@@ -539,6 +771,7 @@ function LinkManagementDialog({
         confianca: confidence,
         fonte_resumo: source,
         superior_vinculo_id: superiorId || null,
+        nucleo_id: nucleusId || null,
         municipio_atuacao: municipality,
         uf_atuacao: state,
       });
@@ -593,12 +826,28 @@ function LinkManagementDialog({
               onChange={(event) => {
                 setOrganizationId(event.target.value);
                 setSuperiorId("");
+                setNucleusId("");
               }}
               className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] bg-white px-3 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
             >
               {organizations.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-bold text-[#60798b]">
+            Núcleo ou setor
+            <select
+              value={nucleusId}
+              onChange={(event) => setNucleusId(event.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-[#d5e3eb] bg-white px-3 text-sm text-[#1d3d55] outline-none focus:border-[#3197ab]"
+            >
+              <option value="">Sem núcleo definido</option>
+              {availableNuclei.map((nucleus) => (
+                <option key={nucleus.id} value={nucleus.id}>
+                  {nucleus.nome}
                 </option>
               ))}
             </select>
@@ -1342,6 +1591,7 @@ function ProcedurePanel({
 export function NexoDossier({
   target,
   organizations,
+  nuclei,
   people,
   territories,
   records,
@@ -1367,12 +1617,15 @@ export function NexoDossier({
   onDeleteOrganization,
   onCreateLink,
   onManageLink,
+  onSaveNucleus,
+  onArchiveNucleus,
   onCreatePersonForOrganization,
   onCreateTerritoryForOrganization,
   onDeleteTerritory,
 }: {
   target: DossierTarget;
   organizations: NexoOrganizacao[];
+  nuclei: NexoNucleo[];
   people: NexoPessoa[];
   territories: NexoTerritorio[];
   records: NexoRegistroVinculado[];
@@ -1406,6 +1659,8 @@ export function NexoDossier({
   onDeleteOrganization: (organization: NexoOrganizacao) => Promise<void>;
   onCreateLink: (input: NexoLinkInput) => Promise<void>;
   onManageLink: (input: NexoVinculoManagementInput) => Promise<void>;
+  onSaveNucleus: (id: string | null, input: NexoNucleoInput) => Promise<void>;
+  onArchiveNucleus: (id: string) => Promise<void>;
   onCreatePersonForOrganization: (organizationId: string) => void;
   onCreateTerritoryForOrganization: (organizationId: string) => void;
   onDeleteTerritory: (territoryId: string) => Promise<void>;
@@ -1445,6 +1700,7 @@ export function NexoDossier({
   const [managedLink, setManagedLink] = useState<{ person: NexoPessoa; link: NexoVinculo } | null>(
     null,
   );
+  const [managingNuclei, setManagingNuclei] = useState(false);
   const [savedHierarchyEvents, setSavedHierarchyEvents] = useState<NexoHierarquiaEvento[]>([]);
   const [hierarchyError, setHierarchyError] = useState("");
   const [selectedTerritory, setSelectedTerritory] = useState<NexoTerritorio | null>(null);
@@ -1635,7 +1891,7 @@ export function NexoDossier({
           : event.tipo === "saida"
             ? "Saída da facção"
             : "Hierarquia alterada",
-      detail: `${event.pessoa_nome} · ${event.funcao_anterior || "Sem cargo"} → ${event.funcao_nova || "Sem cargo"}${event.superior_anterior_nome !== event.superior_novo_nome ? ` · Chefia: ${event.superior_anterior_nome || "Não definida"} → ${event.superior_novo_nome || "Não definida"}` : ""}${event.municipio_atuacao_anterior !== event.municipio_atuacao_novo || event.uf_atuacao_anterior !== event.uf_atuacao_novo ? ` · Atuação: ${[event.municipio_atuacao_anterior, event.uf_atuacao_anterior].filter(Boolean).join("/") || "Não informada"} → ${[event.municipio_atuacao_novo, event.uf_atuacao_novo].filter(Boolean).join("/") || "Não informada"}` : ""}`,
+      detail: `${event.pessoa_nome} · ${event.funcao_anterior || "Sem cargo"} → ${event.funcao_nova || "Sem cargo"}${event.superior_anterior_nome !== event.superior_novo_nome ? ` · Chefia: ${event.superior_anterior_nome || "Não definida"} → ${event.superior_novo_nome || "Não definida"}` : ""}${event.nucleo_anterior_nome !== event.nucleo_novo_nome ? ` · Núcleo: ${event.nucleo_anterior_nome || "Não definido"} → ${event.nucleo_novo_nome || "Não definido"}` : ""}${event.municipio_atuacao_anterior !== event.municipio_atuacao_novo || event.uf_atuacao_anterior !== event.uf_atuacao_novo ? ` · Atuação: ${[event.municipio_atuacao_anterior, event.uf_atuacao_anterior].filter(Boolean).join("/") || "Não informada"} → ${[event.municipio_atuacao_novo, event.uf_atuacao_novo].filter(Boolean).join("/") || "Não informada"}` : ""}`,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const tabs: { id: Tab; label: string }[] =
@@ -2300,8 +2556,10 @@ export function NexoDossier({
             <NexoOrganogram
               organization={organization}
               members={organogramMembers}
+              nuclei={nuclei.filter((nucleus) => nucleus.organizacao_id === organization.id)}
               onOpen={(member) => onOpen({ kind: "person", id: member.id })}
               onManage={(member, link) => setManagedLink({ person: member, link })}
+              onManageNuclei={() => setManagingNuclei(true)}
             />
           ) : null}
 
@@ -2502,6 +2760,12 @@ export function NexoDossier({
                         <p className="mt-1 text-[#60798b]">
                           Responde a: {event.superior_anterior_nome || "Ninguém"} →{" "}
                           {event.superior_novo_nome || "Ninguém"}
+                        </p>
+                      ) : null}
+                      {event.nucleo_anterior_nome !== event.nucleo_novo_nome ? (
+                        <p className="mt-1 text-[#60798b]">
+                          Núcleo: {event.nucleo_anterior_nome || "Não definido"} →{" "}
+                          {event.nucleo_novo_nome || "Não definido"}
                         </p>
                       ) : null}
                       {event.municipio_atuacao_anterior !== event.municipio_atuacao_novo ||
@@ -3242,8 +3506,18 @@ export function NexoDossier({
           link={managedLink.link}
           organizations={organizations}
           people={people}
+          nuclei={nuclei}
           onClose={() => setManagedLink(null)}
           onSave={onManageLink}
+        />
+      ) : null}
+      {managingNuclei && organization ? (
+        <NucleiManagementDialog
+          organization={organization}
+          nuclei={nuclei.filter((nucleus) => nucleus.organizacao_id === organization.id)}
+          onClose={() => setManagingNuclei(false)}
+          onSave={onSaveNucleus}
+          onArchive={onArchiveNucleus}
         />
       ) : null}
       {selectedTerritory ? (

@@ -61,4 +61,17 @@ describe("estados do organograma NEXO", () => {
     expect(isNexoOrganogramLeadershipRole("Coordenador de núcleo")).toBe(false);
     expect(isNexoOrganogramLeadershipRole(null)).toBe(false);
   });
+
+  it("oferece gestão explícita de núcleos sem depender da existência de integrantes", () => {
+    const html = renderToStaticMarkup(
+      createElement(NexoOrganogram, {
+        ...baseProps,
+        nuclei: [],
+        onManageNuclei: () => {},
+      }),
+    );
+
+    expect(html).toContain("Núcleos e setores");
+    expect(html).toContain('aria-label="Gerenciar núcleos e setores"');
+  });
 });

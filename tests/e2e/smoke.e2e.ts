@@ -103,8 +103,27 @@ test("navigates the synthetic NEXO organogram with zoom and pan", async ({ page 
   await expect(page.locator(".react-flow__background")).toHaveCount(0);
   await expect(page.locator(".react-flow__controls")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Ajustar à tela" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Tela cheia" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Tela cheia" })).toBeVisible();
   await expect(page.locator(".nexo-organogram-undetermined")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Gerenciar núcleos e setores" }).click();
+  const nucleiDialog = page.getByRole("dialog", { name: "Núcleos e setores" });
+  await expect(nucleiDialog).toBeVisible();
+  await nucleiDialog.getByLabel("Nome do núcleo ou setor").fill("Núcleo Sintético Norte");
+  await nucleiDialog.getByLabel("Ordem").fill("1");
+  await nucleiDialog.getByRole("button", { name: "Criar núcleo" }).click();
+  await expect(nucleiDialog.getByText("Núcleo Sintético Norte", { exact: true })).toBeVisible();
+  await nucleiDialog.getByRole("button", { name: "Fechar gestão de núcleos" }).click();
+
+  await page
+    .getByRole("button", { name: /^Gerenciar posição de / })
+    .first()
+    .click();
+  await page.getByLabel("Núcleo ou setor").selectOption({ label: "Núcleo Sintético Norte" });
+  await page.getByRole("button", { name: "Salvar alterações" }).click();
+  await expect(page.locator(".nexo-organogram-card").first()).toContainText(
+    "Núcleo Sintético Norte",
+  );
   const firstCardBox = await page.locator(".nexo-organogram-card").first().boundingBox();
   expect(firstCardBox?.width ?? 0).toBeGreaterThanOrEqual(150);
 

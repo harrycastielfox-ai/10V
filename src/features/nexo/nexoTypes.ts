@@ -3,6 +3,22 @@ export type NexoVinculoStatus =
 
 export type NexoOrganizacaoStatus = "monitoramento" | "ativa" | "inativa" | "indeterminada";
 
+export interface NexoNucleo {
+  id: string;
+  organizacao_id: string;
+  nome: string;
+  descricao: string | null;
+  cor: string;
+  ordem: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type NexoNucleoInput = Pick<
+  NexoNucleo,
+  "organizacao_id" | "nome" | "descricao" | "cor" | "ordem"
+>;
+
 export interface NexoEndereco {
   id: string;
   logradouro: string;
@@ -42,6 +58,8 @@ export interface NexoVinculo {
   desde: string | null;
   ate: string | null;
   superior_vinculo_id: string | null;
+  nucleo_id?: string | null;
+  nucleo?: NexoNucleo | null;
   municipio_atuacao?: string | null;
   uf_atuacao?: string | null;
   organizacao?: NexoOrganizacao | null;
@@ -86,6 +104,7 @@ export interface NexoVinculoManagementInput {
   confianca: number;
   fonte_resumo: string;
   superior_vinculo_id: string | null;
+  nucleo_id?: string | null;
   municipio_atuacao: string;
   uf_atuacao: string;
 }
@@ -106,6 +125,8 @@ export interface NexoHierarquiaEvento {
   municipio_atuacao_novo?: string | null;
   uf_atuacao_anterior?: string | null;
   uf_atuacao_novo?: string | null;
+  nucleo_anterior_nome?: string | null;
+  nucleo_novo_nome?: string | null;
   pessoa_nome: string;
   justificativa: string | null;
   ocorrido_em: string;

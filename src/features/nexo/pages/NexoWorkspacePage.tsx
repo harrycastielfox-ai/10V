@@ -18,6 +18,8 @@ import { createNexoPresentationProcedureRows } from "../nexoPresentationProcedur
 import type {
   NexoOrganizacao,
   NexoOrganizacaoInput,
+  NexoNucleo,
+  NexoNucleoInput,
   NexoPessoa,
   NexoPessoaInput,
   NexoRegistroVinculado,
@@ -66,6 +68,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
     preview ? NEXO_PRESENTATION_DATA.organizations : [],
   );
   const [people, setPeople] = useState<NexoPessoa[]>(preview ? NEXO_PRESENTATION_DATA.people : []);
+  const [nuclei, setNuclei] = useState<NexoNucleo[]>([]);
   const [previewHierarchyEvents, setPreviewHierarchyEvents] = useState<NexoHierarquiaEvento[]>(
     preview ? NEXO_PRESENTATION_DATA.hierarchyEvents : [],
   );
@@ -103,14 +106,17 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
         import("@/lib/repositories/nexoRepository"),
         import("@/lib/repositories/nexoIntegrationsRepository"),
       ]);
-      const [foundOrganizations, foundPeople, foundTerritories, foundRecords] = await Promise.all([
-        repo.listNexoOrganizacoes(),
-        repo.listNexoPessoas(),
-        repo.listNexoTerritorios(),
-        integrations.listNexoRegistrosVinculados(),
-      ]);
+      const [foundOrganizations, foundPeople, foundNuclei, foundTerritories, foundRecords] =
+        await Promise.all([
+          repo.listNexoOrganizacoes(),
+          repo.listNexoPessoas(),
+          repo.listNexoNucleos(),
+          repo.listNexoTerritorios(),
+          integrations.listNexoRegistrosVinculados(),
+        ]);
       setOrganizations(foundOrganizations);
       setPeople(foundPeople);
+      setNuclei(foundNuclei);
       setTerritories(foundTerritories);
       setReportRecords(foundRecords);
     } catch (cause) {
@@ -754,6 +760,10 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
   async function manageLink(input: NexoVinculoManagementInput) {
     if (preview) {
       const destination = organizations.find((item) => item.id === input.organizacao_id) || null;
+      const destinationNucleus =
+        nuclei.find(
+          (item) => item.id === input.nucleo_id && item.organizacao_id === input.organizacao_id,
+        ) || null;
       const today = new Date().toISOString().slice(0, 10);
       const currentPerson = people.find((item) => item.id === input.pessoa_id);
       const currentLink = currentPerson?.vinculos.find((link) => link.id === input.vinculo_id);
@@ -789,6 +799,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             input.acao === "remover"
               ? currentLink.uf_atuacao || null
               : input.uf_atuacao.toUpperCase() || null,
+          nucleo_anterior_nome: currentLink.nucleo?.nome || null,
+          nucleo_novo_nome: input.acao === "atualizar" ? destinationNucleus?.nome || null : null,
           pessoa_nome: currentPerson.nome,
           justificativa: input.fonte_resumo || null,
           ocorrido_em: new Date().toISOString(),
@@ -804,6 +816,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                   tipo: "entrada" as const,
                   status_anterior: null,
                   status_novo: input.status,
+                  nucleo_anterior_nome: null,
+                  nucleo_novo_nome: destinationNucleus?.nome || null,
                 },
               ]
             : []),
@@ -829,7 +843,14 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
               ...person,
               vinculos: person.vinculos.map((link) =>
                 link.id === input.vinculo_id
-                  ? { ...link, status: "desvinculado", superior_vinculo_id: null, ate: today }
+                  ? {
+                      ...link,
+                      status: "desvinculado",
+                      superior_vinculo_id: null,
+                      nucleo_id: null,
+                      nucleo: null,
+                      ate: today,
+                    }
                   : link,
               ),
             };
@@ -848,6 +869,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                       confianca: input.confianca,
                       fonte_resumo: input.fonte_resumo || null,
                       superior_vinculo_id: input.superior_vinculo_id,
+                      nucleo_id: input.nucleo_id || null,
+                      nucleo: destinationNucleus,
                       ate: null,
                     }
                   : link,
@@ -863,6 +886,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                 ...link,
                 status: "desvinculado" as const,
                 superior_vinculo_id: null,
+                nucleo_id: null,
+                nucleo: null,
                 ate: today,
               };
             }
@@ -876,6 +901,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
                 confianca: input.confianca,
                 fonte_resumo: input.fonte_resumo || null,
                 superior_vinculo_id: input.superior_vinculo_id,
+                nucleo_id: input.nucleo_id || null,
+                nucleo: destinationNucleus,
                 desde: today,
                 ate: null,
                 organizacao: destination,
@@ -887,6 +914,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             updated.push({
               id: crypto.randomUUID(),
               superior_vinculo_id: input.superior_vinculo_id,
+              nucleo_id: input.nucleo_id || null,
+              nucleo: destinationNucleus,
               pessoa_id: person.id,
               organizacao_id: input.organizacao_id,
               status: input.status,
@@ -915,6 +944,57 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
           ? "Pessoa transferida e novo vínculo registrado"
           : "Cargo e vínculo atualizados";
     setNotice(preview ? `${message} nesta demonstração` : message);
+  }
+
+  async function saveNucleus(id: string | null, input: NexoNucleoInput) {
+    if (preview) {
+      const normalized: NexoNucleo = {
+        id: id || crypto.randomUUID(),
+        organizacao_id: input.organizacao_id,
+        nome: input.nome.replace(/\s+/g, " ").trim(),
+        descricao: input.descricao?.trim() || null,
+        cor: input.cor,
+        ordem: input.ordem,
+      };
+      setNuclei((current) =>
+        id ? current.map((item) => (item.id === id ? normalized : item)) : [...current, normalized],
+      );
+      if (id) {
+        setPeople((current) =>
+          current.map((person) => ({
+            ...person,
+            vinculos: person.vinculos.map((link) =>
+              link.nucleo_id === id ? { ...link, nucleo: normalized } : link,
+            ),
+          })),
+        );
+      }
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      if (id) await repo.updateNexoNucleo(id, input);
+      else await repo.createNexoNucleo(input);
+      await reload();
+    }
+    setNotice(preview ? "Núcleo atualizado nesta demonstração" : "Núcleo atualizado");
+  }
+
+  async function archiveNucleus(id: string) {
+    if (preview) {
+      setNuclei((current) => current.filter((item) => item.id !== id));
+      setPeople((current) =>
+        current.map((person) => ({
+          ...person,
+          vinculos: person.vinculos.map((link) =>
+            link.nucleo_id === id ? { ...link, nucleo_id: null, nucleo: null } : link,
+          ),
+        })),
+      );
+    } else {
+      const repo = await import("@/lib/repositories/nexoRepository");
+      await repo.archiveNexoNucleo(id);
+      await reload();
+    }
+    setNotice(preview ? "Núcleo arquivado nesta demonstração" : "Núcleo arquivado");
   }
 
   return (
@@ -1132,6 +1212,7 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             key={`${dossier.kind}:${dossier.id}`}
             target={dossier}
             organizations={organizations}
+            nuclei={nuclei}
             people={people}
             territories={territories}
             records={reportRecords}
@@ -1167,6 +1248,8 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
             onDeleteOrganization={deleteOrganization}
             onCreateLink={saveLink}
             onManageLink={manageLink}
+            onSaveNucleus={saveNucleus}
+            onArchiveNucleus={archiveNucleus}
             onCreatePersonForOrganization={(organizationId) => {
               setCreateOrganizationId(organizationId);
               setCreateKind("pessoa");

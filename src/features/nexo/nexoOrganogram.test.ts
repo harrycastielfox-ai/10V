@@ -26,6 +26,7 @@ function link(
     desde: "2026-01-01",
     ate: null,
     superior_vinculo_id: superiorId,
+    nucleo_id: null,
     ...overrides,
   };
 }
@@ -197,6 +198,31 @@ describe("projeção do organograma NEXO", () => {
     expect(searchNexoOrganogram(model, "lider regional")).toEqual(["v-filha"]);
     expect(searchNexoOrganogram(model, "eunapolis")).toEqual(["v-filha"]);
     expect(getNexoOrganogramAncestors(model, "v-neta")).toEqual(["v-raiz", "v-filha"]);
+  });
+
+  it("preserva e pesquisa o núcleo explicitamente registrado no vínculo", () => {
+    const people = [
+      person("p-nucleo", "Pessoa do Núcleo", null, [
+        link("v-nucleo", "p-nucleo", null, {
+          nucleo_id: "nucleo-leste",
+          nucleo: {
+            id: "nucleo-leste",
+            organizacao_id: ORGANIZATION_ID,
+            nome: "Coordenação Leste",
+            descricao: null,
+            cor: "#0f766e",
+            ordem: 1,
+          },
+        }),
+      ]),
+      person("p-sem-nucleo", "Pessoa sem Núcleo", null, [link("v-sem-nucleo", "p-sem-nucleo")]),
+    ];
+
+    const model = buildNexoOrganogram(ORGANIZATION_ID, people);
+
+    expect(model.membersById.get("v-nucleo")?.link.nucleo?.nome).toBe("Coordenação Leste");
+    expect(model.membersById.get("v-sem-nucleo")?.link.nucleo_id).toBeNull();
+    expect(searchNexoOrganogram(model, "coordenacao leste")).toEqual(["v-nucleo"]);
   });
 
   it("recolhe somente os descendentes da ramificação escolhida", () => {
