@@ -206,14 +206,23 @@ function OrganogramCanvas({
     };
   }, [model]);
   const treeZoom = Math.min(1, Math.max(0.1, (stageWidth - 48) / (bounds.right - bounds.left)));
+  const stageHeight = Math.max(420, bounds.bottom * treeZoom + 80);
+  const initialX =
+    (stageWidth - (bounds.right - bounds.left) * treeZoom) / 2 - bounds.left * treeZoom;
+  // At overview scale the viewport fills this extent. Zooming in permits panning
+  // within the same area, but never beyond the complete tree and its margins.
+  const navigationExtent: [[number, number], [number, number]] = [
+    [-initialX / treeZoom, -16 / treeZoom],
+    [(stageWidth - initialX) / treeZoom, (stageHeight - 16) / treeZoom],
+  ];
   const resetView = useCallback(
     () =>
       setViewport({
-        x: (stageWidth - (bounds.right - bounds.left) * treeZoom) / 2 - bounds.left * treeZoom,
+        x: initialX,
         y: 16,
         zoom: treeZoom,
       }),
-    [bounds.left, bounds.right, setViewport, stageWidth, treeZoom],
+    [initialX, setViewport, treeZoom],
   );
   useEffect(() => {
     if (stageWidth > 0) void resetView();
@@ -363,17 +372,14 @@ function OrganogramCanvas({
         </div>
       ) : null}
 
-      <div
-        ref={stageRef}
-        className="nexo-organogram-stage"
-        style={{ height: Math.max(420, bounds.bottom * treeZoom + 80) }}
-      >
+      <div ref={stageRef} className="nexo-organogram-stage" style={{ height: stageHeight }}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={NODE_TYPES}
-          minZoom={0.1}
-          maxZoom={2}
+          minZoom={treeZoom}
+          maxZoom={1.5}
+          translateExtent={navigationExtent}
           nodesDraggable={false}
           nodesConnectable={false}
           elementsSelectable={false}
@@ -397,7 +403,7 @@ function OrganogramCanvas({
           <button
             type="button"
             onClick={() => zoomOut()}
-            disabled={zoom <= 0.1}
+            disabled={zoom <= treeZoom + 0.001}
             aria-label="Reduzir zoom"
             title="Reduzir zoom"
           >
@@ -407,7 +413,7 @@ function OrganogramCanvas({
           <button
             type="button"
             onClick={() => zoomIn()}
-            disabled={zoom >= 2}
+            disabled={zoom >= 1.5 - 0.001}
             aria-label="Ampliar zoom"
             title="Ampliar zoom"
           >

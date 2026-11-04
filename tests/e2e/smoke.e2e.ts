@@ -123,11 +123,23 @@ test("navigates the synthetic NEXO organogram with zoom and pan", async ({ page 
 
   const viewport = page.locator(".react-flow__viewport");
   const initialTransform = await viewport.getAttribute("style");
+  await expect(page.getByRole("button", { name: "Reduzir zoom" })).toBeDisabled();
+  await page.locator(".react-flow__pane").dispatchEvent("wheel", { deltaY: 900 });
+  await expect(viewport).toHaveAttribute("style", initialTransform || "");
   await page.getByRole("button", { name: "Ampliar zoom" }).click();
   await expect(viewport).not.toHaveAttribute("style", initialTransform || "");
   await page.getByRole("button", { name: "Ajustar à tela" }).click();
   await expect(viewport).toHaveAttribute("style", initialTransform || "");
   const paneBox = await page.locator(".react-flow__pane").boundingBox();
+  const rootBeforeDrag = await page.locator(".nexo-organogram-card").first().boundingBox();
+  await page.mouse.move(paneBox!.x + 40, paneBox!.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(paneBox!.x + 700, paneBox!.y + 350, { steps: 8 });
+  await page.mouse.up();
+  const rootAfterDrag = await page.locator(".nexo-organogram-card").first().boundingBox();
+  expect(Math.abs(rootAfterDrag!.x - rootBeforeDrag!.x)).toBeLessThan(3);
+  expect(Math.abs(rootAfterDrag!.y - rootBeforeDrag!.y)).toBeLessThan(3);
+  await page.getByRole("button", { name: "Ampliar zoom" }).click();
   await page.mouse.move(paneBox!.x + 40, paneBox!.y + 100);
   await page.mouse.down();
   await page.mouse.move(paneBox!.x + 140, paneBox!.y + 140, { steps: 8 });
@@ -135,6 +147,15 @@ test("navigates the synthetic NEXO organogram with zoom and pan", async ({ page 
   await expect(viewport).not.toHaveAttribute("style", initialTransform || "");
   await page.getByRole("button", { name: "Ajustar à tela" }).click();
   await expect(viewport).toHaveAttribute("style", initialTransform || "");
+
+  for (let step = 0; step < 8; step++) {
+    const increase = page.getByRole("button", { name: "Ampliar zoom" });
+    if (await increase.isDisabled()) break;
+    await increase.click();
+  }
+  await expect(page.getByRole("button", { name: "Ampliar zoom" })).toBeDisabled();
+  await expect(page.getByRole("group", { name: "Navegação do organograma" })).toContainText("150%");
+  await page.getByRole("button", { name: "Ajustar à tela" }).click();
   await page.locator(".react-flow__pane").dispatchEvent("wheel", { deltaY: -120 });
   await expect(viewport).not.toHaveAttribute("style", initialTransform || "");
   await page.getByRole("button", { name: "Ajustar à tela" }).click();
