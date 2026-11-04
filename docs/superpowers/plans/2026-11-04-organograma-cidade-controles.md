@@ -89,3 +89,20 @@
 - [ ] Expor estado de viewport observado somente para acessibilidade/teste e comprovar que seleção/ramificação não são alteradas.
 - [ ] Executar E2E focado, Vitest completo, TypeScript, ESLint e build.
 - [ ] Commitar, solicitar revisão independente, corrigir achados válidos e atualizar o Pull Request sem mesclar.
+
+### Task 4: Cadastro territorial enxuto e múltiplos contornos
+
+**Addendum aprovado durante a validação local:**
+- Tornar verde o botão `Adicionar local` da visão geral.
+- Manter no formulário apenas bairro, categoria operacional, classificação, organização, link do Google Maps, observações e área visual.
+- Persistir vários contornos independentes para o mesmo local, sem conectar bairros distintos por uma linha.
+
+**Interfaces:**
+- Produces: `nexo_territorios.poligonos jsonb`, mantendo `pontos` como primeiro contorno para compatibilidade.
+- Preserves: registros legados, RLS e fluxos que ainda leem `pontos`.
+
+- [x] Reproduzir a causa na estrutura de dados de um único vetor `pontos`.
+- [x] Criar teste unitário vermelho para concluir dois contornos independentes.
+- [x] Implementar coleção de polígonos, interface para concluir/remover áreas e renderização separada.
+- [x] Preparar migration incremental e validar em replay local, sem execução em produção.
+- [x] Cobrir o fluxo no Chromium com dados sintéticos.

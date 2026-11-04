@@ -4,10 +4,12 @@ import "leaflet/dist/leaflet.css";
 import { NexoLegacyTerritoryMap } from "./NexoLegacyTerritoryMap";
 import { circleArea, geographicPoint, isGeographicArea } from "../nexoTerritoryCoordinates";
 import { scheduleRigidMapRecentering } from "../mapRecentering";
+import { territoryPolygons } from "../nexoTerritoryGeometry";
 import type { NexoMapPoint } from "../nexoTypes";
 
 type Props = ComponentProps<typeof NexoLegacyTerritoryMap> & {
   onDrawingChange?: (points: NexoMapPoint[]) => void;
+  drawingAreas?: NexoMapPoint[][];
 };
 
 const ITABELA_CENTER: [number, number] = [-16.575, -39.559];
@@ -163,21 +165,36 @@ function StreetMap(props: Props) {
           marker.bindTooltip(label).on("click", () => props.onPersonSelect?.(person));
         }
       }
-      for (const area of props.territories.filter((item) => isGeographicArea(item.pontos))) {
+      for (const area of props.territories) {
         const color =
           props.organizations.find((org) => org.id === area.organizacao_id)?.cor || "#16879b";
-        const polygon = L.polygon(
-          area.pontos.map((point) => [point.y, point.x]),
+        for (const areaPolygon of territoryPolygons(area).filter(isGeographicArea)) {
+          const polygon = L.polygon(
+            areaPolygon.map((point) => [point.y, point.x]),
+            {
+              color,
+              weight: props.selectedId === area.id ? 4 : 2,
+              fillOpacity: 0.18,
+              interactive: !drawing,
+            },
+          ).addTo(layer);
+          const label = document.createElement("span");
+          label.textContent = area.bairro;
+          polygon.bindTooltip(label).on("click", () => props.onSelect(area));
+        }
+      }
+      for (const [index, completedArea] of (props.drawingAreas || []).entries()) {
+        if (!isGeographicArea(completedArea)) continue;
+        const completedPolygon = L.polygon(
+          completedArea.map((point) => [point.y, point.x]),
           {
-            color,
-            weight: props.selectedId === area.id ? 4 : 2,
-            fillOpacity: 0.18,
-            interactive: !drawing,
+            color: "#059669",
+            weight: 3,
+            fillOpacity: 0.16,
+            interactive: false,
           },
         ).addTo(layer);
-        const label = document.createElement("span");
-        label.textContent = area.bairro;
-        polygon.bindTooltip(label).on("click", () => props.onSelect(area));
+        completedPolygon.bindTooltip(`Área ${index + 1} concluída`);
       }
       const points = props.drawingPoints || [];
       if (isGeographicArea(points)) {
@@ -280,7 +297,7 @@ function StreetMap(props: Props) {
           ? mode === "circle"
             ? hasCenter
               ? "Clique na borda desejada para definir o tamanho do círculo (mínimo 5 metros)."
-              : "Clique no centro e depois na borda para circular a área. Um novo círculo substitui o desenho atual."
+              : "Clique no centro e depois na borda para circular a área. Depois, use Concluir área e iniciar outra."
             : "Clique em três ou mais pontos para contornar a área. Arraste o mapa para navegar."
           : "Amplie para ver as ruas. Use Adicionar local para contornar ou circular uma área."}
         {drawing ? " O desenho só é salvo ao confirmar o cadastro." : ""}

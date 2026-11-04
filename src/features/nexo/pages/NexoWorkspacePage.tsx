@@ -45,6 +45,7 @@ import { NexoReportsHub } from "../components/NexoReportsHub";
 import { createNexoReportConfig, type NexoReportConfig } from "../nexoReportConfig";
 import type { NexoSearchTarget, NexoWorkspaceView } from "../nexoWorkspaceSearch";
 import { previewPersonFromInput } from "./previewPersonFromInput";
+import { collectTerritoryPolygons } from "../nexoTerritoryGeometry";
 
 type View = NexoWorkspaceView;
 type DossierTarget = { kind: "person" | "organization"; id: string };
@@ -397,8 +398,11 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
 
   async function saveTerritory(input: NexoTerritorioInput) {
     if (preview) {
+      const poligonos = collectTerritoryPolygons(input.pontos, input.poligonos);
       const newTerritory: NexoTerritorio = {
         ...input,
+        pontos: poligonos[0] || [],
+        poligonos,
         id: crypto.randomUUID(),
         fonte_resumo: input.fonte_resumo || null,
         observacoes: input.observacoes || null,

@@ -257,6 +257,26 @@ export async function verifyRecoveredRuntime(db, probes) {
       { code: "23514" },
     );
   });
+  await probe("NEXO territory persists independent polygon collections", async () => {
+    const organization = "40000000-0000-4000-8000-000000000101";
+    const firstPolygon = [
+      { x: -39.56, y: -16.57, coordinateSystem: "wgs84" },
+      { x: -39.55, y: -16.57, coordinateSystem: "wgs84" },
+      { x: -39.55, y: -16.58, coordinateSystem: "wgs84" },
+    ];
+    const secondPolygon = [
+      { x: -39.58, y: -16.56, coordinateSystem: "wgs84" },
+      { x: -39.57, y: -16.56, coordinateSystem: "wgs84" },
+      { x: -39.57, y: -16.57, coordinateSystem: "wgs84" },
+    ];
+    const result = await asUser(admin, (tx) =>
+      tx.query(
+        "insert into public.nexo_territorios(organizacao_id,bairro,pontos,poligonos) values($1,'Bairros sintéticos',$2::jsonb,$3::jsonb) returning jsonb_array_length(pontos)::integer as first_points,jsonb_array_length(poligonos)::integer as polygon_count",
+        [organization, JSON.stringify(firstPolygon), JSON.stringify([firstPolygon, secondPolygon])],
+      ),
+    );
+    assert.deepEqual(result.rows, [{ first_points: 3, polygon_count: 2 }]);
+  });
   await probe(
     "vehicle normalization executes with accented uppercase and blank input",
     async () => {

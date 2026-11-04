@@ -53,6 +53,7 @@ import { getNexoPersonPhotoUrl, selectNexoRecords } from "../nexoSelectors";
 import { NexoLinkForm, type NexoLinkInput } from "./NexoLinkForm";
 import { NexoOrganogram } from "./NexoOrganogram";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
+import { territoryPolygons } from "../nexoTerritoryGeometry";
 import { NexoVehiclePanel } from "./NexoVehiclePanel";
 
 type DossierTarget = { kind: "person"; id: string } | { kind: "organization"; id: string };
@@ -996,10 +997,10 @@ function TerritoryMapDialog({
                 </a>
               ) : null}
             </div>
-            {territory.pontos.length >= 3 ? (
+            {territoryPolygons(territory).length ? (
               <div className="rounded-2xl border border-[#bcdde4] bg-[#eaf6f8] p-4 text-xs leading-relaxed text-[#427183]">
-                A área destacada representa os {territory.pontos.length} pontos marcados no
-                cadastro. Clique em outra área do mapa para consultar seus dados.
+                {territoryPolygons(territory).length} área(s) independente(s) registrada(s) para
+                este local. Clique em outro contorno do mapa para consultar seus dados.
               </div>
             ) : (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-800">
@@ -2271,7 +2272,7 @@ export function NexoDossier({
                   <button
                     type="button"
                     onClick={() => onCreateTerritoryForOrganization(organization.id)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[#cbdde7] bg-white px-3 py-2 text-xs font-bold text-[#365a71] hover:bg-[#f3f8fa]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-emerald-600 px-3 py-2 text-xs font-black text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                   >
                     <Plus className="h-4 w-4" /> Adicionar local
                   </button>
@@ -3150,7 +3151,7 @@ export function NexoDossier({
                 <button
                   type="button"
                   onClick={() => onCreateTerritoryForOrganization(organization.id)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#173d5b] px-4 py-2.5 text-xs font-black text-white hover:bg-[#205575]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-700 bg-emerald-600 px-4 py-2.5 text-xs font-black text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                 >
                   <Plus className="h-4 w-4" /> Adicionar local
                 </button>

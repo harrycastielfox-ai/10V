@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 import { runSupabaseMutation } from "@/lib/repositories/supabaseQuery";
+import { collectTerritoryPolygons } from "@/features/nexo/nexoTerritoryGeometry";
 import type {
   NexoHierarquiaEvento,
   NexoFoto,
@@ -435,7 +436,7 @@ export async function listNexoTerritorios(): Promise<NexoTerritorio[]> {
   const { data, error } = await supabase
     .from("nexo_territorios")
     .select(
-      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, created_at, updated_at",
+      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, poligonos, created_at, updated_at",
     )
     .is("deleted_at", null)
     .order("bairro");
@@ -444,6 +445,7 @@ export async function listNexoTerritorios(): Promise<NexoTerritorio[]> {
 }
 
 export async function createNexoTerritorio(input: NexoTerritorioInput): Promise<NexoTerritorio> {
+  const poligonos = collectTerritoryPolygons(input.pontos, input.poligonos);
   const { data, error } = await supabase
     .from("nexo_territorios")
     .insert({
@@ -461,10 +463,11 @@ export async function createNexoTerritorio(input: NexoTerritorioInput): Promise<
       uf: input.uf.trim().toUpperCase() || "BA",
       ponto_referencia: clean(input.ponto_referencia),
       link_navegacao: clean(input.link_navegacao),
-      pontos: input.pontos,
+      pontos: poligonos[0] || [],
+      poligonos,
     })
     .select(
-      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, created_at, updated_at",
+      "id, organizacao_id, bairro, categoria, classificacao, confianca, fonte_resumo, observacoes, logradouro, numero, complemento, municipio, uf, ponto_referencia, link_navegacao, pontos, poligonos, created_at, updated_at",
     )
     .single();
   if (error) throw error;

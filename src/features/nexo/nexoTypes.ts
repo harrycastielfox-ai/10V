@@ -302,6 +302,7 @@ export interface NexoTerritorio {
   ponto_referencia: string | null;
   link_navegacao: string | null;
   pontos: NexoMapPoint[];
+  poligonos?: NexoMapPoint[][] | null;
   created_at: string;
   updated_at: string;
 }
@@ -310,6 +311,7 @@ export type NexoTerritorioInput = Pick<
   NexoTerritorio,
   "organizacao_id" | "bairro" | "categoria" | "classificacao" | "confianca" | "pontos"
 > & {
+  poligonos: NexoMapPoint[][];
   fonte_resumo: string;
   observacoes: string;
   logradouro: string;

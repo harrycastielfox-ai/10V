@@ -5,8 +5,10 @@ import {
   FileText,
   CornerDownLeft,
   MapPinned,
+  Plus,
   RotateCcw,
   Save,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react";
@@ -24,6 +26,7 @@ import { NexoTerritoryMap } from "./NexoTerritoryMap";
 import { NexoPersonWizard, PersonWizardProgress } from "./NexoPersonWizard";
 import { NexoPdfImportPanel } from "./NexoPdfImportPanel";
 import { applyNexoPdfPhotoSelection, applyNexoPdfSources } from "../nexoPdfImport";
+import { finishTerritoryPolygon } from "../nexoTerritoryGeometry";
 
 export type CreateKind = "territorio" | "organizacao" | "pessoa";
 const PERSON_STEP_COUNT = 6;
@@ -162,6 +165,7 @@ const emptyTerritory: NexoTerritorioInput = {
   ponto_referencia: "",
   link_navegacao: "",
   pontos: [],
+  poligonos: [],
 };
 
 export function NexoCreateDialog({
@@ -604,8 +608,9 @@ export function NexoCreateDialog({
           {kind === "territorio" ? (
             <>
               <p className="rounded-xl border border-[#cde4e9] bg-[#eaf6f7] px-4 py-3 text-xs leading-relaxed text-[#3d7180]">
-                Cadastre uma área ou um ponto operacional com endereço e fonte. A marcação no mapa é
-                opcional e representa uma hipótese de inteligência, não um limite oficial.
+                Cadastre um ou mais bairros relacionados à mesma informação operacional. Cada
+                contorno no mapa é independente e representa uma hipótese de inteligência, não um
+                limite oficial.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Bairro ou localidade">
@@ -672,74 +677,7 @@ export function NexoCreateDialog({
                     <option value="historico">Histórico</option>
                   </select>
                 </Field>
-                <Field label="Confiança (0–100)">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className={field}
-                    value={territory.confianca}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, confianca: Number(event.target.value) })
-                    }
-                  />
-                </Field>
-                <Field label="Logradouro" wide>
-                  <input
-                    className={field}
-                    value={territory.logradouro}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, logradouro: event.target.value })
-                    }
-                    placeholder="Rua, avenida, estrada ou descrição do acesso"
-                  />
-                </Field>
-                <Field label="Número">
-                  <input
-                    className={field}
-                    value={territory.numero}
-                    onChange={(event) => setTerritory({ ...territory, numero: event.target.value })}
-                    placeholder="S/N"
-                  />
-                </Field>
-                <Field label="Complemento">
-                  <input
-                    className={field}
-                    value={territory.complemento}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, complemento: event.target.value })
-                    }
-                  />
-                </Field>
-                <Field label="Município">
-                  <input
-                    className={field}
-                    value={territory.municipio}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, municipio: event.target.value })
-                    }
-                  />
-                </Field>
-                <Field label="UF">
-                  <input
-                    maxLength={2}
-                    className={field}
-                    value={territory.uf}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, uf: event.target.value.toUpperCase() })
-                    }
-                  />
-                </Field>
-                <Field label="Ponto de referência">
-                  <input
-                    className={field}
-                    value={territory.ponto_referencia}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, ponto_referencia: event.target.value })
-                    }
-                  />
-                </Field>
-                <Field label="Link Google Maps / navegação">
+                <Field label="Link do Google Maps" wide>
                   <input
                     type="url"
                     className={field}
@@ -748,17 +686,6 @@ export function NexoCreateDialog({
                       setTerritory({ ...territory, link_navegacao: event.target.value })
                     }
                     placeholder="https://maps.google.com/..."
-                  />
-                </Field>
-                <Field label="Fonte resumida" wide>
-                  <textarea
-                    required
-                    className={textarea}
-                    value={territory.fonte_resumo}
-                    onChange={(event) =>
-                      setTerritory({ ...territory, fonte_resumo: event.target.value })
-                    }
-                    placeholder="Descreva a origem e a data da informação."
                   />
                 </Field>
                 <Field label="Observações" wide>
@@ -772,7 +699,7 @@ export function NexoCreateDialog({
                 </Field>
               </div>
               <div>
-                <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-black text-[#1d425c]">Área visual opcional</h3>
                     <p className="text-xs text-[#8a9dab]">
@@ -780,16 +707,36 @@ export function NexoCreateDialog({
                       desenho.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setTerritory({ ...territory, pontos: territory.pontos.slice(0, -1) })
-                    }
-                    disabled={!territory.pontos.length}
-                    className="inline-flex items-center gap-1 rounded-lg border border-[#d4e2e9] bg-white px-2 py-1.5 text-xs text-[#557188] disabled:opacity-50"
-                  >
-                    <CornerDownLeft className="h-3.5 w-3.5" /> Desfazer
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTerritory({ ...territory, pontos: territory.pontos.slice(0, -1) })
+                      }
+                      disabled={!territory.pontos.length}
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#d4e2e9] bg-white px-2 py-1.5 text-xs text-[#557188] disabled:opacity-50"
+                    >
+                      <CornerDownLeft className="h-3.5 w-3.5" /> Desfazer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={territory.pontos.length < 3}
+                      onClick={() => {
+                        const finished = finishTerritoryPolygon(
+                          territory.poligonos,
+                          territory.pontos,
+                        );
+                        setTerritory({
+                          ...territory,
+                          poligonos: finished.polygons,
+                          pontos: finished.draft,
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Concluir área e iniciar outra
+                    </button>
+                  </div>
                 </div>
                 <NexoTerritoryMap
                   organizations={organizations}
@@ -797,6 +744,7 @@ export function NexoCreateDialog({
                   selectedId={null}
                   onSelect={() => {}}
                   drawingPoints={territory.pontos}
+                  drawingAreas={territory.poligonos}
                   onDrawingChange={(points) =>
                     setTerritory((current) => ({ ...current, pontos: points }))
                   }
@@ -807,16 +755,46 @@ export function NexoCreateDialog({
                     }))
                   }
                 />
-                <div className="mt-2 flex items-center justify-between text-xs text-[#8a9dab]">
-                  <span>{territory.pontos.length} ponto(s) marcados</span>
+                <div className="mt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-[#8a9dab]">
+                  <span>
+                    {territory.poligonos.length} área(s) concluída(s) · {territory.pontos.length}{" "}
+                    ponto(s) no desenho atual
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setTerritory({ ...territory, pontos: [] })}
+                    onClick={() => setTerritory({ ...territory, pontos: [], poligonos: [] })}
                     className="inline-flex items-center gap-1 hover:text-[#1f637e]"
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Limpar desenho
                   </button>
                 </div>
+                {territory.poligonos.length ? (
+                  <div className="mt-3 flex flex-wrap gap-2" aria-label="Áreas concluídas">
+                    {territory.poligonos.map((polygon, index) => (
+                      <span
+                        key={`${index}-${polygon.length}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800"
+                      >
+                        Área {index + 1} · {polygon.length} pontos
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTerritory({
+                              ...territory,
+                              poligonos: territory.poligonos.filter(
+                                (_, polygonIndex) => polygonIndex !== index,
+                              ),
+                            })
+                          }
+                          aria-label={`Remover área ${index + 1}`}
+                          className="rounded-full p-0.5 hover:bg-emerald-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </>
           ) : null}
