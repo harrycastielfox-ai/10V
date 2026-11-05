@@ -52,6 +52,7 @@ import {
   type NexoMemberFilters,
 } from "../nexoMemberFilters";
 import { getNexoPersonPhotoUrl, selectNexoRecords } from "../nexoSelectors";
+import { getNexoFactionTheme } from "../nexoFactionTheme";
 import { NexoLinkForm, type NexoLinkInput } from "./NexoLinkForm";
 import { NexoOrganogram } from "./NexoOrganogram";
 import { NexoTerritoryMap } from "./NexoTerritoryMap";
@@ -439,30 +440,6 @@ function LeadershipTree({
       </div>
     </div>
   );
-}
-
-function factionHeaderTheme(color: string) {
-  const normalized = /^#[0-9a-f]{6}$/i.test(color) ? color : "#173d5b";
-  const channels = [1, 3, 5].map((index) =>
-    Number.parseInt(normalized.slice(index, index + 2), 16),
-  );
-  const darker = `#${channels
-    .map((channel) =>
-      Math.round(channel * 0.68)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-  const luminance = (channels[0] * 299 + channels[1] * 587 + channels[2] * 114) / 255000;
-  const darkText = luminance > 0.62;
-  return {
-    accent: normalized,
-    background: `linear-gradient(125deg, ${normalized} 0%, ${darker} 100%)`,
-    foreground: darkText ? "#102b3d" : "#ffffff",
-    muted: darkText ? "rgba(16,43,61,.72)" : "rgba(255,255,255,.76)",
-    surface: darkText ? "rgba(16,43,61,.1)" : "rgba(255,255,255,.14)",
-    border: darkText ? "rgba(16,43,61,.2)" : "rgba(255,255,255,.28)",
-  };
 }
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -1924,7 +1901,7 @@ export function NexoDossier({
   }, [target.id, target.kind]);
   if (!organization && !person) return null;
   const title = person?.nome || organization?.nome || "Dossiê";
-  const organizationTheme = organization ? factionHeaderTheme(organization.cor) : null;
+  const organizationTheme = organization ? getNexoFactionTheme(organization.cor) : null;
 
   if (person && !expanded) {
     const photoUrl = getNexoPersonPhotoUrl(person);
