@@ -32,7 +32,7 @@ final result: passed
 
 - Referência: `codex-clipboard-cf1b478f-9368-404d-aef4-efd2a2aa72eb.png`
 - Rota verificada: `http://127.0.0.1:4173/preview/nexo`
-- Capturas: `test-results/nexo-central-map-v2.png`, `test-results/nexo-central-notebook.png` e `test-results/nexo-central-tablet.png`
+- Capturas: `test-results/nexo-central-sem-acesso-rapido.png`, `test-results/nexo-central-map-v2.png` e `test-results/nexo-central-tablet.png`
 - Viewports: 1680 × 1050, 1366 × 768 e 768 × 1024
 
 ## Comparação
@@ -40,6 +40,7 @@ final result: passed
 - O destaque da Central conserva somente as ações `Cadastrar pessoa` e `Cadastrar facção`.
 - Os quatro indicadores continuam visíveis e usam as contagens persistidas de pessoas, facções, áreas e procedimentos.
 - O painel de pendências foi substituído pelo mapa de ruas já usado pelo NEXO.
+- O bloco `Acesso rápido / Cadastros recentes` foi removido e o mapa passou a ocupar toda a largura abaixo dos indicadores.
 - As organizações com áreas ganham legenda com sigla/nome e sua cor cadastrada.
 - Os limites territoriais usam os polígonos persistidos; nenhum domínio territorial é inferido automaticamente.
 - A seleção de legenda ou polígono abre o dossiê da facção relacionada.
@@ -47,7 +48,7 @@ final result: passed
 ## Responsividade
 
 - Não houve overflow horizontal nos três viewports verificados.
-- Em notebook, cadastros recentes e mapa permanecem lado a lado.
+- Em notebook, o mapa usa toda a largura útil sem deixar uma coluna vazia.
 - Em tablet, os painéis passam para uma coluna e o mapa preserva controles e altura útil.
 
 ## Pendências

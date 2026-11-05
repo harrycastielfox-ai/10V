@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   ArrowUpRight,
   Building2,
   FileText,
@@ -10,7 +9,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import { activeDirectoryLinks } from "../nexoDirectoryFilters";
-import { getNexoPersonPhotoUrl } from "../nexoSelectors";
 import {
   uniqueNexoProcedureRecords,
   type NexoWorkspaceSearchData,
@@ -42,28 +40,6 @@ export function NexoCommandDashboard({
   const mappedOrganizations = organizations.filter((organization) =>
     mappedOrganizationIds.has(organization.id),
   );
-  const recent = [
-    ...people.map((person) => ({
-      id: person.id,
-      name: person.nome,
-      detail: person.apelido || "Ficha individual",
-      date: person.created_at,
-      kind: "person" as const,
-      photo: getNexoPersonPhotoUrl(person),
-      color: "#1a8a9e",
-    })),
-    ...organizations.map((org) => ({
-      id: org.id,
-      name: org.nome,
-      detail: org.sigla || "Dossiê de facção",
-      date: org.created_at,
-      kind: "organization" as const,
-      photo: null,
-      color: org.cor,
-    })),
-  ]
-    .sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0))
-    .slice(0, 6);
   const indicators = [
     {
       label: "Pessoas",
@@ -220,143 +196,80 @@ export function NexoCommandDashboard({
         ))}
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(320px,.72fr)_minmax(0,1.28fr)]">
-        <section className="nexo-surface rounded-[22px] p-5 sm:p-6">
-          <div className="flex items-center justify-between gap-3">
+      <div className="mt-5 space-y-5">
+        <section className="nexo-surface overflow-hidden rounded-[22px]">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
             <div>
-              <p className="nexo-eyebrow">Acesso rápido</p>
-              <h2 className="mt-1.5 text-[17px] font-extrabold tracking-[-.02em] text-[#12334a]">
-                Cadastros recentes
+              <p className="nexo-eyebrow">Leitura territorial</p>
+              <h2 className="mt-1.5 flex items-center gap-2 text-[17px] font-extrabold tracking-[-.02em] text-[#12334a]">
+                <MapPinned className="h-4 w-4 text-[#168aa1]" aria-hidden />
+                Mapa territorial
               </h2>
+              <p className="mt-2 text-xs leading-6 text-[#567184]">
+                Áreas registradas por facção, conforme os limites informados no NEXO.
+              </p>
             </div>
-            <span className="rounded-lg bg-[#f0f5f8] px-2.5 py-1.5 text-[11px] text-[#567184]">
-              Por data de criação
-            </span>
-          </div>
-          <div className="mt-4 divide-y divide-[#edf2f5]">
-            {recent.map((item) => (
-              <button
-                type="button"
-                key={`${item.kind}:${item.id}`}
-                onClick={() => onOpen({ kind: item.kind, id: item.id })}
-                className="group flex w-full items-center gap-3 rounded-xl px-2 py-3.5 text-left transition hover:bg-[#f0f6f8]"
-              >
-                <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#dbe9ef] bg-[#edf5f8]"
-                  style={{ color: item.color }}
+            <div
+              className="flex max-w-full flex-wrap gap-2"
+              aria-label="Legenda das facções no mapa"
+            >
+              {mappedOrganizations.map((organization) => (
+                <button
+                  key={organization.id}
+                  type="button"
+                  onClick={() => onOpen({ kind: "organization", id: organization.id })}
+                  title={`Abrir dossiê de ${organization.nome}`}
+                  className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#d8e5eb] bg-[#f7fafb] px-3 py-2 text-[10px] font-black uppercase tracking-[.08em] text-[#385c73] transition hover:border-[#8dbbc7] hover:bg-white"
                 >
-                  {item.photo ? (
-                    <img src={item.photo} alt="" className="h-full w-full object-cover" />
-                  ) : item.kind === "person" ? (
-                    <UsersRound className="h-5 w-5" />
-                  ) : (
-                    <Building2 className="h-5 w-5" />
-                  )}
+                  <span
+                    aria-hidden
+                    className="h-2.5 w-2.5 rounded-full shadow-[0_0_0_3px_white]"
+                    style={{ backgroundColor: organization.cor }}
+                  />
+                  <span>{organization.sigla?.trim() || organization.nome}</span>
+                  {organization.sigla?.trim() ? (
+                    <span className="sr-only">{organization.nome}</span>
+                  ) : null}
+                </button>
+              ))}
+              {!mappedOrganizations.length ? (
+                <span className="inline-flex min-h-9 items-center rounded-full border border-[#d8e5eb] bg-[#f7fafb] px-3 py-2 text-[10px] font-bold text-[#668194]">
+                  0 áreas registradas
                 </span>
-                <span className="min-w-0 flex-1">
-                  <strong className="block truncate text-[13px] font-bold text-[#23465e]">
-                    {item.name}
-                  </strong>
-                  <span className="mt-1 block truncate text-xs text-[#567184]">{item.detail}</span>
-                </span>
-                {Number.isFinite(Date.parse(item.date)) ? (
-                  <time
-                    dateTime={item.date}
-                    className="hidden text-[11px] tabular-nums text-[#567184] sm:block"
-                  >
-                    {new Intl.DateTimeFormat("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                      timeZone: "America/Sao_Paulo",
-                    }).format(new Date(item.date))}
-                  </time>
-                ) : null}
-                <ArrowRight className="h-4 w-4 text-[#8ea8b7] transition group-hover:translate-x-0.5 group-hover:text-[#168aa1]" />
-              </button>
-            ))}
-            {!recent.length ? (
-              <div className="nexo-empty-state py-10 text-center text-sm text-[#567184]">
-                Nenhum cadastro ainda. Comece por uma pessoa ou facção.
-              </div>
-            ) : null}
+              ) : null}
+            </div>
+          </div>
+          <div className="border-t border-[#dce8ed] bg-[#f4f8fa] p-2 sm:p-3">
+            <NexoTerritoryMap
+              territories={territories}
+              organizations={organizations}
+              people={[]}
+              selectedId={null}
+              onSelect={(territory) =>
+                onOpen({ kind: "organization", id: territory.organizacao_id })
+              }
+              labelMode="organization"
+              fitTerritories
+              heightClassName="h-[390px] sm:h-[460px]"
+              mapAriaLabel="Mapa territorial da Central NEXO"
+              readOnlyDescription="As áreas registradas nos dossiês aparecem aqui com a cor e a identificação da facção relacionada."
+            />
           </div>
         </section>
-        <div className="space-y-5">
-          <section className="nexo-surface overflow-hidden rounded-[22px]">
-            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-              <div>
-                <p className="nexo-eyebrow">Leitura territorial</p>
-                <h2 className="mt-1.5 flex items-center gap-2 text-[17px] font-extrabold tracking-[-.02em] text-[#12334a]">
-                  <MapPinned className="h-4 w-4 text-[#168aa1]" aria-hidden />
-                  Mapa territorial
-                </h2>
-                <p className="mt-2 text-xs leading-6 text-[#567184]">
-                  Áreas registradas por facção, conforme os limites informados no NEXO.
-                </p>
-              </div>
-              <div
-                className="flex max-w-full flex-wrap gap-2"
-                aria-label="Legenda das facções no mapa"
-              >
-                {mappedOrganizations.map((organization) => (
-                  <button
-                    key={organization.id}
-                    type="button"
-                    onClick={() => onOpen({ kind: "organization", id: organization.id })}
-                    title={`Abrir dossiê de ${organization.nome}`}
-                    className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#d8e5eb] bg-[#f7fafb] px-3 py-2 text-[10px] font-black uppercase tracking-[.08em] text-[#385c73] transition hover:border-[#8dbbc7] hover:bg-white"
-                  >
-                    <span
-                      aria-hidden
-                      className="h-2.5 w-2.5 rounded-full shadow-[0_0_0_3px_white]"
-                      style={{ backgroundColor: organization.cor }}
-                    />
-                    <span>{organization.sigla?.trim() || organization.nome}</span>
-                    {organization.sigla?.trim() ? (
-                      <span className="sr-only">{organization.nome}</span>
-                    ) : null}
-                  </button>
-                ))}
-                {!mappedOrganizations.length ? (
-                  <span className="inline-flex min-h-9 items-center rounded-full border border-[#d8e5eb] bg-[#f7fafb] px-3 py-2 text-[10px] font-bold text-[#668194]">
-                    0 áreas registradas
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="border-t border-[#dce8ed] bg-[#f4f8fa] p-2 sm:p-3">
-              <NexoTerritoryMap
-                territories={territories}
-                organizations={organizations}
-                people={[]}
-                selectedId={null}
-                onSelect={(territory) =>
-                  onOpen({ kind: "organization", id: territory.organizacao_id })
-                }
-                labelMode="organization"
-                fitTerritories
-                heightClassName="h-[390px] sm:h-[460px]"
-                mapAriaLabel="Mapa territorial da Central NEXO"
-                readOnlyDescription="As áreas registradas nos dossiês aparecem aqui com a cor e a identificação da facção relacionada."
-              />
-            </div>
-          </section>
-          <button
-            type="button"
-            onClick={() => onNavigate("inteligencia")}
-            className="flex w-full items-center gap-4 rounded-[22px] border border-[#c9dfe7] bg-[#e8f2f6] p-5 text-left transition hover:border-[#7fb8c8] hover:bg-[#deeff3]"
-          >
-            <Network className="h-7 w-7 shrink-0 text-[#2d8a9e]" />
-            <span className="flex-1">
-              <strong className="block text-sm text-[#244d64]">Explorar conexões</strong>
-              <span className="mt-1 block text-xs leading-5 text-[#58778b]">
-                {activeLinks.length} vínculos atuais registrados. Status e fontes permanecem
-                visíveis.
-              </span>
+        <button
+          type="button"
+          onClick={() => onNavigate("inteligencia")}
+          className="flex w-full items-center gap-4 rounded-[22px] border border-[#c9dfe7] bg-[#e8f2f6] p-5 text-left transition hover:border-[#7fb8c8] hover:bg-[#deeff3]"
+        >
+          <Network className="h-7 w-7 shrink-0 text-[#2d8a9e]" />
+          <span className="flex-1">
+            <strong className="block text-sm text-[#244d64]">Explorar conexões</strong>
+            <span className="mt-1 block text-xs leading-5 text-[#58778b]">
+              {activeLinks.length} vínculos atuais registrados. Status e fontes permanecem visíveis.
             </span>
-            <ArrowUpRight className="h-4 w-4 text-[#438ba0]" />
-          </button>
-        </div>
+          </span>
+          <ArrowUpRight className="h-4 w-4 text-[#438ba0]" />
+        </button>
       </div>
       <p className="mt-5 max-w-5xl text-[11px] leading-6 text-[#567184]">
         Contagens limitadas aos registros disponíveis neste ambiente. Procedimentos são deduplicados
