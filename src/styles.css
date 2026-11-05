@@ -2251,6 +2251,42 @@ html[data-appearance="mixed"] .app-layout-objetos > aside {
   line-height: 1.35;
 }
 
+.nexo-territory-organization-label {
+  border: 1px solid rgb(255 255 255 / 92%) !important;
+  border-radius: 10px !important;
+  background: rgb(255 255 255 / 94%) !important;
+  box-shadow: 0 8px 24px rgb(18 51 74 / 20%) !important;
+  color: #12334a !important;
+  padding: 0 !important;
+}
+
+.nexo-territory-organization-label::before {
+  border-top-color: rgb(255 255 255 / 94%) !important;
+}
+
+.nexo-territory-organization-label__content {
+  display: grid;
+  min-width: 72px;
+  gap: 2px;
+  padding: 7px 9px;
+  text-align: center;
+}
+
+.nexo-territory-organization-label__content strong {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.nexo-territory-organization-label__content small {
+  color: #567184;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .sipi-neighborhood-marker,
 .sipi-diligence-marker,
 .sipi-central-marker {

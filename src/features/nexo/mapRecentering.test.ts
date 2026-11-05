@@ -29,4 +29,23 @@ describe("scheduleRigidMapRecentering", () => {
     vi.advanceTimersByTime(90_000);
     expect(recenter).not.toHaveBeenCalled();
   });
+
+  it("aceita intervalo específico para a Central sem alterar o padrão", () => {
+    vi.useFakeTimers();
+    const recenter = vi.fn();
+    const stop = scheduleRigidMapRecentering({
+      drawing: false,
+      recenter,
+      intervalMs: 10_000,
+    });
+
+    vi.advanceTimersByTime(9_999);
+    expect(recenter).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(recenter).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(10_000);
+    expect(recenter).toHaveBeenCalledTimes(2);
+
+    stop();
+  });
 });
