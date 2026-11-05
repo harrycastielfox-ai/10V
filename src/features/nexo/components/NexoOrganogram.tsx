@@ -34,7 +34,9 @@ import {
   type NexoOrganogramMember,
 } from "../nexoOrganogram";
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
+import { getNexoFactionTheme } from "../nexoFactionTheme";
 import { formatNexoLinkRoleLocation } from "../nexoLinkLocation";
+import { getNexoOrganogramViewportInteraction } from "../nexoOrganogramInteraction";
 import { scheduleRigidOrganogramRecentering } from "../organogramRecentering";
 import type { NexoNucleo, NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
 
@@ -250,6 +252,11 @@ function OrganogramCanvas({
   }, [resetView, stageWidth]);
   const [query, setQuery] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const organizationTheme = useMemo(
+    () => getNexoFactionTheme(organization.cor),
+    [organization.cor],
+  );
+  const viewportInteraction = getNexoOrganogramViewportInteraction(isFullscreen);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const searchResults = useMemo(() => searchNexoOrganogram(model, query), [model, query]);
@@ -366,7 +373,14 @@ function OrganogramCanvas({
   return (
     <section
       className={`nexo-organogram-shell ${isFullscreen ? "is-fullscreen" : ""}`}
-      style={{ "--nexo-org-accent": organization.cor } as CSSProperties}
+      style={
+        {
+          "--nexo-org-accent": organizationTheme.accent,
+          "--nexo-org-accent-foreground": organizationTheme.foreground,
+          "--nexo-org-accent-surface": organizationTheme.surface,
+          "--nexo-org-accent-border": organizationTheme.border,
+        } as CSSProperties
+      }
       aria-label={`Organograma de ${organization.nome}`}
     >
       <div className="nexo-organogram-toolbar">
@@ -459,10 +473,11 @@ function OrganogramCanvas({
           onNodeClick={(_, node) => focusMember(node.id)}
           panOnDrag
           panOnScroll={false}
-          zoomOnScroll={isFullscreen}
-          zoomOnPinch
+          zoomOnScroll={viewportInteraction.zoomOnScroll}
+          zoomOnPinch={viewportInteraction.zoomOnPinch}
+          zoomActivationKeyCode={viewportInteraction.zoomActivationKeyCode}
           zoomOnDoubleClick={false}
-          preventScrolling={isFullscreen}
+          preventScrolling={viewportInteraction.preventScrolling}
           selectionOnDrag={false}
           onlyRenderVisibleElements
           proOptions={{ hideAttribution: true }}

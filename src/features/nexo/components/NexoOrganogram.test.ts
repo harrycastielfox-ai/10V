@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { isNexoOrganogramLeadershipRole } from "../nexoOrganogram";
 import type { NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
+import { getNexoOrganogramViewportInteraction } from "../nexoOrganogramInteraction";
 import { NexoOrganogram } from "./NexoOrganogram";
 
 const organization: NexoOrganizacao = {
@@ -24,13 +25,17 @@ const baseProps = {
   onOpen: () => {},
 };
 
-function organogramMember(id: string, nome: string): { person: NexoPessoa; link: NexoVinculo } {
+function organogramMember(
+  id: string,
+  nome: string,
+  funcao = "Integrante",
+): { person: NexoPessoa; link: NexoVinculo } {
   const link = {
     id: `v-${id}`,
     pessoa_id: id,
     organizacao_id: organization.id,
     status: "confirmado",
-    funcao: "Integrante",
+    funcao,
     confianca: 80,
     fonte_resumo: "Fonte sintética",
     desde: null,
@@ -113,5 +118,33 @@ describe("estados do organograma NEXO", () => {
     );
 
     expect(html).toContain("Conexões tracejadas organizam integrantes sem chefia cadastrada.");
+  });
+
+  it("aplica a cor da facção e contraste legível no rodapé das lideranças", () => {
+    const html = renderToStaticMarkup(
+      createElement(NexoOrganogram, {
+        ...baseProps,
+        organization: { ...organization, cor: "#f59e0b" },
+        members: [organogramMember("lider", "Liderança Sintética", "Líder")],
+      }),
+    );
+
+    expect(html).toContain("--nexo-org-accent:#f59e0b");
+    expect(html).toContain("--nexo-org-accent-foreground:#102b3d");
+  });
+
+  it("reserva roda, gesto de pinça e captura da rolagem para a tela cheia", () => {
+    expect(getNexoOrganogramViewportInteraction(false)).toEqual({
+      zoomOnScroll: false,
+      zoomOnPinch: false,
+      preventScrolling: false,
+      zoomActivationKeyCode: null,
+    });
+    expect(getNexoOrganogramViewportInteraction(true)).toEqual({
+      zoomOnScroll: true,
+      zoomOnPinch: true,
+      preventScrolling: true,
+      zoomActivationKeyCode: null,
+    });
   });
 });

@@ -119,4 +119,10 @@ test("deixa a roda do mouse rolar a página fora da tela cheia", async ({ page }
     .poll(() => dossier.evaluate((element) => element.scrollTop))
     .toBeGreaterThan(initialScroll);
   expect(await stage.getAttribute("data-viewport-zoom")).toBe(initialZoom);
+
+  await page.keyboard.down("Control");
+  await page.mouse.wheel(0, -500);
+  await page.keyboard.up("Control");
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  expect(await stage.getAttribute("data-viewport-zoom")).toBe(initialZoom);
 });
