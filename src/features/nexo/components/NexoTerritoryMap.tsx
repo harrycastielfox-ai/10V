@@ -15,6 +15,7 @@ type Props = ComponentProps<typeof NexoLegacyTerritoryMap> & {
   heightClassName?: string;
   mapAriaLabel?: string;
   readOnlyDescription?: string;
+  recenterIntervalMs?: number;
 };
 
 const ITABELA_CENTER: [number, number] = [-16.575, -39.559];
@@ -145,8 +146,9 @@ function StreetMap(props: Props) {
       scheduleRigidMapRecentering({
         drawing: drawing || !ready,
         recenter: () => recenterCity(true),
+        intervalMs: props.recenterIntervalMs,
       }),
-    [drawing, ready, recenterCity],
+    [drawing, ready, recenterCity, props.recenterIntervalMs],
   );
 
   useEffect(() => {

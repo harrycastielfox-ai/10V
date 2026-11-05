@@ -250,9 +250,10 @@ export function NexoCommandDashboard({
               }
               labelMode="organization"
               fitTerritories
-              heightClassName="h-[390px] sm:h-[460px]"
+              heightClassName="h-[460px] sm:h-[540px] lg:h-[580px]"
               mapAriaLabel="Mapa territorial da Central NEXO"
               readOnlyDescription="As áreas registradas nos dossiês aparecem aqui com a cor e a identificação da facção relacionada."
+              recenterIntervalMs={10_000}
             />
           </div>
         </section>
