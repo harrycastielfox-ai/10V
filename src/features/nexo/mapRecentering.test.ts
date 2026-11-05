@@ -1,5 +1,35 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { scheduleRigidMapRecentering } from "./mapRecentering";
+import {
+  isTerritoryMapAtDefaultView,
+  scheduleRigidMapRecentering,
+  shouldAnimateMapRecentering,
+} from "./mapRecentering";
+
+describe("isTerritoryMapAtDefaultView", () => {
+  it("evita recentralização redundante quando centro e zoom já são os padrões", () => {
+    expect(isTerritoryMapAtDefaultView(-16.575, -39.559, 15)).toBe(true);
+    expect(isTerritoryMapAtDefaultView(-16.574997, -39.559021, 15)).toBe(true);
+  });
+
+  it("solicita recentralização quando posição ou zoom foram alterados", () => {
+    expect(isTerritoryMapAtDefaultView(-16.57, -39.559, 15)).toBe(false);
+    expect(isTerritoryMapAtDefaultView(-16.575, -39.559, 14)).toBe(false);
+  });
+});
+
+describe("shouldAnimateMapRecentering", () => {
+  it("desativa animação nos ciclos automáticos para evitar trabalho periódico", () => {
+    expect(shouldAnimateMapRecentering(true, false)).toBe(false);
+  });
+
+  it("mantém animação no comando manual quando movimento reduzido está desligado", () => {
+    expect(shouldAnimateMapRecentering(false, false)).toBe(true);
+  });
+
+  it("desativa animação manual quando movimento reduzido está ativo", () => {
+    expect(shouldAnimateMapRecentering(false, true)).toBe(false);
+  });
+});
 
 describe("scheduleRigidMapRecentering", () => {
   afterEach(() => vi.useRealTimers());
