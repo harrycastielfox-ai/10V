@@ -13,7 +13,7 @@ if (nexoChunks.length !== 1) {
 
 const chunkPath = path.join(assetsDir, nexoChunks[0]);
 const { size } = await stat(chunkPath);
-const maximumBytes = 850_000;
+const maximumBytes = 450_000;
 
 if (size > maximumBytes) {
   throw new Error(
