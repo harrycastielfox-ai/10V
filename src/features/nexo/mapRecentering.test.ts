@@ -1,5 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { scheduleRigidMapRecentering, shouldAnimateMapRecentering } from "./mapRecentering";
+import {
+  isTerritoryMapAtDefaultView,
+  scheduleRigidMapRecentering,
+  shouldAnimateMapRecentering,
+} from "./mapRecentering";
+
+describe("isTerritoryMapAtDefaultView", () => {
+  it("evita recentralização redundante quando centro e zoom já são os padrões", () => {
+    expect(isTerritoryMapAtDefaultView(-16.575, -39.559, 15)).toBe(true);
+    expect(isTerritoryMapAtDefaultView(-16.574997, -39.559021, 15)).toBe(true);
+  });
+
+  it("solicita recentralização quando posição ou zoom foram alterados", () => {
+    expect(isTerritoryMapAtDefaultView(-16.57, -39.559, 15)).toBe(false);
+    expect(isTerritoryMapAtDefaultView(-16.575, -39.559, 14)).toBe(false);
+  });
+});
 
 describe("shouldAnimateMapRecentering", () => {
   it("desativa animação nos ciclos automáticos para evitar trabalho periódico", () => {

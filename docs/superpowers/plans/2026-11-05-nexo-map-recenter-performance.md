@@ -4,7 +4,7 @@
 
 **Goal:** Reduzir o trabalho periódico do mapa da Central mantendo a recentralização automática a cada 10 segundos.
 
-**Architecture:** Uma decisão pura em `mapRecentering.ts` separará o recenter automático instantâneo do recenter manual animado. O componente consumirá essa decisão e deixará de manter estado para contar ciclos automáticos.
+**Architecture:** Decisões puras em `mapRecentering.ts` identificarão a posição padrão e separarão o recenter automático instantâneo do recenter manual animado. O componente ignorará ciclos redundantes e deixará de manter estado para contar ciclos automáticos.
 
 **Tech Stack:** React 19, TypeScript, Leaflet, Vitest.
 

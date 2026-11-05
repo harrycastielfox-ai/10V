@@ -7,6 +7,7 @@ Reduzir a sensação de travamento periódico na Central NEXO sem retirar a rece
 ## Chosen approach
 
 - Manter o intervalo automático de 10 segundos.
+- Ignorar o ciclo quando centro e zoom já estiverem na posição padrão.
 - Usar reposicionamento instantâneo, sem `flyTo`, apenas nos ciclos automáticos.
 - Remover o contador visual de ciclos automáticos para não provocar um rerender React a cada intervalo.
 - Preservar a animação discreta do botão manual e o respeito a `prefers-reduced-motion`.

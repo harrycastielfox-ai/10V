@@ -3,7 +3,13 @@ import type { FeatureGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { NexoLegacyTerritoryMap } from "./NexoLegacyTerritoryMap";
 import { circleArea, geographicPoint, isGeographicArea } from "../nexoTerritoryCoordinates";
-import { scheduleRigidMapRecentering, shouldAnimateMapRecentering } from "../mapRecentering";
+import {
+  isTerritoryMapAtDefaultView,
+  scheduleRigidMapRecentering,
+  shouldAnimateMapRecentering,
+  TERRITORY_MAP_CENTER,
+  TERRITORY_MAP_ZOOM,
+} from "../mapRecentering";
 import { territoryPolygons } from "../nexoTerritoryGeometry";
 import type { NexoMapPoint } from "../nexoTypes";
 
@@ -17,9 +23,6 @@ type Props = ComponentProps<typeof NexoLegacyTerritoryMap> & {
   readOnlyDescription?: string;
   recenterIntervalMs?: number;
 };
-
-const ITABELA_CENTER: [number, number] = [-16.575, -39.559];
-const ITABELA_ZOOM = 15;
 
 export function NexoTerritoryMap(props: Props) {
   const legacy = props.territories.filter(
@@ -71,11 +74,18 @@ function StreetMap(props: Props) {
   const recenterCity = useCallback((automatic = false) => {
     const instance = map.current;
     if (!instance) return;
+    const currentCenter = instance.getCenter();
+    if (
+      automatic &&
+      isTerritoryMapAtDefaultView(currentCenter.lat, currentCenter.lng, instance.getZoom())
+    ) {
+      return;
+    }
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (shouldAnimateMapRecentering(automatic, prefersReducedMotion)) {
-      instance.flyTo(ITABELA_CENTER, ITABELA_ZOOM, { duration: 0.45 });
+      instance.flyTo(TERRITORY_MAP_CENTER, TERRITORY_MAP_ZOOM, { duration: 0.45 });
     } else {
-      instance.setView(ITABELA_CENTER, ITABELA_ZOOM, { animate: false });
+      instance.setView(TERRITORY_MAP_CENTER, TERRITORY_MAP_ZOOM, { animate: false });
     }
   }, []);
 
@@ -89,7 +99,7 @@ function StreetMap(props: Props) {
           minZoom: 10,
           maxZoom: 19,
           scrollWheelZoom: false,
-        }).setView(ITABELA_CENTER, ITABELA_ZOOM);
+        }).setView(TERRITORY_MAP_CENTER, TERRITORY_MAP_ZOOM);
         map.current = instance;
         const reportVisibleView = () => {
           const visibleCenter = instance.getCenter();
