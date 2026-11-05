@@ -10,7 +10,7 @@ import {
   RefreshCw,
   UsersRound,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import "../nexoVisual.css";
 import { NEXO_APPROVAL_DEMO_DATA as NEXO_PRESENTATION_DATA } from "../nexoApprovalDemoData";
@@ -31,23 +31,57 @@ import type {
   NexoObservacao,
   NexoRecursoPdf,
 } from "../nexoTypes";
-import { NexoCreateDialog, type CreateKind } from "../components/NexoCreateDialog";
+import type { CreateKind } from "../components/NexoCreateDialog";
 import { NexoBootSequence } from "../components/NexoBootSequence";
 import { NexoCommandDashboard } from "../components/NexoCommandDashboard";
-import { NexoCommandPalette } from "../components/NexoCommandPalette";
-import { NexoDirectoryPanel } from "../components/NexoDirectoryPanel";
-import { NexoDossier } from "../components/NexoDossier";
-import { NexoIntelligenceBoard } from "../components/NexoIntelligenceBoard";
-import { NexoProceduresDashboard } from "../components/NexoProceduresDashboard";
 import type { NexoLinkInput } from "../components/NexoLinkForm";
-import { NexoReport } from "../components/NexoReport";
-import { NexoRoutesPanel } from "../components/NexoRoutesPanel";
-import { NexoReportConfigurator } from "../components/NexoReportConfigurator";
-import { NexoReportsHub } from "../components/NexoReportsHub";
 import { createNexoReportConfig, type NexoReportConfig } from "../nexoReportConfig";
 import type { NexoSearchTarget, NexoWorkspaceView } from "../nexoWorkspaceSearch";
 import { previewPersonFromInput } from "./previewPersonFromInput";
 import { collectTerritoryPolygons } from "../nexoTerritoryGeometry";
+
+const NexoCreateDialog = lazy(() =>
+  import("../components/NexoCreateDialog").then((module) => ({
+    default: module.NexoCreateDialog,
+  })),
+);
+const NexoCommandPalette = lazy(() =>
+  import("../components/NexoCommandPalette").then((module) => ({
+    default: module.NexoCommandPalette,
+  })),
+);
+const NexoDirectoryPanel = lazy(() =>
+  import("../components/NexoDirectoryPanel").then((module) => ({
+    default: module.NexoDirectoryPanel,
+  })),
+);
+const NexoDossier = lazy(() =>
+  import("../components/NexoDossier").then((module) => ({ default: module.NexoDossier })),
+);
+const NexoIntelligenceBoard = lazy(() =>
+  import("../components/NexoIntelligenceBoard").then((module) => ({
+    default: module.NexoIntelligenceBoard,
+  })),
+);
+const NexoProceduresDashboard = lazy(() =>
+  import("../components/NexoProceduresDashboard").then((module) => ({
+    default: module.NexoProceduresDashboard,
+  })),
+);
+const NexoReport = lazy(() =>
+  import("../components/NexoReport").then((module) => ({ default: module.NexoReport })),
+);
+const NexoReportConfigurator = lazy(() =>
+  import("../components/NexoReportConfigurator").then((module) => ({
+    default: module.NexoReportConfigurator,
+  })),
+);
+const NexoReportsHub = lazy(() =>
+  import("../components/NexoReportsHub").then((module) => ({ default: module.NexoReportsHub })),
+);
+const NexoRoutesPanel = lazy(() =>
+  import("../components/NexoRoutesPanel").then((module) => ({ default: module.NexoRoutesPanel })),
+);
 
 type View = NexoWorkspaceView;
 type DossierTarget = { kind: "person" | "organization"; id: string };
@@ -61,6 +95,38 @@ const VIEWS: { id: View; label: string; icon: typeof MapPinned }[] = [
   { id: "procedimentos", label: "Procedimentos", icon: FileText },
   { id: "relatorios", label: "Relatórios", icon: FileBarChart },
 ];
+
+function NexoDeferredPanelFallback() {
+  return (
+    <div
+      role="status"
+      className="mt-6 flex min-h-[320px] items-center justify-center rounded-3xl border border-[#e3ebf1] bg-white"
+    >
+      <div className="text-center">
+        <div className="nexo-loader-ring mx-auto" />
+        <p className="mt-4 text-xs font-bold uppercase tracking-wider text-[#7b93a3]">
+          Carregando módulo
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function NexoDeferredOverlayFallback() {
+  return (
+    <div
+      role="status"
+      className="fixed inset-0 z-[1350] flex items-center justify-center bg-[#0a2538]/35 backdrop-blur-[2px]"
+    >
+      <div className="rounded-2xl border border-[#c9dfe8] bg-white px-6 py-5 text-center shadow-2xl">
+        <div className="nexo-loader-ring mx-auto" />
+        <p className="mt-4 text-xs font-bold uppercase tracking-wider text-[#527083]">
+          Carregando módulo
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export default function NexoWorkspacePage({ preview = false }: { preview?: boolean }) {
   const [view, setView] = useState<View>("painel");
@@ -1122,178 +1188,200 @@ export default function NexoWorkspacePage({ preview = false }: { preview?: boole
         ) : null}
 
         {!loading && (view === "organizacoes" || view === "pessoas") ? (
-          <NexoDirectoryPanel
-            key={view}
-            kind={view === "pessoas" ? "people" : "organizations"}
-            organizations={organizations}
-            people={people}
-            territories={territories}
-            records={reportRecords}
-            onOpen={openDossier}
-            onCreatePerson={() => startCreate("pessoa")}
-            onCreateOrganization={() => startCreate("organizacao")}
-          />
+          <Suspense fallback={<NexoDeferredPanelFallback />}>
+            <NexoDirectoryPanel
+              key={view}
+              kind={view === "pessoas" ? "people" : "organizations"}
+              organizations={organizations}
+              people={people}
+              territories={territories}
+              records={reportRecords}
+              onOpen={openDossier}
+              onCreatePerson={() => startCreate("pessoa")}
+              onCreateOrganization={() => startCreate("organizacao")}
+            />
+          </Suspense>
         ) : null}
 
         {!loading && view === "inteligencia" ? (
-          <NexoIntelligenceBoard
-            organizations={organizations}
-            people={people}
-            territories={territories}
-            records={reportRecords}
-            onOpen={openDossier}
-          />
+          <Suspense fallback={<NexoDeferredPanelFallback />}>
+            <NexoIntelligenceBoard
+              organizations={organizations}
+              people={people}
+              territories={territories}
+              records={reportRecords}
+              onOpen={openDossier}
+            />
+          </Suspense>
         ) : null}
 
         {!loading && view === "mapa" ? (
-          <NexoRoutesPanel
-            people={people}
-            organizations={organizations}
-            onOpenPerson={(id) => openDossier({ kind: "person", id })}
-          />
+          <Suspense fallback={<NexoDeferredPanelFallback />}>
+            <NexoRoutesPanel
+              people={people}
+              organizations={organizations}
+              onOpenPerson={(id) => openDossier({ kind: "person", id })}
+            />
+          </Suspense>
         ) : null}
 
         {!loading && view === "procedimentos" ? (
-          <NexoProceduresDashboard
-            organizations={organizations}
-            people={people}
-            preview={preview}
-            previewRows={presentationProcedureRows}
-          />
+          <Suspense fallback={<NexoDeferredPanelFallback />}>
+            <NexoProceduresDashboard
+              organizations={organizations}
+              people={people}
+              preview={preview}
+              previewRows={presentationProcedureRows}
+            />
+          </Suspense>
         ) : null}
 
         {!loading && view === "relatorios" ? (
-          <NexoReportsHub
-            organizations={organizations}
-            people={people}
-            busy={preparingReport}
-            onConfigure={(scope) => void prepareReport(scope)}
-          />
+          <Suspense fallback={<NexoDeferredPanelFallback />}>
+            <NexoReportsHub
+              organizations={organizations}
+              people={people}
+              busy={preparingReport}
+              onConfigure={(scope) => void prepareReport(scope)}
+            />
+          </Suspense>
         ) : null}
 
-        <NexoCommandPalette
-          open={searchOpen}
-          onClose={() => setSearchOpen(false)}
-          data={workspaceData}
-          onChoose={chooseSearchResult}
-          onCreatePerson={() => startCreate("pessoa")}
-          onCreateOrganization={() => startCreate("organizacao")}
-        />
+        {searchOpen ? (
+          <Suspense fallback={<NexoDeferredOverlayFallback />}>
+            <NexoCommandPalette
+              open
+              onClose={() => setSearchOpen(false)}
+              data={workspaceData}
+              onChoose={chooseSearchResult}
+              onCreatePerson={() => startCreate("pessoa")}
+              onCreateOrganization={() => startCreate("organizacao")}
+            />
+          </Suspense>
+        ) : null}
         {configuringReport ? (
-          <NexoReportConfigurator
-            initialScope={configuringReport}
-            organizacoes={organizations}
-            pessoas={people}
-            territorios={territories}
-            registros={reportRecords}
-            observacoes={reportNotes}
-            busy={printing}
-            onClose={() => setConfiguringReport(null)}
-            onGenerate={(scope, config) => void generateReport(scope, config)}
-          />
+          <Suspense fallback={<NexoDeferredOverlayFallback />}>
+            <NexoReportConfigurator
+              initialScope={configuringReport}
+              organizacoes={organizations}
+              pessoas={people}
+              territorios={territories}
+              registros={reportRecords}
+              observacoes={reportNotes}
+              busy={printing}
+              onClose={() => setConfiguringReport(null)}
+              onGenerate={(scope, config) => void generateReport(scope, config)}
+            />
+          </Suspense>
         ) : null}
 
         {reportScope && typeof document !== "undefined"
           ? createPortal(
-              <NexoReport
-                scope={reportScope}
-                organizacoes={organizations}
-                pessoas={people}
-                territorios={territories}
-                registros={reportRecords}
-                observacoes={reportNotes}
-                config={reportConfig}
-              />,
+              <Suspense fallback={<NexoDeferredOverlayFallback />}>
+                <NexoReport
+                  scope={reportScope}
+                  organizacoes={organizations}
+                  pessoas={people}
+                  territorios={territories}
+                  registros={reportRecords}
+                  observacoes={reportNotes}
+                  config={reportConfig}
+                />
+              </Suspense>,
               document.body,
             )
           : null}
         {dossier ? (
-          <NexoDossier
-            key={`${dossier.kind}:${dossier.id}`}
-            target={dossier}
-            organizations={organizations}
-            nuclei={nuclei}
-            people={people}
-            territories={territories}
-            records={reportRecords}
-            onProcedureRecordsChange={setReportRecords}
-            previewHierarchyEvents={previewHierarchyEvents}
-            previewNotes={reportNotes}
-            onPreviewNoteCreated={(note) => setReportNotes((current) => [note, ...current])}
-            preview={preview}
-            onClose={() => void closeDossier()}
-            onOpen={openDossier}
-            onReport={() =>
-              void prepareReport(
-                dossier.kind === "person"
-                  ? { kind: "pessoa", pessoaId: dossier.id }
-                  : { kind: "organizacao", organizacaoId: dossier.id },
-              )
-            }
-            onEdit={(target) => {
-              setEditTarget(target);
-              setCreateOrganizationId(null);
-              setCreateKind(target.kind === "person" ? "pessoa" : "organizacao");
-            }}
-            onUploadPhoto={uploadPhoto}
-            onDeletePhoto={deletePhoto}
-            onUploadDocumentImage={uploadDocumentImage}
-            onDeleteDocumentImage={deleteDocumentImage}
-            onUploadResource={uploadResource}
-            onDeleteResource={deleteResource}
-            onUpdateResourceObservation={updateResourceObservation}
-            onDeletePerson={deletePerson}
-            onUploadOrganizationPhoto={uploadOrganizationPhoto}
-            onDeleteOrganizationPhoto={deleteOrganizationPhoto}
-            onDeleteOrganization={deleteOrganization}
-            onCreateLink={saveLink}
-            onManageLink={manageLink}
-            onSaveNucleus={saveNucleus}
-            onArchiveNucleus={archiveNucleus}
-            onCreatePersonForOrganization={(organizationId) => {
-              setCreateOrganizationId(organizationId);
-              setCreateKind("pessoa");
-            }}
-            onCreateTerritoryForOrganization={(organizationId) => {
-              setCreateOrganizationId(organizationId);
-              setCreateKind("territorio");
-            }}
-            onDeleteTerritory={deleteTerritory}
-          />
+          <Suspense fallback={<NexoDeferredOverlayFallback />}>
+            <NexoDossier
+              key={`${dossier.kind}:${dossier.id}`}
+              target={dossier}
+              organizations={organizations}
+              nuclei={nuclei}
+              people={people}
+              territories={territories}
+              records={reportRecords}
+              onProcedureRecordsChange={setReportRecords}
+              previewHierarchyEvents={previewHierarchyEvents}
+              previewNotes={reportNotes}
+              onPreviewNoteCreated={(note) => setReportNotes((current) => [note, ...current])}
+              preview={preview}
+              onClose={() => void closeDossier()}
+              onOpen={openDossier}
+              onReport={() =>
+                void prepareReport(
+                  dossier.kind === "person"
+                    ? { kind: "pessoa", pessoaId: dossier.id }
+                    : { kind: "organizacao", organizacaoId: dossier.id },
+                )
+              }
+              onEdit={(target) => {
+                setEditTarget(target);
+                setCreateOrganizationId(null);
+                setCreateKind(target.kind === "person" ? "pessoa" : "organizacao");
+              }}
+              onUploadPhoto={uploadPhoto}
+              onDeletePhoto={deletePhoto}
+              onUploadDocumentImage={uploadDocumentImage}
+              onDeleteDocumentImage={deleteDocumentImage}
+              onUploadResource={uploadResource}
+              onDeleteResource={deleteResource}
+              onUpdateResourceObservation={updateResourceObservation}
+              onDeletePerson={deletePerson}
+              onUploadOrganizationPhoto={uploadOrganizationPhoto}
+              onDeleteOrganizationPhoto={deleteOrganizationPhoto}
+              onDeleteOrganization={deleteOrganization}
+              onCreateLink={saveLink}
+              onManageLink={manageLink}
+              onSaveNucleus={saveNucleus}
+              onArchiveNucleus={archiveNucleus}
+              onCreatePersonForOrganization={(organizationId) => {
+                setCreateOrganizationId(organizationId);
+                setCreateKind("pessoa");
+              }}
+              onCreateTerritoryForOrganization={(organizationId) => {
+                setCreateOrganizationId(organizationId);
+                setCreateKind("territorio");
+              }}
+              onDeleteTerritory={deleteTerritory}
+            />
+          </Suspense>
         ) : null}
         {createKind ? (
-          <NexoCreateDialog
-            kind={createKind}
-            initialOrganizationId={createOrganizationId}
-            initialOrganization={
-              editTarget?.kind === "organization"
-                ? organizations.find((item) => item.id === editTarget.id) || null
-                : null
-            }
-            initialPerson={
-              editTarget?.kind === "person"
-                ? people.find((item) => item.id === editTarget.id) || null
-                : null
-            }
-            organizations={organizations}
-            people={people}
-            territories={territories}
-            onClose={() => {
-              setCreateKind(null);
-              setCreateOrganizationId(null);
-              setEditTarget(null);
-            }}
-            onSaveOrganization={saveOrganization}
-            onSavePerson={savePerson}
-            onSaveTerritory={saveTerritory}
-            onResolvePersonConflict={async () => {
-              await reload();
-              setCreateKind(null);
-              setCreateOrganizationId(null);
-              setEditTarget(null);
-              setNotice("Versão mais recente da ficha carregada");
-            }}
-          />
+          <Suspense fallback={<NexoDeferredOverlayFallback />}>
+            <NexoCreateDialog
+              kind={createKind}
+              initialOrganizationId={createOrganizationId}
+              initialOrganization={
+                editTarget?.kind === "organization"
+                  ? organizations.find((item) => item.id === editTarget.id) || null
+                  : null
+              }
+              initialPerson={
+                editTarget?.kind === "person"
+                  ? people.find((item) => item.id === editTarget.id) || null
+                  : null
+              }
+              organizations={organizations}
+              people={people}
+              territories={territories}
+              onClose={() => {
+                setCreateKind(null);
+                setCreateOrganizationId(null);
+                setEditTarget(null);
+              }}
+              onSaveOrganization={saveOrganization}
+              onSavePerson={savePerson}
+              onSaveTerritory={saveTerritory}
+              onResolvePersonConflict={async () => {
+                await reload();
+                setCreateKind(null);
+                setCreateOrganizationId(null);
+                setEditTarget(null);
+                setNotice("Versão mais recente da ficha carregada");
+              }}
+            />
+          </Suspense>
         ) : null}
         {notice ? (
           <div
