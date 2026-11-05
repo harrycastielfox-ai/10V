@@ -253,6 +253,10 @@ function OrganogramCanvas({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(() => new Set());
   const searchResults = useMemo(() => searchNexoOrganogram(model, query), [model, query]);
+  const hasVisualGrouping = useMemo(
+    () => model.members.some((member) => Boolean(member.visualParentId)),
+    [model],
+  );
   const visibleIds = useMemo(
     () => getVisibleNexoOrganogram(model, collapsedIds),
     [collapsedIds, model],
@@ -328,17 +332,23 @@ function OrganogramCanvas({
     const visible = new Set(visibleIds);
     return visibleIds.flatMap((id) => {
       const member = model.membersById.get(id);
-      if (!member?.parentId || !visible.has(member.parentId)) return [];
+      const edgeParentId = member?.parentId || member?.visualParentId;
+      if (!member || !edgeParentId || !visible.has(edgeParentId)) return [];
+      const isVisualGrouping = !member.parentId && Boolean(member.visualParentId);
       return [
         {
-          id: `${member.parentId}:${id}`,
-          source: member.parentId,
+          id: `${edgeParentId}:${id}`,
+          source: edgeParentId,
           target: id,
           type: "smoothstep",
+          className: isVisualGrouping
+            ? "nexo-organogram-edge is-visual-grouping"
+            : "nexo-organogram-edge",
           pathOptions: { offset: 8, borderRadius: 3 },
           style: {
-            stroke: "#72aebd",
+            stroke: isVisualGrouping ? "#9ab4be" : "#72aebd",
             strokeWidth: 2,
+            strokeDasharray: isVisualGrouping ? "7 6" : undefined,
           },
         },
       ];
@@ -381,7 +391,9 @@ function OrganogramCanvas({
           {model.members.length} integrante{model.members.length === 1 ? "" : "s"}
         </span>
         <span className="nexo-organogram-context" role="note">
-          Sem superior cadastrado não significa liderança.
+          {hasVisualGrouping
+            ? "Conexões tracejadas organizam integrantes sem chefia cadastrada."
+            : "Sem superior cadastrado não significa liderança."}
         </span>
         <button
           type="button"

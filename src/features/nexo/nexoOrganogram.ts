@@ -10,6 +10,8 @@ export interface NexoOrganogramMember {
   person: NexoPessoa;
   link: NexoVinculo;
   parentId: string | null;
+  /** Layout-only attachment used to compact isolated roots without changing the recorded hierarchy. */
+  visualParentId: string | null;
   childIds: string[];
   depth: number;
   position: NexoOrganogramPosition;
@@ -33,6 +35,7 @@ interface CandidateMember {
 
 const HORIZONTAL_GAP = 360;
 const VERTICAL_GAP = 160;
+const COMPACT_ROOT_COLUMNS = 5;
 
 export function isNexoOrganogramLeadershipRole(role: string | null | undefined) {
   const normalized = (role || "")
@@ -105,8 +108,30 @@ export function buildNexoOrganogram(
   const rootIds = candidates
     .filter((candidate) => !parents.get(candidate.id))
     .map((candidate) => candidate.id);
+  const descendantCountById = new Map<string, number>();
+  const countDescendants = (id: string): number => {
+    const cached = descendantCountById.get(id);
+    if (cached !== undefined) return cached;
+    const count = (children.get(id) ?? []).reduce(
+      (total, childId) => total + 1 + countDescendants(childId),
+      0,
+    );
+    descendantCountById.set(id, count);
+    return count;
+  };
+  const primaryRootId =
+    rootIds.reduce<string | null>((bestId, id) => {
+      if (!bestId) return id;
+      return countDescendants(id) > countDescendants(bestId) ? id : bestId;
+    }, null) ?? null;
+  const compactRootIds = rootIds.filter(
+    (id) => id !== primaryRootId && (children.get(id)?.length ?? 0) === 0,
+  );
+  const compactRootSet = new Set(compactRootIds);
+  const independentRootIds = rootIds.filter((id) => !compactRootSet.has(id));
   const depthById = new Map<string, number>();
   const xById = new Map<string, number>();
+  const visualParents = new Map<string, string | null>();
   let nextLeaf = 0;
 
   const place = (id: string, depth: number): number => {
@@ -127,11 +152,24 @@ export function buildNexoOrganogram(
     return x;
   };
 
-  for (const rootId of rootIds) place(rootId, 1);
+  for (const rootId of independentRootIds) place(rootId, 1);
+
+  const maximumDocumentedDepth = Math.max(1, ...depthById.values());
+  const primaryX = primaryRootId ? (xById.get(primaryRootId) ?? 0) : 0;
+  compactRootIds.forEach((id, index) => {
+    const row = Math.floor(index / COMPACT_ROOT_COLUMNS);
+    const rowStart = row * COMPACT_ROOT_COLUMNS;
+    const rowSize = Math.min(COMPACT_ROOT_COLUMNS, compactRootIds.length - rowStart);
+    const column = index - rowStart;
+    depthById.set(id, maximumDocumentedDepth + 1 + row);
+    xById.set(id, primaryX + (column - (rowSize - 1) / 2) * HORIZONTAL_GAP);
+    visualParents.set(id, primaryRootId);
+  });
 
   const members: NexoOrganogramMember[] = candidates.map((candidate) => ({
     ...candidate,
     parentId: parents.get(candidate.id) ?? null,
+    visualParentId: visualParents.get(candidate.id) ?? null,
     childIds: children.get(candidate.id) ?? [],
     depth: depthById.get(candidate.id) ?? 1,
     position: {

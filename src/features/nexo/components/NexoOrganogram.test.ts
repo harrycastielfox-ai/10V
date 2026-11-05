@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { isNexoOrganogramLeadershipRole } from "../nexoOrganogram";
-import type { NexoOrganizacao } from "../nexoTypes";
+import type { NexoOrganizacao, NexoPessoa, NexoVinculo } from "../nexoTypes";
 import { NexoOrganogram } from "./NexoOrganogram";
 
 const organization: NexoOrganizacao = {
@@ -23,6 +23,32 @@ const baseProps = {
   members: [],
   onOpen: () => {},
 };
+
+function organogramMember(id: string, nome: string): { person: NexoPessoa; link: NexoVinculo } {
+  const link = {
+    id: `v-${id}`,
+    pessoa_id: id,
+    organizacao_id: organization.id,
+    status: "confirmado",
+    funcao: "Integrante",
+    confianca: 80,
+    fonte_resumo: "Fonte sintética",
+    desde: null,
+    ate: null,
+    superior_vinculo_id: null,
+    nucleo_id: null,
+  } as NexoVinculo;
+  const person = {
+    id,
+    nome,
+    apelido: null,
+    vinculos: [link],
+    fotos: [],
+    foto_perfil_path: null,
+    foto_relatorio_path: null,
+  } as unknown as NexoPessoa;
+  return { person, link };
+}
 
 describe("estados do organograma NEXO", () => {
   it("expõe estado de carregamento sem montar o canvas vazio", () => {
@@ -73,5 +99,19 @@ describe("estados do organograma NEXO", () => {
 
     expect(html).toContain("Núcleos e setores");
     expect(html).toContain('aria-label="Gerenciar núcleos e setores"');
+  });
+
+  it("explica que conexões tracejadas agrupam visualmente integrantes sem chefia", () => {
+    const html = renderToStaticMarkup(
+      createElement(NexoOrganogram, {
+        ...baseProps,
+        members: [
+          organogramMember("principal", "Raiz Principal"),
+          organogramMember("isolado", "Integrante Isolado"),
+        ],
+      }),
+    );
+
+    expect(html).toContain("Conexões tracejadas organizam integrantes sem chefia cadastrada.");
   });
 });
