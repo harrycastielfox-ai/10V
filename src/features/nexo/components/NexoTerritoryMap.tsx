@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
-import type { LayerGroup, Map as LeafletMap } from "leaflet";
+import type { FeatureGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { NexoLegacyTerritoryMap } from "./NexoLegacyTerritoryMap";
 import { circleArea, geographicPoint, isGeographicArea } from "../nexoTerritoryCoordinates";
@@ -10,6 +10,11 @@ import type { NexoMapPoint } from "../nexoTypes";
 type Props = ComponentProps<typeof NexoLegacyTerritoryMap> & {
   onDrawingChange?: (points: NexoMapPoint[]) => void;
   drawingAreas?: NexoMapPoint[][];
+  labelMode?: "territory" | "organization";
+  fitTerritories?: boolean;
+  heightClassName?: string;
+  mapAriaLabel?: string;
+  readOnlyDescription?: string;
 };
 
 const ITABELA_CENTER: [number, number] = [-16.575, -39.559];
@@ -49,7 +54,7 @@ export function NexoTerritoryMap(props: Props) {
 function StreetMap(props: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletMap | null>(null);
-  const shapes = useRef<LayerGroup | null>(null);
+  const shapes = useRef<FeatureGroup | null>(null);
   const current = useRef(props);
   current.current = props;
   const [ready, setReady] = useState(false);
@@ -103,7 +108,7 @@ function StreetMap(props: Props) {
         })
           .on("tileerror", () => setFailed(true))
           .addTo(instance);
-        shapes.current = L.layerGroup().addTo(instance);
+        shapes.current = L.featureGroup().addTo(instance);
         instance.on("click", ({ latlng }) => {
           if (!current.current.onMapClick) return;
           if (modeRef.current === "circle" && current.current.onDrawingChange) {
@@ -166,8 +171,8 @@ function StreetMap(props: Props) {
         }
       }
       for (const area of props.territories) {
-        const color =
-          props.organizations.find((org) => org.id === area.organizacao_id)?.cor || "#16879b";
+        const organization = props.organizations.find((org) => org.id === area.organizacao_id);
+        const color = organization?.cor || "#16879b";
         for (const areaPolygon of territoryPolygons(area).filter(isGeographicArea)) {
           const polygon = L.polygon(
             areaPolygon.map((point) => [point.y, point.x]),
@@ -179,8 +184,25 @@ function StreetMap(props: Props) {
             },
           ).addTo(layer);
           const label = document.createElement("span");
-          label.textContent = area.bairro;
-          polygon.bindTooltip(label).on("click", () => props.onSelect(area));
+          if (props.labelMode === "organization") {
+            const title = document.createElement("strong");
+            title.textContent = organization?.sigla?.trim() || organization?.nome || "Facção";
+            const detail = document.createElement("small");
+            detail.textContent = area.bairro;
+            label.className = "nexo-territory-organization-label__content";
+            label.append(title, detail);
+          } else label.textContent = area.bairro;
+          polygon
+            .bindTooltip(label, {
+              permanent: props.labelMode === "organization",
+              direction: "top",
+              className:
+                props.labelMode === "organization"
+                  ? "nexo-territory-organization-label"
+                  : undefined,
+              opacity: 1,
+            })
+            .on("click", () => props.onSelect(area));
         }
       }
       for (const [index, completedArea] of (props.drawingAreas || []).entries()) {
@@ -216,6 +238,10 @@ function StreetMap(props: Props) {
         L.circleMarker(center.current, { radius: 6, color: "#d97706", interactive: false }).addTo(
           layer,
         );
+      if (props.fitTerritories && !drawing) {
+        const bounds = layer.getBounds();
+        if (bounds.isValid()) map.current?.fitBounds(bounds, { padding: [34, 34], maxZoom: 16 });
+      }
     });
     return () => {
       cancelled = true;
@@ -287,10 +313,10 @@ function StreetMap(props: Props) {
       ) : null}
       <div
         ref={container}
-        aria-label="Mapa de ruas para marcação territorial"
+        aria-label={props.mapAriaLabel || "Mapa de ruas para marcação territorial"}
         data-map-center={visibleView?.center}
         data-map-zoom={visibleView?.zoom}
-        className="relative z-0 h-[550px] w-full"
+        className={`relative z-0 w-full ${props.heightClassName || "h-[550px]"}`}
       />
       <p className="border-t px-4 py-3 text-xs text-[#567184]">
         {drawing
@@ -299,7 +325,8 @@ function StreetMap(props: Props) {
               ? "Clique na borda desejada para definir o tamanho do círculo (mínimo 5 metros)."
               : "Clique no centro e depois na borda para circular a área. Depois, use Concluir área e iniciar outra."
             : "Clique em três ou mais pontos para contornar a área. Arraste o mapa para navegar."
-          : "Amplie para ver as ruas. Use Adicionar local para contornar ou circular uma área."}
+          : props.readOnlyDescription ||
+            "Amplie para ver as ruas. Use Adicionar local para contornar ou circular uma área."}
         {drawing ? " O desenho só é salvo ao confirmar o cadastro." : ""}
       </p>
     </div>

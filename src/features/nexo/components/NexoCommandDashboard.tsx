@@ -1,12 +1,8 @@
-import { useMemo, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
   Building2,
-  CheckCircle2,
-  ClipboardCheck,
   FileText,
-  Filter,
   MapPinned,
   Network,
   Plus,
@@ -16,15 +12,11 @@ import {
 import { activeDirectoryLinks } from "../nexoDirectoryFilters";
 import { getNexoPersonPhotoUrl } from "../nexoSelectors";
 import {
-  filterNexoPendingItems,
-  listNexoPendingCategories,
-  type NexoPendingCategory,
-} from "../nexoPendencias";
-import {
   uniqueNexoProcedureRecords,
   type NexoWorkspaceSearchData,
   type NexoWorkspaceView,
 } from "../nexoWorkspaceSearch";
+import { NexoTerritoryMap } from "./NexoTerritoryMap";
 
 type Target = { kind: "person" | "organization"; id: string };
 
@@ -44,22 +36,12 @@ export function NexoCommandDashboard({
   onSearch: () => void;
 }) {
   const { organizations, people, territories, records } = data;
-  const [selectedPendingCategory, setSelectedPendingCategory] =
-    useState<NexoPendingCategory>("foto_perfil");
-  const [pendingQuery, setPendingQuery] = useState("");
   const uniqueRecords = uniqueNexoProcedureRecords(records);
   const activeLinks = people.flatMap(activeDirectoryLinks);
-  const pendingCategories = useMemo(
-    () => listNexoPendingCategories(people, territories),
-    [people, territories],
+  const mappedOrganizationIds = new Set(territories.map((territory) => territory.organizacao_id));
+  const mappedOrganizations = organizations.filter((organization) =>
+    mappedOrganizationIds.has(organization.id),
   );
-  const selectedPending =
-    pendingCategories.find((item) => item.category === selectedPendingCategory) ||
-    pendingCategories[0];
-  const filteredPendingItems = selectedPending
-    ? filterNexoPendingItems(selectedPending.items, pendingQuery)
-    : [];
-  const pendingTotal = pendingCategories.reduce((total, item) => total + item.items.length, 0);
   const recent = [
     ...people.map((person) => ({
       id: person.id,
@@ -154,13 +136,6 @@ export function NexoCommandDashboard({
               >
                 <Building2 className="h-4 w-4" /> Cadastrar facção
               </button>
-              <button
-                type="button"
-                onClick={() => onNavigate("relatorios")}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-3 text-xs font-bold text-[#cae7ef] transition hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-200"
-              >
-                Configurar relatório <ArrowUpRight className="h-4 w-4" />
-              </button>
             </div>
           </div>
           <div className="space-y-4">
@@ -245,7 +220,7 @@ export function NexoCommandDashboard({
         ))}
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.4fr_1fr]">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(320px,.72fr)_minmax(0,1.28fr)]">
         <section className="nexo-surface rounded-[22px] p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -307,106 +282,64 @@ export function NexoCommandDashboard({
           </div>
         </section>
         <div className="space-y-5">
-          <section className="nexo-surface rounded-[22px] p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-3">
+          <section className="nexo-surface overflow-hidden rounded-[22px]">
+            <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
               <div>
-                <p className="nexo-eyebrow">Cobertura cadastral</p>
+                <p className="nexo-eyebrow">Leitura territorial</p>
                 <h2 className="mt-1.5 flex items-center gap-2 text-[17px] font-extrabold tracking-[-.02em] text-[#12334a]">
-                  <ClipboardCheck className="h-4 w-4 text-[#168aa1]" aria-hidden />
-                  Pendências cadastrais
+                  <MapPinned className="h-4 w-4 text-[#168aa1]" aria-hidden />
+                  Mapa territorial
                 </h2>
+                <p className="mt-2 text-xs leading-6 text-[#567184]">
+                  Áreas registradas por facção, conforme os limites informados no NEXO.
+                </p>
               </div>
-              <span className="rounded-full bg-[#eef7f8] px-2.5 py-1 text-[11px] font-bold tabular-nums text-[#1e6076]">
-                {pendingTotal} item(ns)
-              </span>
-            </div>
-            <p className="mt-2 text-xs leading-6 text-[#567184]">
-              Ausência de informação é apresentada como revisão ou recomendação, nunca como fato
-              negativo.
-            </p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {pendingCategories.map((category) => (
-                <button
-                  key={category.category}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPendingCategory(category.category);
-                    setPendingQuery("");
-                  }}
-                  className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
-                    selectedPendingCategory === category.category
-                      ? "border-[#78b8c6] bg-[#edf7f9]"
-                      : "border-[#e4edf2] bg-[#f6f9fb] hover:border-[#c7dfe7] hover:bg-[#edf6f8]"
-                  }`}
-                >
-                  <strong className="min-w-7 text-lg font-extrabold tabular-nums text-[#1e6076]">
-                    {category.items.length}
-                  </strong>
-                  <span className="min-w-0 flex-1 text-xs font-semibold leading-5 text-[#385c73]">
-                    {category.label}
+              <div
+                className="flex max-w-full flex-wrap gap-2"
+                aria-label="Legenda das facções no mapa"
+              >
+                {mappedOrganizations.map((organization) => (
+                  <button
+                    key={organization.id}
+                    type="button"
+                    onClick={() => onOpen({ kind: "organization", id: organization.id })}
+                    title={`Abrir dossiê de ${organization.nome}`}
+                    className="inline-flex min-h-9 items-center gap-2 rounded-full border border-[#d8e5eb] bg-[#f7fafb] px-3 py-2 text-[10px] font-black uppercase tracking-[.08em] text-[#385c73] transition hover:border-[#8dbbc7] hover:bg-white"
+                  >
+                    <span
+                      aria-hidden
+                      className="h-2.5 w-2.5 rounded-full shadow-[0_0_0_3px_white]"
+                      style={{ backgroundColor: organization.cor }}
+                    />
+                    <span>{organization.sigla?.trim() || organization.nome}</span>
+                    {organization.sigla?.trim() ? (
+                      <span className="sr-only">{organization.nome}</span>
+                    ) : null}
+                  </button>
+                ))}
+                {!mappedOrganizations.length ? (
+                  <span className="inline-flex min-h-9 items-center rounded-full border border-[#d8e5eb] bg-[#f7fafb] px-3 py-2 text-[10px] font-bold text-[#668194]">
+                    0 áreas registradas
                   </span>
-                  {category.items.length ? (
-                    <Filter className="h-3.5 w-3.5 text-[#7a9eac]" aria-hidden />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
-                  )}
-                </button>
-              ))}
-            </div>
-            {selectedPending ? (
-              <div className="mt-4 border-t border-[#edf2f5] pt-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs leading-5 text-[#567184]">{selectedPending.description}</p>
-                  <label className="sr-only" htmlFor="nexo-pending-search">
-                    Pesquisar pendências
-                  </label>
-                  <input
-                    id="nexo-pending-search"
-                    value={pendingQuery}
-                    onChange={(event) => setPendingQuery(event.target.value)}
-                    placeholder="Pesquisar"
-                    className="h-9 w-32 rounded-lg border border-[#d9e5ed] bg-white px-2.5 text-xs text-[#18384f] outline-none focus:border-[#33a0b4] sm:w-40"
-                  />
-                </div>
-                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
-                  {filteredPendingItems.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => onOpen({ kind: "person", id: item.personId })}
-                      className="group flex w-full items-start gap-3 rounded-xl border border-[#e4edf2] bg-white px-3 py-2.5 text-left transition hover:border-[#9bc8d2] hover:bg-[#f5fbfc]"
-                    >
-                      <span className="mt-0.5 shrink-0 text-[#168aa1]">
-                        <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-xs font-bold text-[#23465e]">
-                          {item.title}
-                        </span>
-                        <span className="mt-1 block text-[11px] leading-4 text-[#698294]">
-                          {item.detail}
-                        </span>
-                      </span>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-wide ${
-                          item.severity === "obrigatoria"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-[#edf4f7] text-[#567184]"
-                        }`}
-                      >
-                        {item.severity === "obrigatoria" ? "Revisar" : "Recomendação"}
-                      </span>
-                    </button>
-                  ))}
-                  {!filteredPendingItems.length ? (
-                    <div className="flex items-center gap-2 rounded-xl bg-[#f6f9fb] px-3 py-4 text-xs text-[#567184]">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
-                      Nenhuma pendência nesta categoria para a pesquisa atual.
-                    </div>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
-            ) : null}
+            </div>
+            <div className="border-t border-[#dce8ed] bg-[#f4f8fa] p-2 sm:p-3">
+              <NexoTerritoryMap
+                territories={territories}
+                organizations={organizations}
+                people={[]}
+                selectedId={null}
+                onSelect={(territory) =>
+                  onOpen({ kind: "organization", id: territory.organizacao_id })
+                }
+                labelMode="organization"
+                fitTerritories
+                heightClassName="h-[390px] sm:h-[460px]"
+                mapAriaLabel="Mapa territorial da Central NEXO"
+                readOnlyDescription="As áreas registradas nos dossiês aparecem aqui com a cor e a identificação da facção relacionada."
+              />
+            </div>
           </section>
           <button
             type="button"

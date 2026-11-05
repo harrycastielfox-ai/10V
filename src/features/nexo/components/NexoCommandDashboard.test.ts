@@ -1,7 +1,12 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { NEXO_DEMO_ORGANIZACOES, NEXO_DEMO_PESSOAS, NEXO_DEMO_REGISTROS } from "../nexoDemoData";
+import {
+  NEXO_DEMO_ORGANIZACOES,
+  NEXO_DEMO_PESSOAS,
+  NEXO_DEMO_REGISTROS,
+  NEXO_DEMO_TERRITORIOS,
+} from "../nexoDemoData";
 import type { NexoWorkspaceSearchData } from "../nexoWorkspaceSearch";
 import { NexoCommandDashboard } from "./NexoCommandDashboard";
 
@@ -42,6 +47,28 @@ describe("panorama da Central NEXO", () => {
     for (const label of ["Pessoas", "Facções", "Áreas", "Procedimentos"])
       expect(indicator(html, label)).toBe(0);
     expect(html).toContain("0 vínculos atuais registrados");
+    expect(html).toContain("Mapa territorial");
+    expect(html).toContain("Mapa territorial da Central NEXO");
+    expect(html).toContain("0 áreas registradas");
+    expect(html).toContain("As áreas registradas nos dossiês aparecem aqui");
+    expect(html).not.toContain("Pendências cadastrais");
+    expect(html).not.toContain("Configurar relatório");
+  });
+
+  it("apresenta no mapa as facções com áreas registradas e suas cores", () => {
+    const html = render({
+      ...empty,
+      organizations: NEXO_DEMO_ORGANIZACOES,
+      territories: NEXO_DEMO_TERRITORIOS,
+    });
+    expect(html).toContain("Áreas registradas por facção");
+    expect(html).toContain("Grupo Atlas");
+    expect(html).toContain("GAT");
+    expect(html).toContain("Núcleo Norte");
+    expect(html).toContain("NN");
+    expect(html).toContain("#ef4444");
+    expect(html).toContain("#f59e0b");
+    expect(indicator(html, "Áreas")).toBe(NEXO_DEMO_TERRITORIOS.length);
   });
 
   it("conta o mesmo B.O. uma vez mesmo vinculado a vários alvos", () => {
@@ -71,7 +98,7 @@ describe("panorama da Central NEXO", () => {
     expect(indicator(html, "Procedimentos")).toBe(2);
   });
 
-  it("exclui desvinculados das conexões atuais e da revisão de fontes", () => {
+  it("exclui desvinculados da contagem de conexões atuais", () => {
     const person = NEXO_DEMO_PESSOAS[0];
     const link = person.vinculos[0];
     const html = render({
@@ -88,7 +115,6 @@ describe("panorama da Central NEXO", () => {
       ],
     });
     expect(html).toContain("2 vínculos atuais registrados");
-    expect(html).toMatch(/<strong[^>]*>1<\/strong><span[^>]*>Fonte do vínculo<\/span>/);
     expect(html).not.toContain("3 vínculos atuais registrados");
   });
 
