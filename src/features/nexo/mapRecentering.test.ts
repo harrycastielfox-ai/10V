@@ -1,5 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { scheduleRigidMapRecentering } from "./mapRecentering";
+import { scheduleRigidMapRecentering, shouldAnimateMapRecentering } from "./mapRecentering";
+
+describe("shouldAnimateMapRecentering", () => {
+  it("desativa animação nos ciclos automáticos para evitar trabalho periódico", () => {
+    expect(shouldAnimateMapRecentering(true, false)).toBe(false);
+  });
+
+  it("mantém animação no comando manual quando movimento reduzido está desligado", () => {
+    expect(shouldAnimateMapRecentering(false, false)).toBe(true);
+  });
+
+  it("desativa animação manual quando movimento reduzido está ativo", () => {
+    expect(shouldAnimateMapRecentering(false, true)).toBe(false);
+  });
+});
 
 describe("scheduleRigidMapRecentering", () => {
   afterEach(() => vi.useRealTimers());

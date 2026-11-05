@@ -3,7 +3,7 @@ import type { FeatureGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { NexoLegacyTerritoryMap } from "./NexoLegacyTerritoryMap";
 import { circleArea, geographicPoint, isGeographicArea } from "../nexoTerritoryCoordinates";
-import { scheduleRigidMapRecentering } from "../mapRecentering";
+import { scheduleRigidMapRecentering, shouldAnimateMapRecentering } from "../mapRecentering";
 import { territoryPolygons } from "../nexoTerritoryGeometry";
 import type { NexoMapPoint } from "../nexoTypes";
 
@@ -66,18 +66,17 @@ function StreetMap(props: Props) {
   modeRef.current = mode;
   const center = useRef<[number, number] | null>(null);
   const [hasCenter, setHasCenter] = useState(false);
-  const [automaticRecenterCount, setAutomaticRecenterCount] = useState(0);
   const [visibleView, setVisibleView] = useState<{ center: string; zoom: number } | null>(null);
   const drawing = Boolean(props.onMapClick);
   const recenterCity = useCallback((automatic = false) => {
     const instance = map.current;
     if (!instance) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      instance.setView(ITABELA_CENTER, ITABELA_ZOOM, { animate: false });
-    } else {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (shouldAnimateMapRecentering(automatic, prefersReducedMotion)) {
       instance.flyTo(ITABELA_CENTER, ITABELA_ZOOM, { duration: 0.45 });
+    } else {
+      instance.setView(ITABELA_CENTER, ITABELA_ZOOM, { animate: false });
     }
-    if (automatic) setAutomaticRecenterCount((count) => count + 1);
   }, []);
 
   useEffect(() => {
@@ -302,11 +301,6 @@ function StreetMap(props: Props) {
           Centralizar cidade
         </button>
       </div>
-      {automaticRecenterCount ? (
-        <span role="status" className="sr-only">
-          Mapa recentralizado automaticamente · {automaticRecenterCount}
-        </span>
-      ) : null}
       {failed ? (
         <p role="status" className="bg-amber-50 p-3 text-xs text-amber-900">
           Não foi possível carregar parte do mapa. Verifique a conexão e recarregue antes de marcar
