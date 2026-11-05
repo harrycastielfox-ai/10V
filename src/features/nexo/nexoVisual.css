@@ -620,6 +620,10 @@
     background: transparent;
   }
 
+  .nexo-organogram-edge.is-visual-grouping {
+    opacity: 0.82;
+  }
+
   .nexo-organogram-card {
     width: 320px;
     overflow: hidden;

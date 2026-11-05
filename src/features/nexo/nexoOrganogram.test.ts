@@ -78,6 +78,58 @@ function person(
 }
 
 describe("projeção do organograma NEXO", () => {
+  it("compacta raízes isoladas abaixo da maior árvore sem criar chefia real", () => {
+    const people = [
+      person("p-principal", "Adriano Sintético", null, [link("v-principal", "p-principal")]),
+      person("p-filho", "Liderança Vinculada", null, [link("v-filho", "p-filho", "v-principal")]),
+      person("p-neto", "Integrante Vinculado", null, [link("v-neto", "p-neto", "v-filho")]),
+      person("p-outra-raiz", "Outra Liderança", null, [link("v-outra-raiz", "p-outra-raiz")]),
+      ...Array.from({ length: 6 }, (_, index) =>
+        person(`p-isolado-${index}`, `Integrante Isolado ${index}`, null, [
+          link(`v-isolado-${index}`, `p-isolado-${index}`),
+        ]),
+      ),
+    ];
+
+    const model = buildNexoOrganogram(ORGANIZATION_ID, people);
+    const isolated = model.members.filter((member) => member.id.startsWith("v-isolado"));
+    const isolatedRows = new Map<number, number>();
+    isolated.forEach((member) =>
+      isolatedRows.set(member.position.y, (isolatedRows.get(member.position.y) || 0) + 1),
+    );
+
+    expect(isolated).toHaveLength(6);
+    expect(isolated.every((member) => member.parentId === null)).toBe(true);
+    expect(isolated.every((member) => member.visualParentId === "v-principal")).toBe(true);
+    expect(Math.min(...isolated.map((member) => member.position.y))).toBeGreaterThan(
+      model.membersById.get("v-neto")?.position.y ?? 0,
+    );
+    expect([...isolatedRows.values()]).toEqual([5, 1]);
+    expect(model.membersById.get("v-outra-raiz")?.visualParentId).toBe("v-principal");
+    expect(model.rootIds).toContain("v-outra-raiz");
+  });
+
+  it("mantém uma raiz com descendentes como árvore independente", () => {
+    const people = [
+      person("p-principal", "Raiz Principal", null, [link("v-principal", "p-principal")]),
+      person("p-a", "Filho A", null, [link("v-a", "p-a", "v-principal")]),
+      person("p-b", "Neto B", null, [link("v-b", "p-b", "v-a")]),
+      person("p-regional", "Raiz Regional", null, [link("v-regional", "p-regional")]),
+      person("p-regional-filho", "Filho Regional", null, [
+        link("v-regional-filho", "p-regional-filho", "v-regional"),
+      ]),
+      person("p-isolado", "Integrante Isolado", null, [link("v-isolado", "p-isolado")]),
+    ];
+
+    const model = buildNexoOrganogram(ORGANIZATION_ID, people);
+
+    expect(model.membersById.get("v-regional")?.visualParentId).toBeNull();
+    expect(model.membersById.get("v-regional-filho")?.parentId).toBe("v-regional");
+    expect(model.membersById.get("v-isolado")?.visualParentId).toBe("v-principal");
+    expect(getNexoOrganogramAncestors(model, "v-isolado")).toEqual([]);
+    expect(getVisibleNexoOrganogram(model, new Set(["v-principal"]))).toContain("v-isolado");
+  });
+
   it("centraliza a raiz sobre ramificações de tamanhos diferentes", () => {
     const people = [
       person("r", "Raiz", null, [link("r", "r")]),
