@@ -459,10 +459,10 @@ function OrganogramCanvas({
           onNodeClick={(_, node) => focusMember(node.id)}
           panOnDrag
           panOnScroll={false}
-          zoomOnScroll
+          zoomOnScroll={isFullscreen}
           zoomOnPinch
           zoomOnDoubleClick={false}
-          preventScrolling
+          preventScrolling={isFullscreen}
           selectionOnDrag={false}
           onlyRenderVisibleElements
           proOptions={{ hideAttribution: true }}

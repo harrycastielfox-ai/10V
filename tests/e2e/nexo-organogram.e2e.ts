@@ -95,3 +95,28 @@ test("permanece utilizável em notebook compacto", async ({ page }) => {
   await expect(page.getByRole("article").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Ampliar zoom" })).toBeVisible();
 });
+
+test("deixa a roda do mouse rolar a página fora da tela cheia", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 720 });
+  const dossier = page.getByRole("dialog", { name: /^Dossiê de / });
+  await dossier.evaluate((element) => element.scrollTo(0, 0));
+  const tree = page.getByLabel(/^Árvore do organograma de /);
+  const stage = page.locator(".nexo-organogram-stage");
+  await page.getByRole("button", { name: "Ajustar à tela" }).click();
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  await dossier.evaluate((element) => element.scrollTo(0, 0));
+  await page.waitForTimeout(500);
+  const box = await tree.boundingBox();
+  expect(box).not.toBeNull();
+
+  const initialScroll = await dossier.evaluate((element) => element.scrollTop);
+  const initialZoom = await stage.getAttribute("data-viewport-zoom");
+  await page.mouse.move(box!.x + box!.width / 2, Math.min(620, box!.y + 220));
+  await page.mouse.wheel(0, 500);
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+
+  await expect
+    .poll(() => dossier.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(initialScroll);
+  expect(await stage.getAttribute("data-viewport-zoom")).toBe(initialZoom);
+});
